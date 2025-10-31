@@ -6,6 +6,7 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import AllDevicesPage from './components/AllDevicesPage';
 import DeviceSettingsModal from './components/DeviceSettingsModal';
+import LoadingSpinner from './components/LoadingSpinner';
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
@@ -16,6 +17,7 @@ type DeviceOrderMap = Record<string, string[]>; // { [roomId]: deviceId[] }
 const App: React.FC = () => {
   const {
     connectionStatus,
+    isLoading,
     error,
     entities,
     areas,
@@ -149,6 +151,10 @@ const App: React.FC = () => {
   }
 
   const renderPage = () => {
+    if (isLoading) {
+      return <LoadingSpinner />;
+    }
+
     switch (currentPage) {
         case 'dashboard':
             return (

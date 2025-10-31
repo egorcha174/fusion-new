@@ -10,6 +10,7 @@ type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'failed';
 
 const useHomeAssistant = () => {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('idle');
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [entities, setEntities] = useState<HassEntities>({});
   const [areas, setAreas] = useState<HassArea[]>([]);
@@ -17,6 +18,7 @@ const useHomeAssistant = () => {
   const [entityRegistry, setEntityRegistry] = useState<HassEntityRegistryEntry[]>([]);
   const socketRef = useRef<WebSocket | null>(null);
   const messageIdRef = useRef(1);
+  const initialFetchIds = useRef<Set<number>>(new Set());
 
   const sendMessage = useCallback((message: object) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
@@ -34,6 +36,7 @@ const useHomeAssistant = () => {
     setDevices([]);
     setEntityRegistry([]);
     setError(null);
+    setIsLoading(false);
   }, []);
 
   const callService = useCallback((domain: string, service: string, service_data: object) => {
@@ -53,6 +56,7 @@ const useHomeAssistant = () => {
     
     setConnectionStatus('connecting');
     setError(null);
+    setIsLoading(true);
     messageIdRef.current = 1;
 
     const cleanUrl = url.replace(/^(https?|wss?):\/\//, '');
@@ -66,6 +70,16 @@ const useHomeAssistant = () => {
       socket.onopen = () => {
         console.log('WebSocket connected');
       };
+      
+      const handleInitialFetches = (data: any) => {
+         if (initialFetchIds.current.has(data.id)) {
+            initialFetchIds.current.delete(data.id);
+            if (initialFetchIds.current.size === 0) {
+              setIsLoading(false);
+              console.log('Initial data fetch complete.');
+            }
+          }
+      }
 
       socket.onmessage = (event) => {
         const data = JSON.parse(event.data);
@@ -77,10 +91,12 @@ const useHomeAssistant = () => {
           case 'auth_ok':
             console.log('Authenticated successfully');
             setConnectionStatus('connected');
+            
             const statesId = messageIdRef.current++;
             const areasId = messageIdRef.current++;
             const devicesId = messageIdRef.current++;
             const entityRegistryId = messageIdRef.current++;
+            initialFetchIds.current = new Set([statesId, areasId, devicesId, entityRegistryId]);
             
             sendMessage({ id: statesId, type: 'get_states' });
             sendMessage({ id: areasId, type: 'config/area_registry/list' });
@@ -92,8 +108,9 @@ const useHomeAssistant = () => {
             break;
           case 'auth_invalid':
             console.error('Authentication failed:', data.message);
-            setError(`Authentication failed: ${data.message}`);
+            setError(`Ошибка аутентификации: ${data.message}`);
             setConnectionStatus('failed');
+            setIsLoading(false);
             socket.close();
             break;
         }
@@ -103,6 +120,7 @@ const useHomeAssistant = () => {
         const data = JSON.parse(event.data);
         switch (data.type) {
           case 'result':
+            handleInitialFetches(data);
             if (data.success) {
               if (data.id === ids.statesId) {
                 const newEntities = data.result.reduce((acc: HassEntities, entity: HassEntity) => {
@@ -119,8 +137,9 @@ const useHomeAssistant = () => {
               }
             } else {
               console.error('API Error:', data.error);
-              setError(`API Error: ${data.error.message}`);
+              setError(`Ошибка API: ${data.error.message}`);
               setConnectionStatus('failed');
+              setIsLoading(false);
             }
             break;
           case 'event':
@@ -145,27 +164,30 @@ const useHomeAssistant = () => {
         if (connectionStatus === 'connected') {
             setConnectionStatus('idle');
         }
+         setIsLoading(false);
       };
 
       socket.onerror = (event) => {
         console.error('WebSocket error:', event);
         if (!error) {
-          if (event instanceof DOMException && event.name === 'SecurityError') {
-            setError('Security Error: Cannot connect to an insecure WebSocket (ws://) from a secure page (https://). Try accessing this app via HTTP or enabling HTTPS on Home Assistant.');
-          } else {
-            setError('Failed to connect. Check URL and network.');
-          }
+           if (event instanceof Event && socket.readyState === WebSocket.CLOSING) {
+             setError('Не удалось подключиться. Проверьте URL и убедитесь, что Home Assistant доступен.');
+           } else {
+             setError('Ошибка WebSocket. Проверьте консоль для деталей.');
+           }
         }
         setConnectionStatus('failed');
+        setIsLoading(false);
       };
     } catch (e) {
       console.error('WebSocket creation error:', e);
-      if (e instanceof DOMException && e.name === 'SecurityError') {
-         setError('Security Error: Cannot connect to an insecure WebSocket (ws://) from a secure page (https://). This is a browser security feature. Try accessing this app via HTTP or enabling HTTPS on Home Assistant.');
+       if (e instanceof DOMException && e.name === 'SecurityError') {
+         setError('Ошибка безопасности: Нельзя подключиться к небезопасному WebSocket (ws://) с защищенной страницы (https://). Это функция безопасности браузера. Попробуйте зайти на это приложение по HTTP или включите HTTPS в Home Assistant.');
       } else {
-        setError('Invalid URL format or connection refused.');
+        setError('Неверный формат URL или отказано в соединении.');
       }
       setConnectionStatus('failed');
+      setIsLoading(false);
     }
   }, [sendMessage, connectionStatus, error]);
   
@@ -175,7 +197,7 @@ const useHomeAssistant = () => {
     }
   }, []);
 
-  return { connectionStatus, error, entities, areas, devices, entityRegistry, connect, disconnect, callService };
+  return { connectionStatus, isLoading, error, entities, areas, devices, entityRegistry, connect, disconnect, callService };
 };
 
 export default useHomeAssistant;
