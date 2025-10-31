@@ -15,7 +15,7 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
     if (attributes.device_class === 'outlet') {
       return DeviceType.Outlet;
     }
-    return DeviceType.Lamp; // Assumption
+    return DeviceType.Switch;
   }
   if (entityIdDomain === 'media_player') {
     if (attributes.device_class === 'tv') return DeviceType.TV;

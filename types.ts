@@ -16,6 +16,7 @@ export enum DeviceType {
   Sensor,
   Outlet,
   Weather,
+  Switch,
   Unknown, // Fallback for unmapped devices
 }
 

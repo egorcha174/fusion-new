@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { DeviceType, CardSize } from '../types';
 
@@ -43,7 +44,7 @@ const DeviceIcon: React.FC<DeviceIconProps> = ({ type, isOn, cardSize }) => {
     [DeviceType.Spotlight]: (
        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" transform="rotate(45)">
          <path d="M4.502 6.5a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5h-6a.5.5 0 0 1-.5-.5v-2z"/>
-         <path d="M3 6.003l.01-.003.01-.002A1.5 1.5 0 0 1 4.5 4.5h7a1.5 1.5 0 0 1 1.48 1.498l.01.002.01.003v3.994l-.01.003-.01.002a1.5 1.5 0 0 1-1.48 1.498h-7a1.5 1.5 0 0 1-1.48-1.498l-.01-.002-.01-.003v-3.994zM1 6a2.5 2.5 0 0 1 2.5-2.5h8A2.5 2.5 0 0 1 14 6v4a2.5 2.5 0 0 1-2.5 2.5h-8A2.5 2.5 0 0 1 1 10V6z"/>
+         <path d="M3 6.003l.01-.003.01-.002A1.5 1.5 0 0 1 4.5 4.5h7a1.5 1.5 0 0 1 1.48 1.498l.01.002.01.003v3.994l-.01.003-.01.002a1.5 1.5 0 0 1-1.48 1.498h-7a1.5 1.5 0 0 1-1.48-1.498l-.01-.002-.01-.003v-3.994zM1 6a2.5 2.5 0 0 1 2.5-2.5h8A2.5 2.5 0 0 1 14 6v4a2.5 2.5 0 0 1-2.5-2.5h-8A2.5 2.5 0 0 1 1 10V6z"/>
        </svg>
     ),
     [DeviceType.Climate]: (
@@ -96,6 +97,12 @@ const DeviceIcon: React.FC<DeviceIconProps> = ({ type, isOn, cardSize }) => {
         <path d="M11.5 8.5a.5.5 0 0 1 0-1h1a.5.5 0 0 1 0 1h-1z"/>
         <path d="M8 14a6 6 0 1 0 0-12 6 6 0 0 0 0 12zm0 1A7 7 0 1 1 8 1a7 7 0 0 1 0 14z"/>
         <path d="M8 4a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0v-3A.5.5 0 0 1 8 4z"/>
+      </svg>
+    ),
+    [DeviceType.Switch]: (
+      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
+        <path d="M7.5 1v7h1V1h-1z"/>
+        <path d="M3 8.812a4.999 4.999 0 0 1 2.578-4.375l-.485-.874A6 6 0 1 0 11 3.616l-.501.865A5 5 0 1 1 3 8.812z"/>
       </svg>
     ),
     [DeviceType.Outlet]: (
