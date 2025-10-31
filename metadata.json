@@ -1,0 +1,5 @@
+{
+  "name": "Home Assistant UI",
+  "description": "A modern, Apple Home inspired dashboard for Home Assistant, allowing users to view and control their smart devices in a visually appealing grid layout. Features include drag-and-drop customization and real-time status updates.",
+  "requestFramePermissions": []
+}
