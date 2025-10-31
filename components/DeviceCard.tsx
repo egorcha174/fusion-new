@@ -126,7 +126,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
         return (
           <div className="flex flex-col justify-between h-full">
             <div className="flex justify-between items-start">
-              <DeviceIcon type={device.type} isOn={isOn} cardSize={cardSize} />
+              <DeviceIcon type={device.type} isOn={isOn} cardSize={cardSize} customIcon={device.icon} />
               {isOn && device.brightness !== undefined && (
                 <div className={`${styles.brightnessCircle} rounded-full border-2 ${isOn ? 'border-gray-400/50' : 'border-gray-500'} flex items-center justify-center`}>
                   <span className={`${styles.brightnessText} ${isOn ? textOnClasses : textOffClasses}`}>{device.brightness}%</span>
@@ -144,7 +144,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
           <div className="flex flex-col h-full text-left">
             {/* Top row */}
             <div className="flex justify-between items-start">
-                <DeviceIcon type={device.type} isOn={false} cardSize={cardSize} />
+                <DeviceIcon type={device.type} isOn={false} cardSize={cardSize} customIcon={device.icon} />
 
                 {device.presetModes && device.presetModes.length > 0 && (
                     <div className="relative z-10" ref={presetMenuRef}>
@@ -202,7 +202,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
         return (
           <div className="flex flex-col h-full text-left">
             <div>
-              <DeviceIcon type={device.type} isOn={false} cardSize={cardSize} />
+              <DeviceIcon type={device.type} isOn={false} cardSize={cardSize} customIcon={device.icon} />
               <p className={`${styles.nameText} mt-2 text-ellipsis overflow-hidden whitespace-nowrap`}>{device.name}</p>
             </div>
              <div className="flex-grow flex items-center w-full my-1 min-h-0">
@@ -218,7 +218,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
         return (
           <div className="flex flex-col justify-between h-full">
             <div className="flex-shrink-0">
-               <DeviceIcon type={device.type} isOn={isOn} cardSize={cardSize} />
+               <DeviceIcon type={device.type} isOn={isOn} cardSize={cardSize} customIcon={device.icon} />
             </div>
             <div className="text-left">
               <p className={`${styles.nameText} text-ellipsis overflow-hidden whitespace-nowrap`}>{device.name}</p>

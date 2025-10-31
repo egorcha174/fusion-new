@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Room, DeviceCustomizations, Tab } from '../types';
+import { Room, DeviceCustomizations, Tab, Device } from '../types';
 import DeviceIcon from './DeviceIcon';
 
 interface AllDevicesPageProps {
@@ -12,16 +12,28 @@ interface AllDevicesPageProps {
 
 const AddToTabButton: React.FC<{
     tabs: Tab[];
+    device: Device;
     onAddToTab: (tabId: string) => void;
-}> = ({ tabs, onAddToTab }) => {
+}> = ({ tabs, device, onAddToTab }) => {
     const [isOpen, setIsOpen] = useState(false);
 
-    if (tabs.length === 0) return null;
+    // Filter out tabs that already contain the device
+    const availableTabs = tabs.filter(tab => !tab.deviceIds.includes(device.id));
+
+    if (availableTabs.length === 0) return (
+        <button
+            disabled
+            className="bg-gray-600 text-white px-3 py-1 rounded-md text-sm font-medium cursor-not-allowed"
+        >
+            Добавлено
+        </button>
+    );
 
     return (
         <div className="relative">
             <button
                 onClick={() => setIsOpen(!isOpen)}
+                onBlur={() => setTimeout(() => setIsOpen(false), 200)} // Close on blur with a small delay
                 className="bg-green-600 text-white hover:bg-green-700 px-3 py-1 rounded-md text-sm font-medium transition-colors"
             >
                 Добавить
@@ -29,7 +41,7 @@ const AddToTabButton: React.FC<{
             {isOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-gray-700 rounded-md shadow-lg z-10 ring-1 ring-black ring-opacity-5">
                     <div className="py-1">
-                        {tabs.map(tab => (
+                        {availableTabs.map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => {
@@ -65,8 +77,7 @@ const AllDevicesPage: React.FC<AllDevicesPageProps> = ({ rooms, customizations, 
                                     <div key={device.id} className="bg-gray-800/80 p-4 rounded-lg flex items-center justify-between ring-1 ring-white/5">
                                         <div className="flex items-center gap-4 overflow-hidden">
                                             <div className="w-10 h-10 flex-shrink-0">
-                                                {/* FIX: Added missing cardSize prop to resolve TypeScript error. */}
-                                                <DeviceIcon type={device.type} isOn={device.status.toLowerCase() === 'вкл'} cardSize="md" />
+                                                <DeviceIcon type={device.type} isOn={device.status.toLowerCase() === 'вкл'} cardSize="md" customIcon={device.icon} />
                                             </div>
                                             <div className="flex-1 overflow-hidden">
                                                 <p className="font-medium text-gray-100 text-sm break-words">{device.name}</p>
@@ -91,7 +102,7 @@ const AllDevicesPage: React.FC<AllDevicesPageProps> = ({ rooms, customizations, 
                                                     </svg>
                                                 )}
                                             </button>
-                                            <AddToTabButton tabs={tabs} onAddToTab={(tabId) => onDeviceAddToTab(device.id, tabId)} />
+                                            <AddToTabButton tabs={tabs} device={device} onAddToTab={(tabId) => onDeviceAddToTab(device.id, tabId)} />
                                         </div>
                                     </div>
                                 )
