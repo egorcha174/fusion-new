@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable';
 import DraggableDeviceCard from './DraggableDeviceCard';
-import { Tab, Device } from '../types';
+import { Tab, Device, CardSize } from '../types';
 
 interface TabContentProps {
   tab: Tab;
@@ -17,6 +17,7 @@ interface TabContentProps {
   isEditMode: boolean;
   onEditDevice: (device: Device) => void;
   onDeviceContextMenu: (event: React.MouseEvent, deviceId: string, tabId: string) => void;
+  cardSize: CardSize;
 }
 
 const TabContent: React.FC<TabContentProps> = ({
@@ -29,7 +30,8 @@ const TabContent: React.FC<TabContentProps> = ({
   onPresetChange,
   isEditMode,
   onEditDevice,
-  onDeviceContextMenu
+  onDeviceContextMenu,
+  cardSize,
 }) => {
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -61,6 +63,18 @@ const TabContent: React.FC<TabContentProps> = ({
       onDeviceOrderChange(tab.id, newOrderedDevices);
     }
   };
+  
+  const getGridClasses = (size: CardSize): string => {
+    switch (size) {
+        case 'sm':
+            return 'grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-3';
+        case 'lg':
+            return 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5';
+        case 'md':
+        default:
+            return 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4';
+    }
+  };
 
   if (devices.length === 0) {
       return (
@@ -79,7 +93,7 @@ const TabContent: React.FC<TabContentProps> = ({
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={sortedDevices.map(d => d.id)} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          <div className={getGridClasses(cardSize)}>
             {sortedDevices.map((device) => (
               <DraggableDeviceCard
                 key={device.id}

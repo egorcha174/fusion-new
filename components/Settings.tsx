@@ -1,7 +1,7 @@
 
 import React, { useRef } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { ClockSettings } from '../types';
+import { ClockSettings, CardSize } from '../types';
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'failed';
 
@@ -12,6 +12,8 @@ interface SettingsProps {
   onDisconnect?: () => void;
   clockSettings?: ClockSettings;
   onClockSettingsChange?: (settings: ClockSettings) => void;
+  cardSize?: CardSize;
+  onCardSizeChange?: (size: CardSize) => void;
 }
 
 // Keys to be backed up
@@ -22,9 +24,10 @@ const LOCAL_STORAGE_KEYS = [
   'ha-active-tab',
   'ha-device-customizations',
   'ha-clock-settings',
+  'ha-card-size',
 ];
 
-const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error, onDisconnect, clockSettings, onClockSettingsChange }) => {
+const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error, onDisconnect, clockSettings, onClockSettingsChange, cardSize, onCardSizeChange }) => {
   const [url, setUrl] = useLocalStorage('ha-url', '');
   const [token, setToken] = useLocalStorage('ha-token', '');
   const [localError, setLocalError] = React.useState('');
@@ -115,7 +118,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
 
   const isLoading = connectionStatus === 'connecting';
 
-  if (connectionStatus === 'connected' && onDisconnect && clockSettings && onClockSettingsChange) {
+  if (connectionStatus === 'connected' && onDisconnect && clockSettings && onClockSettingsChange && cardSize && onCardSizeChange) {
     return (
         <div className="w-full max-w-md bg-gray-800 p-8 rounded-2xl shadow-lg ring-1 ring-white/10 space-y-8">
             <div>
@@ -156,6 +159,27 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                             <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${clockSettings.showSeconds ? 'translate-x-6' : 'translate-x-1'}`} />
                         </button>
                     </div>
+                </div>
+            </div>
+
+            <div className="border-t border-gray-700 pt-6">
+                <h2 className="text-xl font-bold text-gray-100 mb-4">Размер карточек</h2>
+                 <div className="flex gap-4">
+                    <button 
+                        onClick={() => onCardSizeChange('sm')}
+                        className={`flex-1 py-2 rounded-lg text-sm transition-colors ${cardSize === 'sm' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                        Маленький
+                    </button>
+                    <button 
+                        onClick={() => onCardSizeChange('md')}
+                        className={`flex-1 py-2 rounded-lg text-sm transition-colors ${cardSize === 'md' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                        Средний
+                    </button>
+                    <button 
+                        onClick={() => onCardSizeChange('lg')}
+                        className={`flex-1 py-2 rounded-lg text-sm transition-colors ${cardSize === 'lg' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                        Большой
+                    </button>
                 </div>
             </div>
 

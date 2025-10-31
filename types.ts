@@ -64,6 +64,8 @@ export interface DeviceCustomization {
 
 export type DeviceCustomizations = Record<string, DeviceCustomization>; // Key is device.id (entity_id)
 
+export type CardSize = 'sm' | 'md' | 'lg';
+
 export type Page = 'dashboard' | 'settings' | 'all-devices';
 
 export interface ClockSettings {

@@ -13,7 +13,7 @@ import ContextMenu from './components/ContextMenu';
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
-import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType } from './types';
+import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CardSize } from './types';
 import { nanoid } from 'nanoid'; // A small library for unique IDs
 
 const App: React.FC = () => {
@@ -46,6 +46,7 @@ const App: React.FC = () => {
     format: '24h',
     showSeconds: true,
   });
+  const [cardSize, setCardSize] = useLocalStorage<CardSize>('ha-card-size', 'md');
 
   // Ensure there's always at least one tab and an active tab is set
   useEffect(() => {
@@ -282,7 +283,7 @@ const App: React.FC = () => {
   const renderPage = () => {
     switch (currentPage) {
       case 'settings':
-        return <div className="flex justify-center items-start pt-10"><Settings onConnect={connect} connectionStatus={connectionStatus} error={error} onDisconnect={disconnect} clockSettings={clockSettings} onClockSettingsChange={setClockSettings} /></div>;
+        return <div className="flex justify-center items-start pt-10"><Settings onConnect={connect} connectionStatus={connectionStatus} error={error} onDisconnect={disconnect} clockSettings={clockSettings} onClockSettingsChange={setClockSettings} cardSize={cardSize} onCardSizeChange={setCardSize} /></div>;
       case 'all-devices':
         return <AllDevicesPage rooms={filteredRoomsForDevicePage} customizations={customizations} onToggleVisibility={handleToggleVisibility} tabs={tabs} onDeviceAddToTab={handleDeviceAddToTab} />;
       case 'dashboard':
@@ -300,6 +301,7 @@ const App: React.FC = () => {
             isEditMode={isEditMode}
             onEditDevice={setEditingDevice}
             onDeviceContextMenu={handleDeviceContextMenu}
+            cardSize={cardSize}
           />
         ) : (
           <div className="text-center text-gray-500">Выберите или создайте вкладку</div>
