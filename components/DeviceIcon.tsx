@@ -94,6 +94,46 @@ const SvgLight = ({ filled = false }: { filled?: boolean }) => (
   </svg>
 );
 
+const SvgLamp = ({ filled = false }: { filled?: boolean }) => (
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M8 2h8l4 8H4l4-8z" />
+        <path d="M12 10v10" />
+        {!filled && <path d="M8 22h8" />}
+    </svg>
+);
+
+const SvgSpotlight = ({ filled = false }: { filled?: boolean }) => (
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="8" />
+        {!filled && <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />}
+    </svg>
+);
+
+const SvgBalconyLight = ({ filled = false }: { filled?: boolean }) => (
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="4" y="4" width="16" height="10" rx="2" />
+    <path d="M12 14v6" />
+    {!filled && <path d="M8 20h8" />}
+  </svg>
+);
+
+const SvgComputer = () => (
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="2" y="3" width="20" height="14" rx="2" />
+        <path d="M8 21h8" />
+        <path d="M12 17v4" />
+    </svg>
+);
+
+const SvgPlaystation = () => (
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M10 12H4v2h6v-2zM14 12h6v2h-6v-2z" />
+    <path d="M2 10c0-2.2 1.8-4 4-4h12c2.2 0 4 1.8 4 4v4c0 2.2-1.8 4-4 4H6c-2.2 0-4-1.8-4-4v-4z" />
+    <path d="M8 10V8h2v2h2V8h2v2" />
+  </svg>
+);
+
+
 const SvgThermostat = () => (
   <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <rect x="9" y="2" width="6" height="12" rx="3" />
@@ -130,13 +170,6 @@ const SvgSpeaker = () => (
   <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <rect x="3" y="5" width="6" height="14" rx="1" />
     <circle cx="16" cy="12" r="3" fill="currentColor" />
-  </svg>
-);
-
-const SvgController = () => (
-  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <rect x="3" y="6" width="18" height="10" rx="2" />
-    <path d="M8 9v6M16 9v6" />
   </svg>
 );
 
@@ -179,17 +212,17 @@ const SvgUnknown = () => (
 const icons: Record<DeviceType, (props: { isOn: boolean }) => React.ReactNode> = {
   [DeviceType.Light]: ({ isOn }) => <SvgLight filled={isOn} />,
   [DeviceType.DimmableLight]: ({ isOn }) => <SvgLight filled={isOn} />,
-  [DeviceType.Lamp]: ({ isOn }) => <SvgLight filled={isOn} />,
-  [DeviceType.Spotlight]: ({ isOn }) => <SvgLight filled={isOn} />,
-  [DeviceType.BalconyLight]: ({ isOn }) => <SvgLight filled={isOn} />,
+  [DeviceType.Lamp]: ({ isOn }) => <SvgLamp filled={isOn} />,
+  [DeviceType.Spotlight]: ({ isOn }) => <SvgSpotlight filled={isOn} />,
+  [DeviceType.BalconyLight]: ({ isOn }) => <SvgBalconyLight filled={isOn} />,
   [DeviceType.Climate]: () => <SvgThermostat />,
   [DeviceType.Thermostat]: () => <SvgThermostat />,
   [DeviceType.TV]: () => <SvgDisplay />,
-  [DeviceType.Computer]: () => <SvgDisplay />,
+  [DeviceType.Computer]: () => <SvgComputer />,
   [DeviceType.Monitor]: () => <SvgDisplay />,
   [DeviceType.Fan]: ({ isOn }) => <SvgFan spinning={isOn} />,
   [DeviceType.Speaker]: () => <SvgSpeaker />,
-  [DeviceType.Playstation]: () => <SvgController />,
+  [DeviceType.Playstation]: () => <SvgPlaystation />,
   [DeviceType.Sensor]: () => <SvgSensor />,
   [DeviceType.Switch]: ({ isOn }) => <SvgSwitch isOn={isOn} />,
   [DeviceType.Outlet]: () => <SvgOutlet />,
@@ -207,4 +240,4 @@ const DeviceIcon: React.FC<DeviceIconProps> = ({ type, isOn, cardSize, className
   );
 };
 
-export default DeviceIcon
+export default DeviceIcon;
