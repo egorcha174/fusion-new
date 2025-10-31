@@ -32,6 +32,14 @@ export interface Room {
   devices: Device[];
 }
 
+// Represents a user-created tab on the dashboard
+export interface Tab {
+  id: string;
+  name: string;
+  deviceIds: string[];
+  deviceOrder: Record<string, string[]>; // { [tabId]: deviceId[] }
+}
+
 // Types for user customizations
 export interface DeviceCustomization {
   name?: string;

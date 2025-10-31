@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -11,9 +10,11 @@ interface DraggableDeviceCardProps {
   onTemperatureChange: (change: number) => void;
   isEditMode: boolean;
   onEditDevice: (device: Device) => void;
+  // FIX: Add onRemoveFromTab to the component's props to fix the type error.
+  onRemoveFromTab: () => void;
 }
 
-const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onToggle, onTemperatureChange, isEditMode, onEditDevice }) => {
+const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onToggle, onTemperatureChange, isEditMode, onEditDevice, onRemoveFromTab }) => {
   const {
     attributes,
     listeners,
@@ -38,6 +39,8 @@ const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onTog
         onTemperatureChange={onTemperatureChange}
         isEditMode={isEditMode}
         onEditDevice={onEditDevice}
+        // FIX: Pass the onRemoveFromTab prop down to the DeviceCard component.
+        onRemoveFromTab={onRemoveFromTab}
       />
     </div>
   );
