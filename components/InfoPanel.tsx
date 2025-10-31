@@ -1,12 +1,12 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { ClockSettings, Device, ClockSize } from '../types';
 
 interface ClockProps {
     settings: ClockSettings;
+    sidebarWidth: number;
 }
 
-const Clock: React.FC<ClockProps> = ({ settings }) => {
+const Clock: React.FC<ClockProps> = ({ settings, sidebarWidth }) => {
     const [time, setTime] = useState(new Date());
 
     useEffect(() => {
@@ -23,15 +23,31 @@ const Clock: React.FC<ClockProps> = ({ settings }) => {
     if (settings.showSeconds) {
         options.second = '2-digit';
     }
-    
-    const clockSizeClasses: Record<ClockSize, string> = {
-        sm: 'text-5xl',
-        md: 'text-7xl',
-        lg: 'text-8xl',
+
+    const getAdaptiveFontSize = () => {
+        const sizeMultiplier: Record<ClockSize, number> = {
+            sm: 0.85,
+            md: 1.0,
+            lg: 1.15,
+        };
+        const characterCount = settings.showSeconds ? 8 : 5;
+        // Base size is roughly panel width / characters, with a scaling factor for aesthetics
+        const baseFontSize = (sidebarWidth / characterCount) * 1.7;
+        const finalSize = baseFontSize * sizeMultiplier[settings.size];
+        
+        // Clamp font size to avoid extreme values
+        return Math.max(24, Math.min(finalSize, 128));
+    };
+
+    const fontSizeStyle = {
+        fontSize: `${getAdaptiveFontSize()}px`,
     };
 
     return (
-        <div className={`font-mono font-bold text-gray-100 tracking-tighter ${clockSizeClasses[settings.size]}`}>
+        <div 
+            className="font-mono font-bold text-gray-100 tracking-tighter whitespace-nowrap"
+            style={fontSizeStyle}
+        >
             {time.toLocaleTimeString('ru-RU', options)}
         </div>
     );
@@ -142,7 +158,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, weatherDevice, sid
             style={{ width: `${sidebarWidth}px` }}
         >
             <div className="flex-grow flex flex-col items-center justify-center">
-                <Clock settings={clockSettings} />
+                <Clock settings={clockSettings} sidebarWidth={sidebarWidth} />
             </div>
 
             <div className="flex-shrink-0 space-y-8">
