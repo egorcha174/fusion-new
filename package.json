@@ -15,7 +15,7 @@
     "@dnd-kit/sortable": "^7.0.2",
     "@dnd-kit/utilities": "^3.2.2",
     "nanoid": "^5.1.6",
-    "@iconify/react": "5.0.1"
+    "@iconify/react": "^5.0.1"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
