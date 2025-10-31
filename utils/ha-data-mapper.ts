@@ -3,27 +3,50 @@
 import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization } from '../types';
 
 const getDeviceType = (entity: HassEntity): DeviceType => {
-  const entityIdDomain = entity.entity_id.split('.')[0];
+  const entityId = entity.entity_id;
+  const domain = entityId.split('.')[0];
   const attributes = entity.attributes;
+  const friendlyName = (attributes.friendly_name || '').toLowerCase();
+  const entityIdLower = entityId.toLowerCase();
 
-  if (entityIdDomain === 'weather') return DeviceType.Weather;
-  if (entityIdDomain === 'sensor') return DeviceType.Sensor;
-  if (entityIdDomain === 'light') {
+  // --- Priority 1: Direct Domain Mapping (unambiguous) ---
+  switch (domain) {
+    case 'weather': return DeviceType.Weather;
+    case 'sensor': return DeviceType.Sensor;
+    case 'climate': return DeviceType.Thermostat;
+  }
+
+  // --- Priority 2: Domain + Attributes/Device Class ---
+  if (domain === 'light') {
     return attributes.brightness !== undefined ? DeviceType.DimmableLight : DeviceType.Light;
   }
-  if (entityIdDomain === 'switch') {
-    if (attributes.device_class === 'outlet') {
-      return DeviceType.Outlet;
-    }
-    return DeviceType.Switch;
-  }
-  if (entityIdDomain === 'media_player') {
-    if (attributes.device_class === 'tv') return DeviceType.TV;
-    return DeviceType.Speaker; // Generic media player
-  }
-  if (entityIdDomain === 'climate') return DeviceType.Thermostat;
-  if (entity.entity_id.includes('playstation')) return DeviceType.Playstation;
   
+  if (domain === 'switch') {
+    if (attributes.device_class === 'outlet') return DeviceType.Outlet;
+    // Heuristic: If a switch's name suggests it's a light, classify it as a light.
+    if (friendlyName.includes('light') || friendlyName.includes('свет') || friendlyName.includes('лампа') || friendlyName.includes('торшер') || friendlyName.includes('люстра')) {
+      return DeviceType.Light;
+    }
+  }
+  
+  if (domain === 'media_player') {
+    if (attributes.device_class === 'tv') return DeviceType.TV;
+  }
+
+  // --- Priority 3: Keyword Matching on Name/ID (for ambiguous domains like switch, media_player) ---
+  const combinedName = `${friendlyName} ${entityIdLower}`;
+
+  if (combinedName.includes('tv') || combinedName.includes('телевизор')) return DeviceType.TV;
+  if (combinedName.includes('playstation')) return DeviceType.Playstation;
+  if (combinedName.includes('computer') || combinedName.includes('компьютер')) return DeviceType.Computer;
+  if (combinedName.includes('monitor') || combinedName.includes('монитор')) return DeviceType.Monitor;
+  if (combinedName.includes('speaker') || combinedName.includes('колонка')) return DeviceType.Speaker;
+  
+  // --- Priority 4: Fallback for remaining domains ---
+  if (domain === 'switch') return DeviceType.Switch; // Any remaining switch is a generic switch
+  if (domain === 'media_player') return DeviceType.Speaker; // Any remaining media player is a generic speaker
+
+  // --- Final Fallback ---
   return DeviceType.Unknown;
 };
 
