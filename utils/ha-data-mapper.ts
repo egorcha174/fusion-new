@@ -83,8 +83,8 @@ const getStatusText = (entity: HassEntity): string => {
     }
     
     if (entity.state === 'unavailable') return 'Недоступно';
-    if (entity.state === 'on') return 'Вкл';
-    if (entity.state === 'off') return 'Выкл';
+    if (entity.state === 'on') return 'Включено';
+    if (entity.state === 'off') return 'Выключено';
     return entity.state.charAt(0).toUpperCase() + entity.state.slice(1);
 }
 

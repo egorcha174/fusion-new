@@ -10,6 +10,7 @@ interface DraggableDeviceCardProps {
   device: Device;
   onToggle: () => void;
   onTemperatureChange: (change: number) => void;
+  onBrightnessChange: (brightness: number) => void;
   onPresetChange: (preset: string) => void;
   isEditMode: boolean;
   onEditDevice: (device: Device) => void;
@@ -18,7 +19,7 @@ interface DraggableDeviceCardProps {
   cardSize: CardSize;
 }
 
-const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onToggle, onTemperatureChange, onPresetChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu, cardSize }) => {
+const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onToggle, onTemperatureChange, onBrightnessChange, onPresetChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu, cardSize }) => {
   const {
     attributes,
     listeners,
@@ -41,6 +42,7 @@ const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onTog
         device={device} 
         onToggle={onToggle} 
         onTemperatureChange={onTemperatureChange}
+        onBrightnessChange={onBrightnessChange}
         onPresetChange={onPresetChange}
         isEditMode={isEditMode}
         onEditDevice={onEditDevice}

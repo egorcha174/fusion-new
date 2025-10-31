@@ -249,6 +249,17 @@ const App: React.FC = () => {
       callService('climate', 'set_temperature', { entity_id: entity.entity_id, temperature: newTemp });
   };
 
+  const handleBrightnessChange = (deviceId: string, brightness: number) => {
+    const entity = entities[deviceId];
+    if (!entity) return;
+    // For lights, the turn_on service can be used to set brightness
+    // It will also turn on the light if it's off.
+    callService('light', 'turn_on', {
+      entity_id: entity.entity_id,
+      brightness_pct: brightness,
+    });
+  };
+
   const handlePresetChange = (deviceId: string, preset: string) => {
     callService('climate', 'set_preset_mode', { entity_id: deviceId, preset_mode: preset });
   };
@@ -312,6 +323,7 @@ const App: React.FC = () => {
             onDeviceRemoveFromTab={handleDeviceRemoveFromTab}
             onDeviceToggle={handleDeviceToggle}
             onTemperatureChange={handleTemperatureChange}
+            onBrightnessChange={handleBrightnessChange}
             onPresetChange={handlePresetChange}
             isEditMode={isEditMode}
             onEditDevice={setEditingDevice}

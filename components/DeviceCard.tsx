@@ -9,6 +9,7 @@ interface DeviceCardProps {
   device: Device;
   onToggle: () => void;
   onTemperatureChange: (change: number) => void;
+  onBrightnessChange: (brightness: number) => void;
   onPresetChange: (preset: string) => void;
   isEditMode: boolean;
   onEditDevice: (device: Device) => void;
@@ -17,8 +18,8 @@ interface DeviceCardProps {
   cardSize: CardSize;
 }
 
-const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperatureChange, onPresetChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu, cardSize }) => {
-  const isOn = device.status.toLowerCase() === 'вкл' || device.status.toLowerCase() === 'on';
+const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperatureChange, onBrightnessChange, onPresetChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu, cardSize }) => {
+  const isOn = device.status.toLowerCase() === 'включено' || device.status.toLowerCase() === 'on';
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
   const presetMenuRef = useRef<HTMLDivElement>(null);
   
@@ -124,7 +125,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
     switch (device.type) {
       case DeviceType.DimmableLight:
         return (
-          <div className="flex flex-col justify-between h-full">
+          <div className="flex flex-col h-full">
             <div className="flex justify-between items-start">
               <DeviceIcon type={device.type} isOn={isOn} cardSize={cardSize} customIcon={device.icon} />
               {isOn && device.brightness !== undefined && (
@@ -133,9 +134,22 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
                 </div>
               )}
             </div>
+             <div className="flex-grow"></div>
             <div className="text-left">
               <p className={`${styles.nameText} text-ellipsis overflow-hidden whitespace-nowrap`}>{device.name}</p>
               <p className={`${styles.statusText} ${isOn ? textOnClasses : textOffClasses}`}>{device.status}</p>
+               {isOn && (
+                <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+                    <input
+                        type="range"
+                        min="1"
+                        max="100"
+                        value={device.brightness}
+                        onInput={(e) => onBrightnessChange(parseInt(e.currentTarget.value))}
+                        className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                    />
+                </div>
+            )}
             </div>
           </div>
         );
