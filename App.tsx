@@ -223,7 +223,10 @@ const App: React.FC = () => {
         <DashboardHeader
             tabs={tabs}
             activeTabId={activeTabId}
-            onTabChange={setActiveTabId}
+            onTabChange={(tabId) => {
+              setActiveTabId(tabId);
+              setCurrentPage('dashboard');
+            }}
             onTabOrderChange={handleTabOrderChange}
             isEditMode={isEditMode}
             onToggleEditMode={() => setIsEditMode(!isEditMode)}
