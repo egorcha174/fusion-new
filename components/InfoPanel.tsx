@@ -1,7 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
+import { ClockSettings, Device } from '../types';
 
-const Clock: React.FC = () => {
+interface ClockProps {
+    settings: ClockSettings;
+}
+
+const Clock: React.FC<ClockProps> = ({ settings }) => {
     const [time, setTime] = useState(new Date());
 
     useEffect(() => {
@@ -9,18 +14,96 @@ const Clock: React.FC = () => {
         return () => clearInterval(timerId);
     }, []);
 
+    const options: Intl.DateTimeFormatOptions = {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: settings.format === '12h',
+    };
+
+    if (settings.showSeconds) {
+        options.second = '2-digit';
+    }
+
     return (
         <div className="font-mono text-5xl sm:text-6xl md:text-7xl font-bold text-gray-100 tracking-tighter">
-            {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            {time.toLocaleTimeString('ru-RU', options)}
         </div>
     );
 };
 
+const getWeatherIcon = (condition?: string): string => {
+    if (!condition) return '❔';
+    const iconMap: Record<string, string> = {
+        'clear-night': '🌙',
+        'cloudy': '☁️',
+        'exceptional': '⚠️',
+        'fog': '🌫️',
+        'hail': '🌨️',
+        'lightning': '⚡',
+        'lightning-rainy': '⛈️',
+        'partlycloudy': '⛅',
+        'pouring': '🌧️',
+        'rainy': '🌦️',
+        'snowy': '❄️',
+        'snowy-rainy': '🌨️',
+        'sunny': '☀️',
+        'windy': '🌬️',
+        'windy-variant': '🌬️',
+    };
+    return iconMap[condition.toLowerCase()] || '❔';
+};
 
-const InfoPanel: React.FC = () => {
+
+const Weather: React.FC<{ weather: Device }> = ({ weather }) => {
+    const { temperature, unit, status, forecast, condition } = weather;
+    
+    const todayForecast = forecast?.[0];
+
+    const getDayAbbreviation = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('ru-RU', { weekday: 'short' }).toUpperCase();
+    }
+
+    return (
+        <div className="mt-8">
+            <div className="flex items-center">
+                 <div className="text-5xl">{getWeatherIcon(condition)}</div>
+                 <div className="ml-4">
+                    <p className="text-3xl font-bold">{Math.round(temperature || 0)}{unit}</p>
+                    <p className="text-gray-400">{status}</p>
+                 </div>
+                 {todayForecast && (
+                     <div className="ml-auto text-right">
+                        <p className="text-lg font-medium text-white">{Math.round(todayForecast.temperature)}°</p>
+                        <p className="text-lg font-medium text-gray-400">{Math.round(todayForecast.templow)}°</p>
+                     </div>
+                 )}
+            </div>
+             {forecast && forecast.length > 1 && (
+                 <div className="mt-6 grid grid-cols-5 gap-2 text-center text-gray-400">
+                    {forecast.slice(0, 5).map((day, index) => (
+                        <div key={index}>
+                            <p>{getDayAbbreviation(day.datetime)}</p>
+                            <p className="text-2xl mt-1">{getWeatherIcon(day.condition)}</p>
+                            <p className="font-semibold text-white mt-1">{Math.round(day.temperature)}°</p>
+                            <p className="text-gray-500">{Math.round(day.templow)}°</p>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+interface InfoPanelProps {
+    clockSettings: ClockSettings;
+    weatherDevice?: Device | null;
+}
+
+const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, weatherDevice }) => {
     return (
         <aside className="fixed top-0 left-0 h-full bg-gray-900 ring-1 ring-white/5 text-white hidden lg:flex flex-col w-80 p-8">
-            <Clock />
+            <Clock settings={clockSettings} />
             {/* Placeholder for camera feed */}
             <div className="mt-8 aspect-video bg-gray-800 rounded-lg flex items-center justify-center text-gray-500">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
@@ -28,22 +111,20 @@ const InfoPanel: React.FC = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
             </div>
-            {/* Placeholder for weather */}
-            <div className="mt-8">
-                <div className="flex items-center">
-                     <div className="text-5xl">☁️</div>
-                     <div className="ml-4">
-                        <p className="text-3xl font-bold">6°C</p>
-                        <p className="text-gray-400">Облачно</p>
+            
+            {weatherDevice ? (
+                <Weather weather={weatherDevice} />
+            ) : (
+                <div className="mt-8 opacity-50">
+                     <div className="flex items-center">
+                         <div className="text-5xl">❔</div>
+                         <div className="ml-4">
+                            <p className="text-3xl font-bold">--°</p>
+                            <p className="text-gray-400">Нет данных о погоде</p>
+                        </div>
                     </div>
                 </div>
-                 <div className="mt-6 flex justify-between text-center text-gray-400">
-                    <div><p>ПТ</p><p className="text-2xl mt-1">🌥️</p><p className="font-semibold text-white mt-1">7°C</p></div>
-                    <div><p>СБ</p><p className="text-2xl mt-1">☀️</p><p className="font-semibold text-white mt-1">5°C</p></div>
-                    <div><p>ВС</p><p className="text-2xl mt-1">☁️</p><p className="font-semibold text-white mt-1">2°C</p></div>
-                    <div><p>ПН</p><p className="text-2xl mt-1">🌙</p><p className="font-semibold text-white mt-1">-3°C</p></div>
-                </div>
-            </div>
+            )}
         </aside>
     );
 };

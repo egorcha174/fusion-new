@@ -1,15 +1,21 @@
 
-// FIX: Import DeviceCustomization type to resolve reference error.
 import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization } from '../types';
 
 const getDeviceType = (entity: HassEntity): DeviceType => {
   const entityIdDomain = entity.entity_id.split('.')[0];
   const attributes = entity.attributes;
 
+  if (entityIdDomain === 'weather') return DeviceType.Weather;
+  if (entityIdDomain === 'sensor') return DeviceType.Sensor;
   if (entityIdDomain === 'light') {
     return attributes.brightness !== undefined ? DeviceType.DimmableLight : DeviceType.Light;
   }
-  if (entityIdDomain === 'switch') return DeviceType.Lamp; // Assumption
+  if (entityIdDomain === 'switch') {
+    if (attributes.device_class === 'outlet') {
+      return DeviceType.Outlet;
+    }
+    return DeviceType.Lamp; // Assumption
+  }
   if (entityIdDomain === 'media_player') {
     if (attributes.device_class === 'tv') return DeviceType.TV;
     return DeviceType.Speaker; // Generic media player
@@ -21,6 +27,37 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
 };
 
 const getStatusText = (entity: HassEntity): string => {
+    const domain = entity.entity_id.split('.')[0];
+
+    if (domain === 'weather') {
+        const stateMap: Record<string, string> = {
+            'clear-night': 'Ясно',
+            'cloudy': 'Облачно',
+            'exceptional': 'Особые условия',
+            'fog': 'Туман',
+            'hail': 'Град',
+            'lightning': 'Гроза',
+            'lightning-rainy': 'Гроза с дождем',
+            'partlycloudy': 'Переменная облачность',
+            'pouring': 'Ливень',
+            'rainy': 'Дождь',
+            'snowy': 'Снег',
+            'snowy-rainy': 'Снег с дождем',
+            'sunny': 'Солнечно',
+            'windy': 'Ветрено',
+            'windy-variant': 'Ветрено',
+        };
+        return stateMap[entity.state] || entity.state.charAt(0).toUpperCase() + entity.state.slice(1);
+    }
+    
+    if (domain === 'sensor') {
+        const numericState = parseFloat(entity.state);
+        if (!isNaN(numericState)) {
+            return String(Math.round(numericState * 10) / 10);
+        }
+        return entity.state;
+    }
+    
     if (entity.state === 'unavailable') return 'Недоступно';
     if (entity.state === 'on') return 'Вкл';
     if (entity.state === 'off') return 'Выкл';
@@ -45,6 +82,12 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
   if (device.type === DeviceType.Thermostat) {
     device.temperature = entity.attributes.current_temperature;
     device.targetTemperature = entity.attributes.temperature;
+  }
+  
+  if (device.type === DeviceType.Weather) {
+      device.temperature = entity.attributes.temperature;
+      device.forecast = entity.attributes.forecast;
+      device.condition = entity.state;
   }
 
   return device;

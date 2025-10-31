@@ -84,7 +84,24 @@ const DeviceIcon: React.FC<DeviceIconProps> = ({ type, isOn }) => {
         <path d="M2 6a6 6 0 1 1 10.174 4.31c-.203.196-.359.4-.453.619l-.762 1.769A.5.5 0 0 1 10.5 13h-5a.5.5 0 0 1-.46-.302l-.761-1.77a1.964 1.964 0 0 0-.453-.618A5.984 5.984 0 0 1 2 6zm6 8.5a.5.5 0 0 1 .5-.5h.5a.5.5 0 0 1 0 1h-.5a.5.5 0 0 1-.5-.5zM8 1a5 5 0 0 0-3.5 8.002a.5.5 0 0 1-.225.225A5 5 0 0 0 8 11a5 5 0 0 0 3.725-2.772.5.5 0 0 1-.225-.225A5 5 0 0 0 8 1z"/>
       </svg>
     ),
-    // FIX: Add icon for Unknown device type to satisfy Record type.
+    [DeviceType.Sensor]: (
+      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
+        <path d="M11.5 8.5a.5.5 0 0 1 0-1h1a.5.5 0 0 1 0 1h-1z"/>
+        <path d="M8 14a6 6 0 1 0 0-12 6 6 0 0 0 0 12zm0 1A7 7 0 1 1 8 1a7 7 0 0 1 0 14z"/>
+        <path d="M8 4a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0v-3A.5.5 0 0 1 8 4z"/>
+      </svg>
+    ),
+    [DeviceType.Outlet]: (
+      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
+        <path d="M3.05 3.05a7 7 0 1 0 9.9 9.9 7 7 0 0 0-9.9-9.9zM2 8a6 6 0 1 1 12 0A6 6 0 0 1 2 8zm3-2a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2A.5.5 0 0 1 5 6zm0 4a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5zm5-4a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5zm0 4a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5z"/>
+      </svg>
+    ),
+    // FIX: Added missing icon for Weather device type.
+    [DeviceType.Weather]: (
+      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
+        <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383z"/>
+      </svg>
+    ),
     [DeviceType.Unknown]: (
       <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
         <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>

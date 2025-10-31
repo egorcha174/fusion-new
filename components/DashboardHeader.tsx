@@ -54,10 +54,13 @@ interface DashboardHeaderProps {
     onNavigate: (page: Page) => void;
     onAddTab: () => void;
     onEditTab: (tab: Tab) => void;
+    currentPage: Page;
+    searchTerm: string;
+    onSearchChange: (term: string) => void;
 }
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({
-    tabs, activeTabId, onTabChange, onTabOrderChange, isEditMode, onToggleEditMode, onNavigate, onAddTab, onEditTab
+    tabs, activeTabId, onTabChange, onTabOrderChange, isEditMode, onToggleEditMode, onNavigate, onAddTab, onEditTab, currentPage, searchTerm, onSearchChange
 }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -71,9 +74,11 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         }
     };
 
+    const showSearchBar = currentPage === 'dashboard' || currentPage === 'all-devices';
+
     return (
-        <header className="flex items-center justify-between text-white p-4 border-b border-gray-700/50">
-            <nav className="flex items-center gap-2 -ml-4">
+        <header className="flex items-center justify-between text-white p-4 border-b border-gray-700/50 gap-4">
+            <nav className="flex items-center gap-2 -ml-4 flex-shrink-0">
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                     <SortableContext items={tabs.map(t => t.id)} strategy={horizontalListSortingStrategy}>
                         {tabs.map(tab => (
@@ -92,7 +97,25 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                     <button onClick={onAddTab} className="ml-2 px-3 py-1 bg-gray-700 rounded-md text-sm hover:bg-gray-600">+</button>
                 )}
             </nav>
-            <div className="relative">
+            <div className="flex-1 min-w-0">
+                {showSearchBar && (
+                    <div className="relative max-w-xs w-full">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                            <svg className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                            </svg>
+                        </span>
+                        <input
+                            type="search"
+                            placeholder="Поиск устройств..."
+                            value={searchTerm}
+                            onChange={(e) => onSearchChange(e.target.value)}
+                            className="w-full bg-gray-800 text-gray-200 border border-gray-700 rounded-lg py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                        />
+                    </div>
+                )}
+            </div>
+            <div className="relative flex-shrink-0">
                 <button
                     onClick={() => setIsMenuOpen(!isMenuOpen)}
                     className="p-2 rounded-full hover:bg-gray-700"

@@ -12,7 +12,17 @@ export enum DeviceType {
   BalconyLight,
   DimmableLight,
   Thermostat,
+  Sensor,
+  Outlet,
+  Weather,
   Unknown, // Fallback for unmapped devices
+}
+
+export interface WeatherForecast {
+    condition: string;
+    temperature: number; // high temp
+    templow: number; // low temp
+    datetime: string;
 }
 
 export interface Device {
@@ -21,9 +31,11 @@ export interface Device {
   status: string; // 'På', 'Okänt', 'Heating', etc.
   type: DeviceType;
   brightness?: number; // For DimmableLight
-  temperature?: number; // For Thermostat current temp
+  temperature?: number; // For Thermostat current temp or weather temp
   targetTemperature?: number; // For Thermostat target temp
-  unit?: string; // For sensors, thermostats
+  unit?: string; // For sensors, thermostats, weather
+  forecast?: WeatherForecast[]; // For weather devices
+  condition?: string; // For weather, the raw state like 'partlycloudy'
 }
 
 export interface Room {
@@ -51,6 +63,10 @@ export type DeviceCustomizations = Record<string, DeviceCustomization>; // Key i
 
 export type Page = 'dashboard' | 'settings' | 'all-devices';
 
+export interface ClockSettings {
+    format: '12h' | '24h';
+    showSeconds: boolean;
+}
 
 // Types for Home Assistant WebSocket API
 export interface HassEntity {
@@ -64,6 +80,7 @@ export interface HassEntity {
     temperature?: number;
     current_temperature?: number;
     device_id?: string;
+    forecast?: WeatherForecast[];
     [key: string]: any;
   };
   context: {

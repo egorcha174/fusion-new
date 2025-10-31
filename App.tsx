@@ -11,7 +11,7 @@ import TabSettingsModal from './components/TabSettingsModal';
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
-import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room } from './types';
+import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType } from './types';
 import { nanoid } from 'nanoid'; // A small library for unique IDs
 
 const App: React.FC = () => {
@@ -32,11 +32,16 @@ const App: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [editingTab, setEditingTab] = useState<Tab | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // --- New Tab-based State Management ---
   const [tabs, setTabs] = useLocalStorage<Tab[]>('ha-tabs', []);
   const [activeTabId, setActiveTabId] = useLocalStorage<string | null>('ha-active-tab', null);
   const [customizations, setCustomizations] = useLocalStorage<DeviceCustomizations>('ha-device-customizations', {});
+  const [clockSettings, setClockSettings] = useLocalStorage<ClockSettings>('ha-clock-settings', {
+    format: '24h',
+    showSeconds: true,
+  });
 
   // Ensure there's always at least one tab and an active tab is set
   useEffect(() => {
@@ -67,6 +72,49 @@ const App: React.FC = () => {
      if (connectionStatus !== 'connected') return [];
      return mapEntitiesToRooms(Object.values(entities), areas, haDevices, entityRegistry, customizations, true);
   }, [connectionStatus, entities, areas, haDevices, entityRegistry, customizations]);
+
+  const activeTab = useMemo(() => tabs.find(t => t.id === activeTabId), [tabs, activeTabId]);
+
+  const weatherDevice = useMemo(() => {
+    // Find the first available weather entity to display in the info panel
+    // FIX: Explicitly typing `d` as `Device` to resolve a TypeScript type inference issue.
+    return Array.from(allKnownDevices.values()).find((d: Device) => d.type === DeviceType.Weather);
+  }, [allKnownDevices]);
+
+  const filteredDevicesForTab = useMemo(() => {
+    if (!activeTab) return [];
+    
+    const activeTabDevices = activeTab.deviceIds
+      .map(id => allKnownDevices.get(id))
+      .filter((d): d is Device => !!d);
+
+    if (!searchTerm) return activeTabDevices;
+    
+    const lowercasedFilter = searchTerm.toLowerCase();
+    return activeTabDevices.filter(device =>
+        device.name.toLowerCase().includes(lowercasedFilter) ||
+        device.id.toLowerCase().includes(lowercasedFilter)
+    );
+  }, [searchTerm, activeTab, allKnownDevices]);
+  
+  const filteredRoomsForDevicePage = useMemo(() => {
+    if (!searchTerm) return allRoomsForDevicePage;
+    const lowercasedFilter = searchTerm.toLowerCase();
+    const filteredRooms: Room[] = [];
+
+    allRoomsForDevicePage.forEach(room => {
+        const filteredDevices = room.devices.filter(device =>
+            device.name.toLowerCase().includes(lowercasedFilter) ||
+            device.id.toLowerCase().includes(lowercasedFilter)
+        );
+
+        if (filteredDevices.length > 0) {
+            filteredRooms.push({ ...room, devices: filteredDevices });
+        }
+    });
+
+    return filteredRooms;
+  }, [searchTerm, allRoomsForDevicePage]);
 
 
   // --- Tab Management Handlers ---
@@ -188,21 +236,19 @@ const App: React.FC = () => {
     );
   }
 
-  const activeTab = tabs.find(t => t.id === activeTabId);
-
   const renderPage = () => {
     switch (currentPage) {
       case 'settings':
-        return <div className="flex justify-center items-start pt-10"><Settings onConnect={connect} connectionStatus={connectionStatus} error={error} onDisconnect={disconnect} /></div>;
+        return <div className="flex justify-center items-start pt-10"><Settings onConnect={connect} connectionStatus={connectionStatus} error={error} onDisconnect={disconnect} clockSettings={clockSettings} onClockSettingsChange={setClockSettings} /></div>;
       case 'all-devices':
-        return <AllDevicesPage rooms={allRoomsForDevicePage} customizations={customizations} onToggleVisibility={handleToggleVisibility} tabs={tabs} onDeviceAddToTab={handleDeviceAddToTab} />;
+        return <AllDevicesPage rooms={filteredRoomsForDevicePage} customizations={customizations} onToggleVisibility={handleToggleVisibility} tabs={tabs} onDeviceAddToTab={handleDeviceAddToTab} />;
       case 'dashboard':
       default:
         return activeTab ? (
           <TabContent
             key={activeTab.id}
             tab={activeTab}
-            devices={activeTab.deviceIds.map(id => allKnownDevices.get(id)).filter((d): d is Device => !!d)}
+            devices={filteredDevicesForTab}
             onDeviceOrderChange={handleDeviceOrderChangeOnTab}
             onDeviceRemoveFromTab={handleDeviceRemoveFromTab}
             onDeviceToggle={handleDeviceToggle}
@@ -218,7 +264,7 @@ const App: React.FC = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-900 text-gray-200">
-      <InfoPanel />
+      <InfoPanel clockSettings={clockSettings} weatherDevice={weatherDevice} />
       <div className="flex flex-col flex-1 lg:ml-80">
         <DashboardHeader
             tabs={tabs}
@@ -233,10 +279,15 @@ const App: React.FC = () => {
             onNavigate={(page) => setCurrentPage(page)}
             onAddTab={handleAddTab}
             onEditTab={setEditingTab}
+            currentPage={currentPage}
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
         />
-        <main className="flex-1 p-4 sm:p-6 md:p-8">
+        <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-hidden">
           <div className="container mx-auto">
-            {renderPage()}
+            <div key={currentPage + (activeTab?.id || '')} className="fade-in">
+              {renderPage()}
+            </div>
           </div>
         </main>
       </div>

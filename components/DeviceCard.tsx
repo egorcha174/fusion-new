@@ -21,7 +21,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
   const textOnClasses = "text-gray-800";
   const textOffClasses = "text-gray-400";
   
-  const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate;
+  const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && device.type !== DeviceType.Sensor;
 
   const handleClick = () => {
     if (isEditMode) return;
@@ -64,6 +64,19 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
             </div>
           </div>
         );
+      case DeviceType.Sensor:
+        return (
+          <div className="flex flex-col justify-between h-full text-left">
+            <div>
+              <DeviceIcon type={device.type} isOn={false} />
+              <p className="font-semibold text-sm leading-tight mt-2 text-ellipsis overflow-hidden whitespace-nowrap">{device.name}</p>
+            </div>
+             <div className="flex items-baseline mt-1">
+              <p className="font-bold text-3xl">{device.status}</p>
+              {device.unit && <p className="text-lg font-medium text-gray-400 ml-1">{device.unit}</p>}
+            </div>
+          </div>
+        );
       default:
         return (
           <div className="flex flex-col justify-between h-full">
@@ -81,7 +94,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
 
   const getCardClasses = () => {
     let classes = `${baseClasses} `;
-    if (device.type === DeviceType.Thermostat) {
+    if (device.type === DeviceType.Thermostat || device.type === DeviceType.Sensor) {
       classes += offStateClasses;
     } else {
       classes += isOn ? onStateClasses : offStateClasses;
