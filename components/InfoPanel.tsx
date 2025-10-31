@@ -157,11 +157,11 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, weatherDevice, sid
             className="fixed top-0 left-0 h-full bg-gray-900 ring-1 ring-white/5 text-white hidden lg:flex flex-col p-8"
             style={{ width: `${sidebarWidth}px` }}
         >
-            <div className="flex-grow flex flex-col items-center justify-center">
+            <div className="flex justify-center">
                 <Clock settings={clockSettings} sidebarWidth={sidebarWidth} />
             </div>
 
-            <div className="flex-shrink-0 space-y-8">
+            <div className="mt-8 space-y-8">
                 {/* Placeholder for camera feed */}
                 <div className="aspect-video bg-gray-800 rounded-lg flex items-center justify-center text-gray-500">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
