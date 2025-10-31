@@ -34,9 +34,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
     };
   }, [isPresetMenuOpen]);
 
-  const baseClasses = "aspect-square rounded-2xl p-3 flex flex-col transition-all duration-200 ease-in-out select-none";
-  const onStateClasses = "bg-gray-200 text-gray-900 shadow-lg";
-  const offStateClasses = "bg-gray-800/80 hover:bg-gray-700/80 ring-1 ring-white/10";
+  
   const textOnClasses = "text-gray-800";
   const textOffClasses = "text-gray-400";
   
@@ -75,13 +73,20 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
         );
       case DeviceType.Thermostat:
         return (
-          <div className="flex flex-col justify-between h-full text-left">
-            <div>
-              <DeviceIcon type={device.type} isOn={false} />
-              <p className="font-semibold text-sm leading-tight mt-2">{device.name}</p>
-              <p className="font-bold text-lg">{device.temperature}{device.unit}</p>
+          <div className="flex flex-col h-full text-left">
+            {/* Top part: Icon, Name */}
+            <div className="flex-shrink-0">
+               <DeviceIcon type={device.type} isOn={false} />
+               <p className="font-semibold text-sm leading-tight mt-2">{device.name}</p>
+               {/* Current temp under name */}
+               <p className="font-bold text-lg text-white">{device.temperature}{device.unit}</p>
             </div>
-             <div className="space-y-2">
+            
+            {/* Spacer to push controls to bottom */}
+            <div className="flex-grow"></div> 
+
+            {/* Bottom part: Controls */}
+            <div className="space-y-2 flex-shrink-0">
                 <div className="flex items-center justify-between">
                   <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(-0.5); }} className="w-7 h-7 rounded-full bg-black/20 text-white flex items-center justify-center text-lg">-</button>
                   <span className="text-sm font-medium text-gray-300">Цель: {device.targetTemperature}{device.unit}</span>
@@ -94,7 +99,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
                             onClick={(e) => { e.stopPropagation(); setIsPresetMenuOpen(prev => !prev); }}
                             className="w-full text-left text-sm p-1.5 rounded-md bg-black/20 text-gray-300 hover:bg-black/40 transition-colors"
                         >
-                            Предустановка: <span className="font-semibold text-white">{device.presetMode || 'Нет'}</span>
+                            Предустановка: <span className="font-semibold text-white capitalize">{device.presetMode || 'Нет'}</span>
                         </button>
 
                         {isPresetMenuOpen && (
@@ -106,7 +111,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
                                             onPresetChange(preset);
                                             setIsPresetMenuOpen(false);
                                         }}
-                                        className="block w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-600 rounded-md"
+                                        className="block w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-600 rounded-md capitalize"
                                     >
                                         {preset}
                                     </button>
@@ -147,16 +152,22 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
   };
 
   const getCardClasses = () => {
-    let classes = `${baseClasses} `;
-    if (device.type === DeviceType.Thermostat || device.type === DeviceType.Sensor) {
-      classes += offStateClasses;
+    const baseClasses = "rounded-2xl p-3 flex flex-col transition-all duration-200 ease-in-out select-none";
+    const onStateClasses = "bg-gray-200 text-gray-900 shadow-lg";
+    const offStateClasses = "bg-gray-800/80 hover:bg-gray-700/80 ring-1 ring-white/10";
+    
+    let finalClasses = `${baseClasses} `;
+
+    if (device.type === DeviceType.Thermostat) {
+        finalClasses += offStateClasses; // No aspect-square
     } else {
-      classes += isOn ? onStateClasses : offStateClasses;
+        finalClasses += `aspect-square ${device.type === DeviceType.Sensor ? offStateClasses : (isOn ? onStateClasses : offStateClasses)}`;
     }
+  
     if (isTogglable && !isEditMode) {
-        classes += ' cursor-pointer';
+        finalClasses += ' cursor-pointer';
     }
-    return classes;
+    return finalClasses;
   }
 
   return (
