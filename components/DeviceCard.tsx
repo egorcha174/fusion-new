@@ -1,8 +1,9 @@
 
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Device, DeviceType, CardSize } from '../types';
 import DeviceIcon from './DeviceIcon';
+import SparklineChart from './SparklineChart';
 
 interface DeviceCardProps {
   device: Device;
@@ -30,7 +31,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
       sensorUnitText: 'text-base font-medium',
       thermostatTempText: 'font-bold text-base',
       thermostatTargetText: 'text-[11px] font-medium',
-      thermostatButton: 'w-6 h-6 text-base',
+      thermostatButton: 'w-6 h-6 text-sm font-semibold',
       thermostatPresetButton: 'w-6 h-6',
       thermostatPresetIcon: 'h-4 w-4',
       brightnessCircle: 'w-8 h-8',
@@ -44,7 +45,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
       sensorUnitText: 'text-lg font-medium',
       thermostatTempText: 'font-bold text-lg',
       thermostatTargetText: 'text-xs font-medium',
-      thermostatButton: 'w-7 h-7 text-lg',
+      thermostatButton: 'w-7 h-7 text-base font-semibold',
       thermostatPresetButton: 'w-7 h-7',
       thermostatPresetIcon: 'h-5 w-5',
       brightnessCircle: 'w-9 h-9 sm:w-10 sm:h-10',
@@ -58,7 +59,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
       sensorUnitText: 'text-xl font-medium',
       thermostatTempText: 'font-bold text-2xl',
       thermostatTargetText: 'text-sm font-medium',
-      thermostatButton: 'w-8 h-8 text-xl',
+      thermostatButton: 'w-8 h-8 text-lg font-semibold',
       thermostatPresetButton: 'w-8 h-8',
       thermostatPresetIcon: 'h-6 w-6',
       brightnessCircle: 'w-11 h-11',
@@ -180,21 +181,34 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
               <p className={`${styles.nameText} text-ellipsis overflow-hidden whitespace-nowrap`}>{device.name}</p>
               <p className={`${styles.thermostatTempText} text-white`}>{device.temperature}{device.unit}</p>
               <div className="flex items-center justify-between mt-1">
-                <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(-0.5); }} className={`${styles.thermostatButton} rounded-full bg-black/20 text-white flex items-center justify-center`}>-</button>
+                <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(-0.5); }} className={`${styles.thermostatButton} rounded-full bg-black/20 text-white flex items-center justify-center font-light text-2xl leading-none pb-1`}>-</button>
                 <span className={`${styles.thermostatTargetText} text-gray-300`}>Цель: {device.targetTemperature}{device.unit}</span>
-                <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(0.5); }} className={`${styles.thermostatButton} rounded-full bg-black/20 text-white flex items-center justify-center`}>+</button>
+                <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(0.5); }} className={`${styles.thermostatButton} rounded-full bg-black/20 text-white flex items-center justify-center font-light text-2xl leading-none pb-1`}>+</button>
               </div>
             </div>
           </div>
         );
       case DeviceType.Sensor:
+        // NOTE: Using mock data for the sparkline as historical data fetching is not yet implemented.
+        // In a real scenario, this data would come from the `device.history` prop.
+        const mockHistory = useMemo(() => {
+            const value = parseFloat(device.status) || 20;
+            // Generate a more realistic trend (e.g., a gentle sine wave variation)
+            return Array.from({ length: 20 }, (_, i) => 
+                value + (Math.sin(i / 3) * (value * 0.05)) + (Math.random() - 0.5) * (value * 0.05)
+            );
+        }, [device.status]);
+
         return (
-          <div className="flex flex-col justify-between h-full text-left">
+          <div className="flex flex-col h-full text-left">
             <div>
               <DeviceIcon type={device.type} isOn={false} cardSize={cardSize} />
               <p className={`${styles.nameText} mt-2 text-ellipsis overflow-hidden whitespace-nowrap`}>{device.name}</p>
             </div>
-             <div className="flex items-baseline mt-1">
+             <div className="flex-grow flex items-center w-full my-1 min-h-0">
+              <SparklineChart data={device.history || mockHistory} />
+            </div>
+            <div className="flex items-baseline mt-auto flex-shrink-0">
               <p className={styles.sensorStatusText}>{device.status}</p>
               {device.unit && <p className={`${styles.sensorUnitText} text-gray-400 ml-1`}>{device.unit}</p>}
             </div>

@@ -39,6 +39,7 @@ export interface Device {
   condition?: string; // For weather, the raw state like 'partlycloudy'
   presetMode?: string; // For Thermostat
   presetModes?: string[]; // For Thermostat
+  history?: number[]; // For sensor sparklines
 }
 
 export interface Room {
