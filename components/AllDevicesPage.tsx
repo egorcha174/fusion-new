@@ -69,7 +69,7 @@ const AllDevicesPage: React.FC<AllDevicesPageProps> = ({ rooms, customizations, 
                                                 <DeviceIcon type={device.type} isOn={device.status.toLowerCase() === 'вкл'} />
                                             </div>
                                             <div className="flex-1 overflow-hidden">
-                                                <p className="font-medium text-gray-100 truncate">{device.name}</p>
+                                                <p className="font-medium text-gray-100 text-sm break-words">{device.name}</p>
                                                 <p className="text-sm text-gray-400 truncate">{device.id}</p>
                                             </div>
                                         </div>
