@@ -18,14 +18,12 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   const [name, setName] = useState(customization.name ?? device.name);
   const [type, setType] = useState(customization.type ?? device.type);
   const [isHidden, setIsHidden] = useState(customization.isHidden ?? false);
-  const [icon, setIcon] = useState(customization.icon ?? '');
 
 
   const handleSave = () => {
     const finalCustomization: DeviceCustomization = {
       name: name.trim() !== device.name ? name.trim() : undefined,
       type: type !== device.type ? type : undefined,
-      icon: icon.trim() ? icon.trim() : undefined,
       isHidden: isHidden,
     };
     onSave(device.id, finalCustomization);
@@ -62,23 +60,6 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
             />
           </div>
 
-          <div>
-            <label htmlFor="iconifyIcon" className="block text-sm font-medium text-gray-300 mb-2">
-              Iconify Icon
-            </label>
-            <input
-              id="iconifyIcon"
-              type="text"
-              value={icon}
-              onChange={e => setIcon(e.target.value)}
-              placeholder="e.g., mdi:lightbulb"
-              className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <p className="text-xs text-gray-500 mt-2">
-              Найдите иконки на <a href="https://icon-sets.iconify.design/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Iconify</a>.
-            </p>
-          </div>
-          
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Тип устройства</label>
             <p className="text-xs text-gray-400 mb-2">Определяет поведение карточки. Используйте, если автоопределение неверно.</p>

@@ -1,14 +1,12 @@
 
 
 import React from 'react';
-import { Icon } from '@iconify/react';
 import { DeviceType, CardSize } from '../types';
 
 interface DeviceIconProps {
   type: DeviceType;
   isOn: boolean;
   cardSize: CardSize;
-  customIcon?: string;
 }
 
 const IconWrapper: React.FC<{children: React.ReactNode, isOn: boolean, cardSize: CardSize}> = ({ children, isOn, cardSize }) => {
@@ -26,23 +24,7 @@ const IconWrapper: React.FC<{children: React.ReactNode, isOn: boolean, cardSize:
   );
 };
 
-const DeviceIcon: React.FC<DeviceIconProps> = ({ type, isOn, cardSize, customIcon }) => {
-    // If a custom icon is provided, use it from Iconify
-    if (customIcon) {
-        // Automatically append '-on' suffix if the device is on.
-        // This is a common pattern for icon sets like mdi (e.g., mdi:lightbulb -> mdi:lightbulb-on).
-        const iconName = isOn ? `${customIcon}-on` : customIcon;
-
-        return (
-            <IconWrapper isOn={isOn} cardSize={cardSize}>
-                {/* The Icon component from @iconify/react will render the icon */}
-                <Icon icon={iconName} className="w-full h-full" />
-            </IconWrapper>
-        );
-    }
-
-    // --- Fallback to default SVG icons if no customIcon is provided ---
-
+const DeviceIcon: React.FC<DeviceIconProps> = ({ type, isOn, cardSize }) => {
     const lightIcon = (
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
         <path d="M10 2a6 6 0 00-6 6c0 2.237 1.233 4.16 3.01 5.197L6.06 16.05A.5.5 0 006.5 17h7a.5.5 0 00.44-.95l-.95-2.853A5.96 5.96 0 0016 8a6 6 0 00-6-6zM8.5 18a.5.5 0 00.5.5h2a.5.5 0 000-1h-2a.5.5 0 00-.5.5z" />

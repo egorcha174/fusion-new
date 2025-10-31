@@ -41,7 +41,6 @@ export interface Device {
   presetMode?: string; // For Thermostat
   presetModes?: string[]; // For Thermostat
   history?: number[]; // For sensor sparklines
-  icon?: string; // For custom Iconify icons
 }
 
 export interface Room {
@@ -63,7 +62,6 @@ export interface DeviceCustomization {
   name?: string;
   type?: DeviceType;
   isHidden?: boolean;
-  icon?: string; // e.g., 'mdi:lightbulb'
 }
 
 export type DeviceCustomizations = Record<string, DeviceCustomization>; // Key is device.id (entity_id)
