@@ -20,6 +20,25 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
   const presetMenuRef = useRef<HTMLDivElement>(null);
 
+  // --- Translation for presets ---
+  const presetTranslations: { [key: string]: string } = {
+    'none': 'Нет',
+    'away': 'Не дома',
+    'comfort': 'Комфорт',
+    'eco': 'Эко',
+    'home': 'Дома',
+    'sleep': 'Сон',
+    'activity': 'Активность',
+    'boost': 'Усиленный',
+  };
+
+  const translatePreset = (preset: string | undefined): string => {
+      if (!preset) return presetTranslations['none'];
+      const lowerPreset = preset.toLowerCase();
+      return presetTranslations[lowerPreset] || preset.charAt(0).toUpperCase() + preset.slice(1);
+  };
+
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
         if (presetMenuRef.current && !presetMenuRef.current.contains(event.target as Node)) {
@@ -74,52 +93,49 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
       case DeviceType.Thermostat:
         return (
           <div className="flex flex-col h-full text-left">
-            {/* Top part: Icon, Name */}
-            <div className="flex-shrink-0">
-               <DeviceIcon type={device.type} isOn={false} />
-               <p className="font-semibold text-sm leading-tight mt-2">{device.name}</p>
-               {/* Current temp under name */}
-               <p className="font-bold text-lg text-white">{device.temperature}{device.unit}</p>
-            </div>
-            
-            {/* Spacer to push controls to bottom */}
-            <div className="flex-grow"></div> 
-
-            {/* Bottom part: Controls */}
-            <div className="space-y-2 flex-shrink-0">
-                <div className="flex items-center justify-between">
-                  <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(-0.5); }} className="w-7 h-7 rounded-full bg-black/20 text-white flex items-center justify-center text-lg">-</button>
-                  <span className="text-sm font-medium text-gray-300">Цель: {device.targetTemperature}{device.unit}</span>
-                  <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(0.5); }} className="w-7 h-7 rounded-full bg-black/20 text-white flex items-center justify-center text-lg">+</button>
-                </div>
+            {/* Top row */}
+            <div className="flex justify-between items-start">
+                <DeviceIcon type={device.type} isOn={false} />
 
                 {device.presetModes && device.presetModes.length > 0 && (
-                    <div className="relative" ref={presetMenuRef}>
-                        <button 
+                    <div className="relative z-10" ref={presetMenuRef}>
+                        <button
                             onClick={(e) => { e.stopPropagation(); setIsPresetMenuOpen(prev => !prev); }}
-                            className="w-full text-left text-sm p-1.5 rounded-md bg-black/20 text-gray-300 hover:bg-black/40 transition-colors"
+                            className="w-7 h-7 rounded-full bg-black/20 text-white flex items-center justify-center hover:bg-black/40"
+                            aria-label="Открыть предустановки"
                         >
-                            Предустановка: <span className="font-semibold text-white capitalize">{device.presetMode || 'Нет'}</span>
+                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                             <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                           </svg>
                         </button>
-
                         {isPresetMenuOpen && (
-                            <div className="absolute bottom-full left-0 mb-2 w-full bg-gray-700 rounded-md shadow-lg z-20 ring-1 ring-black ring-opacity-5 p-1 max-h-40 overflow-y-auto">
+                            <div className="absolute top-full right-0 mt-1 w-40 bg-gray-700 rounded-md shadow-lg z-20 ring-1 ring-black ring-opacity-5 p-1 max-h-48 overflow-y-auto fade-in">
                                 {device.presetModes.map(preset => (
                                     <button
                                         key={preset}
-                                        onClick={() => {
-                                            onPresetChange(preset);
-                                            setIsPresetMenuOpen(false);
-                                        }}
-                                        className="block w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-600 rounded-md capitalize"
+                                        onClick={() => { onPresetChange(preset); setIsPresetMenuOpen(false); }}
+                                        className="block w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-600 rounded-md"
                                     >
-                                        {preset}
+                                        {translatePreset(preset)}
                                     </button>
                                 ))}
                             </div>
                         )}
                     </div>
                 )}
+            </div>
+            
+            <div className="flex-grow"></div>
+
+            {/* Bottom part */}
+            <div className="flex-shrink-0">
+              <p className="font-semibold text-sm leading-tight text-ellipsis overflow-hidden whitespace-nowrap">{device.name}</p>
+              <p className="font-bold text-lg text-white">{device.temperature}{device.unit}</p>
+              <div className="flex items-center justify-between mt-1">
+                <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(-0.5); }} className="w-7 h-7 rounded-full bg-black/20 text-white flex items-center justify-center text-lg">-</button>
+                <span className="text-xs font-medium text-gray-300">Цель: {device.targetTemperature}{device.unit}</span>
+                <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(0.5); }} className="w-7 h-7 rounded-full bg-black/20 text-white flex items-center justify-center text-lg">+</button>
+              </div>
             </div>
           </div>
         );
@@ -156,12 +172,12 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
     const onStateClasses = "bg-gray-200 text-gray-900 shadow-lg";
     const offStateClasses = "bg-gray-800/80 hover:bg-gray-700/80 ring-1 ring-white/10";
     
-    let finalClasses = `${baseClasses} `;
+    let finalClasses = `${baseClasses} aspect-square `;
 
-    if (device.type === DeviceType.Thermostat) {
-        finalClasses += offStateClasses; // No aspect-square
+    if (device.type === DeviceType.Sensor || device.type === DeviceType.Thermostat) {
+        finalClasses += offStateClasses;
     } else {
-        finalClasses += `aspect-square ${device.type === DeviceType.Sensor ? offStateClasses : (isOn ? onStateClasses : offStateClasses)}`;
+        finalClasses += isOn ? onStateClasses : offStateClasses;
     }
   
     if (isTogglable && !isEditMode) {
