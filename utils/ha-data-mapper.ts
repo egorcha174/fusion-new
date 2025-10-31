@@ -99,6 +99,8 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
     status: getStatusText(entity),
     type: customization.type !== undefined ? customization.type : originalType,
     unit: entity.attributes.unit_of_measurement,
+    haDomain: entity.entity_id.split('.')[0],
+    haDeviceClass: entity.attributes.device_class,
   };
 
   if (device.type === DeviceType.DimmableLight && entity.attributes.brightness) {

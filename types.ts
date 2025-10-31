@@ -41,6 +41,8 @@ export interface Device {
   presetMode?: string; // For Thermostat
   presetModes?: string[]; // For Thermostat
   history?: number[]; // For sensor sparklines
+  haDomain?: string;
+  haDeviceClass?: string;
 }
 
 export interface Room {
