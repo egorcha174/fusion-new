@@ -22,6 +22,17 @@ const useHomeAssistant = () => {
       socketRef.current.send(JSON.stringify(message));
     }
   }, []);
+  
+  const disconnect = useCallback(() => {
+    if (socketRef.current) {
+        socketRef.current.close();
+    }
+    setConnectionStatus('idle');
+    setEntities({});
+    setAreas([]);
+    setDevices([]);
+    setError(null);
+  }, []);
 
   const callService = useCallback((domain: string, service: string, service_data: object) => {
     sendMessage({
@@ -124,12 +135,10 @@ const useHomeAssistant = () => {
         }
       };
 
-      socket.onclose = () => {
-        console.log('WebSocket disconnected');
-        if (connectionStatus !== 'connected') {
-            setConnectionStatus('failed');
-            setError('Connection closed unexpectedly.');
-        } else {
+      socket.onclose = (e) => {
+        console.log('WebSocket disconnected', e.reason);
+         // Don't set to failed if disconnect was called intentionally
+        if (connectionStatus === 'connected') {
             setConnectionStatus('idle');
         }
       };
@@ -160,7 +169,7 @@ const useHomeAssistant = () => {
     }
   }, []);
 
-  return { connectionStatus, error, entities, areas, devices, connect, callService };
+  return { connectionStatus, error, entities, areas, devices, connect, disconnect, callService };
 };
 
 export default useHomeAssistant;

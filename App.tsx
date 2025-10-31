@@ -1,9 +1,12 @@
 
-import React, { useMemo } from 'react';
-import Room from './components/Room';
+import React, { useMemo, useState } from 'react';
+import RoomComponent from './components/Room';
 import Settings from './components/Settings';
+import Sidebar from './components/Sidebar';
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
+
+type Page = 'dashboard' | 'settings';
 
 const App: React.FC = () => {
   const {
@@ -13,8 +16,12 @@ const App: React.FC = () => {
     areas,
     devices: haDevices,
     connect,
+    disconnect,
     callService,
   } = useHomeAssistant();
+  
+  const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [currentPage, setCurrentPage] = useState<Page>('dashboard');
 
   const rooms = useMemo(() => {
     if (connectionStatus !== 'connected') return [];
@@ -48,25 +55,55 @@ const App: React.FC = () => {
       console.log("Device order change is visual only in this version.");
   };
 
+  const handleNavigate = (page: Page, sectionId?: string) => {
+    setCurrentPage(page);
+    if (page === 'dashboard' && sectionId) {
+      setTimeout(() => {
+        const element = document.getElementById(sectionId);
+        element?.scrollIntoView({ behavior: 'smooth' });
+      }, 0);
+    }
+  };
+
   if (connectionStatus !== 'connected') {
     return <Settings onConnect={connect} connectionStatus={connectionStatus} error={error} />;
   }
 
   return (
-    <div className="min-h-screen text-gray-200 p-4 sm:p-6 md:p-8">
-      <div className="container mx-auto">
-        <div className="space-y-12">
-          {rooms.map(room => (
-            <Room 
-              key={room.id} 
-              room={room} 
-              onDeviceToggle={handleDeviceToggle}
-              onDeviceOrderChange={handleDeviceOrderChange}
-              onTemperatureChange={handleTemperatureChange}
-            />
-          ))}
-        </div>
-      </div>
+    <div className="flex min-h-screen bg-gray-900 text-gray-200">
+      <Sidebar
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!isSidebarCollapsed)}
+        rooms={rooms}
+        currentPage={currentPage}
+        onNavigate={handleNavigate}
+      />
+      <main
+        className={`flex-1 transition-all duration-300 ease-in-out p-4 sm:p-6 md:p-8 ${
+          isSidebarCollapsed ? 'ml-20' : 'ml-64'
+        }`}
+      >
+        {currentPage === 'dashboard' && (
+          <div className="container mx-auto">
+            <div className="space-y-12">
+              {rooms.map(room => (
+                <RoomComponent
+                  key={room.id}
+                  room={room}
+                  onDeviceToggle={handleDeviceToggle}
+                  onDeviceOrderChange={handleDeviceOrderChange}
+                  onTemperatureChange={handleTemperatureChange}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+        {currentPage === 'settings' && (
+           <div className="flex justify-center items-start pt-10">
+              <Settings onConnect={connect} connectionStatus={connectionStatus} error={error} onDisconnect={disconnect} />
+           </div>
+        )}
+      </main>
     </div>
   );
 };

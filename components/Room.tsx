@@ -32,7 +32,7 @@ const Room: React.FC<RoomProps> = ({ room, onDeviceToggle, onDeviceOrderChange, 
   };
 
   return (
-    <section>
+    <section id={room.id}>
       <h2 className="text-2xl sm:text-3xl font-bold text-gray-100 mb-4">{room.name}</h2>
       <DndContext
         sensors={sensors}

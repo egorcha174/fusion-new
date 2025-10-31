@@ -8,9 +8,10 @@ interface SettingsProps {
   onConnect: (url: string, token: string) => void;
   connectionStatus: ConnectionStatus;
   error: string | null;
+  onDisconnect?: () => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error }) => {
+const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error, onDisconnect }) => {
   const [url, setUrl] = useLocalStorage('ha-url', '');
   const [token, setToken] = useLocalStorage('ha-token', '');
   const [localError, setLocalError] = React.useState('');
@@ -25,6 +26,21 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
   };
 
   const isLoading = connectionStatus === 'connecting';
+
+  if (connectionStatus === 'connected' && onDisconnect) {
+    return (
+        <div className="w-full max-w-md bg-gray-800 p-8 rounded-2xl shadow-lg ring-1 ring-white/10">
+            <h1 className="text-3xl font-bold text-center text-gray-100 mb-6">Settings</h1>
+            <p className="text-center text-gray-400 mb-6">You are connected to {url}.</p>
+            <button
+                onClick={onDisconnect}
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200"
+            >
+                Disconnect
+            </button>
+        </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
