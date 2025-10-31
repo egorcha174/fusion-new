@@ -12,9 +12,10 @@ interface DraggableDeviceCardProps {
   isEditMode: boolean;
   onEditDevice: (device: Device) => void;
   onRemoveFromTab: () => void;
+  onContextMenu: (event: React.MouseEvent) => void;
 }
 
-const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onToggle, onTemperatureChange, isEditMode, onEditDevice, onRemoveFromTab }) => {
+const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onToggle, onTemperatureChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu }) => {
   const {
     attributes,
     listeners,
@@ -40,6 +41,7 @@ const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onTog
         isEditMode={isEditMode}
         onEditDevice={onEditDevice}
         onRemoveFromTab={onRemoveFromTab}
+        onContextMenu={onContextMenu}
       />
     </div>
   );

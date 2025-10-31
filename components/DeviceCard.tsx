@@ -10,9 +10,10 @@ interface DeviceCardProps {
   isEditMode: boolean;
   onEditDevice: (device: Device) => void;
   onRemoveFromTab?: () => void; // Optional: for removing device from a tab
+  onContextMenu: (event: React.MouseEvent) => void;
 }
 
-const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperatureChange, isEditMode, onEditDevice, onRemoveFromTab }) => {
+const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperatureChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu }) => {
   const isOn = device.status.toLowerCase() === 'вкл' || device.status.toLowerCase() === 'on';
 
   const baseClasses = "aspect-square rounded-2xl p-3 flex flex-col transition-all duration-200 ease-in-out select-none";
@@ -28,6 +29,11 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
     if (isTogglable) {
       onToggle();
     }
+  };
+  
+  const handleContextMenu = (e: React.MouseEvent) => {
+    if (isEditMode) return;
+    onContextMenu(e);
   };
 
   const renderContent = () => {
@@ -106,7 +112,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
   }
 
   return (
-    <div className={getCardClasses()} onClick={handleClick}>
+    <div className={getCardClasses()} onClick={handleClick} onContextMenu={handleContextMenu}>
        <div className="relative w-full h-full">
          {isEditMode && (
           <div className="absolute -top-2 -right-2 z-10 flex flex-col gap-2">

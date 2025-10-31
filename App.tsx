@@ -8,6 +8,7 @@ import AllDevicesPage from './components/AllDevicesPage';
 import TabContent from './components/TabContent';
 import DeviceSettingsModal from './components/DeviceSettingsModal';
 import TabSettingsModal from './components/TabSettingsModal';
+import ContextMenu from './components/ContextMenu';
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
@@ -33,6 +34,8 @@ const App: React.FC = () => {
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [editingTab, setEditingTab] = useState<Tab | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [contextMenu, setContextMenu] = useState<{ x: number, y: number, deviceId: string, tabId: string } | null>(null);
+
 
   // --- New Tab-based State Management ---
   const [tabs, setTabs] = useLocalStorage<Tab[]>('ha-tabs', []);
@@ -117,6 +120,17 @@ const App: React.FC = () => {
   }, [searchTerm, allRoomsForDevicePage]);
 
 
+  // --- Context Menu Handlers ---
+  const handleDeviceContextMenu = (event: React.MouseEvent, deviceId: string, tabId: string) => {
+    event.preventDefault();
+    setContextMenu({ x: event.clientX, y: event.clientY, deviceId, tabId });
+  };
+  
+  const handleCloseContextMenu = () => {
+    setContextMenu(null);
+  };
+
+
   // --- Tab Management Handlers ---
   const handleAddTab = () => {
     const newTabName = `Вкладка ${tabs.length + 1}`;
@@ -167,6 +181,30 @@ const App: React.FC = () => {
      }));
   };
   
+  const handleDeviceMoveToTab = (deviceId: string, fromTabId: string, toTabId: string) => {
+    if (fromTabId === toTabId) return;
+
+    setTabs(currentTabs => currentTabs.map(tab => {
+        // Add to the destination tab
+        if (tab.id === toTabId) {
+            if (tab.deviceIds.includes(deviceId)) {
+                return tab; // Already exists, do nothing
+            }
+            return { ...tab, deviceIds: [...tab.deviceIds, deviceId] };
+        }
+        // Remove from the source tab
+        if (tab.id === fromTabId) {
+            const newDeviceIds = tab.deviceIds.filter(id => id !== deviceId);
+            const newDeviceOrder = { ...tab.deviceOrder };
+            if (newDeviceOrder[tab.id]) {
+                newDeviceOrder[tab.id] = newDeviceOrder[tab.id].filter(id => id !== deviceId);
+            }
+            return { ...tab, deviceIds: newDeviceIds, deviceOrder: newDeviceOrder };
+        }
+        return tab;
+    }));
+};
+
   const handleDeviceOrderChangeOnTab = (tabId: string, orderedDevices: Device[]) => {
       setTabs(tabs.map(tab => {
           if (tab.id === tabId) {
@@ -255,12 +293,15 @@ const App: React.FC = () => {
             onTemperatureChange={handleTemperatureChange}
             isEditMode={isEditMode}
             onEditDevice={setEditingDevice}
+            onDeviceContextMenu={handleDeviceContextMenu}
           />
         ) : (
           <div className="text-center text-gray-500">Выберите или создайте вкладку</div>
         );
     }
   };
+
+  const otherTabs = tabs.filter(t => t.id !== contextMenu?.tabId);
 
   return (
     <div className="flex min-h-screen bg-gray-900 text-gray-200">
@@ -298,6 +339,47 @@ const App: React.FC = () => {
       {editingTab && (
         <TabSettingsModal tab={editingTab} onSave={handleUpdateTab} onDelete={handleDeleteTab} onClose={() => setEditingTab(null)} />
       )}
+
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          isOpen={!!contextMenu}
+          onClose={handleCloseContextMenu}
+        >
+            {otherTabs.length > 0 && (
+                <>
+                    <div className="relative group/menu">
+                        <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-default flex justify-between items-center">
+                            Копировать в... <span className="text-xs ml-4">▶</span>
+                        </div>
+                        <div className="absolute left-full top-[-5px] z-10 hidden group-hover/menu:block bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-white/10 p-1 min-w-[150px]">
+                            {otherTabs.map(tab => (
+                                <div key={tab.id} onClick={() => { handleDeviceAddToTab(contextMenu.deviceId, tab.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer">{tab.name}</div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="relative group/menu">
+                        <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-default flex justify-between items-center">
+                            Переместить в... <span className="text-xs ml-4">▶</span>
+                        </div>
+                        <div className="absolute left-full top-[-5px] z-10 hidden group-hover/menu:block bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-white/10 p-1 min-w-[150px]">
+                             {otherTabs.map(tab => (
+                                <div key={tab.id} onClick={() => { handleDeviceMoveToTab(contextMenu.deviceId, contextMenu.tabId, tab.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer">{tab.name}</div>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="h-px bg-gray-600/50 my-1" />
+                </>
+            )}
+             <div onClick={() => { handleDeviceRemoveFromTab(contextMenu.deviceId, contextMenu.tabId); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer">
+                Скрыть на этой вкладке
+            </div>
+
+        </ContextMenu>
+      )}
+
     </div>
   );
 };

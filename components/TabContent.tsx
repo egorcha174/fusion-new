@@ -14,6 +14,7 @@ interface TabContentProps {
   onTemperatureChange: (deviceId: string, change: number) => void;
   isEditMode: boolean;
   onEditDevice: (device: Device) => void;
+  onDeviceContextMenu: (event: React.MouseEvent, deviceId: string, tabId: string) => void;
 }
 
 const TabContent: React.FC<TabContentProps> = ({
@@ -24,7 +25,8 @@ const TabContent: React.FC<TabContentProps> = ({
   onDeviceToggle,
   onTemperatureChange,
   isEditMode,
-  onEditDevice
+  onEditDevice,
+  onDeviceContextMenu
 }) => {
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -84,6 +86,7 @@ const TabContent: React.FC<TabContentProps> = ({
                 isEditMode={isEditMode}
                 onEditDevice={onEditDevice}
                 onRemoveFromTab={() => onDeviceRemoveFromTab(device.id, tab.id)}
+                onContextMenu={(event) => onDeviceContextMenu(event, device.id, tab.id)}
               />
             ))}
           </div>
