@@ -43,6 +43,7 @@ export interface HassEntity {
     brightness?: number; // 0-255
     temperature?: number;
     current_temperature?: number;
+    device_id?: string;
     [key: string]: any;
   };
   context: {
@@ -65,4 +66,10 @@ export interface HassDevice {
     area_id: string | null;
     name: string;
     // other properties not needed for this app
+}
+
+export interface HassEntityRegistryEntry {
+    entity_id: string;
+    area_id: string | null;
+    device_id: string | null;
 }

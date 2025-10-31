@@ -1,6 +1,6 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { HassEntity, HassArea, HassDevice } from '../types';
+import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry } from '../types';
 
 interface HassEntities {
   [key: string]: HassEntity;
@@ -14,6 +14,7 @@ const useHomeAssistant = () => {
   const [entities, setEntities] = useState<HassEntities>({});
   const [areas, setAreas] = useState<HassArea[]>([]);
   const [devices, setDevices] = useState<HassDevice[]>([]);
+  const [entityRegistry, setEntityRegistry] = useState<HassEntityRegistryEntry[]>([]);
   const socketRef = useRef<WebSocket | null>(null);
   const messageIdRef = useRef(1);
 
@@ -31,6 +32,7 @@ const useHomeAssistant = () => {
     setEntities({});
     setAreas([]);
     setDevices([]);
+    setEntityRegistry([]);
     setError(null);
   }, []);
 
@@ -53,7 +55,6 @@ const useHomeAssistant = () => {
     setError(null);
     messageIdRef.current = 1;
 
-    // Robust URL cleaning and protocol selection
     const cleanUrl = url.replace(/^(https?|wss?):\/\//, '');
     const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
     const wsUrl = `${protocol}${cleanUrl}/api/websocket`;
@@ -79,13 +80,15 @@ const useHomeAssistant = () => {
             const statesId = messageIdRef.current++;
             const areasId = messageIdRef.current++;
             const devicesId = messageIdRef.current++;
+            const entityRegistryId = messageIdRef.current++;
             
             sendMessage({ id: statesId, type: 'get_states' });
             sendMessage({ id: areasId, type: 'config/area_registry/list' });
             sendMessage({ id: devicesId, type: 'config/device_registry/list' });
+            sendMessage({ id: entityRegistryId, type: 'config/entity_registry/list'});
             sendMessage({ id: messageIdRef.current++, type: 'subscribe_events', event_type: 'state_changed' });
             
-            socket.onmessage = (event) => handleMessage(event, { statesId, areasId, devicesId });
+            socket.onmessage = (event) => handleMessage(event, { statesId, areasId, devicesId, entityRegistryId });
             break;
           case 'auth_invalid':
             console.error('Authentication failed:', data.message);
@@ -96,7 +99,7 @@ const useHomeAssistant = () => {
         }
       };
 
-      const handleMessage = (event: MessageEvent, ids: { statesId: number, areasId: number, devicesId: number }) => {
+      const handleMessage = (event: MessageEvent, ids: { statesId: number, areasId: number, devicesId: number, entityRegistryId: number }) => {
         const data = JSON.parse(event.data);
         switch (data.type) {
           case 'result':
@@ -111,6 +114,8 @@ const useHomeAssistant = () => {
                 setAreas(data.result);
               } else if (data.id === ids.devicesId) {
                 setDevices(data.result);
+              } else if (data.id === ids.entityRegistryId) {
+                  setEntityRegistry(data.result);
               }
             } else {
               console.error('API Error:', data.error);
@@ -137,7 +142,6 @@ const useHomeAssistant = () => {
 
       socket.onclose = (e) => {
         console.log('WebSocket disconnected', e.reason);
-         // Don't set to failed if disconnect was called intentionally
         if (connectionStatus === 'connected') {
             setConnectionStatus('idle');
         }
@@ -145,10 +149,12 @@ const useHomeAssistant = () => {
 
       socket.onerror = (event) => {
         console.error('WebSocket error:', event);
-        // This generic event doesn't give specific details, so we check the error from the `catch` block.
-        // If an error hasn't been set by the `catch` block, provide a generic one.
         if (!error) {
+          if (event instanceof DOMException && event.name === 'SecurityError') {
+            setError('Security Error: Cannot connect to an insecure WebSocket (ws://) from a secure page (https://). Try accessing this app via HTTP or enabling HTTPS on Home Assistant.');
+          } else {
             setError('Failed to connect. Check URL and network.');
+          }
         }
         setConnectionStatus('failed');
       };
@@ -169,7 +175,7 @@ const useHomeAssistant = () => {
     }
   }, []);
 
-  return { connectionStatus, error, entities, areas, devices, connect, disconnect, callService };
+  return { connectionStatus, error, entities, areas, devices, entityRegistry, connect, disconnect, callService };
 };
 
 export default useHomeAssistant;

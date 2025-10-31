@@ -1,27 +1,26 @@
 
-import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice } from '../types';
+import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry } from '../types';
 
 const getDeviceType = (entity: HassEntity): DeviceType => {
-  const entityId = entity.entity_id.split('.')[0];
+  const entityIdDomain = entity.entity_id.split('.')[0];
   const attributes = entity.attributes;
 
-  if (entityId === 'light') {
+  if (entityIdDomain === 'light') {
     return attributes.brightness !== undefined ? DeviceType.DimmableLight : DeviceType.Light;
   }
-  if (entityId === 'switch') return DeviceType.Lamp; // Assumption
-  if (entityId === 'media_player') {
+  if (entityIdDomain === 'switch') return DeviceType.Lamp; // Assumption
+  if (entityIdDomain === 'media_player') {
     if (attributes.device_class === 'tv') return DeviceType.TV;
     return DeviceType.Speaker; // Generic media player
   }
-  if (entityId === 'climate') return DeviceType.Thermostat;
-  if (entityId.includes('playstation')) return DeviceType.Playstation;
-  
-  // More specific mapping based on attributes could be added here
+  if (entityIdDomain === 'climate') return DeviceType.Thermostat;
+  if (entity.entity_id.includes('playstation')) return DeviceType.Playstation;
   
   return DeviceType.Unknown;
 };
 
 const getStatusText = (entity: HassEntity): string => {
+    if (entity.state === 'unavailable') return 'Unavailable';
     if (entity.state === 'on') return 'På';
     if (entity.state === 'off') return 'Okänt';
     return entity.state.charAt(0).toUpperCase() + entity.state.slice(1);
@@ -29,10 +28,8 @@ const getStatusText = (entity: HassEntity): string => {
 
 const entityToDevice = (entity: HassEntity): Device | null => {
   const type = getDeviceType(entity);
-  if (type === DeviceType.Unknown) {
-    return null; // Don't include unknown devices in the UI
-  }
-
+  // We keep Unknown devices for now to ensure they can be mapped, but they can be filtered later.
+  
   const device: Device = {
     id: entity.entity_id,
     name: entity.attributes.friendly_name || entity.entity_id,
@@ -53,7 +50,12 @@ const entityToDevice = (entity: HassEntity): Device | null => {
   return device;
 };
 
-export const mapEntitiesToRooms = (entities: HassEntity[], areas: HassArea[], haDevices: HassDevice[]): Room[] => {
+export const mapEntitiesToRooms = (
+    entities: HassEntity[], 
+    areas: HassArea[], 
+    haDevices: HassDevice[], 
+    entityRegistry: HassEntityRegistryEntry[]
+): Room[] => {
   const roomsMap: Map<string, Room> = new Map();
 
   // Initialize rooms from areas
@@ -64,8 +66,16 @@ export const mapEntitiesToRooms = (entities: HassEntity[], areas: HassArea[], ha
       devices: [],
     });
   });
+   // Add a fallback for devices not in an area
+  roomsMap.set('no_area', { id: 'no_area', name: 'No Area', devices: []});
 
-  // Create a map for quick device lookup
+  const entityIdToAreaIdMap = new Map<string, string>();
+  entityRegistry.forEach(entry => {
+      if (entry.area_id) {
+        entityIdToAreaIdMap.set(entry.entity_id, entry.area_id);
+      }
+  });
+
   const deviceIdToAreaIdMap = new Map<string, string>();
   haDevices.forEach(d => {
       if(d.area_id) {
@@ -75,20 +85,18 @@ export const mapEntitiesToRooms = (entities: HassEntity[], areas: HassArea[], ha
 
   entities.forEach(entity => {
     const device = entityToDevice(entity);
-    if (device) {
-        // Find device in registry to link to an area
-        const haDevice = haDevices.find(d => d.id === entity.attributes.device_id);
-        const areaId = haDevice?.area_id;
+    if (device && device.type !== DeviceType.Unknown) {
+        let areaId: string | undefined | null = entityIdToAreaIdMap.get(entity.entity_id);
 
-        if (areaId && roomsMap.has(areaId)) {
-            roomsMap.get(areaId)?.devices.push(device);
-        } else {
-            // Fallback for devices not in an area
-            if (!roomsMap.has('no_area')) {
-                roomsMap.set('no_area', { id: 'no_area', name: 'No Area', devices: []});
+        if (!areaId) {
+            const haDevice = haDevices.find(d => d.id === entity.attributes.device_id);
+            if (haDevice?.area_id) {
+                areaId = haDevice.area_id;
             }
-            roomsMap.get('no_area')?.devices.push(device);
         }
+
+        const targetRoom = roomsMap.get(areaId || 'no_area') || roomsMap.get('no_area');
+        targetRoom?.devices.push(device);
     }
   });
 

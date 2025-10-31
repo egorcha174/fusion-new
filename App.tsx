@@ -4,9 +4,12 @@ import RoomComponent from './components/Room';
 import Settings from './components/Settings';
 import Sidebar from './components/Sidebar';
 import useHomeAssistant from './hooks/useHomeAssistant';
+import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
+import { Device, Room } from './types';
 
 type Page = 'dashboard' | 'settings';
+type DeviceOrderMap = Record<string, string[]>; // { [roomId]: deviceId[] }
 
 const App: React.FC = () => {
   const {
@@ -15,6 +18,7 @@ const App: React.FC = () => {
     entities,
     areas,
     devices: haDevices,
+    entityRegistry,
     connect,
     disconnect,
     callService,
@@ -22,11 +26,31 @@ const App: React.FC = () => {
   
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
+  const [deviceOrder, setDeviceOrder] = useLocalStorage<DeviceOrderMap>('ha-device-order', {});
 
   const rooms = useMemo(() => {
     if (connectionStatus !== 'connected') return [];
-    return mapEntitiesToRooms(Object.values(entities), areas, haDevices);
-  }, [connectionStatus, entities, areas, haDevices]);
+    const mappedRooms = mapEntitiesToRooms(Object.values(entities), areas, haDevices, entityRegistry);
+    
+    // Apply the custom sort order
+    return mappedRooms.map(room => {
+      const order = deviceOrder[room.id];
+      if (!order) {
+        return room; // No custom order for this room
+      }
+
+      const deviceMap = new Map(room.devices.map(d => [d.id, d]));
+      const sortedDevices = order
+        .map(deviceId => deviceMap.get(deviceId))
+        .filter((d): d is Device => !!d);
+      
+      const orderedDeviceIds = new Set(order);
+      const newDevices = room.devices.filter(d => !orderedDeviceIds.has(d.id));
+
+      return { ...room, devices: [...sortedDevices, ...newDevices] };
+    });
+  }, [connectionStatus, entities, areas, haDevices, entityRegistry, deviceOrder]);
+
 
   const handleDeviceToggle = (roomId: string, deviceId: string) => {
     const entity = Object.values(entities).find(e => e.entity_id === deviceId);
@@ -51,8 +75,11 @@ const App: React.FC = () => {
     });
   };
 
-  const handleDeviceOrderChange = () => {
-      console.log("Device order change is visual only in this version.");
+  const handleDeviceOrderChange = (roomId: string, newDevices: Device[]) => {
+      setDeviceOrder(prevOrder => ({
+        ...prevOrder,
+        [roomId]: newDevices.map(d => d.id),
+    }));
   };
 
   const handleNavigate = (page: Page, sectionId?: string) => {
