@@ -1,4 +1,5 @@
 
+
 import React, { useMemo, useState, useEffect } from 'react';
 import Settings from './components/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -232,6 +233,10 @@ const App: React.FC = () => {
       callService('climate', 'set_temperature', { entity_id: entity.entity_id, temperature: newTemp });
   };
 
+  const handlePresetChange = (deviceId: string, preset: string) => {
+    callService('climate', 'set_preset_mode', { entity_id: deviceId, preset_mode: preset });
+  };
+
 
   // --- Customization ---
   const handleSaveCustomization = (deviceId: string, customization: DeviceCustomization) => {
@@ -291,6 +296,7 @@ const App: React.FC = () => {
             onDeviceRemoveFromTab={handleDeviceRemoveFromTab}
             onDeviceToggle={handleDeviceToggle}
             onTemperatureChange={handleTemperatureChange}
+            onPresetChange={handlePresetChange}
             isEditMode={isEditMode}
             onEditDevice={setEditingDevice}
             onDeviceContextMenu={handleDeviceContextMenu}

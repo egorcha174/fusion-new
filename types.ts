@@ -1,4 +1,5 @@
 
+
 export enum DeviceType {
   Light,
   Lamp,
@@ -36,6 +37,8 @@ export interface Device {
   unit?: string; // For sensors, thermostats, weather
   forecast?: WeatherForecast[]; // For weather devices
   condition?: string; // For weather, the raw state like 'partlycloudy'
+  presetMode?: string; // For Thermostat
+  presetModes?: string[]; // For Thermostat
 }
 
 export interface Room {
@@ -81,6 +84,8 @@ export interface HassEntity {
     current_temperature?: number;
     device_id?: string;
     forecast?: WeatherForecast[];
+    preset_mode?: string;
+    preset_modes?: string[];
     [key: string]: any;
   };
   context: {

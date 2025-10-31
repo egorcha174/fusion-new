@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -9,13 +10,14 @@ interface DraggableDeviceCardProps {
   device: Device;
   onToggle: () => void;
   onTemperatureChange: (change: number) => void;
+  onPresetChange: (preset: string) => void;
   isEditMode: boolean;
   onEditDevice: (device: Device) => void;
   onRemoveFromTab: () => void;
   onContextMenu: (event: React.MouseEvent) => void;
 }
 
-const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onToggle, onTemperatureChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu }) => {
+const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onToggle, onTemperatureChange, onPresetChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu }) => {
   const {
     attributes,
     listeners,
@@ -38,6 +40,7 @@ const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onTog
         device={device} 
         onToggle={onToggle} 
         onTemperatureChange={onTemperatureChange}
+        onPresetChange={onPresetChange}
         isEditMode={isEditMode}
         onEditDevice={onEditDevice}
         onRemoveFromTab={onRemoveFromTab}

@@ -1,4 +1,5 @@
 
+
 import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization } from '../types';
 
 const getDeviceType = (entity: HassEntity): DeviceType => {
@@ -82,6 +83,8 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
   if (device.type === DeviceType.Thermostat) {
     device.temperature = entity.attributes.current_temperature;
     device.targetTemperature = entity.attributes.temperature;
+    device.presetMode = entity.attributes.preset_mode;
+    device.presetModes = entity.attributes.preset_modes;
   }
   
   if (device.type === DeviceType.Weather) {

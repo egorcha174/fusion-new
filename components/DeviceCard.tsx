@@ -1,5 +1,6 @@
 
-import React from 'react';
+
+import React, { useState, useRef, useEffect } from 'react';
 import { Device, DeviceType } from '../types';
 import DeviceIcon from './DeviceIcon';
 
@@ -7,14 +8,31 @@ interface DeviceCardProps {
   device: Device;
   onToggle: () => void;
   onTemperatureChange: (change: number) => void;
+  onPresetChange: (preset: string) => void;
   isEditMode: boolean;
   onEditDevice: (device: Device) => void;
   onRemoveFromTab?: () => void; // Optional: for removing device from a tab
   onContextMenu: (event: React.MouseEvent) => void;
 }
 
-const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperatureChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu }) => {
+const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperatureChange, onPresetChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu }) => {
   const isOn = device.status.toLowerCase() === 'вкл' || device.status.toLowerCase() === 'on';
+  const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
+  const presetMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        if (presetMenuRef.current && !presetMenuRef.current.contains(event.target as Node)) {
+            setIsPresetMenuOpen(false);
+        }
+    };
+    if (isPresetMenuOpen) {
+        document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isPresetMenuOpen]);
 
   const baseClasses = "aspect-square rounded-2xl p-3 flex flex-col transition-all duration-200 ease-in-out select-none";
   const onStateClasses = "bg-gray-200 text-gray-900 shadow-lg";
@@ -63,10 +81,40 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
               <p className="font-semibold text-sm leading-tight mt-2">{device.name}</p>
               <p className="font-bold text-lg">{device.temperature}{device.unit}</p>
             </div>
-             <div className="flex items-center justify-between mt-1">
-              <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(-0.5); }} className="w-7 h-7 rounded-full bg-black/20 text-white flex items-center justify-center text-lg">-</button>
-              <span className="text-sm font-medium text-gray-300">Цель: {device.targetTemperature}{device.unit}</span>
-              <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(0.5); }} className="w-7 h-7 rounded-full bg-black/20 text-white flex items-center justify-center text-lg">+</button>
+             <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(-0.5); }} className="w-7 h-7 rounded-full bg-black/20 text-white flex items-center justify-center text-lg">-</button>
+                  <span className="text-sm font-medium text-gray-300">Цель: {device.targetTemperature}{device.unit}</span>
+                  <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(0.5); }} className="w-7 h-7 rounded-full bg-black/20 text-white flex items-center justify-center text-lg">+</button>
+                </div>
+
+                {device.presetModes && device.presetModes.length > 0 && (
+                    <div className="relative" ref={presetMenuRef}>
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); setIsPresetMenuOpen(prev => !prev); }}
+                            className="w-full text-left text-sm p-1.5 rounded-md bg-black/20 text-gray-300 hover:bg-black/40 transition-colors"
+                        >
+                            Предустановка: <span className="font-semibold text-white">{device.presetMode || 'Нет'}</span>
+                        </button>
+
+                        {isPresetMenuOpen && (
+                            <div className="absolute bottom-full left-0 mb-2 w-full bg-gray-700 rounded-md shadow-lg z-20 ring-1 ring-black ring-opacity-5 p-1 max-h-40 overflow-y-auto">
+                                {device.presetModes.map(preset => (
+                                    <button
+                                        key={preset}
+                                        onClick={() => {
+                                            onPresetChange(preset);
+                                            setIsPresetMenuOpen(false);
+                                        }}
+                                        className="block w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-600 rounded-md"
+                                    >
+                                        {preset}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
           </div>
         );

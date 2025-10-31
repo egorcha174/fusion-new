@@ -1,4 +1,5 @@
 
+
 import React, { useMemo } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable';
@@ -12,6 +13,7 @@ interface TabContentProps {
   onDeviceRemoveFromTab: (deviceId: string, tabId: string) => void;
   onDeviceToggle: (deviceId: string) => void;
   onTemperatureChange: (deviceId: string, change: number) => void;
+  onPresetChange: (deviceId: string, preset: string) => void;
   isEditMode: boolean;
   onEditDevice: (device: Device) => void;
   onDeviceContextMenu: (event: React.MouseEvent, deviceId: string, tabId: string) => void;
@@ -24,6 +26,7 @@ const TabContent: React.FC<TabContentProps> = ({
   onDeviceRemoveFromTab,
   onDeviceToggle,
   onTemperatureChange,
+  onPresetChange,
   isEditMode,
   onEditDevice,
   onDeviceContextMenu
@@ -83,6 +86,7 @@ const TabContent: React.FC<TabContentProps> = ({
                 device={device}
                 onToggle={() => onDeviceToggle(device.id)}
                 onTemperatureChange={(change) => onTemperatureChange(device.id, change)}
+                onPresetChange={(preset) => onPresetChange(device.id, preset)}
                 isEditMode={isEditMode}
                 onEditDevice={onEditDevice}
                 onRemoveFromTab={() => onDeviceRemoveFromTab(device.id, tab.id)}
