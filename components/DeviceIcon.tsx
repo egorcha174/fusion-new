@@ -5,136 +5,149 @@ interface DeviceIconProps {
   type: DeviceType;
   isOn: boolean;
   cardSize: CardSize;
+  className?: string;
+  ariaLabel?: string;
 }
 
-const IconWrapper: React.FC<{ children: React.ReactNode; isOn: boolean; cardSize: CardSize }> = ({ children, isOn, cardSize }) => {
-  const colorClass = isOn ? 'text-blue-500' : 'text-gray-400';
-  const sizeClasses = {
-    sm: 'w-8 h-8',
-    md: 'w-8 h-8 sm:w-10 sm:h-10',
-    lg: 'w-12 h-12',
+const IconWrapper: React.FC<{children: React.ReactNode; isOn: boolean; cardSize: CardSize; className?: string; ariaLabel?: string}> =
+  ({ children, isOn, cardSize, className = '', ariaLabel }) => {
+    const colorClass = isOn ? 'text-blue-500' : 'text-gray-400';
+    const sizeClasses: Record<CardSize, string> = {
+      sm: 'w-8 h-8',
+      md: 'w-8 h-8 sm:w-10 sm:h-10',
+      lg: 'w-12 h-12',
+    };
+
+    return (
+      <div
+        className={`${sizeClasses[cardSize]} mb-1 ${colorClass} ${className}`}
+        role={ariaLabel ? 'img' : undefined}
+        aria-label={ariaLabel}
+        aria-hidden={ariaLabel ? undefined : true}
+      >
+        {children}
+      </div>
+    );
   };
 
-  return (
-    <div className={`${sizeClasses[cardSize]} mb-1 ${colorClass}`}>
-      {children}
-    </div>
-  );
+/* Унифицированные SVG-компоненты.
+   Все используют viewBox 0 0 24 24 и currentColor для управления цветом через CSS (tailwind-классы). */
+const SvgLight = ({ filled = false }: { filled?: boolean }) => (
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 2a6 6 0 00-4 10.5V16a2 2 0 002 2h4a2 2 0 002-2v-3.5A6 6 0 0012 2z" />
+    {!filled && <path d="M9.5 20h5" />}
+  </svg>
+);
+
+const SvgThermostat = () => (
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="9" y="2" width="6" height="12" rx="3" />
+    <path d="M12 15v5" />
+    <circle cx="12" cy="10" r="1.5" fill="currentColor" />
+  </svg>
+);
+
+const SvgDisplay = () => (
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="3" y="4" width="18" height="12" rx="2" />
+    <path d="M8 20h8" />
+  </svg>
+);
+
+const SvgFan = ({ spinning = false }: { spinning?: boolean }) => (
+  <svg
+    viewBox="0 0 24 24"
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.5}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    className={spinning ? 'animate-spin' : undefined}
+  >
+    <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+    <path d="M12 12c3 0 4.5-2 6-4-1-1.5-3-2.5-5-2.5M12 12c-3 0-4.5 2-6 4 1 1.5 3 2.5 5 2.5" />
+  </svg>
+);
+
+const SvgSpeaker = () => (
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="3" y="5" width="6" height="14" rx="1" />
+    <circle cx="16" cy="12" r="3" fill="currentColor" />
+  </svg>
+);
+
+const SvgController = () => (
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="3" y="6" width="18" height="10" rx="2" />
+    <path d="M8 9v6M16 9v6" />
+  </svg>
+);
+
+const SvgSensor = () => (
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v6" />
+  </svg>
+);
+
+const SvgSwitch = ({ isOn }: { isOn: boolean }) => (
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="3" y="8" width="18" height="8" rx="4" />
+    <circle cx={isOn ? 17 : 7} cy="12" r="2" fill="currentColor" />
+  </svg>
+);
+
+const SvgOutlet = () => (
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" />
+    <rect x="9" y="8" width="6" height="8" rx="1" />
+  </svg>
+);
+
+const SvgWeather = () => (
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M17 15a4 4 0 10-8 0" />
+    <path d="M7 10a4 4 0 118 0" />
+  </svg>
+);
+
+const SvgUnknown = () => (
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M9.5 9a2.5 2.5 0 015 0c0 1.5-2 1.7-2 3.5" />
+    <path d="M12 17h.01" />
+  </svg>
+);
+
+/* Mapping сохраняет те же ключи DeviceType, возвращаем React-элемент; логика isOn передаётся туда, где нужно */
+const icons: Record<DeviceType, (props: { isOn: boolean }) => React.ReactNode> = {
+  [DeviceType.Light]: ({ isOn }) => <SvgLight filled={isOn} />,
+  [DeviceType.DimmableLight]: ({ isOn }) => <SvgLight filled={isOn} />,
+  [DeviceType.Lamp]: ({ isOn }) => <SvgLight filled={isOn} />,
+  [DeviceType.Spotlight]: ({ isOn }) => <SvgLight filled={isOn} />,
+  [DeviceType.BalconyLight]: ({ isOn }) => <SvgLight filled={isOn} />,
+  [DeviceType.Climate]: () => <SvgThermostat />,
+  [DeviceType.Thermostat]: () => <SvgThermostat />,
+  [DeviceType.TV]: () => <SvgDisplay />,
+  [DeviceType.Computer]: () => <SvgDisplay />,
+  [DeviceType.Monitor]: () => <SvgDisplay />,
+  [DeviceType.Fan]: ({ isOn }) => <SvgFan spinning={isOn} />,
+  [DeviceType.Speaker]: () => <SvgSpeaker />,
+  [DeviceType.Playstation]: () => <SvgController />,
+  [DeviceType.Sensor]: () => <SvgSensor />,
+  [DeviceType.Switch]: ({ isOn }) => <SvgSwitch isOn={isOn} />,
+  [DeviceType.Outlet]: () => <SvgOutlet />,
+  [DeviceType.Weather]: () => <SvgWeather />,
+  [DeviceType.Unknown]: () => <SvgUnknown />,
 };
 
-const DeviceIcon: React.FC<DeviceIconProps> = ({ type, isOn, cardSize }) => {
-  const icons: Record<DeviceType, React.ReactNode> = {
-    [DeviceType.Light]: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 3a6 6 0 00-2 11.65V18h4v-3.35A6 6 0 0012 3z" />
-        <path d="M10 21h4" />
-      </svg>
-    ),
-    [DeviceType.DimmableLight]: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="4" />
-        <path d="M12 4v2m0 12v2m8-8h-2M6 12H4m12.95-4.95l-1.414 1.414M7.05 16.95L5.636 18.364" />
-      </svg>
-    ),
-    [DeviceType.Lamp]: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M8 12h8l-2-8H10l-2 8zm2 8h4v-2H10v2z" />
-      </svg>
-    ),
-    [DeviceType.Spotlight]: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="3" />
-        <path d="M12 5V3m0 18v-2m9-7h-2M5 12H3m15.364 6.364l-1.414-1.414M7.05 7.05L5.636 5.636" />
-      </svg>
-    ),
-    [DeviceType.BalconyLight]: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 3v4m0 10v4m4-10h4M4 11h4m9.364 7.364L20 20m-16 0l2.636-1.636M12 7a5 5 0 100 10 5 5 0 000-10z" />
-      </svg>
-    ),
-    [DeviceType.Climate]: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 2a5 5 0 00-5 5v6.5a5 5 0 1010 0V7a5 5 0 00-5-5z" />
-        <circle cx="12" cy="17" r="1" />
-      </svg>
-    ),
-    [DeviceType.Thermostat]: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M10 2a3 3 0 00-3 3v9a5 5 0 1010 0V5a3 3 0 00-3-3z" />
-        <path d="M10 11h4" />
-      </svg>
-    ),
-    [DeviceType.TV]: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-        <rect x="3" y="5" width="18" height="12" rx="2" />
-        <path d="M8 21h8" />
-      </svg>
-    ),
-    [DeviceType.Computer]: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-        <rect x="3" y="4" width="18" height="13" rx="2" />
-        <path d="M8 21h8m-8-4h8" />
-      </svg>
-    ),
-    [DeviceType.Monitor]: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-        <rect x="2" y="3" width="20" height="14" rx="2" />
-        <path d="M8 21h8" />
-      </svg>
-    ),
-    [DeviceType.Fan]: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="2" />
-        <path d="M12 4a8 8 0 018 8 8 8 0 01-8 8 8 8 0 010-16z" />
-      </svg>
-    ),
-    [DeviceType.Speaker]: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-        <rect x="6" y="3" width="12" height="18" rx="2" />
-        <circle cx="12" cy="8" r="2" />
-        <circle cx="12" cy="16" r="3" />
-      </svg>
-    ),
-    [DeviceType.Playstation]: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M4 15l8-4 8 4M4 19l8-4 8 4" />
-        <path d="M12 3v8" />
-      </svg>
-    ),
-    [DeviceType.Sensor]: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-        <rect x="6" y="4" width="12" height="16" rx="2" />
-        <path d="M12 8v8" />
-      </svg>
-    ),
-    [DeviceType.Switch]: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-        <rect x="4" y="6" width="16" height="12" rx="6" />
-        <circle cx="16" cy="12" r="2" />
-      </svg>
-    ),
-    [DeviceType.Outlet]: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="8" />
-        <path d="M9 10v4m6-4v4" />
-      </svg>
-    ),
-    [DeviceType.Weather]: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M3 15a4 4 0 014-4 5 5 0 019.9-1A4 4 0 1119 15H3z" />
-      </svg>
-    ),
-    [DeviceType.Unknown]: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M12 8v4m0 4h.01" />
-      </svg>
-    ),
-  };
-
+const DeviceIcon: React.FC<DeviceIconProps> = ({ type, isOn, cardSize, className, ariaLabel }) => {
+  const renderFn = icons[type] ?? icons[DeviceType.Unknown];
   return (
-    <IconWrapper isOn={isOn} cardSize={cardSize}>
-      {icons[type]}
+    <IconWrapper isOn={isOn} cardSize={cardSize} className={className} ariaLabel={ariaLabel}>
+      {renderFn({ isOn })}
     </IconWrapper>
   );
 };
