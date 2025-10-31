@@ -7,7 +7,68 @@ interface DeviceIconProps {
   cardSize: CardSize;
   className?: string;
   ariaLabel?: string;
+  /* Новые опциональные поля для интеграции с Home Assistant.
+     Они необязательны и не ломают существующие вызовы компонента. */
+  haDomain?: string; // например: 'light', 'sensor', 'switch', 'climate', 'media_player'
+  haDeviceClass?: string; // например: 'motion', 'plug', 'door', 'temperature', 'sound'
 }
+
+/* normalizeType: пытается сопоставить HA domain/device_class с вашим DeviceType.
+   Если haDomain/haDeviceClass не переданы или не удалось сопоставить — возвращает originalType (обратно совместимо). */
+const normalizeType = (originalType: DeviceType, haDomain?: string, haDeviceClass?: string): DeviceType => {
+  if (!haDomain && !haDeviceClass) return originalType;
+
+  const domain = haDomain?.toLowerCase() ?? '';
+  const deviceClass = haDeviceClass?.toLowerCase() ?? '';
+
+  // Сначала попытки на основе конкретного device_class (более приоритетно)
+  if (deviceClass) {
+    if (['plug', 'outlet'].includes(deviceClass)) return DeviceType.Outlet;
+    if (['motion'].includes(deviceClass)) return DeviceType.Sensor;
+    if (['door', 'window', 'opening'].includes(deviceClass)) return DeviceType.Sensor;
+    if (['temperature', 'humidity', 'pressure', 'sound', 'battery', 'power'].includes(deviceClass)) return DeviceType.Sensor;
+    if (['smoke', 'gas', 'moisture', 'moisture'].includes(deviceClass)) return DeviceType.Sensor;
+  }
+
+  // Затем сопоставление по domain Home Assistant
+  switch (domain) {
+    case 'light':
+      return DeviceType.Light;
+    case 'switch':
+      // некоторые розетки представлены как switch; оставляем Outlet только если deviceClass указан как plug
+      return deviceClass === 'plug' ? DeviceType.Outlet : DeviceType.Switch;
+    case 'fan':
+      return DeviceType.Fan;
+    case 'climate':
+    case 'thermostat':
+      return DeviceType.Thermostat;
+    case 'media_player':
+      // media_player может быть ТВ, колонкой или медиаплеером — оставим общий маппинг в зависимости от device_class
+      if (deviceClass.includes('speaker') || deviceClass.includes('audio')) return DeviceType.Speaker;
+      if (deviceClass.includes('tv') || deviceClass.includes('screen') || deviceClass.includes('display')) return DeviceType.TV;
+      if (deviceClass.includes('game') || deviceClass.includes('console')) return DeviceType.Playstation;
+      return DeviceType.TV;
+    case 'camera':
+      return DeviceType.Monitor;
+    case 'sensor':
+    case 'binary_sensor':
+    case 'device_tracker':
+      // погодные сенсоры часто имеют platform weather или device_class 'weather'
+      if (deviceClass === 'weather' || deviceClass === 'forecast') return DeviceType.Weather;
+      return DeviceType.Sensor;
+    case 'vacuum':
+      return DeviceType.Playstation;
+    case 'cover':
+      return DeviceType.Switch;
+    case 'alarm_control_panel':
+      return DeviceType.Unknown;
+    case 'humidifier':
+    case 'water_heater':
+      return DeviceType.Climate;
+    default:
+      return originalType;
+  }
+};
 
 const IconWrapper: React.FC<{children: React.ReactNode; isOn: boolean; cardSize: CardSize; className?: string; ariaLabel?: string}> =
   ({ children, isOn, cardSize, className = '', ariaLabel }) => {
@@ -30,8 +91,7 @@ const IconWrapper: React.FC<{children: React.ReactNode; isOn: boolean; cardSize:
     );
   };
 
-/* Унифицированные SVG-компоненты.
-   Все используют viewBox 0 0 24 24 и currentColor для управления цветом через CSS (tailwind-классы). */
+/* Унифицированные SVG-компоненты (viewBox 0 0 24 24, currentColor) */
 const SvgLight = ({ filled = false }: { filled?: boolean }) => (
   <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M12 2a6 6 0 00-4 10.5V16a2 2 0 002 2h4a2 2 0 002-2v-3.5A6 6 0 0012 2z" />
@@ -121,35 +181,7 @@ const SvgUnknown = () => (
   </svg>
 );
 
-/* Mapping сохраняет те же ключи DeviceType, возвращаем React-элемент; логика isOn передаётся туда, где нужно */
+/* Сопоставление DeviceType с компонентами иконок — поведение совместимо с прежним кодом */
 const icons: Record<DeviceType, (props: { isOn: boolean }) => React.ReactNode> = {
   [DeviceType.Light]: ({ isOn }) => <SvgLight filled={isOn} />,
-  [DeviceType.DimmableLight]: ({ isOn }) => <SvgLight filled={isOn} />,
-  [DeviceType.Lamp]: ({ isOn }) => <SvgLight filled={isOn} />,
-  [DeviceType.Spotlight]: ({ isOn }) => <SvgLight filled={isOn} />,
-  [DeviceType.BalconyLight]: ({ isOn }) => <SvgLight filled={isOn} />,
-  [DeviceType.Climate]: () => <SvgThermostat />,
-  [DeviceType.Thermostat]: () => <SvgThermostat />,
-  [DeviceType.TV]: () => <SvgDisplay />,
-  [DeviceType.Computer]: () => <SvgDisplay />,
-  [DeviceType.Monitor]: () => <SvgDisplay />,
-  [DeviceType.Fan]: ({ isOn }) => <SvgFan spinning={isOn} />,
-  [DeviceType.Speaker]: () => <SvgSpeaker />,
-  [DeviceType.Playstation]: () => <SvgController />,
-  [DeviceType.Sensor]: () => <SvgSensor />,
-  [DeviceType.Switch]: ({ isOn }) => <SvgSwitch isOn={isOn} />,
-  [DeviceType.Outlet]: () => <SvgOutlet />,
-  [DeviceType.Weather]: () => <SvgWeather />,
-  [DeviceType.Unknown]: () => <SvgUnknown />,
-};
-
-const DeviceIcon: React.FC<DeviceIconProps> = ({ type, isOn, cardSize, className, ariaLabel }) => {
-  const renderFn = icons[type] ?? icons[DeviceType.Unknown];
-  return (
-    <IconWrapper isOn={isOn} cardSize={cardSize} className={className} ariaLabel={ariaLabel}>
-      {renderFn({ isOn })}
-    </IconWrapper>
-  );
-};
-
-export default DeviceIcon;
+  [DeviceType.DimmableLight]: ({ isOn }) => <SvgLight filled={isOn} />
