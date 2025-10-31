@@ -60,7 +60,7 @@ export interface Tab {
 // Types for user customizations
 export interface DeviceCustomization {
   name?: string;
-  icon?: DeviceType;
+  type?: DeviceType;
   isHidden?: boolean;
 }
 

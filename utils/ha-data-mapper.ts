@@ -95,7 +95,7 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
     id: entity.entity_id,
     name: customization.name || entity.attributes.friendly_name || entity.entity_id,
     status: getStatusText(entity),
-    type: customization.icon !== undefined ? customization.icon : originalType,
+    type: customization.type !== undefined ? customization.type : originalType,
     unit: entity.attributes.unit_of_measurement
   };
 

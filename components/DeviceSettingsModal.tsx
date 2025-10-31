@@ -16,13 +16,13 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   onClose,
 }) => {
   const [name, setName] = useState(customization.name ?? device.name);
-  const [icon, setIcon] = useState(customization.icon ?? device.type);
+  const [type, setType] = useState(customization.type ?? device.type);
   const [isHidden, setIsHidden] = useState(customization.isHidden ?? false);
 
   const handleSave = () => {
     const finalCustomization: DeviceCustomization = {
       name: name.trim() !== device.name ? name.trim() : undefined,
-      icon: icon !== device.type ? icon : undefined,
+      type: type !== device.type ? type : undefined,
       isHidden: isHidden,
     };
     onSave(device.id, finalCustomization);
@@ -60,13 +60,13 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Иконка</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Тип устройства</label>
             <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-48 overflow-y-auto p-2 bg-gray-900/50 rounded-lg">
                 {availableIcons.map(iconType => (
                     <button 
                         key={iconType}
-                        onClick={() => setIcon(iconType)}
-                        className={`aspect-square rounded-lg flex items-center justify-center transition-colors ${icon === iconType ? 'bg-blue-600 ring-2 ring-blue-400' : 'bg-gray-700 hover:bg-gray-600'}`}
+                        onClick={() => setType(iconType)}
+                        className={`aspect-square rounded-lg flex items-center justify-center transition-colors ${type === iconType ? 'bg-blue-600 ring-2 ring-blue-400' : 'bg-gray-700 hover:bg-gray-600'}`}
                     >
                         <div className="w-8 h-8 text-white">
                            {/* FIX: Added missing cardSize prop to resolve TypeScript error. */}
