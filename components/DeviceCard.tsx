@@ -1,7 +1,7 @@
 
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Device, DeviceType } from '../types';
+import { Device, DeviceType, CardSize } from '../types';
 import DeviceIcon from './DeviceIcon';
 
 interface DeviceCardProps {
@@ -13,12 +13,54 @@ interface DeviceCardProps {
   onEditDevice: (device: Device) => void;
   onRemoveFromTab?: () => void; // Optional: for removing device from a tab
   onContextMenu: (event: React.MouseEvent) => void;
+  cardSize: CardSize;
 }
 
-const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperatureChange, onPresetChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu }) => {
+const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperatureChange, onPresetChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu, cardSize }) => {
   const isOn = device.status.toLowerCase() === 'вкл' || device.status.toLowerCase() === 'on';
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
   const presetMenuRef = useRef<HTMLDivElement>(null);
+  
+  const cardStyles = {
+    sm: {
+      padding: 'p-2',
+      nameText: 'text-xs font-semibold leading-tight',
+      statusText: 'text-[11px]',
+      sensorStatusText: 'text-2xl font-bold',
+      sensorUnitText: 'text-base font-medium',
+      thermostatTempText: 'font-bold text-base',
+      thermostatTargetText: 'text-[11px] font-medium',
+      thermostatButton: 'w-6 h-6 text-base',
+      brightnessCircle: 'w-8 h-8',
+      brightnessText: 'text-[11px] font-semibold',
+    },
+    md: {
+      padding: 'p-3',
+      nameText: 'text-sm font-semibold leading-tight',
+      statusText: 'text-xs',
+      sensorStatusText: 'text-3xl font-bold',
+      sensorUnitText: 'text-lg font-medium',
+      thermostatTempText: 'font-bold text-lg',
+      thermostatTargetText: 'text-xs font-medium',
+      thermostatButton: 'w-7 h-7 text-lg',
+      brightnessCircle: 'w-9 h-9 sm:w-10 sm:h-10',
+      brightnessText: 'text-xs font-semibold',
+    },
+    lg: {
+      padding: 'p-4',
+      nameText: 'text-base font-semibold leading-tight',
+      statusText: 'text-sm',
+      sensorStatusText: 'text-4xl font-bold',
+      sensorUnitText: 'text-xl font-medium',
+      thermostatTempText: 'font-bold text-2xl',
+      thermostatTargetText: 'text-sm font-medium',
+      thermostatButton: 'w-8 h-8 text-xl',
+      brightnessCircle: 'w-11 h-11',
+      brightnessText: 'text-sm font-semibold',
+    }
+  };
+  const styles = cardStyles[cardSize];
+
 
   // --- Translation for presets ---
   const presetTranslations: { [key: string]: string } = {
@@ -77,16 +119,16 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
         return (
           <div className="flex flex-col justify-between h-full">
             <div className="flex justify-between items-start">
-              <DeviceIcon type={device.type} isOn={isOn} />
+              <DeviceIcon type={device.type} isOn={isOn} cardSize={cardSize} />
               {isOn && device.brightness !== undefined && (
-                <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 ${isOn ? 'border-gray-400/50' : 'border-gray-500'} flex items-center justify-center`}>
-                  <span className={`text-xs font-semibold ${isOn ? textOnClasses : textOffClasses}`}>{device.brightness}%</span>
+                <div className={`${styles.brightnessCircle} rounded-full border-2 ${isOn ? 'border-gray-400/50' : 'border-gray-500'} flex items-center justify-center`}>
+                  <span className={`${styles.brightnessText} ${isOn ? textOnClasses : textOffClasses}`}>{device.brightness}%</span>
                 </div>
               )}
             </div>
             <div className="text-left">
-              <p className="font-semibold text-sm leading-tight text-ellipsis overflow-hidden whitespace-nowrap">{device.name}</p>
-              <p className={`text-xs ${isOn ? textOnClasses : textOffClasses}`}>{device.status}</p>
+              <p className={`${styles.nameText} text-ellipsis overflow-hidden whitespace-nowrap`}>{device.name}</p>
+              <p className={`${styles.statusText} ${isOn ? textOnClasses : textOffClasses}`}>{device.status}</p>
             </div>
           </div>
         );
@@ -95,7 +137,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
           <div className="flex flex-col h-full text-left">
             {/* Top row */}
             <div className="flex justify-between items-start">
-                <DeviceIcon type={device.type} isOn={false} />
+                <DeviceIcon type={device.type} isOn={false} cardSize={cardSize} />
 
                 {device.presetModes && device.presetModes.length > 0 && (
                     <div className="relative z-10" ref={presetMenuRef}>
@@ -129,12 +171,12 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
 
             {/* Bottom part */}
             <div className="flex-shrink-0">
-              <p className="font-semibold text-sm leading-tight text-ellipsis overflow-hidden whitespace-nowrap">{device.name}</p>
-              <p className="font-bold text-lg text-white">{device.temperature}{device.unit}</p>
+              <p className={`${styles.nameText} text-ellipsis overflow-hidden whitespace-nowrap`}>{device.name}</p>
+              <p className={`${styles.thermostatTempText} text-white`}>{device.temperature}{device.unit}</p>
               <div className="flex items-center justify-between mt-1">
-                <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(-0.5); }} className="w-7 h-7 rounded-full bg-black/20 text-white flex items-center justify-center text-lg">-</button>
-                <span className="text-xs font-medium text-gray-300">Цель: {device.targetTemperature}{device.unit}</span>
-                <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(0.5); }} className="w-7 h-7 rounded-full bg-black/20 text-white flex items-center justify-center text-lg">+</button>
+                <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(-0.5); }} className={`${styles.thermostatButton} rounded-full bg-black/20 text-white flex items-center justify-center`}>-</button>
+                <span className={`${styles.thermostatTargetText} text-gray-300`}>Цель: {device.targetTemperature}{device.unit}</span>
+                <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(0.5); }} className={`${styles.thermostatButton} rounded-full bg-black/20 text-white flex items-center justify-center`}>+</button>
               </div>
             </div>
           </div>
@@ -143,12 +185,12 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
         return (
           <div className="flex flex-col justify-between h-full text-left">
             <div>
-              <DeviceIcon type={device.type} isOn={false} />
-              <p className="font-semibold text-sm leading-tight mt-2 text-ellipsis overflow-hidden whitespace-nowrap">{device.name}</p>
+              <DeviceIcon type={device.type} isOn={false} cardSize={cardSize} />
+              <p className={`${styles.nameText} mt-2 text-ellipsis overflow-hidden whitespace-nowrap`}>{device.name}</p>
             </div>
              <div className="flex items-baseline mt-1">
-              <p className="font-bold text-3xl">{device.status}</p>
-              {device.unit && <p className="text-lg font-medium text-gray-400 ml-1">{device.unit}</p>}
+              <p className={styles.sensorStatusText}>{device.status}</p>
+              {device.unit && <p className={`${styles.sensorUnitText} text-gray-400 ml-1`}>{device.unit}</p>}
             </div>
           </div>
         );
@@ -156,11 +198,11 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
         return (
           <div className="flex flex-col justify-between h-full">
             <div className="flex-shrink-0">
-               <DeviceIcon type={device.type} isOn={isOn} />
+               <DeviceIcon type={device.type} isOn={isOn} cardSize={cardSize} />
             </div>
             <div className="text-left">
-              <p className="font-semibold text-sm leading-tight text-ellipsis overflow-hidden whitespace-nowrap">{device.name}</p>
-              <p className={`text-xs ${isOn ? textOnClasses : textOffClasses}`}>{device.status}</p>
+              <p className={`${styles.nameText} text-ellipsis overflow-hidden whitespace-nowrap`}>{device.name}</p>
+              <p className={`${styles.statusText} ${isOn ? textOnClasses : textOffClasses}`}>{device.status}</p>
             </div>
           </div>
         );
@@ -168,11 +210,11 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
   };
 
   const getCardClasses = () => {
-    const baseClasses = "rounded-2xl p-3 flex flex-col transition-all duration-200 ease-in-out select-none";
+    const baseClasses = "rounded-2xl flex flex-col transition-all duration-200 ease-in-out select-none";
     const onStateClasses = "bg-gray-200 text-gray-900 shadow-lg";
     const offStateClasses = "bg-gray-800/80 hover:bg-gray-700/80 ring-1 ring-white/10";
     
-    let finalClasses = `${baseClasses} aspect-square `;
+    let finalClasses = `${baseClasses} ${styles.padding} aspect-square `;
 
     if (device.type === DeviceType.Sensor || device.type === DeviceType.Thermostat) {
         finalClasses += offStateClasses;

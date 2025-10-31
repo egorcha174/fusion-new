@@ -105,6 +105,7 @@ const TabContent: React.FC<TabContentProps> = ({
                 onEditDevice={onEditDevice}
                 onRemoveFromTab={() => onDeviceRemoveFromTab(device.id, tab.id)}
                 onContextMenu={(event) => onDeviceContextMenu(event, device.id, tab.id)}
+                cardSize={cardSize}
               />
             ))}
           </div>

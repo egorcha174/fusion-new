@@ -1,22 +1,29 @@
 
 import React from 'react';
-import { DeviceType } from '../types';
+import { DeviceType, CardSize } from '../types';
 
 interface DeviceIconProps {
   type: DeviceType;
   isOn: boolean;
+  cardSize: CardSize;
 }
 
-const IconWrapper: React.FC<{children: React.ReactNode, isOn: boolean}> = ({ children, isOn }) => {
+const IconWrapper: React.FC<{children: React.ReactNode, isOn: boolean, cardSize: CardSize}> = ({ children, isOn, cardSize }) => {
   const colorClass = isOn ? "text-blue-500" : "text-gray-400";
+  const sizeClasses = {
+    sm: 'w-8 h-8',
+    md: 'w-8 h-8 sm:w-10 sm:h-10',
+    lg: 'w-12 h-12',
+  };
+  
   return (
-    <div className={`w-8 h-8 sm:w-10 sm:h-10 mb-1 ${colorClass}`}>
+    <div className={`${sizeClasses[cardSize]} mb-1 ${colorClass}`}>
       {children}
     </div>
   );
 };
 
-const DeviceIcon: React.FC<DeviceIconProps> = ({ type, isOn }) => {
+const DeviceIcon: React.FC<DeviceIconProps> = ({ type, isOn, cardSize }) => {
   const icons: Record<DeviceType, React.ReactNode> = {
     [DeviceType.Light]: (
       <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
@@ -111,7 +118,7 @@ const DeviceIcon: React.FC<DeviceIconProps> = ({ type, isOn }) => {
   };
   
   return (
-    <IconWrapper isOn={isOn}>
+    <IconWrapper isOn={isOn} cardSize={cardSize}>
       {icons[type]}
     </IconWrapper>
   );

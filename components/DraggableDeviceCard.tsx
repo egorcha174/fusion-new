@@ -4,7 +4,7 @@ import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import DeviceCard from './DeviceCard';
-import { Device } from '../types';
+import { Device, CardSize } from '../types';
 
 interface DraggableDeviceCardProps {
   device: Device;
@@ -15,9 +15,10 @@ interface DraggableDeviceCardProps {
   onEditDevice: (device: Device) => void;
   onRemoveFromTab: () => void;
   onContextMenu: (event: React.MouseEvent) => void;
+  cardSize: CardSize;
 }
 
-const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onToggle, onTemperatureChange, onPresetChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu }) => {
+const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onToggle, onTemperatureChange, onPresetChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu, cardSize }) => {
   const {
     attributes,
     listeners,
@@ -45,6 +46,7 @@ const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onTog
         onEditDevice={onEditDevice}
         onRemoveFromTab={onRemoveFromTab}
         onContextMenu={onContextMenu}
+        cardSize={cardSize}
       />
     </div>
   );
