@@ -10,9 +10,11 @@ interface RoomProps {
   onDeviceToggle: (roomId: string, deviceId: string) => void;
   onDeviceOrderChange: (roomId: string, newDevices: Device[]) => void;
   onTemperatureChange: (roomId: string, deviceId: string, change: number) => void;
+  isEditMode: boolean;
+  onEditDevice: (device: Device) => void;
 }
 
-const Room: React.FC<RoomProps> = ({ room, onDeviceToggle, onDeviceOrderChange, onTemperatureChange }) => {
+const Room: React.FC<RoomProps> = ({ room, onDeviceToggle, onDeviceOrderChange, onTemperatureChange, isEditMode, onEditDevice }) => {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -22,6 +24,7 @@ const Room: React.FC<RoomProps> = ({ room, onDeviceToggle, onDeviceOrderChange, 
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
+    if (isEditMode) return;
     const { active, over } = event;
     if (over && active.id !== over.id) {
       const oldIndex = room.devices.findIndex((d) => d.id === active.id);
@@ -47,6 +50,8 @@ const Room: React.FC<RoomProps> = ({ room, onDeviceToggle, onDeviceOrderChange, 
                 device={device}
                 onToggle={() => onDeviceToggle(room.id, device.id)}
                 onTemperatureChange={(change) => onTemperatureChange(room.id, device.id, change)}
+                isEditMode={isEditMode}
+                onEditDevice={onEditDevice}
               />
             ))}
           </div>

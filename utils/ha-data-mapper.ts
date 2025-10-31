@@ -1,5 +1,6 @@
 
-import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry } from '../types';
+// FIX: Import DeviceCustomization type to resolve reference error.
+import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization } from '../types';
 
 const getDeviceType = (entity: HassEntity): DeviceType => {
   const entityIdDomain = entity.entity_id.split('.')[0];
@@ -20,29 +21,28 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
 };
 
 const getStatusText = (entity: HassEntity): string => {
-    if (entity.state === 'unavailable') return 'Unavailable';
-    if (entity.state === 'on') return 'På';
-    if (entity.state === 'off') return 'Okänt';
+    if (entity.state === 'unavailable') return 'Недоступно';
+    if (entity.state === 'on') return 'Вкл';
+    if (entity.state === 'off') return 'Выкл';
     return entity.state.charAt(0).toUpperCase() + entity.state.slice(1);
 }
 
-const entityToDevice = (entity: HassEntity): Device | null => {
-  const type = getDeviceType(entity);
-  // We keep Unknown devices for now to ensure they can be mapped, but they can be filtered later.
+const entityToDevice = (entity: HassEntity, customization: DeviceCustomization = {}): Device | null => {
+  const originalType = getDeviceType(entity);
   
   const device: Device = {
     id: entity.entity_id,
-    name: entity.attributes.friendly_name || entity.entity_id,
+    name: customization.name || entity.attributes.friendly_name || entity.entity_id,
     status: getStatusText(entity),
-    type: type,
+    type: customization.icon !== undefined ? customization.icon : originalType,
     unit: entity.attributes.unit_of_measurement
   };
 
-  if (type === DeviceType.DimmableLight && entity.attributes.brightness) {
+  if (device.type === DeviceType.DimmableLight && entity.attributes.brightness) {
     device.brightness = Math.round((entity.attributes.brightness / 255) * 100);
   }
   
-  if (type === DeviceType.Thermostat) {
+  if (device.type === DeviceType.Thermostat) {
     device.temperature = entity.attributes.current_temperature;
     device.targetTemperature = entity.attributes.temperature;
   }
@@ -54,11 +54,11 @@ export const mapEntitiesToRooms = (
     entities: HassEntity[], 
     areas: HassArea[], 
     haDevices: HassDevice[], 
-    entityRegistry: HassEntityRegistryEntry[]
+    entityRegistry: HassEntityRegistryEntry[],
+    customizations: DeviceCustomizations
 ): Room[] => {
   const roomsMap: Map<string, Room> = new Map();
 
-  // Initialize rooms from areas
   areas.forEach(area => {
     roomsMap.set(area.area_id, {
       id: area.area_id,
@@ -66,8 +66,7 @@ export const mapEntitiesToRooms = (
       devices: [],
     });
   });
-   // Add a fallback for devices not in an area
-  roomsMap.set('no_area', { id: 'no_area', name: 'No Area', devices: []});
+  roomsMap.set('no_area', { id: 'no_area', name: 'Без пространства', devices: []});
 
   const entityIdToAreaIdMap = new Map<string, string>();
   entityRegistry.forEach(entry => {
@@ -84,7 +83,12 @@ export const mapEntitiesToRooms = (
   })
 
   entities.forEach(entity => {
-    const device = entityToDevice(entity);
+    const customization = customizations[entity.entity_id] || {};
+    if (customization.isHidden) {
+        return; // Skip hidden devices
+    }
+
+    const device = entityToDevice(entity, customization);
     if (device && device.type !== DeviceType.Unknown) {
         let areaId: string | undefined | null = entityIdToAreaIdMap.get(entity.entity_id);
 

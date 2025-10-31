@@ -9,9 +9,11 @@ interface DraggableDeviceCardProps {
   device: Device;
   onToggle: () => void;
   onTemperatureChange: (change: number) => void;
+  isEditMode: boolean;
+  onEditDevice: (device: Device) => void;
 }
 
-const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onToggle, onTemperatureChange }) => {
+const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onToggle, onTemperatureChange, isEditMode, onEditDevice }) => {
   const {
     attributes,
     listeners,
@@ -19,7 +21,7 @@ const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onTog
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: device.id });
+  } = useSortable({ id: device.id, disabled: isEditMode });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -30,7 +32,13 @@ const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onTog
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <DeviceCard device={device} onToggle={onToggle} onTemperatureChange={onTemperatureChange} />
+      <DeviceCard 
+        device={device} 
+        onToggle={onToggle} 
+        onTemperatureChange={onTemperatureChange}
+        isEditMode={isEditMode}
+        onEditDevice={onEditDevice}
+      />
     </div>
   );
 };

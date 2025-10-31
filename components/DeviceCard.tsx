@@ -7,10 +7,12 @@ interface DeviceCardProps {
   device: Device;
   onToggle: () => void;
   onTemperatureChange: (change: number) => void;
+  isEditMode: boolean;
+  onEditDevice: (device: Device) => void;
 }
 
-const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperatureChange }) => {
-  const isOn = device.status.toLowerCase() === 'på' || device.status.toLowerCase() === 'on';
+const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperatureChange, isEditMode, onEditDevice }) => {
+  const isOn = device.status.toLowerCase() === 'вкл' || device.status.toLowerCase() === 'on';
 
   const baseClasses = "aspect-square rounded-2xl p-3 flex flex-col transition-all duration-200 ease-in-out select-none";
   const onStateClasses = "bg-gray-200 text-gray-900 shadow-lg";
@@ -18,10 +20,10 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
   const textOnClasses = "text-gray-800";
   const textOffClasses = "text-gray-400";
   
-  // A device is considered togglable if it's not a sensor/thermostat.
   const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate;
 
   const handleClick = () => {
+    if (isEditMode) return;
     if (isTogglable) {
       onToggle();
     }
@@ -56,7 +58,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
             </div>
              <div className="flex items-center justify-between mt-1">
               <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(-0.5); }} className="w-7 h-7 rounded-full bg-black/20 text-white flex items-center justify-center text-lg">-</button>
-              <span className="text-sm font-medium text-gray-300">Target: {device.targetTemperature}{device.unit}</span>
+              <span className="text-sm font-medium text-gray-300">Цель: {device.targetTemperature}{device.unit}</span>
               <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(0.5); }} className="w-7 h-7 rounded-full bg-black/20 text-white flex items-center justify-center text-lg">+</button>
             </div>
           </div>
@@ -79,11 +81,11 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
   const getCardClasses = () => {
     let classes = `${baseClasses} `;
     if (device.type === DeviceType.Thermostat) {
-      classes += offStateClasses; // Thermostats have a consistent off-state look
+      classes += offStateClasses;
     } else {
       classes += isOn ? onStateClasses : offStateClasses;
     }
-    if (isTogglable) {
+    if (isTogglable && !isEditMode) {
         classes += ' cursor-pointer';
     }
     return classes;
@@ -91,7 +93,21 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
 
   return (
     <div className={getCardClasses()} onClick={handleClick}>
-      {renderContent()}
+       <div className="relative w-full h-full">
+         {isEditMode && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onEditDevice(device); }}
+            className="absolute -top-1 -right-1 z-10 p-2 bg-blue-600/80 backdrop-blur-sm rounded-full text-white hover:bg-blue-500 transition-colors"
+            aria-label={`Редактировать ${device.name}`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+              <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
+            </svg>
+          </button>
+        )}
+        {renderContent()}
+      </div>
     </div>
   );
 };

@@ -3,10 +3,11 @@ import React, { useMemo, useState } from 'react';
 import RoomComponent from './components/Room';
 import Settings from './components/Settings';
 import Sidebar from './components/Sidebar';
+import DeviceSettingsModal from './components/DeviceSettingsModal';
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
-import { Device, Room } from './types';
+import { Device, DeviceCustomization, DeviceCustomizations, Room } from './types';
 
 type Page = 'dashboard' | 'settings';
 type DeviceOrderMap = Record<string, string[]>; // { [roomId]: deviceId[] }
@@ -23,15 +24,23 @@ const App: React.FC = () => {
     disconnect,
     callService,
   } = useHomeAssistant();
-  
-  const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
+
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [deviceOrder, setDeviceOrder] = useLocalStorage<DeviceOrderMap>('ha-device-order', {});
+  const [customizations, setCustomizations] = useLocalStorage<DeviceCustomizations>('ha-device-customizations', {});
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingDevice, setEditingDevice] = useState<Device | null>(null);
 
   const rooms = useMemo(() => {
     if (connectionStatus !== 'connected') return [];
-    const mappedRooms = mapEntitiesToRooms(Object.values(entities), areas, haDevices, entityRegistry);
-    
+    const mappedRooms = mapEntitiesToRooms(
+        Object.values(entities), 
+        areas, 
+        haDevices, 
+        entityRegistry, 
+        customizations
+    );
+
     // Apply the custom sort order
     return mappedRooms.map(room => {
       const order = deviceOrder[room.id];
@@ -49,8 +58,7 @@ const App: React.FC = () => {
 
       return { ...room, devices: [...sortedDevices, ...newDevices] };
     });
-  }, [connectionStatus, entities, areas, haDevices, entityRegistry, deviceOrder]);
-
+  }, [connectionStatus, entities, areas, haDevices, entityRegistry, deviceOrder, customizations]);
 
   const handleDeviceToggle = (roomId: string, deviceId: string) => {
     const entity = Object.values(entities).find(e => e.entity_id === deviceId);
@@ -81,6 +89,33 @@ const App: React.FC = () => {
         [roomId]: newDevices.map(d => d.id),
     }));
   };
+  
+  const handleEditDevice = (device: Device) => {
+    setEditingDevice(device);
+  };
+
+  const handleSaveCustomization = (deviceId: string, customization: DeviceCustomization) => {
+    setCustomizations(prev => {
+        const newCustomizations = { ...prev };
+        const current = newCustomizations[deviceId] || {};
+        const updated = { ...current, ...customization };
+
+        // Clean up undefined keys and empty objects
+        Object.keys(updated).forEach(key => {
+            if (updated[key as keyof DeviceCustomization] === undefined) {
+                delete updated[key as keyof DeviceCustomization];
+            }
+        });
+
+        if (Object.keys(updated).length === 0) {
+            delete newCustomizations[deviceId];
+        } else {
+            newCustomizations[deviceId] = updated;
+        }
+        return newCustomizations;
+    });
+    setEditingDevice(null);
+  };
 
   const handleNavigate = (page: Page, sectionId?: string) => {
     setCurrentPage(page);
@@ -99,17 +134,13 @@ const App: React.FC = () => {
   return (
     <div className="flex min-h-screen bg-gray-900 text-gray-200">
       <Sidebar
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed(!isSidebarCollapsed)}
         rooms={rooms}
         currentPage={currentPage}
         onNavigate={handleNavigate}
+        isEditMode={isEditMode}
+        onToggleEditMode={() => setIsEditMode(!isEditMode)}
       />
-      <main
-        className={`flex-1 transition-all duration-300 ease-in-out p-4 sm:p-6 md:p-8 ${
-          isSidebarCollapsed ? 'ml-20' : 'ml-64'
-        }`}
-      >
+      <main className="flex-1 transition-all duration-300 ease-in-out p-4 sm:p-6 md:p-8 ml-64">
         {currentPage === 'dashboard' && (
           <div className="container mx-auto">
             <div className="space-y-12">
@@ -120,6 +151,8 @@ const App: React.FC = () => {
                   onDeviceToggle={handleDeviceToggle}
                   onDeviceOrderChange={handleDeviceOrderChange}
                   onTemperatureChange={handleTemperatureChange}
+                  isEditMode={isEditMode}
+                  onEditDevice={handleEditDevice}
                 />
               ))}
             </div>
@@ -131,6 +164,14 @@ const App: React.FC = () => {
            </div>
         )}
       </main>
+      {editingDevice && (
+        <DeviceSettingsModal
+          device={editingDevice}
+          customization={customizations[editingDevice.id] || {}}
+          onSave={handleSaveCustomization}
+          onClose={() => setEditingDevice(null)}
+        />
+      )}
     </div>
   );
 };

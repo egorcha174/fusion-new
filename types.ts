@@ -32,6 +32,16 @@ export interface Room {
   devices: Device[];
 }
 
+// Types for user customizations
+export interface DeviceCustomization {
+  name?: string;
+  icon?: DeviceType;
+  isHidden?: boolean;
+}
+
+export type DeviceCustomizations = Record<string, DeviceCustomization>; // Key is device.id (entity_id)
+
+
 // Types for Home Assistant WebSocket API
 export interface HassEntity {
   entity_id: string;
