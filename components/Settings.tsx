@@ -1,7 +1,7 @@
 
 import React, { useRef } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { ClockSettings, CardSize } from '../types';
+import { ClockSettings, CardSize, ClockSize } from '../types';
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'failed';
 
@@ -25,6 +25,7 @@ const LOCAL_STORAGE_KEYS = [
   'ha-device-customizations',
   'ha-clock-settings',
   'ha-card-size',
+  'ha-sidebar-width',
 ];
 
 const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error, onDisconnect, clockSettings, onClockSettingsChange, cardSize, onCardSizeChange }) => {
@@ -158,6 +159,26 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                         >
                             <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${clockSettings.showSeconds ? 'translate-x-6' : 'translate-x-1'}`} />
                         </button>
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Размер часов</label>
+                        <div className="flex gap-4">
+                            <button 
+                                onClick={() => onClockSettingsChange({ ...clockSettings, size: 'sm' })}
+                                className={`flex-1 py-2 rounded-lg text-sm transition-colors ${clockSettings.size === 'sm' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                                Маленький
+                            </button>
+                            <button 
+                                onClick={() => onClockSettingsChange({ ...clockSettings, size: 'md' })}
+                                className={`flex-1 py-2 rounded-lg text-sm transition-colors ${clockSettings.size === 'md' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                                Средний
+                            </button>
+                            <button 
+                                onClick={() => onClockSettingsChange({ ...clockSettings, size: 'lg' })}
+                                className={`flex-1 py-2 rounded-lg text-sm transition-colors ${clockSettings.size === 'lg' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                                Большой
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

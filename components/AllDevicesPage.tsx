@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Room, DeviceCustomizations, Tab } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -66,7 +65,8 @@ const AllDevicesPage: React.FC<AllDevicesPageProps> = ({ rooms, customizations, 
                                     <div key={device.id} className="bg-gray-800/80 p-4 rounded-lg flex items-center justify-between ring-1 ring-white/5">
                                         <div className="flex items-center gap-4 overflow-hidden">
                                             <div className="w-10 h-10 flex-shrink-0">
-                                                <DeviceIcon type={device.type} isOn={device.status.toLowerCase() === 'вкл'} />
+                                                {/* FIX: Added missing cardSize prop to resolve TypeScript error. */}
+                                                <DeviceIcon type={device.type} isOn={device.status.toLowerCase() === 'вкл'} cardSize="md" />
                                             </div>
                                             <div className="flex-1 overflow-hidden">
                                                 <p className="font-medium text-gray-100 text-sm break-words">{device.name}</p>

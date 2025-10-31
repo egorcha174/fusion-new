@@ -65,12 +65,14 @@ export interface DeviceCustomization {
 export type DeviceCustomizations = Record<string, DeviceCustomization>; // Key is device.id (entity_id)
 
 export type CardSize = 'sm' | 'md' | 'lg';
+export type ClockSize = 'sm' | 'md' | 'lg';
 
 export type Page = 'dashboard' | 'settings' | 'all-devices';
 
 export interface ClockSettings {
     format: '12h' | '24h';
     showSeconds: boolean;
+    size: ClockSize;
 }
 
 // Types for Home Assistant WebSocket API

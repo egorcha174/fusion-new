@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { ClockSettings, Device } from '../types';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ClockSettings, Device, ClockSize } from '../types';
 
 interface ClockProps {
     settings: ClockSettings;
@@ -23,9 +23,15 @@ const Clock: React.FC<ClockProps> = ({ settings }) => {
     if (settings.showSeconds) {
         options.second = '2-digit';
     }
+    
+    const clockSizeClasses: Record<ClockSize, string> = {
+        sm: 'text-5xl',
+        md: 'text-7xl',
+        lg: 'text-8xl',
+    };
 
     return (
-        <div className="font-mono text-5xl sm:text-6xl md:text-7xl font-bold text-gray-100 tracking-tighter">
+        <div className={`font-mono font-bold text-gray-100 tracking-tighter ${clockSizeClasses[settings.size]}`}>
             {time.toLocaleTimeString('ru-RU', options)}
         </div>
     );
@@ -65,7 +71,7 @@ const Weather: React.FC<{ weather: Device }> = ({ weather }) => {
     }
 
     return (
-        <div className="mt-8">
+        <div>
             <div className="flex items-center">
                  <div className="text-5xl">{getWeatherIcon(condition)}</div>
                  <div className="ml-4">
@@ -98,33 +104,75 @@ const Weather: React.FC<{ weather: Device }> = ({ weather }) => {
 interface InfoPanelProps {
     clockSettings: ClockSettings;
     weatherDevice?: Device | null;
+    sidebarWidth: number;
+    setSidebarWidth: (width: number) => void;
 }
 
-const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, weatherDevice }) => {
+const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, weatherDevice, sidebarWidth, setSidebarWidth }) => {
+    const [isResizing, setIsResizing] = useState(false);
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        e.preventDefault();
+        setIsResizing(true);
+    };
+    
+    const handleMouseMove = useCallback((e: MouseEvent) => {
+        const newWidth = Math.max(280, Math.min(e.clientX, 500)); // Min 280px, Max 500px
+        setSidebarWidth(newWidth);
+    }, [setSidebarWidth]);
+
+    const handleMouseUp = useCallback(() => {
+        setIsResizing(false);
+    }, []);
+
+    useEffect(() => {
+        if (isResizing) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+        }
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isResizing, handleMouseMove, handleMouseUp]);
+
     return (
-        <aside className="fixed top-0 left-0 h-full bg-gray-900 ring-1 ring-white/5 text-white hidden lg:flex flex-col w-80 p-8">
-            <Clock settings={clockSettings} />
-            {/* Placeholder for camera feed */}
-            <div className="mt-8 aspect-video bg-gray-800 rounded-lg flex items-center justify-center text-gray-500">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+        <aside
+            className="fixed top-0 left-0 h-full bg-gray-900 ring-1 ring-white/5 text-white hidden lg:flex flex-col p-8"
+            style={{ width: `${sidebarWidth}px` }}
+        >
+            <div className="flex-grow flex flex-col items-center justify-center">
+                <Clock settings={clockSettings} />
             </div>
+
+            <div className="flex-shrink-0 space-y-8">
+                {/* Placeholder for camera feed */}
+                <div className="aspect-video bg-gray-800 rounded-lg flex items-center justify-center text-gray-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </div>
             
-            {weatherDevice ? (
-                <Weather weather={weatherDevice} />
-            ) : (
-                <div className="mt-8 opacity-50">
-                     <div className="flex items-center">
-                         <div className="text-5xl">❔</div>
-                         <div className="ml-4">
-                            <p className="text-3xl font-bold">--°</p>
-                            <p className="text-gray-400">Нет данных о погоде</p>
+                {weatherDevice ? (
+                    <Weather weather={weatherDevice} />
+                ) : (
+                    <div className="opacity-50">
+                         <div className="flex items-center">
+                             <div className="text-5xl">❔</div>
+                             <div className="ml-4">
+                                <p className="text-3xl font-bold">--°</p>
+                                <p className="text-gray-400">Нет данных о погоде</p>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
+
+            <div
+                onMouseDown={handleMouseDown}
+                className="absolute top-0 right-0 h-full w-2 cursor-col-resize select-none z-50"
+            />
         </aside>
     );
 };

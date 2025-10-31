@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Device, DeviceCustomization, DeviceType } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -70,7 +69,8 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                         className={`aspect-square rounded-lg flex items-center justify-center transition-colors ${icon === iconType ? 'bg-blue-600 ring-2 ring-blue-400' : 'bg-gray-700 hover:bg-gray-600'}`}
                     >
                         <div className="w-8 h-8 text-white">
-                           <DeviceIcon type={iconType} isOn={true} />
+                           {/* FIX: Added missing cardSize prop to resolve TypeScript error. */}
+                           <DeviceIcon type={iconType} isOn={true} cardSize="sm" />
                         </div>
                     </button>
                 ))}

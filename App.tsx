@@ -13,7 +13,7 @@ import ContextMenu from './components/ContextMenu';
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
-import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CardSize } from './types';
+import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CardSize, ClockSize } from './types';
 import { nanoid } from 'nanoid'; // A small library for unique IDs
 
 const App: React.FC = () => {
@@ -45,8 +45,23 @@ const App: React.FC = () => {
   const [clockSettings, setClockSettings] = useLocalStorage<ClockSettings>('ha-clock-settings', {
     format: '24h',
     showSeconds: true,
+    size: 'md',
   });
   const [cardSize, setCardSize] = useLocalStorage<CardSize>('ha-card-size', 'md');
+  const [sidebarWidth, setSidebarWidth] = useLocalStorage<number>('ha-sidebar-width', 320);
+
+  // Hook to check for large screens to conditionally apply margin
+  const useIsLg = () => {
+    const [isLg, setIsLg] = useState(window.innerWidth >= 1024);
+    useEffect(() => {
+        const handleResize = () => setIsLg(window.innerWidth >= 1024);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+    return isLg;
+  }
+  const isLg = useIsLg();
+
 
   // Ensure there's always at least one tab and an active tab is set
   useEffect(() => {
@@ -313,8 +328,8 @@ const App: React.FC = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-900 text-gray-200">
-      <InfoPanel clockSettings={clockSettings} weatherDevice={weatherDevice} />
-      <div className="flex flex-col flex-1 lg:ml-80">
+      <InfoPanel clockSettings={clockSettings} weatherDevice={weatherDevice} sidebarWidth={sidebarWidth} setSidebarWidth={setSidebarWidth} />
+      <div className="flex flex-col flex-1" style={{ marginLeft: isLg ? `${sidebarWidth}px` : '0px' }}>
         <DashboardHeader
             tabs={tabs}
             activeTabId={activeTabId}
