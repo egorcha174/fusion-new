@@ -31,6 +31,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
       thermostatTempText: 'font-bold text-base',
       thermostatTargetText: 'text-[11px] font-medium',
       thermostatButton: 'w-6 h-6 text-base',
+      thermostatPresetButton: 'w-6 h-6',
+      thermostatPresetIcon: 'h-4 w-4',
       brightnessCircle: 'w-8 h-8',
       brightnessText: 'text-[11px] font-semibold',
     },
@@ -43,6 +45,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
       thermostatTempText: 'font-bold text-lg',
       thermostatTargetText: 'text-xs font-medium',
       thermostatButton: 'w-7 h-7 text-lg',
+      thermostatPresetButton: 'w-7 h-7',
+      thermostatPresetIcon: 'h-5 w-5',
       brightnessCircle: 'w-9 h-9 sm:w-10 sm:h-10',
       brightnessText: 'text-xs font-semibold',
     },
@@ -55,6 +59,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
       thermostatTempText: 'font-bold text-2xl',
       thermostatTargetText: 'text-sm font-medium',
       thermostatButton: 'w-8 h-8 text-xl',
+      thermostatPresetButton: 'w-8 h-8',
+      thermostatPresetIcon: 'h-6 w-6',
       brightnessCircle: 'w-11 h-11',
       brightnessText: 'text-sm font-semibold',
     }
@@ -143,10 +149,10 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
                     <div className="relative z-10" ref={presetMenuRef}>
                         <button
                             onClick={(e) => { e.stopPropagation(); setIsPresetMenuOpen(prev => !prev); }}
-                            className="w-7 h-7 rounded-full bg-black/20 text-white flex items-center justify-center hover:bg-black/40"
+                            className={`${styles.thermostatPresetButton} rounded-full bg-black/20 text-white flex items-center justify-center hover:bg-black/40`}
                             aria-label="Открыть предустановки"
                         >
-                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                           <svg xmlns="http://www.w3.org/2000/svg" className={styles.thermostatPresetIcon} viewBox="0 0 20 20" fill="currentColor">
                              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                            </svg>
                         </button>
