@@ -44,6 +44,12 @@ const DeviceIcon: React.FC<DeviceIconProps> = ({ type, isOn, cardSize }) => {
         </svg>
     );
 
+    const fanIcon = (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+        </svg>
+    );
+
   const icons: Record<DeviceType, React.ReactNode> = {
     [DeviceType.Light]: lightIcon,
     [DeviceType.DimmableLight]: lightIcon,
@@ -55,6 +61,7 @@ const DeviceIcon: React.FC<DeviceIconProps> = ({ type, isOn, cardSize }) => {
     [DeviceType.TV]: displayIcon,
     [DeviceType.Computer]: displayIcon,
     [DeviceType.Monitor]: displayIcon,
+    [DeviceType.Fan]: fanIcon,
     [DeviceType.Speaker]: (
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
         <path fillRule="evenodd" d="M5 4a2 2 0 012-2h6a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V4zm3 2a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd" />

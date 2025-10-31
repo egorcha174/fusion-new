@@ -14,6 +14,7 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
     case 'weather': return DeviceType.Weather;
     case 'sensor': return DeviceType.Sensor;
     case 'climate': return DeviceType.Thermostat;
+    case 'fan': return DeviceType.Fan;
   }
 
   // --- Priority 2: Domain + Attributes/Device Class ---
@@ -41,6 +42,7 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
   if (combinedName.includes('computer') || combinedName.includes('компьютер')) return DeviceType.Computer;
   if (combinedName.includes('monitor') || combinedName.includes('монитор')) return DeviceType.Monitor;
   if (combinedName.includes('speaker') || combinedName.includes('колонка')) return DeviceType.Speaker;
+  if (combinedName.includes('fan') || combinedName.includes('вентилятор')) return DeviceType.Fan;
   
   // --- Priority 4: Fallback for remaining domains ---
   if (domain === 'switch') return DeviceType.Switch; // Any remaining switch is a generic switch
