@@ -1,5 +1,4 @@
 
-
 export enum DeviceType {
   Light,
   Lamp,
@@ -70,7 +69,7 @@ export type DeviceCustomizations = Record<string, DeviceCustomization>; // Key i
 export type CardSize = 'sm' | 'md' | 'lg';
 export type ClockSize = 'sm' | 'md' | 'lg';
 
-export type Page = 'dashboard' | 'settings' | 'all-devices';
+export type Page = 'dashboard' | 'settings' | 'all-devices' | 'icon-converter';
 
 export interface ClockSettings {
     format: '12h' | '24h';

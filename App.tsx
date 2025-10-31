@@ -1,5 +1,4 @@
 
-
 import React, { useMemo, useState, useEffect } from 'react';
 import Settings from './components/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -10,6 +9,7 @@ import TabContent from './components/TabContent';
 import DeviceSettingsModal from './components/DeviceSettingsModal';
 import TabSettingsModal from './components/TabSettingsModal';
 import ContextMenu from './components/ContextMenu';
+import IconConverter from './components/IconConverter'; // Import the new component
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
@@ -312,6 +312,8 @@ const App: React.FC = () => {
         return <div className="flex justify-center items-start pt-10"><Settings onConnect={connect} connectionStatus={connectionStatus} error={error} onDisconnect={disconnect} clockSettings={clockSettings} onClockSettingsChange={setClockSettings} cardSize={cardSize} onCardSizeChange={setCardSize} /></div>;
       case 'all-devices':
         return <AllDevicesPage rooms={filteredRoomsForDevicePage} customizations={customizations} onToggleVisibility={handleToggleVisibility} tabs={tabs} onDeviceAddToTab={handleDeviceAddToTab} />;
+      case 'icon-converter':
+        return <IconConverter />;
       case 'dashboard':
       default:
         return activeTab ? (
