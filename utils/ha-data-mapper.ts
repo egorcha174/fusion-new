@@ -55,7 +55,8 @@ export const mapEntitiesToRooms = (
     areas: HassArea[], 
     haDevices: HassDevice[], 
     entityRegistry: HassEntityRegistryEntry[],
-    customizations: DeviceCustomizations
+    customizations: DeviceCustomizations,
+    showHidden: boolean = false
 ): Room[] => {
   const roomsMap: Map<string, Room> = new Map();
 
@@ -84,8 +85,8 @@ export const mapEntitiesToRooms = (
 
   entities.forEach(entity => {
     const customization = customizations[entity.entity_id] || {};
-    if (customization.isHidden) {
-        return; // Skip hidden devices
+    if (customization.isHidden && !showHidden) {
+        return; // Skip hidden devices unless showHidden is true
     }
 
     const device = entityToDevice(entity, customization);

@@ -3,13 +3,14 @@ import React, { useMemo, useState } from 'react';
 import RoomComponent from './components/Room';
 import Settings from './components/Settings';
 import Sidebar from './components/Sidebar';
+import Header from './components/Header';
+import AllDevicesPage from './components/AllDevicesPage';
 import DeviceSettingsModal from './components/DeviceSettingsModal';
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
-import { Device, DeviceCustomization, DeviceCustomizations, Room } from './types';
+import { Device, DeviceCustomization, DeviceCustomizations, Page, Room } from './types';
 
-type Page = 'dashboard' | 'settings';
 type DeviceOrderMap = Record<string, string[]>; // { [roomId]: deviceId[] }
 
 const App: React.FC = () => {
@@ -31,14 +32,15 @@ const App: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
 
-  const rooms = useMemo(() => {
+  const dashboardRooms = useMemo(() => {
     if (connectionStatus !== 'connected') return [];
     const mappedRooms = mapEntitiesToRooms(
         Object.values(entities), 
         areas, 
         haDevices, 
         entityRegistry, 
-        customizations
+        customizations,
+        false // Do not show hidden devices
     );
 
     // Apply the custom sort order
@@ -59,6 +61,18 @@ const App: React.FC = () => {
       return { ...room, devices: [...sortedDevices, ...newDevices] };
     });
   }, [connectionStatus, entities, areas, haDevices, entityRegistry, deviceOrder, customizations]);
+  
+  const allRooms = useMemo(() => {
+    if (connectionStatus !== 'connected') return [];
+     return mapEntitiesToRooms(
+        Object.values(entities), 
+        areas, 
+        haDevices, 
+        entityRegistry, 
+        customizations,
+        true // Show hidden devices
+    );
+  }, [connectionStatus, entities, areas, haDevices, entityRegistry, customizations]);
 
   const handleDeviceToggle = (roomId: string, deviceId: string) => {
     const entity = Object.values(entities).find(e => e.entity_id === deviceId);
@@ -100,14 +114,13 @@ const App: React.FC = () => {
         const current = newCustomizations[deviceId] || {};
         const updated = { ...current, ...customization };
 
-        // Clean up undefined keys and empty objects
         Object.keys(updated).forEach(key => {
             if (updated[key as keyof DeviceCustomization] === undefined) {
                 delete updated[key as keyof DeviceCustomization];
             }
         });
 
-        if (Object.keys(updated).length === 0) {
+        if (Object.keys(updated).length === 0 || (Object.keys(updated).length === 1 && updated.isHidden === false)) {
             delete newCustomizations[deviceId];
         } else {
             newCustomizations[deviceId] = updated;
@@ -115,6 +128,10 @@ const App: React.FC = () => {
         return newCustomizations;
     });
     setEditingDevice(null);
+  };
+  
+   const handleToggleVisibility = (deviceId: string, isHidden: boolean) => {
+    handleSaveCustomization(deviceId, { isHidden });
   };
 
   const handleNavigate = (page: Page, sectionId?: string) => {
@@ -131,39 +148,54 @@ const App: React.FC = () => {
     return <Settings onConnect={connect} connectionStatus={connectionStatus} error={error} />;
   }
 
+  const renderPage = () => {
+    switch (currentPage) {
+        case 'dashboard':
+            return (
+                <div className="space-y-12">
+                  {dashboardRooms.map(room => (
+                    <RoomComponent
+                      key={room.id}
+                      room={room}
+                      onDeviceToggle={handleDeviceToggle}
+                      onDeviceOrderChange={handleDeviceOrderChange}
+                      onTemperatureChange={handleTemperatureChange}
+                      isEditMode={isEditMode}
+                      onEditDevice={handleEditDevice}
+                    />
+                  ))}
+                </div>
+            );
+        case 'settings':
+            return (
+                <div className="flex justify-center items-start pt-10">
+                    <Settings onConnect={connect} connectionStatus={connectionStatus} error={error} onDisconnect={disconnect} />
+                </div>
+            );
+        case 'all-devices':
+            return <AllDevicesPage rooms={allRooms} customizations={customizations} onToggleVisibility={handleToggleVisibility} />;
+    }
+  }
+
   return (
     <div className="flex min-h-screen bg-gray-900 text-gray-200">
       <Sidebar
-        rooms={rooms}
+        rooms={dashboardRooms}
         currentPage={currentPage}
         onNavigate={handleNavigate}
-        isEditMode={isEditMode}
-        onToggleEditMode={() => setIsEditMode(!isEditMode)}
       />
-      <main className="flex-1 transition-all duration-300 ease-in-out p-4 sm:p-6 md:p-8 ml-64">
-        {currentPage === 'dashboard' && (
-          <div className="container mx-auto">
-            <div className="space-y-12">
-              {rooms.map(room => (
-                <RoomComponent
-                  key={room.id}
-                  room={room}
-                  onDeviceToggle={handleDeviceToggle}
-                  onDeviceOrderChange={handleDeviceOrderChange}
-                  onTemperatureChange={handleTemperatureChange}
-                  isEditMode={isEditMode}
-                  onEditDevice={handleEditDevice}
-                />
-              ))}
+      <div className="flex flex-col flex-1 ml-64">
+        <Header 
+            isEditMode={isEditMode}
+            onToggleEditMode={() => setIsEditMode(!isEditMode)}
+            onNavigateToSettings={() => handleNavigate('settings')}
+        />
+        <main className="flex-1 p-4 sm:p-6 md:p-8 mt-16">
+            <div className="container mx-auto">
+                {renderPage()}
             </div>
-          </div>
-        )}
-        {currentPage === 'settings' && (
-           <div className="flex justify-center items-start pt-10">
-              <Settings onConnect={connect} connectionStatus={connectionStatus} error={error} onDisconnect={disconnect} />
-           </div>
-        )}
-      </main>
+        </main>
+      </div>
       {editingDevice && (
         <DeviceSettingsModal
           device={editingDevice}

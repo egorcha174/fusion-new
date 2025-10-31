@@ -41,6 +41,8 @@ export interface DeviceCustomization {
 
 export type DeviceCustomizations = Record<string, DeviceCustomization>; // Key is device.id (entity_id)
 
+export type Page = 'dashboard' | 'settings' | 'all-devices';
+
 
 // Types for Home Assistant WebSocket API
 export interface HassEntity {
