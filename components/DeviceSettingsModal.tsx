@@ -19,7 +19,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
 }) => {
   const [name, setName] = useState(customization.name ?? device.name);
   const [type, setType] = useState(customization.type ?? device.type);
-  const [icon, setIcon] = useState(customization.icon ?? device.type);
+  const [icon, setIcon] = useState(device.icon ?? device.type);
   const [isHidden, setIsHidden] = useState(customization.isHidden ?? false);
 
 
