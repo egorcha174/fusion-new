@@ -147,7 +147,13 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
     }, []);
 
     useEffect(() => {
-        if (settings.directStreamUrl || !selectedCamera || !signPath || !haUrl) {
+        if (settings.directStreamUrl) {
+             setError(null); // Clear previous errors when a new direct URL is set
+             setSignedStreamUrl(null);
+             return;
+        }
+        
+        if (!selectedCamera || !signPath || !haUrl) {
             setSignedStreamUrl(null);
             setError(null);
             return;
@@ -189,14 +195,13 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
     const handleSetDirectUrl = () => {
         const newUrl = window.prompt("Введите прямой URL видеопотока:", settings.directStreamUrl || '');
         if (newUrl !== null) { // User didn't cancel
-            onSettingsChange({ ...settings, directStreamUrl: newUrl });
+            onSettingsChange({ ...settings, directStreamUrl: newUrl || undefined });
         }
         setIsMenuOpen(false);
     };
 
     const handleResetDirectUrl = () => {
-        const { directStreamUrl, ...rest } = settings;
-        onSettingsChange(rest);
+        onSettingsChange({ ...settings, directStreamUrl: undefined });
         setIsMenuOpen(false);
     };
 
@@ -215,11 +220,12 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                      </svg>
                      <p className="text-sm font-semibold">{error}</p>
+                     <p className="text-xs text-gray-500 mt-1">Возможные причины: неверный URL, проблема с CORS, смешанный контент (HTTP/HTTPS).</p>
                 </div>
             );
         }
-        if (selectedCamera && streamUrl) {
-            return <img src={streamUrl} className="w-full h-full object-cover rounded-lg bg-black" alt={selectedCamera.name} onError={() => setError("Не удалось загрузить видео.")}/>;
+        if (streamUrl) {
+            return <img src={streamUrl} crossOrigin="anonymous" className="w-full h-full object-cover rounded-lg bg-black" alt={selectedCamera?.name || 'Прямая трансляция'} onError={() => setError("Не удалось загрузить видео.")}/>;
         }
         return (
             <div className="w-full h-full flex flex-col items-center justify-center text-gray-500 p-4 text-center">
