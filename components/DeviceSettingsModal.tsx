@@ -5,7 +5,7 @@ import DeviceIcon, { icons } from './DeviceIcon';
 interface DeviceSettingsModalProps {
   device: Device;
   customization: DeviceCustomization;
-  onSave: (deviceId: string, customization: DeviceCustomization) => void;
+  onSave: (deviceId: string, newValues: { name: string; type: DeviceType; icon: DeviceType; isHidden: boolean }) => void;
   onClose: () => void;
 }
 
@@ -17,34 +17,23 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
 }) => {
   const [name, setName] = useState(customization.name ?? device.name);
   const [type, setType] = useState(customization.type ?? device.type);
-  const [icon, setIcon] = useState(customization.icon ?? device.type);
+  // The initial icon should respect the custom icon, then the custom type, then the device's original type.
+  const [icon, setIcon] = useState(customization.icon ?? customization.type ?? device.type);
   const [isHidden, setIsHidden] = useState(customization.isHidden ?? false);
 
 
   const handleSave = () => {
-    // This function now creates a clean customization object containing only the
-    // settings that differ from the device's defaults. This ensures that we
-    // don't store unnecessary override data in localStorage.
-    const finalCustomization: DeviceCustomization = {};
-
-    if (name.trim() !== device.name) {
-      finalCustomization.name = name.trim();
-    }
-    if (type !== device.type) {
-      finalCustomization.type = type;
-    }
-    // An icon is a custom override if it's different from the icon that
-    // would be automatically chosen for the selected type.
-    if (icon !== type) {
-      finalCustomization.icon = icon;
-    }
-    
-    // Always include the visibility state. The parent component will handle
-    // merging this with any other existing customizations.
-    finalCustomization.isHidden = isHidden;
-
-    onSave(device.id, finalCustomization);
-    onClose(); // Explicitly close modal after saving
+    // Pass the complete, current state of the form up to the parent component (App.tsx).
+    // The parent will be responsible for comparing it to the original device and
+    // deciding what needs to be stored in localStorage. This makes the modal "dumber"
+    // and more reliable.
+    onSave(device.id, {
+      name: name.trim(),
+      type,
+      icon,
+      isHidden,
+    });
+    onClose();
   };
   
   const availableTypes = Object.keys(DeviceType)

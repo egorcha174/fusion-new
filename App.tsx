@@ -257,25 +257,50 @@ const App: React.FC = () => {
 
 
   // --- Customization ---
-  const handleSaveCustomization = (deviceId: string, customization: DeviceCustomization) => {
-    setCustomizations(prev => {
-      const newCustomizations = { ...prev };
-      // Check if the customization object is empty or only contains default values
-      const isCustomizationEmpty = !Object.values(customization).some(value => value !== undefined);
+  const handleSaveCustomization = (deviceId: string, newValues: { name: string; type: DeviceType; icon: DeviceType; isHidden: boolean }) => {
+    const originalDevice = allKnownDevices.get(deviceId);
+    if (!originalDevice) return;
 
-      if (isCustomizationEmpty) {
-        delete newCustomizations[deviceId];
-      } else {
-        newCustomizations[deviceId] = customization;
-      }
-      return newCustomizations;
+    const finalCustomization: DeviceCustomization = {};
+
+    // Compare each value with the original device's state to see if an override is needed.
+    if (newValues.name !== originalDevice.name) {
+        finalCustomization.name = newValues.name;
+    }
+    if (newValues.type !== originalDevice.type) {
+        finalCustomization.type = newValues.type;
+    }
+    // An icon is a custom override if it's different from the icon that would be
+    // automatically chosen for the *newly selected type*.
+    if (newValues.icon !== newValues.type) {
+         finalCustomization.icon = newValues.icon;
+    }
+    // Only store isHidden if it's true, assuming the default is false.
+    if (newValues.isHidden) {
+         finalCustomization.isHidden = true;
+    }
+    
+    setCustomizations(prev => {
+        const newCustomizations = { ...prev };
+        if (Object.keys(finalCustomization).length === 0) {
+            // If there are no overrides, remove the entry to keep storage clean.
+            delete newCustomizations[deviceId];
+        } else {
+            newCustomizations[deviceId] = finalCustomization;
+        }
+        return newCustomizations;
     });
     setEditingDevice(null);
   };
   
    const handleToggleVisibility = (deviceId: string, isHidden: boolean) => {
     const currentCustomization = customizations[deviceId] || {};
-    handleSaveCustomization(deviceId, { ...currentCustomization, isHidden });
+    handleSaveCustomization(deviceId, {
+      name: currentCustomization.name || allKnownDevices.get(deviceId)?.name || '',
+      type: currentCustomization.type || allKnownDevices.get(deviceId)?.type || DeviceType.Unknown,
+      icon: currentCustomization.icon || currentCustomization.type || allKnownDevices.get(deviceId)?.type || DeviceType.Unknown,
+      isHidden: isHidden
+    });
   };
 
 
