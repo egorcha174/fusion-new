@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon } from "https://aistudiocdn.com/@iconify/react@^5.0.1";
+import { Icon } from "https://esm.sh/@iconify/react@5.0.1";
 import { DeviceType, CardSize } from '../types';
 
 interface DeviceIconProps {
