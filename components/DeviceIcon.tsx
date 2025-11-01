@@ -18,9 +18,10 @@ const normalizeType = (originalType: DeviceType, haDomain?: string, haDeviceClas
   const deviceClass = haDeviceClass?.toLowerCase() ?? '';
 
   if (deviceClass) {
+    if (deviceClass === 'door') return DeviceType.DoorSensor;
     if (['plug', 'outlet'].includes(deviceClass)) return DeviceType.Outlet;
     if (['motion'].includes(deviceClass)) return DeviceType.Sensor;
-    if (['door', 'window', 'opening'].includes(deviceClass)) return DeviceType.Sensor;
+    if (['window', 'opening'].includes(deviceClass)) return DeviceType.Sensor;
     if (['temperature', 'humidity', 'pressure', 'sound', 'battery', 'power'].includes(deviceClass)) return DeviceType.Sensor;
     if (['smoke', 'gas', 'moisture'].includes(deviceClass)) return DeviceType.Sensor;
   }
@@ -180,6 +181,14 @@ const SvgSensor = () => (
   </svg>
 );
 
+const SvgDoorSensor = ({ isOn = false }: { isOn?: boolean }) => (
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x={isOn ? 2 : 5} y="3" width="9" height="18" rx="3" style={{ transition: 'x 0.2s ease-in-out' }} />
+    <rect x={isOn ? 17 : 16} y="7" width="5" height="10" rx="2.5" style={{ transition: 'x 0.2s ease-in-out' }} />
+  </svg>
+);
+
+
 const SvgSwitch = ({ isOn }: { isOn: boolean }) => (
   <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <rect x="3" y="8" width="18" height="8" rx="4" />
@@ -224,6 +233,7 @@ const icons: Record<DeviceType, (props: { isOn: boolean }) => React.ReactNode> =
   [DeviceType.Speaker]: () => <SvgSpeaker />,
   [DeviceType.Playstation]: () => <SvgPlaystation />,
   [DeviceType.Sensor]: () => <SvgSensor />,
+  [DeviceType.DoorSensor]: ({ isOn }) => <SvgDoorSensor isOn={isOn} />,
   [DeviceType.Switch]: ({ isOn }) => <SvgSwitch isOn={isOn} />,
   [DeviceType.Outlet]: () => <SvgOutlet />,
   [DeviceType.Weather]: () => <SvgWeather />,
