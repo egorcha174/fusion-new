@@ -132,7 +132,7 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
 
     const [signedStreamUrl, setSignedStreamUrl] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [errorType, setErrorType] = useState<'generic' | 'mixed-content' | null>(null);
+    const [errorType, setErrorType] = useState<'generic' | 'mixed-content' | 'ha-proxy-fail' | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
     const streamUrl = settings.directStreamUrl || signedStreamUrl;
@@ -208,12 +208,18 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
     };
 
     const handleImageError = () => {
-        if (streamUrl && window.location.protocol === 'https:' && streamUrl.startsWith('http:')) {
-            setError("Ошибка смешанного контента");
-            setErrorType('mixed-content');
+        if (settings.directStreamUrl) {
+            if (streamUrl && window.location.protocol === 'https:' && streamUrl.startsWith('http:')) {
+                setError("Ошибка смешанного контента");
+                setErrorType('mixed-content');
+            } else {
+                setError("Не удалось загрузить видео");
+                setErrorType('generic');
+            }
         } else {
+            // This is for HA proxied streams
             setError("Не удалось загрузить видео");
-            setErrorType('generic');
+            setErrorType('ha-proxy-fail');
         }
     };
 
@@ -226,11 +232,22 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
             );
         }
         if (error) {
-             let subtext = "Возможные причины: неверный URL или проблема с CORS. Убедитесь, что камера доступна в вашей сети.";
-             if (errorType === 'mixed-content') {
-                 subtext = "Нельзя загружать HTTP-ресурсы на HTTPS-странице. Используйте HTTPS URL или откройте дашборд по HTTP.";
-             } else if (error === "Ошибка авторизации видео") {
-                 subtext = "Не удалось получить временную ссылку от Home Assistant. Проверьте настройки интеграции камеры.";
+             let subtext;
+             switch (errorType) {
+                case 'mixed-content':
+                    subtext = "Нельзя загружать HTTP-ресурсы на HTTPS-странице. Используйте HTTPS URL или откройте дашборд по HTTP.";
+                    break;
+                case 'ha-proxy-fail':
+                    subtext = "Проверьте, поддерживает ли камера трансляцию в Home Assistant. Некоторые камеры предоставляют только статичные изображения.";
+                    break;
+                case 'generic':
+                default:
+                    if (error === "Ошибка авторизации видео") {
+                        subtext = "Не удалось получить временную ссылку от Home Assistant. Проверьте настройки интеграции камеры.";
+                    } else {
+                        subtext = "Возможные причины: неверный URL или проблема с CORS. Убедитесь, что камера доступна в вашей сети.";
+                    }
+                    break;
              }
              return (
                 <div className="w-full h-full flex flex-col items-center justify-center text-red-400 p-4 text-center">
