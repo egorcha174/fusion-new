@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect } from 'react';
 import Settings from './components/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -12,7 +11,7 @@ import ContextMenu from './components/ContextMenu';
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
-import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CardSize, ClockSize } from './types';
+import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CardSize } from './types';
 import { nanoid } from 'nanoid'; // A small library for unique IDs
 
 // Hook to check for large screens to conditionally apply margin
@@ -261,18 +260,13 @@ const App: React.FC = () => {
   const handleSaveCustomization = (deviceId: string, customization: DeviceCustomization) => {
     setCustomizations(prev => {
       const newCustomizations = { ...prev };
-      const current = newCustomizations[deviceId] || {};
-      const updated = { ...current, ...customization };
-      // Clean up undefined properties
-      Object.keys(updated).forEach(key => {
-        if (updated[key as keyof DeviceCustomization] === undefined) {
-          delete updated[key as keyof DeviceCustomization];
-        }
-      });
-      if (Object.keys(updated).length === 0) {
+      // Check if the customization object is empty or only contains default values
+      const isCustomizationEmpty = !Object.values(customization).some(value => value !== undefined);
+
+      if (isCustomizationEmpty) {
         delete newCustomizations[deviceId];
       } else {
-        newCustomizations[deviceId] = updated;
+        newCustomizations[deviceId] = customization;
       }
       return newCustomizations;
     });
@@ -280,7 +274,8 @@ const App: React.FC = () => {
   };
   
    const handleToggleVisibility = (deviceId: string, isHidden: boolean) => {
-    handleSaveCustomization(deviceId, { isHidden });
+    const currentCustomization = customizations[deviceId] || {};
+    handleSaveCustomization(deviceId, { ...currentCustomization, isHidden });
   };
 
 
