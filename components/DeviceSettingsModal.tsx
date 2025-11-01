@@ -18,7 +18,6 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
 }) => {
   const [name, setName] = useState(customization.name ?? device.name);
   const [type, setType] = useState(customization.type ?? device.type);
-  const [icon, setIcon] = useState(customization.icon ?? '');
   const [isHidden, setIsHidden] = useState(customization.isHidden ?? false);
 
 
@@ -27,11 +26,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
       name: name.trim() !== device.name ? name.trim() : undefined,
       type: type !== device.type ? type : undefined,
       isHidden: isHidden,
-      icon: icon.trim() ? icon.trim() : undefined,
     };
-    if (finalCustomization.icon === '') {
-        delete finalCustomization.icon;
-    }
     onSave(device.id, finalCustomization);
   };
   
@@ -83,21 +78,6 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                     </option>
                 ))}
             </select>
-          </div>
-          
-          <div>
-            <label htmlFor="customIcon" className="block text-sm font-medium text-gray-300 mb-2">Иконка (из Iconify)</label>
-            <input
-              id="customIcon"
-              type="text"
-              value={icon}
-              onChange={e => setIcon(e.target.value)}
-              placeholder="e.g., mdi:robot-vacuum"
-              className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-             <p className="text-xs text-gray-400 mt-2">
-                Найдите иконку на <a href="https://icon-sets.iconify.design/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Iconify</a> и вставьте её имя. Оставьте пустым, чтобы использовать иконку по умолчанию.
-            </p>
           </div>
           
           <div className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg">

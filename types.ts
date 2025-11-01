@@ -1,4 +1,5 @@
 
+
 export enum DeviceType {
   Light,
   Lamp,
@@ -43,7 +44,6 @@ export interface Device {
   history?: number[]; // For sensor sparklines
   haDomain?: string;
   haDeviceClass?: string;
-  icon?: string; // Custom icon from Iconify
 }
 
 export interface Room {
@@ -65,7 +65,6 @@ export interface DeviceCustomization {
   name?: string;
   type?: DeviceType;
   isHidden?: boolean;
-  icon?: string; // Custom icon from Iconify
 }
 
 export type DeviceCustomizations = Record<string, DeviceCustomization>; // Key is device.id (entity_id)
@@ -73,7 +72,7 @@ export type DeviceCustomizations = Record<string, DeviceCustomization>; // Key i
 export type CardSize = 'sm' | 'md' | 'lg';
 export type ClockSize = 'sm' | 'md' | 'lg';
 
-export type Page = 'dashboard' | 'settings' | 'all-devices' | 'icon-converter';
+export type Page = 'dashboard' | 'settings' | 'all-devices';
 
 export interface ClockSettings {
     format: '12h' | '24h';

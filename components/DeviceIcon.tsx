@@ -1,6 +1,4 @@
 import React from '../vendor/react.js';
-// FIX: Use a direct named import for the Icon component.
-import { Icon } from "../vendor/iconify-react.js";
 import { DeviceType, CardSize } from '../types';
 
 interface DeviceIconProps {
@@ -11,7 +9,6 @@ interface DeviceIconProps {
   ariaLabel?: string;
   haDomain?: string;
   haDeviceClass?: string;
-  customIcon?: string;
 }
 
 const normalizeType = (originalType: DeviceType, haDomain?: string, haDeviceClass?: string): DeviceType => {
@@ -233,29 +230,8 @@ const icons: Record<DeviceType, (props: { isOn: boolean }) => React.ReactNode> =
   [DeviceType.Unknown]: () => <SvgUnknown />,
 };
 
-const DeviceIcon: React.FC<DeviceIconProps> = ({ type, isOn, cardSize, className, ariaLabel, haDomain, haDeviceClass, customIcon }) => {
-  const colorClass = isOn ? 'text-blue-500' : 'text-gray-400';
-  const sizeClasses: Record<CardSize, string> = {
-    sm: 'w-8 h-8',
-    md: 'w-8 h-8 sm:w-10 sm:h-10',
-    lg: 'w-12 h-12',
-  };
-
-  // If a custom icon is provided, render it using Iconify
-  if (customIcon) {
-    return (
-      <div
-        className={`${sizeClasses[cardSize]} mb-1 ${colorClass} ${className}`}
-        role={ariaLabel ? 'img' : undefined}
-        aria-label={ariaLabel}
-        aria-hidden={ariaLabel ? undefined : true}
-      >
-        <Icon icon={customIcon} className="w-full h-full" />
-      </div>
-    );
-  }
-
-  // Fallback to the default built-in icons
+const DeviceIcon: React.FC<DeviceIconProps> = ({ type, isOn, cardSize, className, ariaLabel, haDomain, haDeviceClass }) => {
+  // Use the default built-in icons
   const normalizedType = normalizeType(type, haDomain, haDeviceClass);
   const renderFn = icons[normalizedType] ?? icons[DeviceType.Unknown];
   return (
