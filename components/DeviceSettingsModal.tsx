@@ -17,6 +17,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
 }) => {
   const [name, setName] = useState(customization.name ?? device.name);
   const [type, setType] = useState(customization.type ?? device.type);
+  const [icon, setIcon] = useState(customization.icon ?? '');
   const [isHidden, setIsHidden] = useState(customization.isHidden ?? false);
 
 
@@ -25,14 +26,20 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
       name: name.trim() !== device.name ? name.trim() : undefined,
       type: type !== device.type ? type : undefined,
       isHidden: isHidden,
+      icon: icon.trim() ? icon.trim() : undefined,
     };
+    if (finalCustomization.icon === '') {
+        delete finalCustomization.icon;
+    }
     onSave(device.id, finalCustomization);
   };
   
-  const availableIcons = Object.keys(DeviceType)
+  const availableTypes = Object.keys(DeviceType)
     .filter(key => !isNaN(Number(key)))
-    .map(key => Number(key) as DeviceType)
-    .filter(type => type !== DeviceType.Unknown);
+    .map(key => ({
+        value: Number(key) as DeviceType,
+        name: DeviceType[Number(key) as DeviceType]
+    }));
 
   return (
     <div
@@ -48,7 +55,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
             <p className="text-sm text-gray-400">{device.name}</p>
         </div>
         
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
           <div>
             <label htmlFor="deviceName" className="block text-sm font-medium text-gray-300 mb-2">Название</label>
             <input
@@ -61,22 +68,35 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Тип устройства</label>
+            <label htmlFor="deviceType" className="block text-sm font-medium text-gray-300 mb-2">Тип устройства</label>
             <p className="text-xs text-gray-400 mb-2">Определяет поведение карточки. Используйте, если автоопределение неверно.</p>
-            <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-48 overflow-y-auto p-2 bg-gray-900/50 rounded-lg">
-                {availableIcons.map(iconType => (
-                    <button 
-                        key={iconType}
-                        onClick={() => setType(iconType)}
-                        className={`aspect-square rounded-lg flex items-center justify-center transition-colors ${type === iconType ? 'bg-blue-600 ring-2 ring-blue-400' : 'bg-gray-700 hover:bg-gray-600'}`}
-                    >
-                        <div className="w-8 h-8 text-white">
-                           {/* FIX: Added missing cardSize prop to resolve TypeScript error. */}
-                           <DeviceIcon type={iconType} isOn={true} cardSize="sm" />
-                        </div>
-                    </button>
+            <select
+                id="deviceType"
+                value={type}
+                onChange={(e) => setType(Number(e.target.value) as DeviceType)}
+                className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+            >
+                {availableTypes.map(typeOption => (
+                    <option key={typeOption.value} value={typeOption.value}>
+                        {typeOption.name}
+                    </option>
                 ))}
-            </div>
+            </select>
+          </div>
+          
+          <div>
+            <label htmlFor="customIcon" className="block text-sm font-medium text-gray-300 mb-2">Иконка (из Iconify)</label>
+            <input
+              id="customIcon"
+              type="text"
+              value={icon}
+              onChange={e => setIcon(e.target.value)}
+              placeholder="e.g., mdi:robot-vacuum"
+              className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+             <p className="text-xs text-gray-400 mt-2">
+                Найдите иконку на <a href="https://icon-sets.iconify.design/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Iconify</a> и вставьте её имя. Оставьте пустым, чтобы использовать иконку по умолчанию.
+            </p>
           </div>
           
           <div className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg">
@@ -94,7 +114,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
 
         </div>
 
-        <div className="p-6 flex justify-end gap-4 bg-gray-800/50 rounded-b-2xl">
+        <div className="p-6 flex justify-end gap-4 bg-gray-800/50 rounded-b-2xl border-t border-gray-700">
             <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">Отмена</button>
             <button onClick={handleSave} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Сохранить</button>
         </div>

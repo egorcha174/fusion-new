@@ -43,6 +43,7 @@ export interface Device {
   history?: number[]; // For sensor sparklines
   haDomain?: string;
   haDeviceClass?: string;
+  icon?: string; // Custom icon from Iconify
 }
 
 export interface Room {
@@ -64,6 +65,7 @@ export interface DeviceCustomization {
   name?: string;
   type?: DeviceType;
   isHidden?: boolean;
+  icon?: string; // Custom icon from Iconify
 }
 
 export type DeviceCustomizations = Record<string, DeviceCustomization>; // Key is device.id (entity_id)
