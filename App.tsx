@@ -16,6 +16,17 @@ import { mapEntitiesToRooms } from './utils/ha-data-mapper';
 import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CardSize, ClockSize } from './types';
 import { nanoid } from 'nanoid'; // A small library for unique IDs
 
+// Hook to check for large screens to conditionally apply margin
+const useIsLg = () => {
+  const [isLg, setIsLg] = useState(window.innerWidth >= 1024);
+  useEffect(() => {
+      const handleResize = () => setIsLg(window.innerWidth >= 1024);
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  return isLg;
+}
+
 const App: React.FC = () => {
   const {
     connectionStatus,
@@ -50,16 +61,6 @@ const App: React.FC = () => {
   const [cardSize, setCardSize] = useLocalStorage<CardSize>('ha-card-size', 'md');
   const [sidebarWidth, setSidebarWidth] = useLocalStorage<number>('ha-sidebar-width', 320);
 
-  // Hook to check for large screens to conditionally apply margin
-  const useIsLg = () => {
-    const [isLg, setIsLg] = useState(window.innerWidth >= 1024);
-    useEffect(() => {
-        const handleResize = () => setIsLg(window.innerWidth >= 1024);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-    return isLg;
-  }
   const isLg = useIsLg();
 
 
@@ -74,7 +75,7 @@ const App: React.FC = () => {
         setActiveTabId(tabs[0].id);
       }
     }
-  }, [tabs, setTabs, activeTabId, setActiveTabId, connectionStatus, isLoading]);
+  }, [tabs, activeTabId, connectionStatus, isLoading, setTabs, setActiveTabId]);
 
   const allKnownDevices = useMemo(() => {
     if (connectionStatus !== 'connected') return new Map<string, Device>();
