@@ -1,5 +1,5 @@
-// FIX: Import React hooks using standard import syntax to fix JSX transform issues.
-import React, { useEffect, useRef, useState } from '../vendor/react.js';
+
+import React, { useEffect, useRef, useState } from 'react';
 
 interface ContextMenuProps {
   x: number;

@@ -1,5 +1,5 @@
-// FIX: Import React hooks using standard import syntax to fix JSX transform issues.
-import React, { useRef, useState } from '../vendor/react.js';
+
+import React, { useRef, useState } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ClockSettings, CardSize, ClockSize } from '../types';
 

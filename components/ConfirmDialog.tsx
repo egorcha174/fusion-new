@@ -1,6 +1,6 @@
 
 
-import React from '../vendor/react.js';
+import React from 'react';
 
 interface ConfirmDialogProps {
   isOpen: boolean;

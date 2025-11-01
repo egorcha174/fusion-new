@@ -1,5 +1,5 @@
-// FIX: Import React hooks using standard import syntax to fix JSX transform issues.
-import React, { useState, useRef, useEffect, useMemo } from '../vendor/react.js';
+
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Device, DeviceType, CardSize } from '../types';
 import DeviceIcon from './DeviceIcon';
 import SparklineChart from './SparklineChart';

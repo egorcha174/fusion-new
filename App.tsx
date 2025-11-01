@@ -1,5 +1,5 @@
-// FIX: Import React hooks using standard import syntax to fix JSX transform issues.
-import React, { useMemo, useState, useEffect } from './vendor/react.js';
+
+import React, { useMemo, useState, useEffect } from 'react';
 import Settings from './components/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
 import InfoPanel from './components/InfoPanel';
@@ -13,8 +13,7 @@ import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
 import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CardSize, ClockSize } from './types';
-// FIX: Import nanoid using a named import.
-import { nanoid } from './vendor/nanoid.js'; // A small library for unique IDs
+import { nanoid } from 'nanoid'; // A small library for unique IDs
 
 // Hook to check for large screens to conditionally apply margin
 const useIsLg = () => {

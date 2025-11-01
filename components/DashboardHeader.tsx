@@ -1,10 +1,9 @@
-// FIX: Import React hooks using standard import syntax to fix JSX transform issues.
-import React, { useState } from '../vendor/react.js';
-// FIX: Use direct named imports for dnd-kit members.
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '../vendor/dnd-kit-core.js';
-import type { DragEndEvent } from '../vendor/dnd-kit-core-types.ts';
-import { SortableContext, horizontalListSortingStrategy, arrayMove, useSortable } from '../vendor/dnd-kit-sortable.js';
-import { CSS } from '../vendor/dnd-kit-utilities.js';
+
+import React, { useState } from 'react';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, horizontalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Tab, Page } from '../types';
 
 interface SortableTabProps {

@@ -1,5 +1,5 @@
-// FIX: Import React hooks using standard import syntax to fix JSX transform issues.
-import React, { useState, useRef, useCallback, useEffect } from '../vendor/react.js';
+
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry } from '../types';
 
 interface HassEntities {

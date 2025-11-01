@@ -1,5 +1,5 @@
-// FIX: Import React hooks using standard import syntax to fix JSX transform issues.
-import React, { useState, useEffect, useCallback } from '../vendor/react.js';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { ClockSettings, Device, ClockSize } from '../types';
 
 interface ClockProps {

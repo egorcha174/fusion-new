@@ -1,7 +1,6 @@
-import React from '../vendor/react.js';
-// FIX: Use direct named imports for dnd-kit members.
-import { useSortable } from '../vendor/dnd-kit-sortable.js';
-import { CSS } from '../vendor/dnd-kit-utilities.js';
+import React from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import DeviceCard from './DeviceCard';
 import { Device, CardSize } from '../types';
 

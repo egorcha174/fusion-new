@@ -1,5 +1,5 @@
-// FIX: Import React hooks using standard import syntax to fix JSX transform issues.
-import React, { useState } from '../vendor/react.js';
+
+import React, { useState } from 'react';
 
 const IconConverter: React.FC = () => {
   const [svgInput, setSvgInput] = useState<string>('');

@@ -1,5 +1,5 @@
-// FIX: Import React hooks using standard import syntax to fix JSX transform issues.
-import React, { useState } from '../vendor/react.js';
+
+import React, { useState } from 'react';
 import { Tab } from '../types';
 import ConfirmDialog from './ConfirmDialog';
 
