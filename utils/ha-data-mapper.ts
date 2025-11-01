@@ -1,4 +1,5 @@
-```typescript
+
+
 import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization } from '../types';
 
 const getDeviceType = (entity: HassEntity): DeviceType => {
@@ -154,14 +155,7 @@ export const mapEntitiesToRooms = (
       if(d.area_id) {
           deviceIdToAreaIdMap.set(d.id, d.area_id);
       }
-  });
-
-  // Debug logging
-  console.log('Mapping entities to rooms:');
-  console.log('Total entities:', entities.length);
-  console.log('Total areas:', areas.length);
-  console.log('Total devices:', haDevices.length);
-  console.log('Total entity registry entries:', entityRegistry.length);
+  })
 
   entities.forEach(entity => {
     const customization = customizations[entity.entity_id] || {};
@@ -182,14 +176,8 @@ export const mapEntitiesToRooms = (
 
         const targetRoom = roomsMap.get(areaId || 'no_area') || roomsMap.get('no_area');
         targetRoom?.devices.push(device);
-        console.log(`Mapped device: ${device.name} (${device.id}) to room: ${targetRoom?.name}`);
-    } else {
-        console.log(`Skipped entity (Unknown type): ${entity.entity_id} - ${entity.attributes.friendly_name || 'No name'}`);
     }
   });
 
-  const result = Array.from(roomsMap.values()).filter(room => room.devices.length > 0);
-  console.log('Final rooms:', result.map(room => ({ name: room.name, deviceCount: room.devices.length })));
-  return result;
+  return Array.from(roomsMap.values()).filter(room => room.devices.length > 0);
 };
-```

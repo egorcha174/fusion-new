@@ -1,4 +1,5 @@
-```jsx
+
+
 import React, { useMemo, useState, useEffect } from 'react';
 import Settings from './components/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -10,7 +11,6 @@ import DeviceSettingsModal from './components/DeviceSettingsModal';
 import TabSettingsModal from './components/TabSettingsModal';
 import ContextMenu from './components/ContextMenu';
 import IconConverter from './components/IconConverter'; // Import the new component
-import DebugPanel from './components/DebugPanel'; // Import debug panel
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
@@ -49,6 +49,7 @@ const App: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, deviceId: string, tabId: string } | null>(null);
 
+
   // --- New Tab-based State Management ---
   const [tabs, setTabs] = useLocalStorage<Tab[]>('ha-tabs', []);
   const [activeTabId, setActiveTabId] = useLocalStorage<string | null>('ha-active-tab', null);
@@ -62,6 +63,7 @@ const App: React.FC = () => {
   const [sidebarWidth, setSidebarWidth] = useLocalStorage<number>('ha-sidebar-width', 320);
 
   const isLg = useIsLg();
+
 
   // Ensure there's always at least one tab and an active tab is set
   useEffect(() => {
@@ -97,7 +99,6 @@ const App: React.FC = () => {
 
   const weatherDevice = useMemo(() => {
     // Find the first available weather entity to display in the info panel
-    // FIX: Explicitly typing `d` as `Device` to resolve a TypeScript type inference issue.
     return Array.from(allKnownDevices.values()).find((d: Device) => d.type === DeviceType.Weather);
   }, [allKnownDevices]);
 
@@ -136,6 +137,7 @@ const App: React.FC = () => {
     return filteredRooms;
   }, [searchTerm, allRoomsForDevicePage]);
 
+
   // --- Context Menu Handlers ---
   const handleDeviceContextMenu = (event: React.MouseEvent, deviceId: string, tabId: string) => {
     event.preventDefault();
@@ -145,6 +147,7 @@ const App: React.FC = () => {
   const handleCloseContextMenu = () => {
     setContextMenu(null);
   };
+
 
   // --- Tab Management Handlers ---
   const handleAddTab = () => {
@@ -212,7 +215,7 @@ const App: React.FC = () => {
         }
         return tab;
     }));
-  };
+};
 
   const handleDeviceOrderChangeOnTab = (tabId: string, orderedDevices: Device[]) => {
       setTabs(tabs.map(tab => {
@@ -222,7 +225,8 @@ const App: React.FC = () => {
           return tab;
       }));
   };
-  
+
+
   // --- Core Device Interaction ---
   const handleDeviceToggle = (deviceId: string) => {
     const entity = entities[deviceId];
@@ -231,7 +235,7 @@ const App: React.FC = () => {
     const [domain] = entity.entity_id.split('.');
     callService(domain, service, { entity_id: entity.entity_id });
   };
-
+  
   const handleTemperatureChange = (deviceId: string, change: number) => {
       const entity = entities[deviceId];
       if (!entity || entity.attributes.temperature === undefined) return;
@@ -249,10 +253,11 @@ const App: React.FC = () => {
       brightness_pct: brightness,
     });
   };
-  
+
   const handlePresetChange = (deviceId: string, preset: string) => {
     callService('climate', 'set_preset_mode', { entity_id: deviceId, preset_mode: preset });
   };
+
 
   // --- Customization ---
   const handleSaveCustomization = (deviceId: string, customization: DeviceCustomization) => {
@@ -275,10 +280,11 @@ const App: React.FC = () => {
     });
     setEditingDevice(null);
   };
-
+  
    const handleToggleVisibility = (deviceId: string, isHidden: boolean) => {
     handleSaveCustomization(deviceId, { isHidden });
   };
+
 
   // --- RENDER LOGIC ---
 
@@ -358,14 +364,6 @@ const App: React.FC = () => {
         </main>
       </div>
       
-      {/* Debug Panel */}
-      <DebugPanel 
-        entities={entities}
-        areas={areas}
-        devices={haDevices}
-        entityRegistry={entityRegistry}
-      />
-      
       {editingDevice && (
         <DeviceSettingsModal device={editingDevice} customization={customizations[editingDevice.id] || {}} onSave={handleSaveCustomization} onClose={() => setEditingDevice(null)} />
       )}
@@ -418,4 +416,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-```
