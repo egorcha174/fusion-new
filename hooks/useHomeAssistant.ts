@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry } from '../types';
 
@@ -19,6 +18,7 @@ const useHomeAssistant = () => {
   const socketRef = useRef<WebSocket | null>(null);
   const messageIdRef = useRef(1);
   const initialFetchIds = useRef<Set<number>>(new Set());
+  const signPathCallbacks = useRef<Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>>(new Map());
 
   const sendMessage = useCallback((message: object) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
@@ -46,6 +46,24 @@ const useHomeAssistant = () => {
       domain,
       service,
       service_data,
+    });
+  }, [sendMessage]);
+
+  const signPath = useCallback(async (path: string): Promise<{ path: string }> => {
+    return new Promise((resolve, reject) => {
+        const id = messageIdRef.current++;
+        signPathCallbacks.current.set(id, { resolve, reject });
+        sendMessage({
+            id,
+            type: 'auth/sign_path',
+            path: path,
+        });
+        setTimeout(() => {
+            if (signPathCallbacks.current.has(id)) {
+                reject(new Error("Timeout waiting for sign_path response."));
+                signPathCallbacks.current.delete(id);
+            }
+        }, 10000); // 10 second timeout
     });
   }, [sendMessage]);
 
@@ -118,6 +136,18 @@ const useHomeAssistant = () => {
 
       const handleMessage = (event: MessageEvent, ids: { statesId: number, areasId: number, devicesId: number, entityRegistryId: number }) => {
         const data = JSON.parse(event.data);
+
+        if (data.type === 'result' && signPathCallbacks.current.has(data.id)) {
+            const callback = signPathCallbacks.current.get(data.id);
+            if (data.success) {
+                callback?.resolve(data.result);
+            } else {
+                callback?.reject(data.error);
+            }
+            signPathCallbacks.current.delete(data.id);
+            return;
+        }
+
         switch (data.type) {
           case 'result':
             handleInitialFetches(data);
@@ -197,7 +227,7 @@ const useHomeAssistant = () => {
     }
   }, []);
 
-  return { connectionStatus, isLoading, error, entities, areas, devices, entityRegistry, connect, disconnect, callService };
+  return { connectionStatus, isLoading, error, entities, areas, devices, entityRegistry, connect, disconnect, callService, signPath };
 };
 
 export default useHomeAssistant;

@@ -37,6 +37,7 @@ const App: React.FC = () => {
     connect,
     disconnect,
     callService,
+    signPath,
   } = useHomeAssistant();
 
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -378,6 +379,7 @@ const App: React.FC = () => {
         cameraSettings={cameraSettings}
         onCameraSettingsChange={setCameraSettings}
         haUrl={haUrl}
+        signPath={signPath}
       />
       <div className="flex flex-col flex-1" style={{ marginLeft: isLg ? `${sidebarWidth}px` : '0px' }}>
         <DashboardHeader

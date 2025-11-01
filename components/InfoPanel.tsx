@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ClockSettings, Device, ClockSize, CameraSettings } from '../types';
 
@@ -123,12 +122,17 @@ interface CameraWidgetProps {
     settings: CameraSettings;
     onSettingsChange: (settings: CameraSettings) => void;
     haUrl: string;
+    signPath: (path: string) => Promise<{ path: string }>;
 }
 
-const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettingsChange, haUrl }) => {
+const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettingsChange, haUrl, signPath }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const selectedCamera = cameras.find(c => c.id === settings.selectedEntityId);
+
+    const [streamUrl, setStreamUrl] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -140,37 +144,83 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    useEffect(() => {
+        if (!selectedCamera || !signPath || !haUrl) {
+            setStreamUrl(null);
+            return;
+        }
+
+        let isMounted = true;
+        const getSignedUrl = async () => {
+            setIsLoading(true);
+            setError(null);
+            setStreamUrl(null);
+            try {
+                const result = await signPath(`/api/camera_proxy_stream/${selectedCamera.id}`);
+                if (isMounted) {
+                    const protocol = haUrl.startsWith('httpss') ? 'https://' : 'http://';
+                    const cleanUrl = haUrl.replace(/^(https?):\/\//, '');
+                    setStreamUrl(`${protocol}${cleanUrl}${result.path}`);
+                }
+            } catch (err) {
+                console.error("Failed to get signed URL for camera:", err);
+                if (isMounted) {
+                    setError("Ошибка авторизации видео.");
+                }
+            } finally {
+                if(isMounted) setIsLoading(false);
+            }
+        };
+
+        getSignedUrl();
+
+        return () => { isMounted = false; };
+    }, [selectedCamera, signPath, haUrl]);
+
+
     const handleSelectCamera = (entityId: string | null) => {
         onSettingsChange({ selectedEntityId: entityId });
         setIsMenuOpen(false);
     };
 
-    const streamUrl = useMemo(() => {
-        if (!selectedCamera || !haUrl) return null;
-        const protocol = haUrl.startsWith('https') ? 'https://' : 'http://';
-        const cleanUrl = haUrl.replace(/^(https?):\/\//, '');
-        // This endpoint provides a live MJPEG stream. It relies on browser cookie-based auth
-        // if the user is logged into Home Assistant in another tab.
-        return `${protocol}${cleanUrl}/api/camera_proxy_stream/${selectedCamera.id}`;
-    }, [selectedCamera, haUrl]);
+    const renderContent = () => {
+        if (isLoading) {
+            return (
+                <div className="w-full h-full flex items-center justify-center">
+                    <div className="w-8 h-8 border-2 border-dashed rounded-full animate-spin border-gray-400"></div>
+                </div>
+            );
+        }
+        if (error) {
+             return (
+                <div className="w-full h-full flex flex-col items-center justify-center text-red-400 p-4 text-center">
+                     <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2" viewBox="0 0 20 20" fill="currentColor">
+                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                     </svg>
+                     <p className="text-sm font-semibold">{error}</p>
+                </div>
+            );
+        }
+        if (selectedCamera && streamUrl) {
+            return <img src={streamUrl} className="w-full h-full object-cover rounded-lg bg-black" alt={selectedCamera.name} onError={() => setError("Не удалось загрузить видео.")}/>;
+        }
+        return (
+            <div className="w-full h-full flex flex-col items-center justify-center text-gray-500 p-4 text-center">
+                <svg xmlns="http://www.w.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <p className="mt-2 text-sm">{cameras.length > 0 ? 'Камера не выбрана' : 'Камеры не найдены'}</p>
+                {cameras.length > 0 && (
+                     <button onClick={() => setIsMenuOpen(true)} className="mt-2 px-3 py-1 bg-gray-700 text-white rounded-md text-xs hover:bg-gray-600 transition-colors">Выбрать камеру</button>
+                )}
+            </div>
+        );
+    }
 
     return (
         <div className="relative aspect-video bg-gray-800 rounded-lg group text-white">
-            {selectedCamera && streamUrl ? (
-                <img src={streamUrl} className="w-full h-full object-cover rounded-lg bg-black" alt={selectedCamera.name} />
-            ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-gray-500 p-4 text-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <p className="mt-2 text-sm">{cameras.length > 0 ? 'Камера не выбрана' : 'Камеры не найдены'}</p>
-                    {cameras.length > 0 && (
-                         <button onClick={() => setIsMenuOpen(true)} className="mt-2 px-3 py-1 bg-gray-700 text-white rounded-md text-xs hover:bg-gray-600 transition-colors">Выбрать камеру</button>
-                    )}
-                </div>
-            )}
-            
+            {renderContent()}
             <div className="absolute top-2 right-2" ref={menuRef}>
                 <button 
                     onClick={() => setIsMenuOpen(p => !p)} 
@@ -217,9 +267,10 @@ interface InfoPanelProps {
     cameraSettings: CameraSettings;
     onCameraSettingsChange: (settings: CameraSettings) => void;
     haUrl: string;
+    signPath: (path: string) => Promise<{ path: string }>;
 }
 
-const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, weatherDevice, sidebarWidth, setSidebarWidth, cameras, cameraSettings, onCameraSettingsChange, haUrl }) => {
+const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, weatherDevice, sidebarWidth, setSidebarWidth, cameras, cameraSettings, onCameraSettingsChange, haUrl, signPath }) => {
     const [isResizing, setIsResizing] = useState(false);
 
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -262,6 +313,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, weatherDevice, sid
                     settings={cameraSettings}
                     onSettingsChange={onCameraSettingsChange}
                     haUrl={haUrl}
+                    signPath={signPath}
                 />
             
                 {weatherDevice ? (
