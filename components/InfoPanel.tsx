@@ -132,7 +132,6 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
 
     const [signedStreamUrl, setSignedStreamUrl] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [errorType, setErrorType] = useState<'generic' | 'mixed-content' | 'ha-proxy-fail' | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
     const streamUrl = settings.directStreamUrl || signedStreamUrl;
@@ -149,7 +148,6 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
 
     useEffect(() => {
         setError(null);
-        setErrorType(null);
 
         if (settings.directStreamUrl) {
              setSignedStreamUrl(null);
@@ -176,10 +174,8 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
                 console.error("Failed to get signed URL for camera:", err);
                 if (isMounted) {
                     setError("Ошибка авторизации видео");
-                    setErrorType('generic');
+                    setIsLoading(false);
                 }
-            } finally {
-                if(isMounted) setIsLoading(false);
             }
         };
 
@@ -207,24 +203,13 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
         setIsMenuOpen(false);
     };
 
-    const handleImageError = () => {
-        if (settings.directStreamUrl) {
-            if (streamUrl && window.location.protocol === 'https:' && streamUrl.startsWith('http:')) {
-                setError("Ошибка смешанного контента");
-                setErrorType('mixed-content');
-            } else {
-                setError("Не удалось загрузить видео");
-                setErrorType('generic');
-            }
-        } else {
-            // This is for HA proxied streams
-            setError("Не удалось загрузить видео");
-            setErrorType('ha-proxy-fail');
-        }
+    const handleIframeLoad = () => {
+        setIsLoading(false);
+        setError(null);
     };
 
     const renderContent = () => {
-        if (isLoading && !settings.directStreamUrl) {
+        if (isLoading) {
             return (
                 <div className="w-full h-full flex items-center justify-center">
                     <div className="w-8 h-8 border-2 border-dashed rounded-full animate-spin border-gray-400"></div>
@@ -232,24 +217,8 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
             );
         }
         if (error) {
-             let subtext;
-             switch (errorType) {
-                case 'mixed-content':
-                    subtext = "Нельзя загружать HTTP-ресурсы на HTTPS-странице. Используйте HTTPS URL или откройте дашборд по HTTP.";
-                    break;
-                case 'ha-proxy-fail':
-                    subtext = "Проверьте, поддерживает ли камера трансляцию в Home Assistant. Некоторые камеры предоставляют только статичные изображения.";
-                    break;
-                case 'generic':
-                default:
-                    if (error === "Ошибка авторизации видео") {
-                        subtext = "Не удалось получить временную ссылку от Home Assistant. Проверьте настройки интеграции камеры.";
-                    } else {
-                        subtext = "Возможные причины: неверный URL или проблема с CORS. Убедитесь, что камера доступна в вашей сети.";
-                    }
-                    break;
-             }
-             return (
+            const subtext = "Не удалось получить временную ссылку от Home Assistant. Проверьте настройки интеграции камеры.";
+            return (
                 <div className="w-full h-full flex flex-col items-center justify-center text-red-400 p-4 text-center">
                      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2" viewBox="0 0 20 20" fill="currentColor">
                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -260,7 +229,15 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
             );
         }
         if (streamUrl) {
-            return <img src={streamUrl} crossOrigin="anonymous" className="w-full h-full object-cover rounded-lg bg-black" alt={selectedCamera?.name || 'Прямая трансляция'} onError={handleImageError}/>;
+            return (
+                <iframe
+                    key={streamUrl}
+                    src={streamUrl}
+                    className="w-full h-full border-0 rounded-lg bg-black"
+                    title={selectedCamera?.name || 'Прямая трансляция'}
+                    onLoad={handleIframeLoad}
+                />
+            );
         }
         return (
             <div className="w-full h-full flex flex-col items-center justify-center text-gray-500 p-4 text-center">
