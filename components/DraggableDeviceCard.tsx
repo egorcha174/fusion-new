@@ -1,15 +1,7 @@
-
-
-
-
-
-
 import React from '../vendor/react.js';
-// FIX: Import dnd-kit members using namespace import and destructuring to fix module resolution error.
-import * as dndKitSortable from '../vendor/dnd-kit-sortable.js';
-const { useSortable } = dndKitSortable;
-import * as dndKitUtilities from '../vendor/dnd-kit-utilities.js';
-const { CSS } = dndKitUtilities;
+// FIX: Use direct named imports for dnd-kit members.
+import { useSortable } from '../vendor/dnd-kit-sortable.js';
+import { CSS } from '../vendor/dnd-kit-utilities.js';
 import DeviceCard from './DeviceCard';
 import { Device, CardSize } from '../types';
 

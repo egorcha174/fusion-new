@@ -1,9 +1,5 @@
-
-
-
-// FIX: Import React hooks using namespace import and destructuring to fix module resolution error.
-import * as React from '../vendor/react.js';
-const { useState, useRef, useCallback, useEffect } = React;
+// FIX: Import React hooks using standard import syntax to fix JSX transform issues.
+import React, { useState, useRef, useCallback, useEffect } from '../vendor/react.js';
 import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry } from '../types';
 
 interface HassEntities {

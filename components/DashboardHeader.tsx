@@ -1,18 +1,9 @@
-
-
-
-// FIX: Import React hooks using namespace import and destructuring to fix module resolution error.
-import * as React from '../vendor/react.js';
-const { useState } = React;
-// FIX: Import dnd-kit members using namespace import and destructuring to fix module resolution error.
-import * as dndKitCore from '../vendor/dnd-kit-core.js';
-const { DndContext, closestCenter, PointerSensor, useSensor, useSensors } = dndKitCore;
-// FIX: Import dnd-kit members using namespace import and destructuring to fix module resolution error.
-import * as dndKitSortable from '../vendor/dnd-kit-sortable.js';
-const { SortableContext, horizontalListSortingStrategy, arrayMove, useSortable } = dndKitSortable;
-// FIX: Import dnd-kit members using namespace import and destructuring to fix module resolution error.
-import * as dndKitUtilities from '../vendor/dnd-kit-utilities.js';
-const { CSS } = dndKitUtilities;
+// FIX: Import React hooks using standard import syntax to fix JSX transform issues.
+import React, { useState } from '../vendor/react.js';
+// FIX: Use direct named imports for dnd-kit members.
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '../vendor/dnd-kit-core.js';
+import { SortableContext, horizontalListSortingStrategy, arrayMove, useSortable } from '../vendor/dnd-kit-sortable.js';
+import { CSS } from '../vendor/dnd-kit-utilities.js';
 import { Tab, Page } from '../types';
 
 interface SortableTabProps {
@@ -76,7 +67,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
-    const handleDragEnd = (event: dndKitCore.DragEndEvent) => {
+    const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
         if (over && active.id !== over.id) {
             const oldIndex = tabs.findIndex((t) => t.id === active.id);

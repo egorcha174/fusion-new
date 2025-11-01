@@ -1,10 +1,6 @@
-
-
-
 import React from '../vendor/react.js';
-// FIX: Import Icon from iconify-react using a namespace import to fix module resolution error.
-import * as iconifyReact from "../vendor/iconify-react.js";
-const { Icon } = iconifyReact;
+// FIX: Use a direct named import for the Icon component.
+import { Icon } from "../vendor/iconify-react.js";
 import { DeviceType, CardSize } from '../types';
 
 interface DeviceIconProps {

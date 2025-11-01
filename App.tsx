@@ -1,11 +1,5 @@
-
-
-
-
-
-// FIX: Import React hooks using namespace import and destructuring to fix module resolution error.
-import * as React from './vendor/react.js';
-const { useMemo, useState, useEffect } = React;
+// FIX: Import React hooks using standard import syntax to fix JSX transform issues.
+import React, { useMemo, useState, useEffect } from './vendor/react.js';
 import Settings from './components/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
 import InfoPanel from './components/InfoPanel';
@@ -20,9 +14,8 @@ import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
 import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CardSize, ClockSize } from './types';
-// FIX: Import nanoid using namespace import and destructuring to fix module resolution error.
-import * as nanoidModule from './vendor/nanoid.js'; // A small library for unique IDs
-const { nanoid } = nanoidModule;
+// FIX: Import nanoid using a named import.
+import { nanoid } from './vendor/nanoid.js'; // A small library for unique IDs
 
 // Hook to check for large screens to conditionally apply margin
 const useIsLg = () => {

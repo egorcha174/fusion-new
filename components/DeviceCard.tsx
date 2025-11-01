@@ -1,12 +1,5 @@
-
-
-
-
-
-
-// FIX: Import React hooks using namespace import and destructuring to fix module resolution error.
-import * as React from '../vendor/react.js';
-const { useState, useRef, useEffect, useMemo } = React;
+// FIX: Import React hooks using standard import syntax to fix JSX transform issues.
+import React, { useState, useRef, useEffect, useMemo } from '../vendor/react.js';
 import { Device, DeviceType, CardSize } from '../types';
 import DeviceIcon from './DeviceIcon';
 import SparklineChart from './SparklineChart';

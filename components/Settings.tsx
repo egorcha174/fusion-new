@@ -1,9 +1,5 @@
-
-
-
-// FIX: Import React hooks using namespace import and destructuring to fix module resolution error.
-import * as React from '../vendor/react.js';
-const { useRef } = React;
+// FIX: Import React hooks using standard import syntax to fix JSX transform issues.
+import React, { useRef, useState } from '../vendor/react.js';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ClockSettings, CardSize, ClockSize } from '../types';
 
@@ -35,7 +31,7 @@ const LOCAL_STORAGE_KEYS = [
 const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error, onDisconnect, clockSettings, onClockSettingsChange, cardSize, onCardSizeChange }) => {
   const [url, setUrl] = useLocalStorage('ha-url', '');
   const [token, setToken] = useLocalStorage('ha-token', '');
-  const [localError, setLocalError] = React.useState('');
+  const [localError, setLocalError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleConnect = () => {

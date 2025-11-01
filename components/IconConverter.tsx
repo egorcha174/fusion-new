@@ -1,9 +1,5 @@
-
-
-
-// FIX: Import React hooks using namespace import and destructuring to fix module resolution error.
-import * as React from '../vendor/react.js';
-const { useState } = React;
+// FIX: Import React hooks using standard import syntax to fix JSX transform issues.
+import React, { useState } from '../vendor/react.js';
 
 const IconConverter: React.FC = () => {
   const [svgInput, setSvgInput] = useState<string>('');

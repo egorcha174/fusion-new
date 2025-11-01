@@ -1,9 +1,5 @@
-
-
-
-// FIX: Import React hooks using namespace import and destructuring to fix module resolution error.
-import * as React from '../vendor/react.js';
-const { useState, useEffect, useCallback } = React;
+// FIX: Import React hooks using standard import syntax to fix JSX transform issues.
+import React, { useState, useEffect, useCallback } from '../vendor/react.js';
 import { ClockSettings, Device, ClockSize } from '../types';
 
 interface ClockProps {
