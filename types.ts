@@ -73,9 +73,11 @@ export interface DeviceCustomization {
 export type DeviceCustomizations = Record<string, DeviceCustomization>; // Key is device.id (entity_id)
 
 export type CardSize = 'sm' | 'md' | 'lg';
-export type ClockSize = 'sm' | 'md' | 'lg';
 
 export type Page = 'dashboard' | 'settings' | 'all-devices';
+
+// FIX: Add and export ClockSize type. This type was imported in Settings.tsx and InfoPanel.tsx but not exported.
+export type ClockSize = 'sm' | 'md' | 'lg';
 
 export interface ClockSettings {
     format: '12h' | '24h';

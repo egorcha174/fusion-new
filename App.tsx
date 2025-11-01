@@ -243,8 +243,6 @@ const App: React.FC = () => {
   const handleBrightnessChange = (deviceId: string, brightness: number) => {
     const entity = entities[deviceId];
     if (!entity) return;
-    // For lights, the turn_on service can be used to set brightness
-    // It will also turn on the light if it's off.
     callService('light', 'turn_on', {
       entity_id: entity.entity_id,
       brightness_pct: brightness,
@@ -263,19 +261,15 @@ const App: React.FC = () => {
 
     const finalCustomization: DeviceCustomization = {};
 
-    // Compare each value with the original device's state to see if an override is needed.
     if (newValues.name !== originalDevice.name) {
         finalCustomization.name = newValues.name;
     }
     if (newValues.type !== originalDevice.type) {
         finalCustomization.type = newValues.type;
     }
-    // An icon is a custom override if it's different from the icon that would be
-    // automatically chosen for the *newly selected type*.
-    if (newValues.icon !== newValues.type) {
+    if (newValues.icon !== (finalCustomization.type ?? originalDevice.type)) {
          finalCustomization.icon = newValues.icon;
     }
-    // Only store isHidden if it's true, assuming the default is false.
     if (newValues.isHidden) {
          finalCustomization.isHidden = true;
     }
@@ -283,7 +277,6 @@ const App: React.FC = () => {
     setCustomizations(prev => {
         const newCustomizations = { ...prev };
         if (Object.keys(finalCustomization).length === 0) {
-            // If there are no overrides, remove the entry to keep storage clean.
             delete newCustomizations[deviceId];
         } else {
             newCustomizations[deviceId] = finalCustomization;
@@ -295,10 +288,13 @@ const App: React.FC = () => {
   
    const handleToggleVisibility = (deviceId: string, isHidden: boolean) => {
     const currentCustomization = customizations[deviceId] || {};
+    const originalDevice = allKnownDevices.get(deviceId);
+    if (!originalDevice) return;
+
     handleSaveCustomization(deviceId, {
-      name: currentCustomization.name || allKnownDevices.get(deviceId)?.name || '',
-      type: currentCustomization.type || allKnownDevices.get(deviceId)?.type || DeviceType.Unknown,
-      icon: currentCustomization.icon || currentCustomization.type || allKnownDevices.get(deviceId)?.type || DeviceType.Unknown,
+      name: currentCustomization.name || originalDevice.name,
+      type: currentCustomization.type || originalDevice.type,
+      icon: currentCustomization.icon || currentCustomization.type || originalDevice.type,
       isHidden: isHidden
     });
   };
