@@ -1,5 +1,9 @@
 
-import React, { useState, useEffect } from 'https://esm.sh/react@18.2.0';
+
+
+// FIX: Import React hooks using namespace import and destructuring to fix module resolution error.
+import * as React from '../vendor/react.js';
+const { useState, useEffect } = React;
 
 export function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
   const [storedValue, setStoredValue] = useState<T>(() => {

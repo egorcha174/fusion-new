@@ -1,9 +1,15 @@
 
 
 
-import React from 'https://esm.sh/react@18.2.0';
-import { useSortable } from 'https://esm.sh/@dnd-kit/sortable@7.0.2';
-import { CSS } from 'https://esm.sh/@dnd-kit/utilities@3.2.2';
+
+
+
+import React from '../vendor/react.js';
+// FIX: Import dnd-kit members using namespace import and destructuring to fix module resolution error.
+import * as dndKitSortable from '../vendor/dnd-kit-sortable.js';
+const { useSortable } = dndKitSortable;
+import * as dndKitUtilities from '../vendor/dnd-kit-utilities.js';
+const { CSS } = dndKitUtilities;
 import DeviceCard from './DeviceCard';
 import { Device, CardSize } from '../types';
 

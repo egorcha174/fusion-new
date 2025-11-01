@@ -1,5 +1,9 @@
 
-import React, { useRef } from 'https://esm.sh/react@18.2.0';
+
+
+// FIX: Import React hooks using namespace import and destructuring to fix module resolution error.
+import * as React from '../vendor/react.js';
+const { useRef } = React;
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ClockSettings, CardSize, ClockSize } from '../types';
 

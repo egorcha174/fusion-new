@@ -1,5 +1,9 @@
 
-import React, { useState } from 'https://esm.sh/react@18.2.0';
+
+
+// FIX: Import React hooks using namespace import and destructuring to fix module resolution error.
+import * as React from '../vendor/react.js';
+const { useState } = React;
 import { Room, DeviceCustomizations, Tab, Device } from '../types';
 import DeviceIcon from './DeviceIcon';
 

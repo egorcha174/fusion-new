@@ -1,9 +1,18 @@
 
 
 
-import React, { useMemo } from 'https://esm.sh/react@18.2.0';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from 'https://esm.sh/@dnd-kit/core@6.1.0';
-import { SortableContext, arrayMove, rectSortingStrategy } from 'https://esm.sh/@dnd-kit/sortable@7.0.2';
+
+
+
+// FIX: Import React hooks using namespace import and destructuring to fix module resolution error.
+import * as React from '../vendor/react.js';
+const { useMemo } = React;
+// FIX: Import dnd-kit members using namespace import and destructuring to fix module resolution error.
+import * as dndKitCore from '../vendor/dnd-kit-core.js';
+const { DndContext, closestCenter, PointerSensor, useSensor, useSensors } = dndKitCore;
+// FIX: Import dnd-kit members using namespace import and destructuring to fix module resolution error.
+import * as dndKitSortable from '../vendor/dnd-kit-sortable.js';
+const { SortableContext, arrayMove, rectSortingStrategy } = dndKitSortable;
 import DraggableDeviceCard from './DraggableDeviceCard';
 import { Tab, Device, CardSize } from '../types';
 
@@ -56,7 +65,7 @@ const TabContent: React.FC<TabContentProps> = ({
   }, [devices, tab.orderedDeviceIds]);
 
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = (event: dndKitCore.DragEndEvent) => {
     if (isEditMode) return;
     const { active, over } = event;
     if (over && active.id !== over.id) {

@@ -1,6 +1,10 @@
 
-import React from 'https://esm.sh/react@18.2.0';
-import { Icon } from "https://esm.sh/@iconify/react@5.0.1";
+
+
+import React from '../vendor/react.js';
+// FIX: Import Icon from iconify-react using a namespace import to fix module resolution error.
+import * as iconifyReact from "../vendor/iconify-react.js";
+const { Icon } = iconifyReact;
 import { DeviceType, CardSize } from '../types';
 
 interface DeviceIconProps {
