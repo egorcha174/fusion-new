@@ -34,6 +34,7 @@ export interface Device {
   name: string;
   status: string; // 'På', 'Okänt', 'Heating', etc.
   type: DeviceType;
+  icon?: DeviceType; // Custom icon override
   brightness?: number; // For DimmableLight
   temperature?: number; // For Thermostat current temp or weather temp
   targetTemperature?: number; // For Thermostat target temp
@@ -65,6 +66,7 @@ export interface Tab {
 export interface DeviceCustomization {
   name?: string;
   type?: DeviceType;
+  icon?: DeviceType;
   isHidden?: boolean;
 }
 

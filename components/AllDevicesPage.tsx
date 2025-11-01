@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { Room, DeviceCustomizations, Tab, Device } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -79,7 +80,7 @@ const AllDevicesPage: React.FC<AllDevicesPageProps> = ({ rooms, customizations, 
                                         <div className="flex items-center gap-4 overflow-hidden">
                                             <div className="w-10 h-10 flex-shrink-0">
                                                 <DeviceIcon
-                                                    type={device.type}
+                                                    type={device.icon ?? device.type}
                                                     isOn={device.status.toLowerCase() === 'включено'}
                                                     cardSize="md"
                                                     haDomain={device.haDomain}

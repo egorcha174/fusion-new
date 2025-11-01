@@ -98,6 +98,7 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
     name: customization.name || entity.attributes.friendly_name || entity.entity_id,
     status: getStatusText(entity),
     type: customization.type !== undefined ? customization.type : originalType,
+    icon: customization.icon,
     unit: entity.attributes.unit_of_measurement,
     haDomain: entity.entity_id.split('.')[0],
     haDeviceClass: entity.attributes.device_class,

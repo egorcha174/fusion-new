@@ -1,7 +1,8 @@
 
+
 import React, { useState } from 'react';
 import { Device, DeviceCustomization, DeviceType } from '../types';
-import DeviceIcon from './DeviceIcon';
+import DeviceIcon, { icons } from './DeviceIcon';
 
 interface DeviceSettingsModalProps {
   device: Device;
@@ -18,6 +19,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
 }) => {
   const [name, setName] = useState(customization.name ?? device.name);
   const [type, setType] = useState(customization.type ?? device.type);
+  const [icon, setIcon] = useState(customization.icon ?? device.type);
   const [isHidden, setIsHidden] = useState(customization.isHidden ?? false);
 
 
@@ -25,6 +27,9 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
     const finalCustomization: DeviceCustomization = {
       name: name.trim() !== device.name ? name.trim() : undefined,
       type: type !== device.type ? type : undefined,
+      // Save the icon override only if the selected icon is different
+      // from the icon that would be inferred from the selected type.
+      icon: icon !== type ? icon : undefined,
       isHidden: isHidden,
     };
     onSave(device.id, finalCustomization);
@@ -36,6 +41,8 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
         value: Number(key) as DeviceType,
         name: DeviceType[Number(key) as DeviceType]
     }));
+    
+  const availableIcons = Object.keys(icons).map(Number) as DeviceType[];
 
   return (
     <div
@@ -79,6 +86,22 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                 ))}
             </select>
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Иконка</label>
+            <div className="bg-gray-700/50 p-3 rounded-lg grid grid-cols-5 sm:grid-cols-7 gap-3">
+                 {availableIcons.map(iconType => {
+                    const isSelected = icon === iconType;
+                    return (
+                        <div key={iconType} onClick={() => setIcon(iconType)} className={`p-2 rounded-lg cursor-pointer transition-colors aspect-square flex items-center justify-center ${isSelected ? 'bg-blue-600 ring-2 ring-blue-400' : 'bg-gray-800 hover:bg-gray-700'}`}>
+                           <div className="w-8 h-8">
+                            <DeviceIcon type={iconType} isOn={false} cardSize="sm" />
+                           </div>
+                        </div>
+                    )
+                 })}
+            </div>
+         </div>
           
           <div className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg">
             <div>

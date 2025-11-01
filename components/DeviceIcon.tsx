@@ -218,7 +218,7 @@ const SvgUnknown = () => (
   </svg>
 );
 
-const icons: Record<DeviceType, (props: { isOn: boolean }) => React.ReactNode> = {
+export const icons: Record<DeviceType, (props: { isOn: boolean }) => React.ReactNode> = {
   [DeviceType.Light]: ({ isOn }) => <SvgLight filled={isOn} />,
   [DeviceType.DimmableLight]: ({ isOn }) => <SvgLight filled={isOn} />,
   [DeviceType.Lamp]: ({ isOn }) => <SvgLamp filled={isOn} />,
