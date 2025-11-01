@@ -1,8 +1,8 @@
 
-import React, { useState } from 'react';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, horizontalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import React, { useState } from 'https://esm.sh/react@18.2.0';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from 'https://esm.sh/@dnd-kit/core@6.1.0';
+import { SortableContext, horizontalListSortingStrategy, arrayMove, useSortable } from 'https://esm.sh/@dnd-kit/sortable@7.0.2';
+import { CSS } from 'https://esm.sh/@dnd-kit/utilities@3.2.2';
 import { Tab, Page } from '../types';
 
 interface SortableTabProps {

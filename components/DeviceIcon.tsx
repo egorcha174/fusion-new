@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React from 'https://esm.sh/react@18.2.0';
 import { Icon } from "https://esm.sh/@iconify/react@5.0.1";
 import { DeviceType, CardSize } from '../types';
 

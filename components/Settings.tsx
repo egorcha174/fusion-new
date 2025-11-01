@@ -1,5 +1,5 @@
 
-import React, { useRef } from 'react';
+import React, { useRef } from 'https://esm.sh/react@18.2.0';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ClockSettings, CardSize, ClockSize } from '../types';
 

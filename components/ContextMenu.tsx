@@ -1,5 +1,6 @@
 
-import React, { useEffect, useRef, useState } from 'react';
+
+import React, { useEffect, useRef, useState } from 'https://esm.sh/react@18.2.0';
 
 interface ContextMenuProps {
   x: number;

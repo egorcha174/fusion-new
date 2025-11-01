@@ -1,6 +1,7 @@
 
 
-import React, { useMemo, useState, useEffect } from 'react';
+
+import React, { useMemo, useState, useEffect } from 'https://esm.sh/react@18.2.0';
 import Settings from './components/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
 import InfoPanel from './components/InfoPanel';
@@ -15,7 +16,7 @@ import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
 import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CardSize, ClockSize } from './types';
-import { nanoid } from 'nanoid'; // A small library for unique IDs
+import { nanoid } from 'https://esm.sh/nanoid@5.0.7'; // A small library for unique IDs
 
 // Hook to check for large screens to conditionally apply margin
 const useIsLg = () => {

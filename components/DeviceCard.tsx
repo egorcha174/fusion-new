@@ -1,6 +1,7 @@
 
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+
+import React, { useState, useRef, useEffect, useMemo } from 'https://esm.sh/react@18.2.0';
 import { Device, DeviceType, CardSize } from '../types';
 import DeviceIcon from './DeviceIcon';
 import SparklineChart from './SparklineChart';

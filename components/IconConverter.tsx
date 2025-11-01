@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState } from 'https://esm.sh/react@18.2.0';
 
 const IconConverter: React.FC = () => {
   const [svgInput, setSvgInput] = useState<string>('');

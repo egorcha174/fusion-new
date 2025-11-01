@@ -1,8 +1,9 @@
 
 
-import React, { useMemo } from 'react';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable';
+
+import React, { useMemo } from 'https://esm.sh/react@18.2.0';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from 'https://esm.sh/@dnd-kit/core@6.1.0';
+import { SortableContext, arrayMove, rectSortingStrategy } from 'https://esm.sh/@dnd-kit/sortable@7.0.2';
 import DraggableDeviceCard from './DraggableDeviceCard';
 import { Tab, Device, CardSize } from '../types';
 

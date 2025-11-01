@@ -1,8 +1,9 @@
 
 
-import React from 'react';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+
+import React from 'https://esm.sh/react@18.2.0';
+import { useSortable } from 'https://esm.sh/@dnd-kit/sortable@7.0.2';
+import { CSS } from 'https://esm.sh/@dnd-kit/utilities@3.2.2';
 import DeviceCard from './DeviceCard';
 import { Device, CardSize } from '../types';
 

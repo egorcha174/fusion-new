@@ -1,5 +1,5 @@
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'https://esm.sh/react@18.2.0';
 import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry } from '../types';
 
 interface HassEntities {
