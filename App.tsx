@@ -11,7 +11,7 @@ import ContextMenu from './components/ContextMenu';
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
-import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CardSize } from './types';
+import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CardSize, CameraSettings } from './types';
 import { nanoid } from 'nanoid'; // A small library for unique IDs
 
 // Hook to check for large screens to conditionally apply margin
@@ -56,8 +56,13 @@ const App: React.FC = () => {
     showSeconds: true,
     size: 'md',
   });
+  const [cameraSettings, setCameraSettings] = useLocalStorage<CameraSettings>('ha-camera-settings', {
+    selectedEntityId: null,
+  });
   const [cardSize, setCardSize] = useLocalStorage<CardSize>('ha-card-size', 'md');
   const [sidebarWidth, setSidebarWidth] = useLocalStorage<number>('ha-sidebar-width', 320);
+  const [haUrl] = useLocalStorage('ha-url', '');
+
 
   const isLg = useIsLg();
 
@@ -97,6 +102,10 @@ const App: React.FC = () => {
   const weatherDevice = useMemo(() => {
     // Find the first available weather entity to display in the info panel
     return Array.from(allKnownDevices.values()).find((d: Device) => d.type === DeviceType.Weather);
+  }, [allKnownDevices]);
+  
+  const allCameras = useMemo(() => {
+    return Array.from(allKnownDevices.values()).filter((d: Device) => d.haDomain === 'camera');
   }, [allKnownDevices]);
 
   const filteredDevicesForTab = useMemo(() => {
@@ -360,7 +369,16 @@ const App: React.FC = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-900 text-gray-200">
-      <InfoPanel clockSettings={clockSettings} weatherDevice={weatherDevice} sidebarWidth={sidebarWidth} setSidebarWidth={setSidebarWidth} />
+      <InfoPanel 
+        clockSettings={clockSettings} 
+        weatherDevice={weatherDevice} 
+        sidebarWidth={sidebarWidth} 
+        setSidebarWidth={setSidebarWidth}
+        cameras={allCameras}
+        cameraSettings={cameraSettings}
+        onCameraSettingsChange={setCameraSettings}
+        haUrl={haUrl}
+      />
       <div className="flex flex-col flex-1" style={{ marginLeft: isLg ? `${sidebarWidth}px` : '0px' }}>
         <DashboardHeader
             tabs={tabs}

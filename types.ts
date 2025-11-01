@@ -19,6 +19,7 @@ export enum DeviceType {
   Switch,
   Fan,
   DoorSensor,
+  Camera,
   Unknown, // Fallback for unmapped devices
 }
 
@@ -83,6 +84,10 @@ export interface ClockSettings {
     format: '12h' | '24h';
     showSeconds: boolean;
     size: ClockSize;
+}
+
+export interface CameraSettings {
+  selectedEntityId: string | null;
 }
 
 // Types for Home Assistant WebSocket API

@@ -11,6 +11,7 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
 
   // --- Priority 1: Direct Domain Mapping (unambiguous) ---
   switch (domain) {
+    case 'camera': return DeviceType.Camera;
     case 'weather': return DeviceType.Weather;
     case 'sensor': return DeviceType.Sensor;
     case 'climate': return DeviceType.Thermostat;

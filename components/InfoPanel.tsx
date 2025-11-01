@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { ClockSettings, Device, ClockSize } from '../types';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { ClockSettings, Device, ClockSize, CameraSettings } from '../types';
 
 interface ClockProps {
     settings: ClockSettings;
@@ -118,14 +118,108 @@ const Weather: React.FC<{ weather: Device }> = ({ weather }) => {
     );
 }
 
+interface CameraWidgetProps {
+    cameras: Device[];
+    settings: CameraSettings;
+    onSettingsChange: (settings: CameraSettings) => void;
+    haUrl: string;
+}
+
+const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettingsChange, haUrl }) => {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+    const selectedCamera = cameras.find(c => c.id === settings.selectedEntityId);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setIsMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleSelectCamera = (entityId: string | null) => {
+        onSettingsChange({ selectedEntityId: entityId });
+        setIsMenuOpen(false);
+    };
+
+    const streamUrl = useMemo(() => {
+        if (!selectedCamera || !haUrl) return null;
+        const protocol = haUrl.startsWith('https') ? 'https://' : 'http://';
+        const cleanUrl = haUrl.replace(/^(https?):\/\//, '');
+        // This endpoint provides a live MJPEG stream. It relies on browser cookie-based auth
+        // if the user is logged into Home Assistant in another tab.
+        return `${protocol}${cleanUrl}/api/camera_proxy_stream/${selectedCamera.id}`;
+    }, [selectedCamera, haUrl]);
+
+    return (
+        <div className="relative aspect-video bg-gray-800 rounded-lg group text-white">
+            {selectedCamera && streamUrl ? (
+                <img src={streamUrl} className="w-full h-full object-cover rounded-lg bg-black" alt={selectedCamera.name} />
+            ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-gray-500 p-4 text-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <p className="mt-2 text-sm">{cameras.length > 0 ? 'Камера не выбрана' : 'Камеры не найдены'}</p>
+                    {cameras.length > 0 && (
+                         <button onClick={() => setIsMenuOpen(true)} className="mt-2 px-3 py-1 bg-gray-700 text-white rounded-md text-xs hover:bg-gray-600 transition-colors">Выбрать камеру</button>
+                    )}
+                </div>
+            )}
+            
+            <div className="absolute top-2 right-2" ref={menuRef}>
+                <button 
+                    onClick={() => setIsMenuOpen(p => !p)} 
+                    className="p-1.5 bg-black/40 backdrop-blur-sm rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 hover:bg-black/60"
+                    aria-label="Настройки камеры"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                    </svg>
+                </button>
+                {isMenuOpen && (
+                    <div className="absolute top-full right-0 mt-1 w-56 bg-gray-800/90 backdrop-blur-sm rounded-md shadow-lg z-20 ring-1 ring-black/20 p-1 fade-in">
+                        {cameras.length > 0 ? (
+                            cameras.map(camera => (
+                                <button key={camera.id} onClick={() => handleSelectCamera(camera.id)} className="block w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 rounded-md">
+                                    {camera.name}
+                                </button>
+                            ))
+                        ) : (
+                            <div className="px-3 py-1.5 text-sm text-gray-400">Нет доступных камер</div>
+                        )}
+                        {selectedCamera && (
+                            <>
+                                <div className="h-px bg-gray-600/50 my-1" />
+                                <button onClick={() => handleSelectCamera(null)} className="block w-full text-left px-3 py-1.5 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-md">
+                                    Отключить камеру
+                                </button>
+                            </>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+
 interface InfoPanelProps {
     clockSettings: ClockSettings;
     weatherDevice?: Device | null;
     sidebarWidth: number;
     setSidebarWidth: (width: number) => void;
+    cameras: Device[];
+    cameraSettings: CameraSettings;
+    onCameraSettingsChange: (settings: CameraSettings) => void;
+    haUrl: string;
 }
 
-const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, weatherDevice, sidebarWidth, setSidebarWidth }) => {
+const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, weatherDevice, sidebarWidth, setSidebarWidth, cameras, cameraSettings, onCameraSettingsChange, haUrl }) => {
     const [isResizing, setIsResizing] = useState(false);
 
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -163,13 +257,12 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, weatherDevice, sid
             </div>
 
             <div className="mt-8 space-y-8">
-                {/* Placeholder for camera feed */}
-                <div className="aspect-video bg-gray-800 rounded-lg flex items-center justify-center text-gray-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                </div>
+                 <CameraWidget
+                    cameras={cameras}
+                    settings={cameraSettings}
+                    onSettingsChange={onCameraSettingsChange}
+                    haUrl={haUrl}
+                />
             
                 {weatherDevice ? (
                     <Weather weather={weatherDevice} />
