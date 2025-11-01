@@ -68,7 +68,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (connectionStatus === 'connected' && !isLoading) {
       if (tabs.length === 0) {
-        const newTab: Tab = { id: nanoid(), name: 'Главная', deviceIds: [], deviceOrder: {} };
+        const newTab: Tab = { id: nanoid(), name: 'Главная', deviceIds: [], orderedDeviceIds: [] };
         setTabs([newTab]);
         setActiveTabId(newTab.id);
       } else if (!activeTabId || !tabs.some(t => t.id === activeTabId)) {
@@ -152,7 +152,7 @@ const App: React.FC = () => {
   // --- Tab Management Handlers ---
   const handleAddTab = () => {
     const newTabName = `Вкладка ${tabs.length + 1}`;
-    const newTab: Tab = { id: nanoid(), name: newTabName, deviceIds: [], deviceOrder: {} };
+    const newTab: Tab = { id: nanoid(), name: newTabName, deviceIds: [], orderedDeviceIds: [] };
     setTabs([...tabs, newTab]);
     setActiveTabId(newTab.id);
   };
@@ -189,11 +189,8 @@ const App: React.FC = () => {
      setTabs(tabs.map(tab => {
         if (tab.id === tabId) {
             const newDeviceIds = tab.deviceIds.filter(id => id !== deviceId);
-            const newDeviceOrder = { ...tab.deviceOrder };
-            if (newDeviceOrder[tab.id]) {
-              newDeviceOrder[tab.id] = newDeviceOrder[tab.id].filter(id => id !== deviceId);
-            }
-            return { ...tab, deviceIds: newDeviceIds, deviceOrder: newDeviceOrder };
+            const newOrderedDeviceIds = (tab.orderedDeviceIds || []).filter(id => id !== deviceId);
+            return { ...tab, deviceIds: newDeviceIds, orderedDeviceIds: newOrderedDeviceIds };
         }
         return tab;
      }));
@@ -213,11 +210,8 @@ const App: React.FC = () => {
         // Remove from the source tab
         if (tab.id === fromTabId) {
             const newDeviceIds = tab.deviceIds.filter(id => id !== deviceId);
-            const newDeviceOrder = { ...tab.deviceOrder };
-            if (newDeviceOrder[tab.id]) {
-                newDeviceOrder[tab.id] = newDeviceOrder[tab.id].filter(id => id !== deviceId);
-            }
-            return { ...tab, deviceIds: newDeviceIds, deviceOrder: newDeviceOrder };
+            const newOrderedDeviceIds = (tab.orderedDeviceIds || []).filter(id => id !== deviceId);
+            return { ...tab, deviceIds: newDeviceIds, orderedDeviceIds: newOrderedDeviceIds };
         }
         return tab;
     }));
@@ -226,8 +220,7 @@ const App: React.FC = () => {
   const handleDeviceOrderChangeOnTab = (tabId: string, orderedDevices: Device[]) => {
       setTabs(tabs.map(tab => {
           if (tab.id === tabId) {
-              const newOrder = { ...tab.deviceOrder, [tabId]: orderedDevices.map(d => d.id) };
-              return { ...tab, deviceOrder: newOrder };
+              return { ...tab, orderedDeviceIds: orderedDevices.map(d => d.id) };
           }
           return tab;
       }));

@@ -44,7 +44,7 @@ const TabContent: React.FC<TabContentProps> = ({
   );
 
   const sortedDevices = useMemo(() => {
-    const order = tab.deviceOrder[tab.id] || [];
+    const order = tab.orderedDeviceIds || [];
     if (order.length === 0) {
       return devices;
     }
@@ -52,7 +52,7 @@ const TabContent: React.FC<TabContentProps> = ({
     const ordered = order.map(id => deviceMap.get(id)).filter((d): d is Device => !!d);
     const unordered = devices.filter(d => !order.includes(d.id));
     return [...ordered, ...unordered];
-  }, [devices, tab.deviceOrder, tab.id]);
+  }, [devices, tab.orderedDeviceIds]);
 
 
   const handleDragEnd = (event: DragEndEvent) => {

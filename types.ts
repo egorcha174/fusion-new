@@ -57,7 +57,7 @@ export interface Tab {
   id: string;
   name: string;
   deviceIds: string[];
-  deviceOrder: Record<string, string[]>; // { [tabId]: deviceId[] }
+  orderedDeviceIds: string[];
 }
 
 // Types for user customizations
