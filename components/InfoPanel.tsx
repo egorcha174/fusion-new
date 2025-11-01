@@ -128,13 +128,12 @@ interface CameraWidgetProps {
 const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettingsChange, haUrl, signPath }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
-    const selectedCamera = cameras.find(c => c.id === settings.selectedEntityId);
+    const selectedCamera = useMemo(() => cameras.find(c => c.id === settings.selectedEntityId), [cameras, settings.selectedEntityId]);
 
-    const [signedStreamUrl, setSignedStreamUrl] = useState<string | null>(null);
+    const [streamUrl, setStreamUrl] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-
-    const streamUrl = settings.directStreamUrl || signedStreamUrl;
+    const loadTimeoutRef = useRef<number | null>(null);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -146,54 +145,90 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    // FIX: Moved `clearLoadTimeout` out of useEffect to make it accessible to iframe event handlers.
+    const clearLoadTimeout = useCallback(() => {
+        if (loadTimeoutRef.current) {
+            clearTimeout(loadTimeoutRef.current);
+            loadTimeoutRef.current = null;
+        }
+    }, []);
+
+    // This effect manages the entire stream lifecycle
     useEffect(() => {
-        setError(null);
-
-        if (settings.directStreamUrl) {
-             setSignedStreamUrl(null);
-             return;
-        }
-        
-        if (!selectedCamera || !signPath || !haUrl) {
-            setSignedStreamUrl(null);
-            return;
-        }
-
         let isMounted = true;
-        const getSignedUrl = async () => {
+
+        const setupStream = async () => {
+            clearLoadTimeout();
+            setError(null);
+            setStreamUrl(null); // Clear previous stream URL
+
+            const { selectedEntityId, directStreamUrl } = settings;
+
+            // Do nothing if no camera is configured
+            if (!selectedEntityId && !directStreamUrl) {
+                setIsLoading(false);
+                return;
+            }
+            
             setIsLoading(true);
-            setSignedStreamUrl(null);
-            try {
-                const result = await signPath(`/api/camera_proxy_stream/${selectedCamera.id}`);
+
+            // Set a timeout for the iframe to load. If it doesn't load in time, show an error.
+            loadTimeoutRef.current = window.setTimeout(() => {
                 if (isMounted) {
-                    const protocol = haUrl.startsWith('https') ? 'https://' : 'http://';
-                    const cleanUrl = haUrl.replace(/^(https?):\/\//, '');
-                    setSignedStreamUrl(`${protocol}${cleanUrl}${result.path}`);
-                }
-            } catch (err) {
-                console.error("Failed to get signed URL for camera:", err);
-                if (isMounted) {
-                    setError("Ошибка авторизации видео");
+                    setError("Тайм-аут загрузки видео");
                     setIsLoading(false);
                 }
+            }, 15000); // 15-second timeout
+
+            if (directStreamUrl) {
+                setStreamUrl(directStreamUrl);
+                // onLoad or timeout will handle clearing isLoading
+            } else if (selectedEntityId) {
+                try {
+                    const result = await signPath(`/api/camera_proxy_stream/${selectedEntityId}`);
+                    if (isMounted) {
+                        const protocol = haUrl.startsWith('https') ? 'https://' : 'http://';
+                        const cleanUrl = haUrl.replace(/^(https?):\/\//, '');
+                        setStreamUrl(`${protocol}${cleanUrl}${result.path}`);
+                        // onLoad or timeout will handle clearing isLoading
+                    }
+                } catch (err) {
+                    console.error("Failed to get signed URL for camera:", err);
+                    if (isMounted) {
+                        setError("Ошибка авторизации видео");
+                        setIsLoading(false);
+                        clearLoadTimeout();
+                    }
+                }
+            } else {
+                 // Should not happen based on the initial check, but as a safeguard:
+                 setIsLoading(false);
+                 clearLoadTimeout();
             }
         };
 
-        getSignedUrl();
+        setupStream();
 
-        return () => { isMounted = false; };
-    }, [selectedCamera, signPath, haUrl, settings.directStreamUrl]);
+        return () => {
+            isMounted = false;
+            clearLoadTimeout();
+        };
+    }, [settings, signPath, haUrl, clearLoadTimeout]);
 
 
     const handleSelectCamera = (entityId: string | null) => {
-        onSettingsChange({ selectedEntityId: entityId, directStreamUrl: undefined }); // Reset direct URL when selecting HA camera
+        onSettingsChange({ selectedEntityId: entityId, directStreamUrl: undefined });
         setIsMenuOpen(false);
     };
 
     const handleSetDirectUrl = () => {
         const newUrl = window.prompt("Введите прямой URL видеопотока:", settings.directStreamUrl || '');
         if (newUrl !== null) { // User didn't cancel
-            onSettingsChange({ ...settings, directStreamUrl: newUrl || undefined });
+            if (newUrl) { // URL provided, deselect HA entity
+                onSettingsChange({ selectedEntityId: null, directStreamUrl: newUrl });
+            } else { // URL cleared
+                onSettingsChange({ ...settings, directStreamUrl: undefined });
+            }
         }
         setIsMenuOpen(false);
     };
@@ -206,7 +241,15 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
     const handleIframeLoad = () => {
         setIsLoading(false);
         setError(null);
+        clearLoadTimeout();
     };
+    
+    const handleIframeError = () => {
+        setIsLoading(false);
+        setError("Ошибка загрузки фрейма");
+        clearLoadTimeout();
+    };
+
 
     const renderContent = () => {
         if (isLoading) {
@@ -217,13 +260,16 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
             );
         }
         if (error) {
-            const subtext = "Не удалось получить временную ссылку от Home Assistant. Проверьте настройки интеграции камеры.";
+            let subtext = "Проверьте URL и доступность камеры в сети. Возможно, ваш браузер блокирует контент (CORS, X-Frame-Options).";
+            if (error === "Ошибка авторизации видео") {
+                subtext = "Не удалось получить временную ссылку от Home Assistant. Проверьте настройки интеграции камеры.";
+            }
             return (
                 <div className="w-full h-full flex flex-col items-center justify-center text-red-400 p-4 text-center">
                      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2" viewBox="0 0 20 20" fill="currentColor">
                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                      </svg>
-                     <p className="text-sm font-semibold">{error}</p>
+                     <p className="text-sm font-semibold">Не удалось загрузить видео</p>
                      <p className="text-xs text-gray-500 mt-1">{subtext}</p>
                 </div>
             );
@@ -236,6 +282,7 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
                     className="w-full h-full border-0 rounded-lg bg-black"
                     title={selectedCamera?.name || 'Прямая трансляция'}
                     onLoad={handleIframeLoad}
+                    onError={handleIframeError}
                 />
             );
         }
