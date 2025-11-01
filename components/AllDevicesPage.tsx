@@ -83,8 +83,6 @@ const AllDevicesPage: React.FC<AllDevicesPageProps> = ({ rooms, customizations, 
                                                     type={device.icon ?? device.type}
                                                     isOn={device.status.toLowerCase() === 'включено'}
                                                     cardSize="md"
-                                                    haDomain={device.haDomain}
-                                                    haDeviceClass={device.haDeviceClass}
                                                 />
                                             </div>
                                             <div className="flex-1 overflow-hidden">

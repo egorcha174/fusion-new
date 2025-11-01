@@ -7,60 +7,7 @@ interface DeviceIconProps {
   cardSize: CardSize;
   className?: string;
   ariaLabel?: string;
-  haDomain?: string;
-  haDeviceClass?: string;
 }
-
-const normalizeType = (originalType: DeviceType, haDomain?: string, haDeviceClass?: string): DeviceType => {
-  if (!haDomain && !haDeviceClass) return originalType;
-
-  const domain = haDomain?.toLowerCase() ?? '';
-  const deviceClass = haDeviceClass?.toLowerCase() ?? '';
-
-  if (deviceClass) {
-    if (deviceClass === 'door') return DeviceType.DoorSensor;
-    if (['plug', 'outlet'].includes(deviceClass)) return DeviceType.Outlet;
-    if (['motion'].includes(deviceClass)) return DeviceType.Sensor;
-    if (['window', 'opening'].includes(deviceClass)) return DeviceType.Sensor;
-    if (['temperature', 'humidity', 'pressure', 'sound', 'battery', 'power'].includes(deviceClass)) return DeviceType.Sensor;
-    if (['smoke', 'gas', 'moisture'].includes(deviceClass)) return DeviceType.Sensor;
-  }
-
-  switch (domain) {
-    case 'light':
-      return DeviceType.Light;
-    case 'switch':
-      return deviceClass === 'plug' ? DeviceType.Outlet : DeviceType.Switch;
-    case 'fan':
-      return DeviceType.Fan;
-    case 'climate':
-    case 'thermostat':
-      return DeviceType.Thermostat;
-    case 'media_player':
-      if (deviceClass.includes('speaker') || deviceClass.includes('audio')) return DeviceType.Speaker;
-      if (deviceClass.includes('tv') || deviceClass.includes('screen') || deviceClass.includes('display')) return DeviceType.TV;
-      if (deviceClass.includes('game') || deviceClass.includes('console')) return DeviceType.Playstation;
-      return DeviceType.TV;
-    case 'camera':
-      return DeviceType.Monitor;
-    case 'sensor':
-    case 'binary_sensor':
-    case 'device_tracker':
-      if (deviceClass === 'weather' || deviceClass === 'forecast') return DeviceType.Weather;
-      return DeviceType.Sensor;
-    case 'vacuum':
-      return DeviceType.Playstation;
-    case 'cover':
-      return DeviceType.Switch;
-    case 'alarm_control_panel':
-      return DeviceType.Unknown;
-    case 'humidifier':
-    case 'water_heater':
-      return DeviceType.Climate;
-    default:
-      return originalType;
-  }
-};
 
 const IconWrapper: React.FC<{
   children: React.ReactNode;
@@ -240,10 +187,10 @@ export const icons: Record<DeviceType, (props: { isOn: boolean }) => React.React
   [DeviceType.Unknown]: () => <SvgUnknown />,
 };
 
-const DeviceIcon: React.FC<DeviceIconProps> = ({ type, isOn, cardSize, className, ariaLabel, haDomain, haDeviceClass }) => {
-  // Use the default built-in icons
-  const normalizedType = normalizeType(type, haDomain, haDeviceClass);
-  const renderFn = icons[normalizedType] ?? icons[DeviceType.Unknown];
+const DeviceIcon: React.FC<DeviceIconProps> = ({ type, isOn, cardSize, className, ariaLabel }) => {
+  // The `type` prop now directly represents the icon to be rendered.
+  // Normalization must happen before this component is called.
+  const renderFn = icons[type] ?? icons[DeviceType.Unknown];
   return (
     <IconWrapper isOn={isOn} cardSize={cardSize} className={className} ariaLabel={ariaLabel}>
       {renderFn({ isOn })}

@@ -259,27 +259,39 @@ const App: React.FC = () => {
     const originalDevice = allKnownDevices.get(deviceId);
     if (!originalDevice) return;
 
-    const finalCustomization: DeviceCustomization = {};
+    // Start with a clean slate for this device's customization.
+    const newCustomization: DeviceCustomization = {};
 
+    // 1. Save name if it differs from the original HA name.
     if (newValues.name !== originalDevice.name) {
-        finalCustomization.name = newValues.name;
+        newCustomization.name = newValues.name;
     }
+
+    // 2. Save type if it differs from the original auto-detected type.
     if (newValues.type !== originalDevice.type) {
-        finalCustomization.type = newValues.type;
+        newCustomization.type = newValues.type;
     }
-    if (newValues.icon !== (finalCustomization.type ?? originalDevice.type)) {
-         finalCustomization.icon = newValues.icon;
+
+    // 3. Save icon ONLY if it's different from the selected type.
+    //    If icon === type, it means "use the default icon for this type".
+    if (newValues.icon !== newValues.type) {
+        newCustomization.icon = newValues.icon;
     }
+
+    // 4. Save visibility if it's set to hidden.
     if (newValues.isHidden) {
-         finalCustomization.isHidden = true;
+        newCustomization.isHidden = true;
     }
     
     setCustomizations(prev => {
         const newCustomizations = { ...prev };
-        if (Object.keys(finalCustomization).length === 0) {
+        // If the resulting customization object is empty, it means all settings
+        // are default. We should remove the entry for this device to keep storage clean.
+        if (Object.keys(newCustomization).length === 0) {
             delete newCustomizations[deviceId];
         } else {
-            newCustomizations[deviceId] = finalCustomization;
+            // Otherwise, save the new, complete customization object.
+            newCustomizations[deviceId] = newCustomization;
         }
         return newCustomizations;
     });
