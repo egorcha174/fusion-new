@@ -132,6 +132,7 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
 
     const [signedStreamUrl, setSignedStreamUrl] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [errorType, setErrorType] = useState<'generic' | 'mixed-content' | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
     const streamUrl = settings.directStreamUrl || signedStreamUrl;
@@ -147,22 +148,22 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
     }, []);
 
     useEffect(() => {
+        setError(null);
+        setErrorType(null);
+
         if (settings.directStreamUrl) {
-             setError(null); // Clear previous errors when a new direct URL is set
              setSignedStreamUrl(null);
              return;
         }
         
         if (!selectedCamera || !signPath || !haUrl) {
             setSignedStreamUrl(null);
-            setError(null);
             return;
         }
 
         let isMounted = true;
         const getSignedUrl = async () => {
             setIsLoading(true);
-            setError(null);
             setSignedStreamUrl(null);
             try {
                 const result = await signPath(`/api/camera_proxy_stream/${selectedCamera.id}`);
@@ -174,7 +175,8 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
             } catch (err) {
                 console.error("Failed to get signed URL for camera:", err);
                 if (isMounted) {
-                    setError("Ошибка авторизации видео.");
+                    setError("Ошибка авторизации видео");
+                    setErrorType('generic');
                 }
             } finally {
                 if(isMounted) setIsLoading(false);
@@ -188,7 +190,7 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
 
 
     const handleSelectCamera = (entityId: string | null) => {
-        onSettingsChange({ ...settings, selectedEntityId: entityId });
+        onSettingsChange({ selectedEntityId: entityId, directStreamUrl: undefined }); // Reset direct URL when selecting HA camera
         setIsMenuOpen(false);
     };
 
@@ -205,6 +207,16 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
         setIsMenuOpen(false);
     };
 
+    const handleImageError = () => {
+        if (streamUrl && window.location.protocol === 'https:' && streamUrl.startsWith('http:')) {
+            setError("Ошибка смешанного контента");
+            setErrorType('mixed-content');
+        } else {
+            setError("Не удалось загрузить видео");
+            setErrorType('generic');
+        }
+    };
+
     const renderContent = () => {
         if (isLoading && !settings.directStreamUrl) {
             return (
@@ -214,18 +226,24 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
             );
         }
         if (error) {
+             let subtext = "Возможные причины: неверный URL или проблема с CORS. Убедитесь, что камера доступна в вашей сети.";
+             if (errorType === 'mixed-content') {
+                 subtext = "Нельзя загружать HTTP-ресурсы на HTTPS-странице. Используйте HTTPS URL или откройте дашборд по HTTP.";
+             } else if (error === "Ошибка авторизации видео") {
+                 subtext = "Не удалось получить временную ссылку от Home Assistant. Проверьте настройки интеграции камеры.";
+             }
              return (
                 <div className="w-full h-full flex flex-col items-center justify-center text-red-400 p-4 text-center">
                      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2" viewBox="0 0 20 20" fill="currentColor">
                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                      </svg>
                      <p className="text-sm font-semibold">{error}</p>
-                     <p className="text-xs text-gray-500 mt-1">Возможные причины: неверный URL, проблема с CORS, смешанный контент (HTTP/HTTPS).</p>
+                     <p className="text-xs text-gray-500 mt-1">{subtext}</p>
                 </div>
             );
         }
         if (streamUrl) {
-            return <img src={streamUrl} crossOrigin="anonymous" className="w-full h-full object-cover rounded-lg bg-black" alt={selectedCamera?.name || 'Прямая трансляция'} onError={() => setError("Не удалось загрузить видео.")}/>;
+            return <img src={streamUrl} crossOrigin="anonymous" className="w-full h-full object-cover rounded-lg bg-black" alt={selectedCamera?.name || 'Прямая трансляция'} onError={handleImageError}/>;
         }
         return (
             <div className="w-full h-full flex flex-col items-center justify-center text-gray-500 p-4 text-center">
@@ -274,7 +292,7 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
                                 Сбросить URL
                             </button>
                         )}
-                        {selectedCamera && (
+                        {selectedCamera && !settings.directStreamUrl && (
                             <>
                                 <div className="h-px bg-gray-600/50 my-1" />
                                 <button onClick={() => handleSelectCamera(null)} className="block w-full text-left px-3 py-1.5 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-md">
