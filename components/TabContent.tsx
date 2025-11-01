@@ -1,7 +1,8 @@
 // FIX: Import React hooks using standard import syntax to fix JSX transform issues.
 import React, { useMemo } from '../vendor/react.js';
 // FIX: Use direct named imports for dnd-kit members.
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '../vendor/dnd-kit-core.js';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '../vendor/dnd-kit-core.js';
+import type { DragEndEvent } from 'https://esm.sh/@dnd-kit/core@6.1.0';
 import { SortableContext, arrayMove, rectSortingStrategy } from '../vendor/dnd-kit-sortable.js';
 import DraggableDeviceCard from './DraggableDeviceCard';
 import { Tab, Device, CardSize } from '../types';

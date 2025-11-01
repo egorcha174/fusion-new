@@ -1,1 +1,2 @@
-export { CSS } from 'https://esm.sh/@dnd-kit/utilities@3.2.2';
+import { CSS } from 'https://esm.sh/@dnd-kit/utilities@3.2.2';
+export { CSS };
