@@ -21,47 +21,57 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
 }) => {
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loadState, setLoadState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
+  // FIX: The useRef hook requires an initial value. It's now initialized with `undefined` and its type is correctly set to `number | undefined` to handle cases where the timeout is not set.
+  const timeoutRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     let isMounted = true;
-    setIsLoading(true);
-    setError(null);
+    
+    const cleanupTimeout = () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = undefined;
+      }
+    };
 
     const setupStream = async () => {
-      if (!entityId && !directStreamUrl) {
-        if (isMounted) {
-          setStreamUrl(null);
-          setIsLoading(false);
-        }
-        return;
-      }
+      if (!isMounted) return;
 
-      if (directStreamUrl) {
-        if (isMounted) setStreamUrl(directStreamUrl);
-        return;
-      }
+      cleanupTimeout();
+      setStreamUrl(null);
+      setError(null);
+      setLoadState('loading');
 
-      if (entityId) {
-        try {
+      try {
+        let finalUrl: string | null = null;
+        if (directStreamUrl) {
+          finalUrl = directStreamUrl;
+        } else if (entityId && haUrl && signPath) {
           const result = await signPath(`/api/camera_proxy_stream/${entityId}`);
-          if (isMounted) {
-            const protocol = window.location.protocol;
-            const cleanUrl = haUrl.replace(/^(https?):\/\//, '');
-            const url = `${protocol}//${cleanUrl}${result.path}`;
-            setStreamUrl(url);
-          }
-        } catch (err) {
-          console.error(`Failed to get signed URL for ${entityId}:`, err);
-          if (isMounted) {
-            if (err instanceof Error && err.message.includes("Timeout")) {
-              setError("Не удалось получить URL видеопотока от Home Assistant. Проверьте подключение.");
-            } else {
-              setError("Ошибка авторизации видеопотока.");
-            }
-            setIsLoading(false);
-          }
+          if (!isMounted) return;
+          const protocol = window.location.protocol;
+          const cleanUrl = haUrl.replace(/^(https?):\/\//, '');
+          finalUrl = `${protocol}//${cleanUrl}${result.path}`;
         }
+
+        if (finalUrl) {
+          if (!isMounted) return;
+          setStreamUrl(finalUrl);
+          timeoutRef.current = window.setTimeout(() => {
+             if (isMounted) {
+                setError("Тайм-аут загрузки видео. Проверьте настройки CORS в Home Assistant и доступность камеры в сети.");
+                setLoadState('error');
+             }
+          }, 10000); // 10-second timeout
+        } else {
+            if (isMounted) setLoadState('idle');
+        }
+      } catch (err) {
+        if (!isMounted) return;
+        console.error(`Failed to get signed URL for ${entityId}:`, err);
+        setError("Не удалось получить URL для камеры от Home Assistant.");
+        setLoadState('error');
       }
     };
 
@@ -69,72 +79,66 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
 
     return () => {
       isMounted = false;
+      cleanupTimeout();
     };
   }, [entityId, directStreamUrl, haUrl, signPath]);
-
+  
   const handleLoad = () => {
-    setIsLoading(false);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setLoadState('loaded');
     setError(null);
   };
 
   const handleError = () => {
-    setIsLoading(false);
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'URL_вашего_приложения';
-    setError(`Не удалось загрузить видео. Проверьте URL, доступность камеры и CORS в HA ('${origin}').`);
-  };
-  
-  const renderMedia = () => {
-    if (!streamUrl) return null;
-
-    const mediaClasses = `w-full h-full border-0 bg-black object-cover transition-opacity duration-500 ${isLoading ? 'opacity-0' : 'opacity-100'}`;
-    
-    if (directStreamUrl) {
-        return (
-            <iframe
-                src={streamUrl}
-                className={mediaClasses}
-                title={altText}
-                onLoad={handleLoad}
-                onError={handleError}
-            />
-        );
-    }
-    return (
-        <img
-            key={streamUrl}
-            src={streamUrl}
-            className={mediaClasses}
-            alt={altText}
-            onLoad={handleLoad}
-            onError={handleError}
-        />
-    );
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    setError(`Не удалось загрузить видео. Проверьте URL и настройки CORS в Home Assistant (требуется разрешить '${origin}').`);
+    setLoadState('error');
   };
 
   return (
     <div className="relative w-full h-full bg-black flex items-center justify-center">
-      {streamUrl && renderMedia()}
-      
-      {isLoading && (
+      {streamUrl && (
+        directStreamUrl ? (
+          <iframe
+            src={streamUrl}
+            className={`w-full h-full border-0 bg-black object-cover transition-opacity duration-500 ${loadState === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+            title={altText}
+            onLoad={handleLoad}
+            onError={handleError}
+          />
+        ) : (
+          <img
+            key={streamUrl}
+            src={streamUrl}
+            className={`w-full h-full border-0 bg-black object-cover transition-opacity duration-500 ${loadState === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+            alt={altText}
+            onLoad={handleLoad}
+            onError={handleError}
+          />
+        )
+      )}
+
+      {loadState === 'loading' && (
          <div className="absolute inset-0 flex items-center justify-center">
            <div className="w-8 h-8 border-2 border-dashed rounded-full animate-spin border-gray-400"></div>
          </div>
       )}
 
-      {error && !isLoading && (
+      {loadState === 'error' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center text-red-400 p-2 text-center bg-gray-800/80">
           <p className="text-sm font-semibold">Ошибка</p>
           <p className="text-xs text-gray-400 mt-1">{error}</p>
         </div>
       )}
 
-       {!streamUrl && !isLoading && !error && (
-            <div className="text-gray-500 text-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.55a2 2 0 01.95 1.664V16a2 2 0 01-2 2H5a2 2 0 01-2-2v-2.336a2 2 0 01.95-1.664L8 10l3 3 4-3z" />
-                </svg>
-                <p className="mt-2 text-sm">Камера недоступна</p>
-            </div>
+      {loadState === 'idle' && (
+        <div className="text-gray-500 text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.55a2 2 0 01.95 1.664V16a2 2 0 01-2 2H5a2 2 0 01-2-2v-2.336a2 2 0 01.95-1.664L8 10l3 3 4-3z" />
+            </svg>
+            <p className="mt-2 text-sm">Камера не выбрана</p>
+        </div>
       )}
     </div>
   );
