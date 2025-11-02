@@ -25,28 +25,25 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
 
   useEffect(() => {
     let isMounted = true;
+    setIsLoading(true);
+    setError(null);
 
     const setupStream = async () => {
-      setError(null);
-      setStreamUrl(null);
-      setIsLoading(true);
-
       if (!entityId && !directStreamUrl) {
-        if (isMounted) setIsLoading(false);
-        return;
-      }
-
-      if (directStreamUrl) {
         if (isMounted) {
-          setStreamUrl(directStreamUrl);
+          setStreamUrl(null);
           setIsLoading(false);
         }
         return;
       }
 
+      if (directStreamUrl) {
+        if (isMounted) setStreamUrl(directStreamUrl);
+        return;
+      }
+
       if (entityId) {
         try {
-          // Use camera_proxy_stream for live MJPEG streams
           const result = await signPath(`/api/camera_proxy_stream/${entityId}`);
           if (isMounted) {
             const protocol = window.location.protocol;
@@ -62,9 +59,6 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
             } else {
               setError("Ошибка авторизации видеопотока.");
             }
-          }
-        } finally {
-          if (isMounted) {
             setIsLoading(false);
           }
         }
@@ -86,51 +80,64 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
   const handleError = () => {
     setIsLoading(false);
     const origin = typeof window !== 'undefined' ? window.location.origin : 'URL_вашего_приложения';
-    setError(`Не удалось загрузить видео. Проверьте URL и доступность камеры, а также настройки CORS в Home Assistant (может потребоваться добавить '${origin}' в 'cors_allowed_origins').`);
+    setError(`Не удалось загрузить видео. Проверьте URL, доступность камеры и CORS в HA ('${origin}').`);
   };
+  
+  const renderMedia = () => {
+    if (!streamUrl) return null;
 
-  if (isLoading) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-black">
-        <div className="w-8 h-8 border-2 border-dashed rounded-full animate-spin border-gray-400"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center text-red-400 p-2 text-center bg-gray-800">
-        <p className="text-sm font-semibold">Ошибка</p>
-        <p className="text-xs text-gray-400 mt-1">{error}</p>
-      </div>
-    );
-  }
-
-  if (streamUrl) {
+    const mediaClasses = `w-full h-full border-0 bg-black object-cover transition-opacity duration-500 ${isLoading ? 'opacity-0' : 'opacity-100'}`;
+    
     if (directStreamUrl) {
-      return (
-        <iframe
-          src={streamUrl}
-          className="w-full h-full border-0 bg-black"
-          title={altText}
-          onLoad={handleLoad}
-          onError={handleError}
-        />
-      );
+        return (
+            <iframe
+                src={streamUrl}
+                className={mediaClasses}
+                title={altText}
+                onLoad={handleLoad}
+                onError={handleError}
+            />
+        );
     }
     return (
-      <img
-        key={streamUrl} // Force re-mount on URL change
-        src={streamUrl}
-        className="w-full h-full object-cover bg-black"
-        alt={altText}
-        onLoad={handleLoad}
-        onError={handleError}
-      />
+        <img
+            key={streamUrl}
+            src={streamUrl}
+            className={mediaClasses}
+            alt={altText}
+            onLoad={handleLoad}
+            onError={handleError}
+        />
     );
-  }
+  };
 
-  return null;
+  return (
+    <div className="relative w-full h-full bg-black flex items-center justify-center">
+      {streamUrl && renderMedia()}
+      
+      {isLoading && (
+         <div className="absolute inset-0 flex items-center justify-center">
+           <div className="w-8 h-8 border-2 border-dashed rounded-full animate-spin border-gray-400"></div>
+         </div>
+      )}
+
+      {error && !isLoading && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-red-400 p-2 text-center bg-gray-800/80">
+          <p className="text-sm font-semibold">Ошибка</p>
+          <p className="text-xs text-gray-400 mt-1">{error}</p>
+        </div>
+      )}
+
+       {!streamUrl && !isLoading && !error && (
+            <div className="text-gray-500 text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.55a2 2 0 01.95 1.664V16a2 2 0 01-2 2H5a2 2 0 01-2-2v-2.336a2 2 0 01.95-1.664L8 10l3 3 4-3z" />
+                </svg>
+                <p className="mt-2 text-sm">Камера недоступна</p>
+            </div>
+      )}
+    </div>
+  );
 };
 
 
