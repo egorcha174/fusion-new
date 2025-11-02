@@ -101,6 +101,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
       {streamUrl && (
         directStreamUrl ? (
           <iframe
+            scrolling="no"
             src={streamUrl}
             className={`w-full h-full border-0 bg-black transition-opacity duration-500 ${loadState === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
             title={altText}
