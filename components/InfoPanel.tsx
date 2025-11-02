@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ClockSettings, Device, ClockSize, CameraSettings } from '../types';
+import { CameraStreamContent } from './DeviceCard';
 
 interface ClockProps {
     settings: ClockSettings;
@@ -130,11 +131,6 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
     const menuRef = useRef<HTMLDivElement>(null);
     const selectedCamera = useMemo(() => cameras.find(c => c.id === settings.selectedEntityId), [cameras, settings.selectedEntityId]);
 
-    const [streamUrl, setStreamUrl] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const loadTimeoutRef = useRef<number | null>(null);
-
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -144,77 +140,6 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
-
-    const clearLoadTimeout = useCallback(() => {
-        if (loadTimeoutRef.current) {
-            clearTimeout(loadTimeoutRef.current);
-            loadTimeoutRef.current = null;
-        }
-    }, []);
-
-    // This effect manages the entire stream lifecycle
-    useEffect(() => {
-        let isMounted = true;
-
-        const setupStream = async () => {
-            clearLoadTimeout();
-            setError(null);
-            setStreamUrl(null); // Clear previous stream URL
-
-            const { selectedEntityId, directStreamUrl } = settings;
-
-            // Do nothing if no camera is configured
-            if (!selectedEntityId && !directStreamUrl) {
-                setIsLoading(false);
-                return;
-            }
-            
-            setIsLoading(true);
-
-            // Set a timeout for the stream to load. If it doesn't load in time, show an error.
-            loadTimeoutRef.current = window.setTimeout(() => {
-                if (isMounted) {
-                    setError("Тайм-аут загрузки видео");
-                    setIsLoading(false);
-                }
-            }, 15000); // 15-second timeout
-
-            if (directStreamUrl) {
-                setStreamUrl(directStreamUrl);
-                // onLoad or timeout will handle clearing isLoading
-            } else if (selectedEntityId) {
-                try {
-                    // Use camera_proxy for an MJPEG stream, which works better with <img> tags and avoids iframe restrictions.
-                    const result = await signPath(`/api/camera_proxy/${selectedEntityId}`);
-                    if (isMounted) {
-                        const protocol = window.location.protocol === 'https:' ? 'https://' : 'http://';
-                        const cleanUrl = haUrl.replace(/^(https?):\/\//, '');
-                        setStreamUrl(`${protocol}${cleanUrl}${result.path}`);
-                        // onLoad or timeout will handle clearing isLoading
-                    }
-                } catch (err) {
-                    console.error("Failed to get signed URL for camera:", err);
-                    if (isMounted) {
-                        setError("Ошибка авторизации видео");
-                        setIsLoading(false);
-                        clearLoadTimeout();
-                    }
-                }
-            } else {
-                 // Should not happen based on the initial check, but as a safeguard:
-                 setIsLoading(false);
-                 clearLoadTimeout();
-            }
-        };
-
-        setupStream();
-
-        return () => {
-            isMounted = false;
-            clearLoadTimeout();
-        };
-    }, [settings, signPath, haUrl, clearLoadTimeout]);
-
 
     const handleSelectCamera = (entityId: string | null) => {
         onSettingsChange({ selectedEntityId: entityId, directStreamUrl: undefined });
@@ -237,71 +162,20 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
         onSettingsChange({ ...settings, directStreamUrl: undefined });
         setIsMenuOpen(false);
     };
-
-    const handleStreamLoad = () => {
-        setIsLoading(false);
-        setError(null);
-        clearLoadTimeout();
-    };
     
-    const handleStreamError = () => {
-        setIsLoading(false);
-        setError("Ошибка загрузки потока");
-        clearLoadTimeout();
-    };
-
-
     const renderContent = () => {
-        if (isLoading) {
+        if (settings.selectedEntityId || settings.directStreamUrl) {
             return (
-                <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-8 h-8 border-2 border-dashed rounded-full animate-spin border-gray-400"></div>
-                </div>
+                <CameraStreamContent
+                    entityId={settings.selectedEntityId}
+                    directStreamUrl={settings.directStreamUrl}
+                    haUrl={haUrl}
+                    signPath={signPath}
+                    altText={selectedCamera?.name || 'Прямая трансляция'}
+                />
             );
         }
-        if (error) {
-            let subtext = "Проверьте URL и доступность камеры в сети. Возможно, ваш браузер блокирует контент (CORS, X-Frame-Options).";
-            if (error === "Ошибка авторизации видео") {
-                subtext = "Не удалось получить временную ссылку от Home Assistant. Проверьте настройки интеграции камеры.";
-            }
-            return (
-                <div className="w-full h-full flex flex-col items-center justify-center text-red-400 p-4 text-center">
-                     <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2" viewBox="0 0 20 20" fill="currentColor">
-                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                     </svg>
-                     <p className="text-sm font-semibold">Не удалось загрузить видео</p>
-                     <p className="text-xs text-gray-500 mt-1">{subtext}</p>
-                </div>
-            );
-        }
-        if (streamUrl) {
-            // If a direct URL is used, we keep the iframe as it might be a web page player.
-            // If an HA entity is used, we switch to an img tag to load the MJPEG stream,
-            // which is less likely to be blocked by X-Frame-Options/CORS policies.
-            if (settings.directStreamUrl) {
-                return (
-                    <iframe
-                        key={streamUrl}
-                        src={streamUrl}
-                        className="w-full h-full border-0 rounded-lg bg-black"
-                        title={selectedCamera?.name || 'Прямая трансляция'}
-                        onLoad={handleStreamLoad}
-                        onError={handleStreamError}
-                    />
-                );
-            } else {
-                return (
-                    <img
-                        key={streamUrl}
-                        src={streamUrl}
-                        className="w-full h-full object-cover rounded-lg bg-black"
-                        alt={selectedCamera?.name || 'Прямая трансляция'}
-                        onLoad={handleStreamLoad}
-                        onError={handleStreamError}
-                    />
-                );
-            }
-        }
+        
         return (
             <div className="w-full h-full flex flex-col items-center justify-center text-gray-500 p-4 text-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>

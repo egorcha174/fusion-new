@@ -359,6 +359,8 @@ const App: React.FC = () => {
             onEditDevice={setEditingDevice}
             onDeviceContextMenu={handleDeviceContextMenu}
             cardSize={cardSize}
+            haUrl={haUrl}
+            signPath={signPath}
           />
         ) : (
           <div className="text-center text-gray-500">Выберите или создайте вкладку</div>

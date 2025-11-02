@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
@@ -19,6 +18,8 @@ interface TabContentProps {
   onEditDevice: (device: Device) => void;
   onDeviceContextMenu: (event: React.MouseEvent, deviceId: string, tabId: string) => void;
   cardSize: CardSize;
+  haUrl: string;
+  signPath: (path: string) => Promise<{ path: string }>;
 }
 
 const TabContent: React.FC<TabContentProps> = ({
@@ -34,6 +35,8 @@ const TabContent: React.FC<TabContentProps> = ({
   onEditDevice,
   onDeviceContextMenu,
   cardSize,
+  haUrl,
+  signPath,
 }) => {
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -109,6 +112,8 @@ const TabContent: React.FC<TabContentProps> = ({
                 onRemoveFromTab={() => onDeviceRemoveFromTab(device.id, tab.id)}
                 onContextMenu={(event) => onDeviceContextMenu(event, device.id, tab.id)}
                 cardSize={cardSize}
+                haUrl={haUrl}
+                signPath={signPath}
               />
             ))}
           </div>

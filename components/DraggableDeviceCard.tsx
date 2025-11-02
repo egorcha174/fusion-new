@@ -15,9 +15,11 @@ interface DraggableDeviceCardProps {
   onRemoveFromTab: () => void;
   onContextMenu: (event: React.MouseEvent) => void;
   cardSize: CardSize;
+  haUrl: string;
+  signPath: (path: string) => Promise<{ path: string }>;
 }
 
-const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onToggle, onTemperatureChange, onBrightnessChange, onPresetChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu, cardSize }) => {
+const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onToggle, onTemperatureChange, onBrightnessChange, onPresetChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu, cardSize, haUrl, signPath }) => {
   const {
     attributes,
     listeners,
@@ -47,6 +49,8 @@ const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onTog
         onRemoveFromTab={onRemoveFromTab}
         onContextMenu={onContextMenu}
         cardSize={cardSize}
+        haUrl={haUrl}
+        signPath={signPath}
       />
     </div>
   );

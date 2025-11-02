@@ -1,10 +1,145 @@
-
-
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Device, DeviceType, CardSize } from '../types';
 import DeviceIcon from './DeviceIcon';
 import SparklineChart from './SparklineChart';
 
+// --- Universal Camera Stream Component ---
+interface CameraStreamContentProps {
+  entityId?: string | null;
+  directStreamUrl?: string;
+  haUrl: string;
+  signPath: (path: string) => Promise<{ path: string }>;
+  altText?: string;
+}
+
+export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
+  entityId,
+  directStreamUrl,
+  haUrl,
+  signPath,
+  altText = 'Прямая трансляция',
+}) => {
+  const [streamUrl, setStreamUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const timeoutRef = useRef<number | null>(null);
+
+  const clearLoadTimeout = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const setupStream = async () => {
+      clearLoadTimeout();
+      setError(null);
+      setStreamUrl(null);
+      setIsLoading(true);
+
+      if (!entityId && !directStreamUrl) {
+        setIsLoading(false);
+        return;
+      }
+
+      timeoutRef.current = window.setTimeout(() => {
+        if (isMounted) {
+          setError("Тайм-аут загрузки видео. Убедитесь, что камера доступна в сети Home Assistant.");
+          setIsLoading(false);
+        }
+      }, 15000);
+
+      if (directStreamUrl) {
+        if (isMounted) setStreamUrl(directStreamUrl);
+      } else if (entityId) {
+        try {
+          const result = await signPath(`/api/camera_proxy/${entityId}`);
+          if (isMounted) {
+            const protocol = window.location.protocol === 'https:' ? 'https://' : 'http://';
+            const cleanUrl = haUrl.replace(/^(https?):\/\//, '');
+            const url = `${protocol}${cleanUrl}${result.path}&t=${new Date().getTime()}`;
+            setStreamUrl(url);
+          }
+        } catch (err) {
+          console.error(`Failed to get signed URL for ${entityId}:`, err);
+          if (isMounted) {
+            setError("Ошибка авторизации видеопотока.");
+            setIsLoading(false);
+            clearLoadTimeout();
+          }
+        }
+      }
+    };
+
+    setupStream();
+
+    return () => {
+      isMounted = false;
+      clearLoadTimeout();
+    };
+  }, [entityId, directStreamUrl, haUrl, signPath, clearLoadTimeout]);
+
+  const handleLoad = () => {
+    setIsLoading(false);
+    setError(null);
+    clearLoadTimeout();
+  };
+
+  const handleError = () => {
+    setIsLoading(false);
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'URL_вашего_приложения';
+    setError(`Не удалось загрузить видео. Это может быть связано с настройками CORS в Home Assistant. Попробуйте добавить '${origin}' в 'cors_allowed_origins' в вашем configuration.yaml.`);
+    clearLoadTimeout();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-black">
+        <div className="w-8 h-8 border-2 border-dashed rounded-full animate-spin border-gray-400"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center text-red-400 p-2 text-center bg-gray-800">
+        <p className="text-sm font-semibold">Ошибка</p>
+        <p className="text-xs text-gray-400 mt-1">{error}</p>
+      </div>
+    );
+  }
+
+  if (streamUrl) {
+    if (directStreamUrl) {
+      return (
+        <iframe
+          src={streamUrl}
+          className="w-full h-full border-0 bg-black"
+          title={altText}
+          onLoad={handleLoad}
+          onError={handleError}
+        />
+      );
+    }
+    return (
+      <img
+        src={streamUrl}
+        className="w-full h-full object-cover bg-black"
+        alt={altText}
+        onLoad={handleLoad}
+        onError={handleError}
+      />
+    );
+  }
+
+  return null;
+};
+
+
+// --- Device Card Component ---
 interface DeviceCardProps {
   device: Device;
   onToggle: () => void;
@@ -13,12 +148,14 @@ interface DeviceCardProps {
   onPresetChange: (preset: string) => void;
   isEditMode: boolean;
   onEditDevice: (device: Device) => void;
-  onRemoveFromTab?: () => void; // Optional: for removing device from a tab
+  onRemoveFromTab?: () => void;
   onContextMenu: (event: React.MouseEvent) => void;
   cardSize: CardSize;
+  haUrl?: string;
+  signPath?: (path: string) => Promise<{ path: string }>;
 }
 
-const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperatureChange, onBrightnessChange, onPresetChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu, cardSize }) => {
+const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperatureChange, onBrightnessChange, onPresetChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu, cardSize, haUrl, signPath }) => {
   const isOn = device.status.toLowerCase() === 'включено';
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
   const presetMenuRef = useRef<HTMLDivElement>(null);
@@ -107,7 +244,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
   const textOnClasses = "text-gray-800";
   const textOffClasses = "text-gray-400";
   
-  const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && device.type !== DeviceType.Sensor;
+  const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && device.type !== DeviceType.Sensor && device.type !== DeviceType.Camera;
 
   const handleClick = () => {
     if (isEditMode) return;
@@ -123,6 +260,24 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
 
   const renderContent = () => {
     switch (device.type) {
+      case DeviceType.Camera:
+        if (!haUrl || !signPath) {
+            return <div>Ошибка: Требуется haUrl и signPath для камеры.</div>
+        }
+        return (
+            <div className="relative w-full h-full bg-black">
+                <CameraStreamContent 
+                    entityId={device.id}
+                    haUrl={haUrl}
+                    signPath={signPath}
+                    altText={device.name}
+                />
+                 <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent pointer-events-none">
+                    <p className={`${styles.nameText} text-white text-ellipsis overflow-hidden whitespace-nowrap`}>{device.name}</p>
+                    <p className={`${styles.statusText} text-gray-300`}>{device.status}</p>
+                </div>
+            </div>
+        )
       case DeviceType.DimmableLight:
         return (
           <div className="flex flex-col h-full">
@@ -247,13 +402,16 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
     const baseClasses = "rounded-2xl flex flex-col transition-all duration-200 ease-in-out select-none";
     const onStateClasses = "bg-gray-200 text-gray-900 shadow-lg";
     const offStateClasses = "bg-gray-800/80 hover:bg-gray-700/80 ring-1 ring-white/10";
+    const isCamera = device.type === DeviceType.Camera;
     
-    let finalClasses = `${baseClasses} ${styles.padding} aspect-square `;
+    let finalClasses = `${baseClasses} aspect-square `;
 
-    if (device.type === DeviceType.Sensor || device.type === DeviceType.Thermostat) {
-        finalClasses += offStateClasses;
+    if (isCamera) {
+      finalClasses += `p-0 overflow-hidden ${offStateClasses}`;
+    } else if (device.type === DeviceType.Sensor || device.type === DeviceType.Thermostat) {
+        finalClasses += `${styles.padding} ${offStateClasses}`;
     } else {
-        finalClasses += isOn ? onStateClasses : offStateClasses;
+        finalClasses += `${styles.padding} ${isOn ? onStateClasses : offStateClasses}`;
     }
   
     if (isTogglable && !isEditMode) {
