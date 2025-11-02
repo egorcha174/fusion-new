@@ -102,10 +102,12 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
         directStreamUrl ? (
           <iframe
             src={streamUrl}
-            className={`w-full h-full border-0 bg-black object-cover transition-opacity duration-500 ${loadState === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+            className={`w-full h-full border-0 bg-black transition-opacity duration-500 ${loadState === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
             title={altText}
             onLoad={handleLoad}
             onError={handleError}
+            allow="autoplay; encrypted-media; picture-in-picture"
+            sandbox="allow-scripts allow-same-origin"
           />
         ) : (
           <img
