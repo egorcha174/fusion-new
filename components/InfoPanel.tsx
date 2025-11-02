@@ -128,6 +128,7 @@ interface CameraWidgetProps {
 
 const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettingsChange, haUrl, signPath }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const selectedCamera = useMemo(() => cameras.find(c => c.id === settings.selectedEntityId), [cameras, settings.selectedEntityId]);
 
@@ -141,19 +142,26 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleSelectCamera = (entityId: string | null) => {
-        onSettingsChange({ selectedEntityId: entityId, directStreamUrl: undefined });
+    const handleSelectCamera = async (entityId: string | null) => {
+        setIsLoading(true);
         setIsMenuOpen(false);
+        // We set the new entity and let the CameraStreamContent handle the URL fetching.
+        // The loading state here is just for immediate feedback in the menu.
+        onSettingsChange({ selectedEntityId: entityId, directStreamUrl: undefined });
+        // A short delay to allow the state to propagate and the stream component to start loading
+        setTimeout(() => setIsLoading(false), 500);
     };
 
     const handleSetDirectUrl = () => {
         const newUrl = window.prompt("Введите прямой URL видеопотока:", settings.directStreamUrl || '');
         if (newUrl !== null) { // User didn't cancel
+            setIsLoading(true);
             if (newUrl) { // URL provided, deselect HA entity
                 onSettingsChange({ selectedEntityId: null, directStreamUrl: newUrl });
             } else { // URL cleared
                 onSettingsChange({ ...settings, directStreamUrl: undefined });
             }
+            setTimeout(() => setIsLoading(false), 500);
         }
         setIsMenuOpen(false);
     };
@@ -164,6 +172,14 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
     };
     
     const renderContent = () => {
+        if (isLoading) {
+             return (
+                <div className="w-full h-full flex items-center justify-center bg-black">
+                    <div className="w-8 h-8 border-2 border-dashed rounded-full animate-spin border-gray-400"></div>
+                </div>
+            );
+        }
+
         if (settings.selectedEntityId || settings.directStreamUrl) {
             return (
                 <CameraStreamContent
@@ -191,7 +207,7 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
     }
 
     return (
-        <div className="relative aspect-video bg-gray-800 rounded-lg group text-white">
+        <div className="relative aspect-video bg-gray-800 rounded-lg group text-white overflow-hidden">
             {renderContent()}
             <div className="absolute top-2 right-2" ref={menuRef}>
                 <button 

@@ -32,7 +32,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
       setIsLoading(true);
 
       if (!entityId && !directStreamUrl) {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
         return;
       }
 
@@ -46,11 +46,12 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
 
       if (entityId) {
         try {
-          const result = await signPath(`/api/camera_proxy/${entityId}`);
+          // Use camera_proxy_stream for live MJPEG streams
+          const result = await signPath(`/api/camera_proxy_stream/${entityId}`);
           if (isMounted) {
-            const protocol = window.location.protocol === 'https:' ? 'https://' : 'http://';
+            const protocol = window.location.protocol;
             const cleanUrl = haUrl.replace(/^(https?):\/\//, '');
-            const url = `${protocol}${cleanUrl}${result.path}`;
+            const url = `${protocol}//${cleanUrl}${result.path}`;
             setStreamUrl(url);
           }
         } catch (err) {
@@ -77,10 +78,15 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
     };
   }, [entityId, directStreamUrl, haUrl, signPath]);
 
+  const handleLoad = () => {
+    setIsLoading(false);
+    setError(null);
+  };
+
   const handleError = () => {
     setIsLoading(false);
     const origin = typeof window !== 'undefined' ? window.location.origin : 'URL_вашего_приложения';
-    setError(`Не удалось загрузить видео. Это может быть связано с настройками CORS в Home Assistant. Попробуйте добавить '${origin}' в 'cors_allowed_origins' в вашем configuration.yaml.`);
+    setError(`Не удалось загрузить видео. Проверьте URL и доступность камеры, а также настройки CORS в Home Assistant (может потребоваться добавить '${origin}' в 'cors_allowed_origins').`);
   };
 
   if (isLoading) {
@@ -107,16 +113,18 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
           src={streamUrl}
           className="w-full h-full border-0 bg-black"
           title={altText}
-          onLoad={() => setIsLoading(false)}
+          onLoad={handleLoad}
           onError={handleError}
         />
       );
     }
     return (
       <img
+        key={streamUrl} // Force re-mount on URL change
         src={streamUrl}
         className="w-full h-full object-cover bg-black"
         alt={altText}
+        onLoad={handleLoad}
         onError={handleError}
       />
     );
