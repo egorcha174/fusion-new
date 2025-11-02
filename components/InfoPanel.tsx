@@ -187,7 +187,7 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
                 try {
                     const result = await signPath(`/api/camera_proxy_stream/${selectedEntityId}`);
                     if (isMounted) {
-                        const protocol = haUrl.startsWith('https') ? 'https://' : 'http://';
+                        const protocol = window.location.protocol === 'https:' ? 'https://' : 'http://';
                         const cleanUrl = haUrl.replace(/^(https?):\/\//, '');
                         setStreamUrl(`${protocol}${cleanUrl}${result.path}`);
                         // onLoad or timeout will handle clearing isLoading
