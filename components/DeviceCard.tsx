@@ -22,20 +22,11 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const timeoutRef = useRef<number | null>(null);
-
-  const clearLoadTimeout = useCallback(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-  }, []);
 
   useEffect(() => {
     let isMounted = true;
 
     const setupStream = async () => {
-      clearLoadTimeout();
       setError(null);
       setStreamUrl(null);
       setIsLoading(true);
@@ -45,30 +36,35 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
         return;
       }
 
-      timeoutRef.current = window.setTimeout(() => {
+      if (directStreamUrl) {
         if (isMounted) {
-          setError("Тайм-аут загрузки видео. Убедитесь, что камера доступна в сети Home Assistant.");
+          setStreamUrl(directStreamUrl);
           setIsLoading(false);
         }
-      }, 15000);
+        return;
+      }
 
-      if (directStreamUrl) {
-        if (isMounted) setStreamUrl(directStreamUrl);
-      } else if (entityId) {
+      if (entityId) {
         try {
           const result = await signPath(`/api/camera_proxy/${entityId}`);
           if (isMounted) {
             const protocol = window.location.protocol === 'https:' ? 'https://' : 'http://';
             const cleanUrl = haUrl.replace(/^(https?):\/\//, '');
-            const url = `${protocol}${cleanUrl}${result.path}&t=${new Date().getTime()}`;
+            const url = `${protocol}${cleanUrl}${result.path}`;
             setStreamUrl(url);
           }
         } catch (err) {
           console.error(`Failed to get signed URL for ${entityId}:`, err);
           if (isMounted) {
-            setError("Ошибка авторизации видеопотока.");
+            if (err instanceof Error && err.message.includes("Timeout")) {
+              setError("Не удалось получить URL видеопотока от Home Assistant. Проверьте подключение.");
+            } else {
+              setError("Ошибка авторизации видеопотока.");
+            }
+          }
+        } finally {
+          if (isMounted) {
             setIsLoading(false);
-            clearLoadTimeout();
           }
         }
       }
@@ -78,21 +74,13 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
 
     return () => {
       isMounted = false;
-      clearLoadTimeout();
     };
-  }, [entityId, directStreamUrl, haUrl, signPath, clearLoadTimeout]);
-
-  const handleLoad = () => {
-    setIsLoading(false);
-    setError(null);
-    clearLoadTimeout();
-  };
+  }, [entityId, directStreamUrl, haUrl, signPath]);
 
   const handleError = () => {
     setIsLoading(false);
     const origin = typeof window !== 'undefined' ? window.location.origin : 'URL_вашего_приложения';
     setError(`Не удалось загрузить видео. Это может быть связано с настройками CORS в Home Assistant. Попробуйте добавить '${origin}' в 'cors_allowed_origins' в вашем configuration.yaml.`);
-    clearLoadTimeout();
   };
 
   if (isLoading) {
@@ -119,7 +107,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
           src={streamUrl}
           className="w-full h-full border-0 bg-black"
           title={altText}
-          onLoad={handleLoad}
+          onLoad={() => setIsLoading(false)}
           onError={handleError}
         />
       );
@@ -129,7 +117,6 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
         src={streamUrl}
         className="w-full h-full object-cover bg-black"
         alt={altText}
-        onLoad={handleLoad}
         onError={handleError}
       />
     );
