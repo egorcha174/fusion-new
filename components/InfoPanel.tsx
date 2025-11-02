@@ -145,7 +145,6 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // FIX: Moved `clearLoadTimeout` out of useEffect to make it accessible to iframe event handlers.
     const clearLoadTimeout = useCallback(() => {
         if (loadTimeoutRef.current) {
             clearTimeout(loadTimeoutRef.current);
@@ -172,7 +171,7 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
             
             setIsLoading(true);
 
-            // Set a timeout for the iframe to load. If it doesn't load in time, show an error.
+            // Set a timeout for the stream to load. If it doesn't load in time, show an error.
             loadTimeoutRef.current = window.setTimeout(() => {
                 if (isMounted) {
                     setError("Тайм-аут загрузки видео");
@@ -185,7 +184,8 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
                 // onLoad or timeout will handle clearing isLoading
             } else if (selectedEntityId) {
                 try {
-                    const result = await signPath(`/api/camera_proxy_stream/${selectedEntityId}`);
+                    // Use camera_proxy for an MJPEG stream, which works better with <img> tags and avoids iframe restrictions.
+                    const result = await signPath(`/api/camera_proxy/${selectedEntityId}`);
                     if (isMounted) {
                         const protocol = window.location.protocol === 'https:' ? 'https://' : 'http://';
                         const cleanUrl = haUrl.replace(/^(https?):\/\//, '');
@@ -238,15 +238,15 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
         setIsMenuOpen(false);
     };
 
-    const handleIframeLoad = () => {
+    const handleStreamLoad = () => {
         setIsLoading(false);
         setError(null);
         clearLoadTimeout();
     };
     
-    const handleIframeError = () => {
+    const handleStreamError = () => {
         setIsLoading(false);
-        setError("Ошибка загрузки фрейма");
+        setError("Ошибка загрузки потока");
         clearLoadTimeout();
     };
 
@@ -275,16 +275,32 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
             );
         }
         if (streamUrl) {
-            return (
-                <iframe
-                    key={streamUrl}
-                    src={streamUrl}
-                    className="w-full h-full border-0 rounded-lg bg-black"
-                    title={selectedCamera?.name || 'Прямая трансляция'}
-                    onLoad={handleIframeLoad}
-                    onError={handleIframeError}
-                />
-            );
+            // If a direct URL is used, we keep the iframe as it might be a web page player.
+            // If an HA entity is used, we switch to an img tag to load the MJPEG stream,
+            // which is less likely to be blocked by X-Frame-Options/CORS policies.
+            if (settings.directStreamUrl) {
+                return (
+                    <iframe
+                        key={streamUrl}
+                        src={streamUrl}
+                        className="w-full h-full border-0 rounded-lg bg-black"
+                        title={selectedCamera?.name || 'Прямая трансляция'}
+                        onLoad={handleStreamLoad}
+                        onError={handleStreamError}
+                    />
+                );
+            } else {
+                return (
+                    <img
+                        key={streamUrl}
+                        src={streamUrl}
+                        className="w-full h-full object-cover rounded-lg bg-black"
+                        alt={selectedCamera?.name || 'Прямая трансляция'}
+                        onLoad={handleStreamLoad}
+                        onError={handleStreamError}
+                    />
+                );
+            }
         }
         return (
             <div className="w-full h-full flex flex-col items-center justify-center text-gray-500 p-4 text-center">
@@ -402,7 +418,6 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, weatherDevice, sid
                  <CameraWidget
                     cameras={cameras}
                     settings={cameraSettings}
-                    // FIX: Renamed prop `onCameraSettingsChange` to `onSettingsChange` to match the `CameraWidgetProps` interface.
                     onSettingsChange={onCameraSettingsChange}
                     haUrl={haUrl}
                     signPath={signPath}
