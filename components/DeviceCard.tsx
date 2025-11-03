@@ -88,7 +88,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
   }, []);
 
   return (
-    <div className="relative w-full h-full bg-black flex items-center justify-center group" onClick={togglePlay}>
+    <div className="relative w-full h-full bg-black flex items-center justify-center group">
       <video ref={videoRef} className="w-full h-full object-contain" muted autoPlay playsInline />
       
       <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded-md text-white text-xs font-bold tracking-wider pointer-events-none fade-in">
