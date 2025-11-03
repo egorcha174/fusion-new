@@ -38,47 +38,47 @@ const IconWrapper: React.FC<{
 
 const SvgLight = ({ filled = false }: { filled?: boolean }) => (
   <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M12 2a6 6 0 00-4 10.5V16a2 2 0 002 2h4a2 2 0 002-2v-3.5A6 6 0 0012 2z" />
-    {!filled && <path d="M9.5 20h5" />}
+    <path d="M 12 2 a 6 6 0 0 0 -4 10.5 V 16 a 2 2 0 0 0 2 2 h 4 a 2 2 0 0 0 2 -2 v -3.5 A 6 6 0 0 0 12 2z" />
+    {!filled && <path d="M 9.5 20 h 5" />}
   </svg>
 );
 
 const SvgLamp = ({ filled = false }: { filled?: boolean }) => (
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M8 2h8l4 8H4l4-8z" />
-        <path d="M12 10v10" />
-        {!filled && <path d="M8 22h8" />}
+        <path d="M 8 2 h 8 l 4 8 H 4 l 4 -8z" />
+        <path d="M 12 10 v 10" />
+        {!filled && <path d="M 8 22 h 8" />}
     </svg>
 );
 
 const SvgSpotlight = ({ filled = false }: { filled?: boolean }) => (
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <circle cx="12" cy="12" r="8" />
-        {!filled && <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />}
+        {!filled && <path d="M 12 2 v 2 M 12 20 v 2 M 4.9 4.9 l 1.4 1.4 M 17.7 17.7 l 1.4 1.4 M 2 12 h 2 M 20 12 h 2 M 4.9 19.1 l 1.4 -1.4 M 17.7 6.3 l 1.4 -1.4" />}
     </svg>
 );
 
 const SvgBalconyLight = ({ filled = false }: { filled?: boolean }) => (
   <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <rect x="4" y="4" width="16" height="10" rx="2" />
-    <path d="M12 14v6" />
-    {!filled && <path d="M8 20h8" />}
+    <path d="M 12 14 v 6" />
+    {!filled && <path d="M 8 20 h 8" />}
   </svg>
 );
 
 const SvgComputer = () => (
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <rect x="2" y="3" width="20" height="14" rx="2" />
-        <path d="M8 21h8" />
-        <path d="M12 17v4" />
+        <path d="M 8 21 h 8" />
+        <path d="M 12 17 v 4" />
     </svg>
 );
 
 const SvgPlaystation = () => (
   <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M10 12H4v2h6v-2zM14 12h6v2h-6v-2z" />
-    <path d="M2 10c0-2.2 1.8-4 4-4h12c2.2 0 4 1.8 4 4v4c0 2.2-1.8 4-4 4H6c-2.2 0-4-1.8-4-4v-4z" />
-    <path d="M8 10V8h2v2h2V8h2v2" />
+    <path d="M 10 12 H 4 v 2 h 6 v -2z M 14 12 h 6 v 2 h -6 v -2z" />
+    <path d="M 2 10 c 0 -2.2 1.8 -4 4 -4 h 12 c 2.2 0 4 1.8 4 4 v 4 c 0 2.2 -1.8 4 -4 4 H 6 c -2.2 0 -4 -1.8 -4 -4 v -4z" />
+    <path d="M 8 10 V 8 h 2 v 2 h 2 V 8 h 2 v 2" />
   </svg>
 );
 
@@ -86,7 +86,7 @@ const SvgPlaystation = () => (
 const SvgThermostat = () => (
   <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <rect x="9" y="2" width="6" height="12" rx="3" />
-    <path d="M12 15v5" />
+    <path d="M 12 15 v 5" />
     <circle cx="12" cy="10" r="1.5" fill="currentColor" />
   </svg>
 );
@@ -94,7 +94,7 @@ const SvgThermostat = () => (
 const SvgDisplay = () => (
   <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <rect x="3" y="4" width="18" height="12" rx="2" />
-    <path d="M8 20h8" />
+    <path d="M 8 20 h 8" />
   </svg>
 );
 
@@ -111,7 +111,7 @@ const SvgFan = ({ spinning = false }: { spinning?: boolean }) => (
     className={spinning ? 'animate-spin' : undefined}
   >
     <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-    <path d="M12 12c3 0 4.5-2 6-4-1-1.5-3-2.5-5-2.5M12 12c-3 0-4.5 2-6 4 1 1.5 3 2.5 5 2.5" />
+    <path d="M 12 12 c 3 0 4.5 -2 6 -4 c -1 -1.5 -3 -2.5 -5 -2.5 M 12 12 c -3 0 -4.5 2 -6 4 c 1 1.5 3 2.5 5 2.5" />
   </svg>
 );
 
@@ -125,7 +125,7 @@ const SvgSpeaker = () => (
 const SvgSensor = () => (
   <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <circle cx="12" cy="12" r="9" />
-    <path d="M12 7v6" />
+    <path d="M 12 7 v 6" />
   </svg>
 );
 
@@ -168,8 +168,8 @@ const SvgCamera = () => (
 const SvgUnknown = () => (
   <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <circle cx="12" cy="12" r="9" />
-    <path d="M9.5 9a2.5 2.5 0 015 0c0 1.5-2 1.7-2 3.5" />
-    <path d="M12 17h.01" />
+    <path d="M 9.5 9 a 2.5 2.5 0 0 1 5 0 c 0 1.5 -2 1.7 -2 3.5" />
+    <path d="M 12 17 h .01" />
   </svg>
 );
 
