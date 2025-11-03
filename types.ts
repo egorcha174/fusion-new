@@ -1,5 +1,6 @@
 
 
+
 export enum DeviceType {
   Light,
   Lamp,
@@ -55,12 +56,21 @@ export interface Room {
   devices: Device[];
 }
 
+// Represents a user-created group on a tab
+export interface Group {
+    id: string;
+    name: string;
+    isCollapsed?: boolean;
+    orderedDeviceIds?: string[];
+}
+
 // Represents a user-created tab on the dashboard
 export interface Tab {
   id: string;
   name: string;
-  deviceIds: string[];
-  orderedDeviceIds: string[];
+  deviceIds: string[]; // Still keep all device IDs for easy reference
+  orderedDeviceIds: string[]; // This will now represent order for UNGROUPED devices
+  groups?: Group[];
 }
 
 // Types for user customizations
@@ -69,6 +79,7 @@ export interface DeviceCustomization {
   type?: DeviceType;
   icon?: DeviceType;
   isHidden?: boolean;
+  groupId?: string | null;
 }
 
 export type DeviceCustomizations = Record<string, DeviceCustomization>; // Key is device.id (entity_id)

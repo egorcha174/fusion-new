@@ -54,13 +54,14 @@ interface DashboardHeaderProps {
     onNavigate: (page: Page) => void;
     onAddTab: () => void;
     onEditTab: (tab: Tab) => void;
+    onAddGroup: () => void;
     currentPage: Page;
     searchTerm: string;
     onSearchChange: (term: string) => void;
 }
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({
-    tabs, activeTabId, onTabChange, onTabOrderChange, isEditMode, onToggleEditMode, onNavigate, onAddTab, onEditTab, currentPage, searchTerm, onSearchChange
+    tabs, activeTabId, onTabChange, onTabOrderChange, isEditMode, onToggleEditMode, onNavigate, onAddTab, onEditTab, onAddGroup, currentPage, searchTerm, onSearchChange
 }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -124,7 +125,11 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                                 />
                             ))}
                              {isEditMode && (
-                                <button onClick={onAddTab} className="ml-2 px-3 py-1 bg-gray-700 rounded-md text-sm hover:bg-gray-600 flex-shrink-0">+</button>
+                                <div className="flex items-center flex-shrink-0">
+                                    <button onClick={onAddTab} className="ml-2 px-3 py-1 bg-gray-700 rounded-md text-sm hover:bg-gray-600">+</button>
+                                    <div className="h-5 w-px bg-gray-600 mx-2"></div>
+                                    <button onClick={onAddGroup} className="px-3 py-1 bg-gray-700 rounded-md text-sm hover:bg-gray-600">Создать группу</button>
+                                </div>
                             )}
                             </nav>
                         </SortableContext>
