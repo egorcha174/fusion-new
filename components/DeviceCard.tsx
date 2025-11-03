@@ -7,9 +7,10 @@ import Hls from 'hls.js';
 // --- Video Player Component ---
 interface VideoPlayerProps {
   src: string;
+  onContainerClick?: () => void;
 }
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
+const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, onContainerClick }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   
@@ -88,8 +89,16 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
   }, []);
 
   return (
-    <div className="relative w-full h-full bg-black flex items-center justify-center group pointer-events-none">
-      <video ref={videoRef} className="w-full h-full object-contain" muted autoPlay playsInline />
+    <div className="relative w-full h-full bg-black flex items-center justify-center group">
+      <video ref={videoRef} className="w-full h-full object-contain pointer-events-none" muted autoPlay playsInline />
+      
+      {/* Click overlay to handle opening the floating window */}
+      {onContainerClick && (
+        <div 
+          className="absolute inset-0 z-10 cursor-pointer" 
+          onClick={onContainerClick} 
+        />
+      )}
 
       <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded-md text-white text-xs font-bold tracking-wider fade-in z-20">
         RTC
@@ -129,6 +138,7 @@ interface CameraStreamContentProps {
   signPath: (path: string) => Promise<{ path: string }>;
   getCameraStreamUrl: (entityId: string) => Promise<string>;
   altText?: string;
+  onContainerClick?: () => void;
 }
 
 export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
@@ -138,6 +148,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
   signPath,
   getCameraStreamUrl,
   altText = 'Прямая трансляция',
+  onContainerClick,
 }) => {
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -217,10 +228,10 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
 
     switch (streamType) {
       case 'hls':
-        return <VideoPlayer src={streamUrl} />;
+        return <VideoPlayer src={streamUrl} onContainerClick={onContainerClick} />;
       case 'iframe':
         return (
-          <div className="w-full h-full overflow-hidden">
+          <div className="w-full h-full overflow-hidden relative">
             <iframe
               src={streamUrl}
               className="w-full h-full border-0 bg-black"
@@ -228,15 +239,18 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
               allow="autoplay; encrypted-media; picture-in-picture"
               sandbox="allow-scripts allow-same-origin"
             />
+             {onContainerClick && <div className="absolute inset-0 z-10 cursor-pointer" onClick={onContainerClick} />}
           </div>
         );
       case 'mjpeg':
         return (
-          <img
-            src={streamUrl}
-            className="w-full h-full border-0 bg-black object-contain"
-            alt={altText}
-          />
+          <div className="relative w-full h-full cursor-pointer" onClick={onContainerClick}>
+            <img
+              src={streamUrl}
+              className="w-full h-full border-0 bg-black object-contain"
+              alt={altText}
+            />
+          </div>
         );
       default:
         return null;
@@ -387,11 +401,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
   const handleClick = () => {
     if (isEditMode) return;
     
-    if (isCamera && onCameraCardClick) {
-        onCameraCardClick(device);
-        return;
-    }
-    
+    // Camera clicks are now handled by the onContainerClick prop passed to the player.
+    // This handler remains for other togglable devices.
     if (isTogglable) {
       onToggle();
     }
@@ -411,6 +422,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
         return (
             <div className="relative w-full h-full bg-black">
                 <CameraStreamContent 
+                    onContainerClick={() => onCameraCardClick?.(device)}
                     entityId={device.id}
                     haUrl={haUrl}
                     signPath={signPath}
@@ -554,7 +566,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
         finalClasses += `${styles.padding} ${isOn ? onStateClasses : offStateClasses}`;
     }
   
-    if ((isTogglable || isCamera) && !isEditMode) {
+    if (isTogglable && !isEditMode) {
         finalClasses += ' cursor-pointer';
     }
     return finalClasses;
