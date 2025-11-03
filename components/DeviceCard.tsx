@@ -113,11 +113,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
             <div className="w-full h-full bg-gray-400/80 rounded-full"></div>
           </div>
           
-          <button className="text-white flex-shrink-0 p-1">
-              <svg className="w-6 h-6" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M5 8a1 1 0 011-1h1V6a1 1 0 012 0v1h2V6a1 1 0 112 0v1h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1H9v1a1 1 0 11-2 0v-1H6a1 1 0 01-1-1V8z" />
-              </svg>
-          </button>
         </div>
       </div>
     </div>
