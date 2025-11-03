@@ -51,7 +51,7 @@ const TabContent: React.FC<TabContentProps> = ({
 }) => {
   const { groups = [] } = tab;
 
-  const { groupedDevices, ungroupedDevices } = useMemo(() => {
+  const { groupedDevices, sortedUngroupedDevices } = useMemo(() => {
     const grouped = new Map<string, Device[]>();
     const ungrouped: Device[] = [];
 
@@ -65,17 +65,20 @@ const TabContent: React.FC<TabContentProps> = ({
             ungrouped.push(device);
         }
     }
-    return { groupedDevices: grouped, ungroupedDevices };
-  }, [devices, customizations, groups]);
-  
-  const sortedUngroupedDevices = useMemo(() => {
+    
     const order = tab.orderedDeviceIds || [];
-    if (order.length === 0) return ungroupedDevices;
-    const deviceMap = new Map(ungroupedDevices.map(d => [d.id, d]));
-    const ordered = order.map(id => deviceMap.get(id)).filter((d): d is Device => !!d);
-    const unordered = ungroupedDevices.filter(d => !order.includes(d.id));
-    return [...ordered, ...unordered];
-  }, [ungroupedDevices, tab.orderedDeviceIds]);
+    let sortedUngrouped: Device[];
+    if (order.length === 0) {
+      sortedUngrouped = ungrouped;
+    } else {
+      const deviceMap = new Map(ungrouped.map(d => [d.id, d]));
+      const ordered = order.map(id => deviceMap.get(id)).filter((d): d is Device => !!d);
+      const unordered = ungrouped.filter(d => !order.includes(d.id));
+      sortedUngrouped = [...ordered, ...unordered];
+    }
+    
+    return { groupedDevices: grouped, sortedUngroupedDevices: sortedUngrouped };
+  }, [devices, customizations, groups, tab.orderedDeviceIds]);
 
 
   if (devices.length === 0) {
