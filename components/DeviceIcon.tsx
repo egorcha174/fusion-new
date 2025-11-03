@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { DeviceType, CardSize } from '../types';
 
@@ -192,7 +193,6 @@ export const icons: Record<DeviceType, (props: { isOn: boolean }) => React.React
   [DeviceType.Switch]: ({ isOn }) => <SvgSwitch isOn={isOn} />,
   [DeviceType.Outlet]: () => <SvgOutlet />,
   [DeviceType.Weather]: () => <SvgWeather />,
-  // FIX: Added missing Camera icon to the icons record to satisfy the TypeScript type.
   [DeviceType.Camera]: () => <SvgCamera />,
   [DeviceType.Unknown]: () => <SvgUnknown />,
 };

@@ -20,6 +20,11 @@ const useHomeAssistant = () => {
   const initialFetchIds = useRef<Set<number>>(new Set());
   const signPathCallbacks = useRef<Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>>(new Map());
   const cameraStreamCallbacks = useRef<Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>>(new Map());
+  const connectionStatusRef = useRef(connectionStatus);
+  
+  useEffect(() => {
+    connectionStatusRef.current = connectionStatus;
+  }, [connectionStatus]);
 
   const sendMessage = useCallback((message: object) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
@@ -221,9 +226,9 @@ const useHomeAssistant = () => {
 
       socket.onclose = (e) => {
         console.log('WebSocket disconnected', e.reason);
-        if (connectionStatus === 'connecting') {
+        if (connectionStatusRef.current === 'connecting') {
           setConnectionStatus('failed');
-        } else if (connectionStatus === 'connected') {
+        } else if (connectionStatusRef.current === 'connected') {
           setConnectionStatus('idle'); // Allows for reconnect
         }
         setIsLoading(false);
@@ -231,12 +236,10 @@ const useHomeAssistant = () => {
 
       socket.onerror = (event) => {
         console.error('WebSocket error:', event);
-        if (!error) {
-           if (event instanceof Event && socket.readyState === WebSocket.CLOSING) {
-             setError('Не удалось подключиться. Проверьте URL и убедитесь, что Home Assistant доступен.');
-           } else {
-             setError('Ошибка WebSocket. Проверьте консоль для деталей.');
-           }
+        if (event instanceof Event && socket.readyState === WebSocket.CLOSING) {
+            setError('Не удалось подключиться. Проверьте URL и убедитесь, что Home Assistant доступен.');
+        } else {
+            setError('Ошибка WebSocket. Проверьте консоль для деталей.');
         }
         setConnectionStatus('failed');
         setIsLoading(false);
@@ -251,7 +254,7 @@ const useHomeAssistant = () => {
       setConnectionStatus('failed');
       setIsLoading(false);
     }
-  }, [sendMessage, connectionStatus, error]);
+  }, [sendMessage]);
   
   useEffect(() => {
     return () => {
