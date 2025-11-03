@@ -192,7 +192,6 @@ const App: React.FC = () => {
   // --- Group Management Handlers ---
     const handleAddGroup = () => {
         if (!activeTabId) return;
-        // FIX: The Group type does not have `deviceIds`. It should be `orderedDeviceIds`.
         const newGroup: Group = { id: nanoid(), name: 'Новая группа', orderedDeviceIds: [] };
         setTabs(tabs.map(tab => {
             if (tab.id === activeTabId) {
