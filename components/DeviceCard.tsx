@@ -430,6 +430,14 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
                     getCameraStreamUrl={getCameraStreamUrl}
                     altText={device.name}
                 />
+                {debugLightOn !== undefined && (
+                  <div
+                    className={`absolute bottom-2 left-2 w-4 h-4 rounded-full border-2 border-white transition-colors z-30 ${
+                      debugLightOn ? 'bg-yellow-400' : 'bg-gray-600'
+                    }`}
+                    title={`Debug Light: ${debugLightOn ? 'ON' : 'OFF'}`}
+                  />
+                )}
             </div>
         )
       case DeviceType.DimmableLight:
@@ -602,14 +610,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
           </div>
         )}
         {renderContent()}
-        {isCamera && debugLightOn !== undefined && (
-          <div
-            className={`absolute bottom-2 left-2 w-4 h-4 rounded-full border-2 border-white transition-colors z-30 ${
-              debugLightOn ? 'bg-yellow-400' : 'bg-gray-600'
-            }`}
-            title={`Debug Light: ${debugLightOn ? 'ON' : 'OFF'}`}
-          />
-        )}
       </div>
     </div>
   );
