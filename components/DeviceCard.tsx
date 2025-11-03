@@ -91,11 +91,15 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
     <div className="relative w-full h-full bg-black flex items-center justify-center group">
       <video ref={videoRef} className="w-full h-full object-contain" muted autoPlay playsInline />
       
-      <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded-md text-white text-xs font-bold tracking-wider pointer-events-none fade-in">
+      {/* Invisible overlay to catch clicks for opening the floating window, placed above the video but below controls */}
+      <div className="absolute inset-0 z-10"></div>
+
+      <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded-md text-white text-xs font-bold tracking-wider pointer-events-none fade-in z-20">
         RTC
       </div>
       
-      <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+      {/* Controls are placed on a higher z-index to be clickable */}
+      <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
         <div className="flex items-center gap-3">
           <button onClick={togglePlay} className="text-white flex-shrink-0 p-1">
             {isPlaying ? (
