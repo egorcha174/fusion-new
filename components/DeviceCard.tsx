@@ -88,17 +88,17 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
   }, []);
 
   return (
-    <div className="relative w-full h-full bg-black flex items-center justify-center group">
-      <video ref={videoRef} className="w-full h-full object-contain pointer-events-none" muted autoPlay playsInline />
+    <div className="relative w-full h-full bg-black flex items-center justify-center group pointer-events-none">
+      <video ref={videoRef} className="w-full h-full object-contain" muted autoPlay playsInline />
 
-      <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded-md text-white text-xs font-bold tracking-wider pointer-events-none fade-in z-20">
+      <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded-md text-white text-xs font-bold tracking-wider fade-in z-20">
         RTC
       </div>
       
       {/* Controls are placed on a higher z-index to be clickable */}
-      <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20 pointer-events-none">
+      <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20 pointer-events-auto">
         <div className="flex items-center gap-3">
-          <button onClick={togglePlay} className="text-white flex-shrink-0 p-1 pointer-events-auto">
+          <button onClick={togglePlay} className="text-white flex-shrink-0 p-1">
             {isPlaying ? (
               <svg className="w-6 h-6" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v4a1 1 0 11-2 0V8z" clipRule="evenodd" />
@@ -264,7 +264,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
       {loadState === 'idle' && (
         <div className="text-gray-500 text-center">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.55a2 2 0 01.95 1.664V16a2 2 0 01-2 2H5a2 2 0 01-2-2v-2.336a2 2 0 01.95-1.664L8 10l3 3 4-3z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.55a2 2 0 01.95 1.664V16a2 2 0 01-2 2H5a2 2 0 01-2 2v-2.336a2 2 0 01.95-1.664L8 10l3 3 4-3z" />
             </svg>
             <p className="mt-2 text-sm">Камера не выбрана</p>
         </div>
