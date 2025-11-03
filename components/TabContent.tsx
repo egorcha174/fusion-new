@@ -14,6 +14,7 @@ interface TabContentProps {
   onTemperatureChange: (deviceId: string, change: number) => void;
   onBrightnessChange: (deviceId: string, brightness: number) => void;
   onPresetChange: (deviceId: string, preset: string) => void;
+  onCameraCardClick: (device: Device) => void;
   isEditMode: boolean;
   onEditDevice: (device: Device) => void;
   onDeviceContextMenu: (event: React.MouseEvent, deviceId: string, tabId: string) => void;
@@ -32,6 +33,7 @@ const TabContent: React.FC<TabContentProps> = ({
   onTemperatureChange,
   onBrightnessChange,
   onPresetChange,
+  onCameraCardClick,
   isEditMode,
   onEditDevice,
   onDeviceContextMenu,
@@ -109,6 +111,7 @@ const TabContent: React.FC<TabContentProps> = ({
                 onTemperatureChange={(change) => onTemperatureChange(device.id, change)}
                 onBrightnessChange={(brightness) => onBrightnessChange(device.id, brightness)}
                 onPresetChange={(preset) => onPresetChange(device.id, preset)}
+                onCameraCardClick={onCameraCardClick}
                 isEditMode={isEditMode}
                 onEditDevice={onEditDevice}
                 onRemoveFromTab={() => onDeviceRemoveFromTab(device.id, tab.id)}

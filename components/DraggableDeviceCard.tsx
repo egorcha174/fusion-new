@@ -10,6 +10,7 @@ interface DraggableDeviceCardProps {
   onTemperatureChange: (change: number) => void;
   onBrightnessChange: (brightness: number) => void;
   onPresetChange: (preset: string) => void;
+  onCameraCardClick: (device: Device) => void;
   isEditMode: boolean;
   onEditDevice: (device: Device) => void;
   onRemoveFromTab: () => void;
@@ -20,7 +21,7 @@ interface DraggableDeviceCardProps {
   getCameraStreamUrl: (entityId: string) => Promise<string>;
 }
 
-const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onToggle, onTemperatureChange, onBrightnessChange, onPresetChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu, cardSize, haUrl, signPath, getCameraStreamUrl }) => {
+const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onToggle, onTemperatureChange, onBrightnessChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu, cardSize, haUrl, signPath, getCameraStreamUrl }) => {
   const {
     attributes,
     listeners,
@@ -45,6 +46,7 @@ const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onTog
         onTemperatureChange={onTemperatureChange}
         onBrightnessChange={onBrightnessChange}
         onPresetChange={onPresetChange}
+        onCameraCardClick={onCameraCardClick}
         isEditMode={isEditMode}
         onEditDevice={onEditDevice}
         onRemoveFromTab={onRemoveFromTab}

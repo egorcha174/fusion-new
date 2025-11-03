@@ -280,6 +280,7 @@ interface DeviceCardProps {
   onTemperatureChange: (change: number) => void;
   onBrightnessChange: (brightness: number) => void;
   onPresetChange: (preset: string) => void;
+  onCameraCardClick?: (device: Device) => void;
   isEditMode: boolean;
   onEditDevice: (device: Device) => void;
   onRemoveFromTab?: () => void;
@@ -290,7 +291,7 @@ interface DeviceCardProps {
   getCameraStreamUrl?: (entityId: string) => Promise<string>;
 }
 
-const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperatureChange, onBrightnessChange, onPresetChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu, cardSize, haUrl, signPath, getCameraStreamUrl }) => {
+const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperatureChange, onBrightnessChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu, cardSize, haUrl, signPath, getCameraStreamUrl }) => {
   const isOn = device.status.toLowerCase() === 'включено';
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
   const presetMenuRef = useRef<HTMLDivElement>(null);
@@ -379,10 +380,17 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
   const textOnClasses = "text-gray-800";
   const textOffClasses = "text-gray-400";
   
-  const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && device.type !== DeviceType.Sensor && device.type !== DeviceType.Camera;
+  const isCamera = device.type === DeviceType.Camera;
+  const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && device.type !== DeviceType.Sensor && !isCamera;
 
   const handleClick = () => {
     if (isEditMode) return;
+    
+    if (isCamera && onCameraCardClick) {
+        onCameraCardClick(device);
+        return;
+    }
+    
     if (isTogglable) {
       onToggle();
     }
@@ -534,7 +542,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
     const baseClasses = "rounded-2xl flex flex-col transition-all duration-200 ease-in-out select-none";
     const onStateClasses = "bg-gray-200 text-gray-900 shadow-lg";
     const offStateClasses = "bg-gray-800/80 hover:bg-gray-700/80 ring-1 ring-white/10";
-    const isCamera = device.type === DeviceType.Camera;
     
     let finalClasses = `${baseClasses} aspect-square `;
 
@@ -546,7 +553,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
         finalClasses += `${styles.padding} ${isOn ? onStateClasses : offStateClasses}`;
     }
   
-    if (isTogglable && !isEditMode) {
+    if ((isTogglable || isCamera) && !isEditMode) {
         finalClasses += ' cursor-pointer';
     }
     return finalClasses;

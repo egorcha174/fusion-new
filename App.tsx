@@ -8,6 +8,7 @@ import TabContent from './components/TabContent';
 import DeviceSettingsModal from './components/DeviceSettingsModal';
 import TabSettingsModal from './components/TabSettingsModal';
 import ContextMenu from './components/ContextMenu';
+import FloatingCameraWindow from './components/FloatingCameraWindow';
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
@@ -47,6 +48,7 @@ const App: React.FC = () => {
   const [editingTab, setEditingTab] = useState<Tab | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, deviceId: string, tabId: string } | null>(null);
+  const [floatingCamera, setFloatingCamera] = useState<Device | null>(null);
 
 
   // --- New Tab-based State Management ---
@@ -264,6 +266,10 @@ const App: React.FC = () => {
     callService('climate', 'set_preset_mode', { entity_id: deviceId, preset_mode: preset });
   };
 
+  const handleCameraCardClick = (device: Device) => {
+    setFloatingCamera(device);
+  };
+
 
   // --- Customization ---
   const handleSaveCustomization = (deviceId: string, newValues: { name: string; type: DeviceType; icon: DeviceType; isHidden: boolean }) => {
@@ -356,6 +362,7 @@ const App: React.FC = () => {
             onTemperatureChange={handleTemperatureChange}
             onBrightnessChange={handleBrightnessChange}
             onPresetChange={handlePresetChange}
+            onCameraCardClick={handleCameraCardClick}
             isEditMode={isEditMode}
             onEditDevice={setEditingDevice}
             onDeviceContextMenu={handleDeviceContextMenu}
@@ -458,6 +465,16 @@ const App: React.FC = () => {
             </div>
 
         </ContextMenu>
+      )}
+
+      {floatingCamera && haUrl && (
+        <FloatingCameraWindow
+          device={floatingCamera}
+          onClose={() => setFloatingCamera(null)}
+          haUrl={haUrl}
+          signPath={signPath}
+          getCameraStreamUrl={getCameraStreamUrl}
+        />
       )}
 
     </div>
