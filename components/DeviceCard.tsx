@@ -96,9 +96,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
       </div>
       
       {/* Controls are placed on a higher z-index to be clickable */}
-      <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
+      <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20 pointer-events-none">
         <div className="flex items-center gap-3">
-          <button onClick={togglePlay} className="text-white flex-shrink-0 p-1">
+          <button onClick={togglePlay} className="text-white flex-shrink-0 p-1 pointer-events-auto">
             {isPlaying ? (
               <svg className="w-6 h-6" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v4a1 1 0 11-2 0V8z" clipRule="evenodd" />
