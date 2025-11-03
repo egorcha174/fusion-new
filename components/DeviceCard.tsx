@@ -60,10 +60,10 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
           setStreamUrl(finalUrl);
           timeoutRef.current = window.setTimeout(() => {
              if (isMounted) {
-                setError("Тайм-аут загрузки видео. Проверьте настройки CORS в Home Assistant и доступность камеры в сети.");
+                setError("Тайм-аут загрузки видео. Камера не отвечает. Проверьте URL, сетевое подключение и настройки CORS в Home Assistant.");
                 setLoadState('error');
              }
-          }, 10000); // 10-second timeout
+          }, 15000); // 15-second timeout
         } else {
             if (isMounted) setLoadState('idle');
         }
@@ -100,16 +100,17 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
     <div className="relative w-full h-full bg-black flex items-center justify-center">
       {streamUrl && (
         directStreamUrl ? (
-          <iframe
-            scrolling="no"
-            src={streamUrl}
-            className={`w-full h-full border-0 bg-black transition-opacity duration-500 ${loadState === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
-            title={altText}
-            onLoad={handleLoad}
-            onError={handleError}
-            allow="autoplay; encrypted-media; picture-in-picture"
-            sandbox="allow-scripts allow-same-origin"
-          />
+          <div className="w-full h-full overflow-hidden">
+            <iframe
+              src={streamUrl}
+              className={`w-full h-full border-0 bg-black transition-opacity duration-500 ${loadState === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+              title={altText}
+              onLoad={handleLoad}
+              onError={handleError}
+              allow="autoplay; encrypted-media; picture-in-picture"
+              sandbox="allow-scripts allow-same-origin"
+            />
+          </div>
         ) : (
           <img
             key={streamUrl}
