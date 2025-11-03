@@ -22,6 +22,7 @@ interface TabContentProps {
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
   getCameraStreamUrl: (entityId: string) => Promise<string>;
+  debugLightOn: boolean;
 }
 
 const TabContent: React.FC<TabContentProps> = ({
@@ -41,6 +42,7 @@ const TabContent: React.FC<TabContentProps> = ({
   haUrl,
   signPath,
   getCameraStreamUrl,
+  debugLightOn,
 }) => {
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -120,6 +122,7 @@ const TabContent: React.FC<TabContentProps> = ({
                 haUrl={haUrl}
                 signPath={signPath}
                 getCameraStreamUrl={getCameraStreamUrl}
+                debugLightOn={debugLightOn}
               />
             ))}
           </div>
