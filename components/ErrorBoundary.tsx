@@ -10,6 +10,8 @@ interface State {
 }
 
 class ErrorBoundary extends React.Component<Props, State> {
+  // FIX: Initialize state using a class property instead of a constructor.
+  // This is a more modern syntax and resolves the TypeScript errors where `this.state` and `this.props` were not being recognized.
   state: State = {
     hasError: false,
     error: null,
@@ -23,7 +25,7 @@ class ErrorBoundary extends React.Component<Props, State> {
     console.error("Uncaught error:", error, errorInfo);
   }
 
-  private handleReload = () => {
+  handleReload = () => {
     window.location.reload();
   };
 
@@ -56,7 +58,6 @@ class ErrorBoundary extends React.Component<Props, State> {
       );
     }
 
-    // Fix: Correctly access props from the component instance.
     return this.props.children;
   }
 }
