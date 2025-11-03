@@ -4,10 +4,10 @@ import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityR
 
 const getDeviceType = (entity: HassEntity): DeviceType => {
   const entityId = entity.entity_id;
-  const domain = entityId.split('.')[0];
-  const attributes = entity.attributes;
+  const attributes = entity.attributes || {};
   const friendlyName = (attributes.friendly_name || '').toLowerCase();
   const entityIdLower = entityId.toLowerCase();
+  const domain = entityId.split('.')[0];
 
   // --- Priority 1: Direct Domain Mapping (unambiguous) ---
   switch (domain) {
@@ -55,6 +55,7 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
 
 const getStatusText = (entity: HassEntity): string => {
     const domain = entity.entity_id.split('.')[0];
+    const attributes = entity.attributes || {};
 
     if (domain === 'weather') {
         const stateMap: Record<string, string> = {
@@ -92,33 +93,34 @@ const getStatusText = (entity: HassEntity): string => {
 }
 
 const entityToDevice = (entity: HassEntity, customization: DeviceCustomization = {}): Device | null => {
+  const attributes = entity.attributes || {};
   const originalType = getDeviceType(entity);
   
   const device: Device = {
     id: entity.entity_id,
-    name: customization.name || entity.attributes.friendly_name || entity.entity_id,
+    name: customization.name || attributes.friendly_name || entity.entity_id,
     status: getStatusText(entity),
     type: customization.type !== undefined ? customization.type : originalType,
     icon: customization.icon,
-    unit: entity.attributes.unit_of_measurement,
+    unit: attributes.unit_of_measurement,
     haDomain: entity.entity_id.split('.')[0],
-    haDeviceClass: entity.attributes.device_class,
+    haDeviceClass: attributes.device_class,
   };
 
-  if (device.type === DeviceType.DimmableLight && entity.attributes.brightness) {
-    device.brightness = Math.round((entity.attributes.brightness / 255) * 100);
+  if (device.type === DeviceType.DimmableLight && attributes.brightness) {
+    device.brightness = Math.round((attributes.brightness / 255) * 100);
   }
   
   if (device.type === DeviceType.Thermostat) {
-    device.temperature = entity.attributes.current_temperature;
-    device.targetTemperature = entity.attributes.temperature;
-    device.presetMode = entity.attributes.preset_mode;
-    device.presetModes = entity.attributes.preset_modes;
+    device.temperature = attributes.current_temperature;
+    device.targetTemperature = attributes.temperature;
+    device.presetMode = attributes.preset_mode;
+    device.presetModes = attributes.preset_modes;
   }
   
   if (device.type === DeviceType.Weather) {
-      device.temperature = entity.attributes.temperature;
-      device.forecast = entity.attributes.forecast;
+      device.temperature = attributes.temperature;
+      device.forecast = attributes.forecast;
       device.condition = entity.state;
   }
 
@@ -159,6 +161,8 @@ export const mapEntitiesToRooms = (
   })
 
   entities.forEach(entity => {
+    if (!entity) return; // Extra safety check
+
     const customization = customizations[entity.entity_id] || {};
     if (customization.isHidden && !showHidden) {
         return; // Skip hidden devices unless showHidden is true
@@ -168,7 +172,7 @@ export const mapEntitiesToRooms = (
     if (device && device.type !== DeviceType.Unknown) {
         let areaId: string | undefined | null = entityIdToAreaIdMap.get(entity.entity_id);
 
-        if (!areaId) {
+        if (!areaId && entity.attributes?.device_id) {
             const haDevice = haDevices.find(d => d.id === entity.attributes.device_id);
             if (haDevice?.area_id) {
                 areaId = haDevice.area_id;
