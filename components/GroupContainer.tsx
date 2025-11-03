@@ -25,7 +25,6 @@ interface GroupContainerProps {
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
   getCameraStreamUrl: (entityId: string) => Promise<string>;
-  debugLightOn: boolean;
 }
 
 const GroupContainer: React.FC<GroupContainerProps> = ({
@@ -106,7 +105,6 @@ const GroupContainer: React.FC<GroupContainerProps> = ({
                     haUrl={props.haUrl}
                     signPath={props.signPath}
                     getCameraStreamUrl={props.getCameraStreamUrl}
-                    debugLightOn={props.debugLightOn}
                 />
                 ))}
             </div>

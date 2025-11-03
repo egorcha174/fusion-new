@@ -52,7 +52,6 @@ const App: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, deviceId: string, tabId: string } | null>(null);
   const [floatingCamera, setFloatingCamera] = useState<Device | null>(null);
-  const [debugLightOn, setDebugLightOn] = useState(false);
 
 
   // --- New Tab-based State Management ---
@@ -357,7 +356,6 @@ const App: React.FC = () => {
   };
 
   const handleCameraCardClick = (device: Device) => {
-    setDebugLightOn(prev => !prev);
     setFloatingCamera(device);
   };
 
@@ -473,7 +471,6 @@ const App: React.FC = () => {
             haUrl={haUrl}
             signPath={signPath}
             getCameraStreamUrl={getCameraStreamUrl}
-            debugLightOn={debugLightOn}
           />
         ) : (
           <div className="text-center text-gray-500">Выберите или создайте вкладку</div>

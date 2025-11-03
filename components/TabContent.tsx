@@ -26,7 +26,6 @@ interface TabContentProps {
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
   getCameraStreamUrl: (entityId: string) => Promise<string>;
-  debugLightOn: boolean;
 }
 
 const TabContent: React.FC<TabContentProps> = ({
@@ -49,7 +48,6 @@ const TabContent: React.FC<TabContentProps> = ({
   haUrl,
   signPath,
   getCameraStreamUrl,
-  debugLightOn,
 }) => {
   const { groups = [] } = tab;
 
@@ -113,7 +111,6 @@ const TabContent: React.FC<TabContentProps> = ({
                 haUrl={haUrl}
                 signPath={signPath}
                 getCameraStreamUrl={getCameraStreamUrl}
-                debugLightOn={debugLightOn}
             />
         ))}
 
@@ -122,7 +119,7 @@ const TabContent: React.FC<TabContentProps> = ({
                 tabId={tab.id}
                 devices={sortedUngroupedDevices}
                 onDeviceOrderChange={(ordered) => onDeviceOrderChange(tab.id, ordered, null)}
-                {...{onDeviceRemoveFromTab, onDeviceToggle, onTemperatureChange, onBrightnessChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onDeviceContextMenu, cardSize, haUrl, signPath, getCameraStreamUrl, debugLightOn }}
+                {...{onDeviceRemoveFromTab, onDeviceToggle, onTemperatureChange, onBrightnessChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onDeviceContextMenu, cardSize, haUrl, signPath, getCameraStreamUrl }}
             />
         )}
     </section>
@@ -183,7 +180,6 @@ const UngroupedDevicesContainer: React.FC<UngroupedDevicesContainerProps> = ({
                                 haUrl={props.haUrl}
                                 signPath={props.signPath}
                                 getCameraStreamUrl={props.getCameraStreamUrl}
-                                debugLightOn={props.debugLightOn}
                             />
                         ))}
                     </div>
