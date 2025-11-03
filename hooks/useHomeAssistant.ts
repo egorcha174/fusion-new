@@ -221,10 +221,12 @@ const useHomeAssistant = () => {
 
       socket.onclose = (e) => {
         console.log('WebSocket disconnected', e.reason);
-        if (connectionStatus === 'connected') {
-            setConnectionStatus('idle');
+        if (connectionStatus === 'connecting') {
+          setConnectionStatus('failed');
+        } else if (connectionStatus === 'connected') {
+          setConnectionStatus('idle'); // Allows for reconnect
         }
-         setIsLoading(false);
+        setIsLoading(false);
       };
 
       socket.onerror = (event) => {
