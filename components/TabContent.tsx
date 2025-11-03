@@ -20,6 +20,7 @@ interface TabContentProps {
   cardSize: CardSize;
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
+  getCameraStreamUrl: (entityId: string) => Promise<string>;
 }
 
 const TabContent: React.FC<TabContentProps> = ({
@@ -37,6 +38,7 @@ const TabContent: React.FC<TabContentProps> = ({
   cardSize,
   haUrl,
   signPath,
+  getCameraStreamUrl,
 }) => {
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -114,6 +116,7 @@ const TabContent: React.FC<TabContentProps> = ({
                 cardSize={cardSize}
                 haUrl={haUrl}
                 signPath={signPath}
+                getCameraStreamUrl={getCameraStreamUrl}
               />
             ))}
           </div>

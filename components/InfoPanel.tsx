@@ -124,9 +124,10 @@ interface CameraWidgetProps {
     onSettingsChange: (settings: CameraSettings) => void;
     haUrl: string;
     signPath: (path: string) => Promise<{ path: string }>;
+    getCameraStreamUrl: (entityId: string) => Promise<string>;
 }
 
-const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettingsChange, haUrl, signPath }) => {
+const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettingsChange, haUrl, signPath, getCameraStreamUrl }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const selectedCamera = useMemo(() => cameras.find(c => c.id === settings.selectedEntityId), [cameras, settings.selectedEntityId]);
@@ -171,6 +172,7 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
                     directStreamUrl={settings.directStreamUrl}
                     haUrl={haUrl}
                     signPath={signPath}
+                    getCameraStreamUrl={getCameraStreamUrl}
                     altText={selectedCamera?.name || 'Прямая трансляция'}
                 />
             );
@@ -249,9 +251,10 @@ interface InfoPanelProps {
     onCameraSettingsChange: (settings: CameraSettings) => void;
     haUrl: string;
     signPath: (path: string) => Promise<{ path: string }>;
+    getCameraStreamUrl: (entityId: string) => Promise<string>;
 }
 
-const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, weatherDevice, sidebarWidth, setSidebarWidth, cameras, cameraSettings, onCameraSettingsChange, haUrl, signPath }) => {
+const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, weatherDevice, sidebarWidth, setSidebarWidth, cameras, cameraSettings, onCameraSettingsChange, haUrl, signPath, getCameraStreamUrl }) => {
     const [isResizing, setIsResizing] = useState(false);
 
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -295,6 +298,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, weatherDevice, sid
                     onSettingsChange={onCameraSettingsChange}
                     haUrl={haUrl}
                     signPath={signPath}
+                    getCameraStreamUrl={getCameraStreamUrl}
                 />
             
                 {weatherDevice ? (

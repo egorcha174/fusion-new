@@ -17,9 +17,10 @@ interface DraggableDeviceCardProps {
   cardSize: CardSize;
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
+  getCameraStreamUrl: (entityId: string) => Promise<string>;
 }
 
-const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onToggle, onTemperatureChange, onBrightnessChange, onPresetChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu, cardSize, haUrl, signPath }) => {
+const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onToggle, onTemperatureChange, onBrightnessChange, onPresetChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu, cardSize, haUrl, signPath, getCameraStreamUrl }) => {
   const {
     attributes,
     listeners,
@@ -51,6 +52,7 @@ const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onTog
         cardSize={cardSize}
         haUrl={haUrl}
         signPath={signPath}
+        getCameraStreamUrl={getCameraStreamUrl}
       />
     </div>
   );

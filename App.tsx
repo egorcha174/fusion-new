@@ -38,6 +38,7 @@ const App: React.FC = () => {
     disconnect,
     callService,
     signPath,
+    getCameraStreamUrl,
   } = useHomeAssistant();
 
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -361,6 +362,7 @@ const App: React.FC = () => {
             cardSize={cardSize}
             haUrl={haUrl}
             signPath={signPath}
+            getCameraStreamUrl={getCameraStreamUrl}
           />
         ) : (
           <div className="text-center text-gray-500">Выберите или создайте вкладку</div>
@@ -382,6 +384,7 @@ const App: React.FC = () => {
         onCameraSettingsChange={setCameraSettings}
         haUrl={haUrl}
         signPath={signPath}
+        getCameraStreamUrl={getCameraStreamUrl}
       />
       <div className="flex flex-col flex-1" style={{ marginLeft: isLg ? `${sidebarWidth}px` : '0px' }}>
         <DashboardHeader

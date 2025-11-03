@@ -2,6 +2,128 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { Device, DeviceType, CardSize } from '../types';
 import DeviceIcon from './DeviceIcon';
 import SparklineChart from './SparklineChart';
+import Hls from 'hls.js';
+
+// --- Video Player Component ---
+interface VideoPlayerProps {
+  src: string;
+}
+
+const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  
+  const setupHls = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !src) return;
+
+    let hls: Hls;
+
+    if (Hls.isSupported()) {
+      hls = new Hls({
+          lowLatencyMode: true,
+          backBufferLength: 90,
+      });
+      hls.loadSource(src);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video.play().catch(e => console.warn("Autoplay was prevented.", e));
+      });
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              console.error('HLS fatal network error encountered, trying to recover');
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              console.error('HLS fatal media error encountered, trying to recover');
+              hls.recoverMediaError();
+              break;
+            default:
+              console.error('HLS fatal error, cannot recover');
+              hls.destroy();
+              break;
+          }
+        }
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = src;
+      video.addEventListener('loadedmetadata', () => {
+        video.play().catch(e => console.warn("Autoplay was prevented.", e));
+      });
+    }
+
+    return () => {
+      if (hls) {
+        hls.destroy();
+      }
+    };
+  }, [src]);
+
+  useEffect(setupHls, [setupHls]);
+
+  const togglePlay = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      video.play();
+    } else {
+      video.pause();
+    }
+  };
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    video.addEventListener('play', onPlay);
+    video.addEventListener('pause', onPause);
+    return () => {
+      video.removeEventListener('play', onPlay);
+      video.removeEventListener('pause', onPause);
+    };
+  }, []);
+
+  return (
+    <div className="relative w-full h-full bg-black flex items-center justify-center group" onClick={togglePlay}>
+      <video ref={videoRef} className="w-full h-full object-contain" muted autoPlay playsInline />
+      
+      <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded-md text-white text-xs font-bold tracking-wider pointer-events-none fade-in">
+        RTC
+      </div>
+      
+      <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="flex items-center gap-3">
+          <button onClick={togglePlay} className="text-white flex-shrink-0 p-1">
+            {isPlaying ? (
+              <svg className="w-6 h-6" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v4a1 1 0 11-2 0V8z" clipRule="evenodd" />
+              </svg>
+            ) : (
+              <svg className="w-6 h-6" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+              </svg>
+            )}
+          </button>
+          
+          <div className="w-full h-1.5 bg-gray-500/50 rounded-full flex items-center cursor-pointer">
+            <div className="w-full h-full bg-gray-400/80 rounded-full"></div>
+          </div>
+          
+          <button className="text-white flex-shrink-0 p-1">
+              <svg className="w-6 h-6" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M5 8a1 1 0 011-1h1V6a1 1 0 012 0v1h2V6a1 1 0 112 0v1h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1H9v1a1 1 0 11-2 0v-1H6a1 1 0 01-1-1V8z" />
+              </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 
 // --- Universal Camera Stream Component ---
 interface CameraStreamContentProps {
@@ -9,6 +131,7 @@ interface CameraStreamContentProps {
   directStreamUrl?: string;
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
+  getCameraStreamUrl: (entityId: string) => Promise<string>;
   altText?: string;
 }
 
@@ -17,111 +140,117 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
   directStreamUrl,
   haUrl,
   signPath,
+  getCameraStreamUrl,
   altText = 'Прямая трансляция',
 }) => {
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadState, setLoadState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
-  // FIX: The useRef hook requires an initial value. It's now initialized with `undefined` and its type is correctly set to `number | undefined` to handle cases where the timeout is not set.
-  const timeoutRef = useRef<number | undefined>(undefined);
-
+  const [streamType, setStreamType] = useState<'hls' | 'mjpeg' | 'iframe' | 'none'>('none');
+  
   useEffect(() => {
     let isMounted = true;
     
-    const cleanupTimeout = () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = undefined;
-      }
-    };
-
     const setupStream = async () => {
       if (!isMounted) return;
 
-      cleanupTimeout();
       setStreamUrl(null);
       setError(null);
       setLoadState('loading');
+      setStreamType('none');
 
+      if (directStreamUrl) {
+          if (directStreamUrl.includes('.m3u8')) {
+              setStreamType('hls');
+              setStreamUrl(directStreamUrl);
+          } else {
+              setStreamType('iframe');
+              setStreamUrl(directStreamUrl);
+          }
+          setLoadState('loaded');
+          return;
+      }
+      
+      if (!entityId || !haUrl) {
+          setLoadState('idle');
+          return;
+      }
+      
       try {
-        let finalUrl: string | null = null;
-        if (directStreamUrl) {
-          finalUrl = directStreamUrl;
-        } else if (entityId && haUrl && signPath) {
-          const result = await signPath(`/api/camera_proxy_stream/${entityId}`);
-          if (!isMounted) return;
-          const protocol = window.location.protocol;
-          const cleanUrl = haUrl.replace(/^(https?):\/\//, '');
-          finalUrl = `${protocol}//${cleanUrl}${result.path}`;
-        }
-
-        if (finalUrl) {
-          if (!isMounted) return;
-          setStreamUrl(finalUrl);
-          timeoutRef.current = window.setTimeout(() => {
-             if (isMounted) {
-                setError("Тайм-аут загрузки видео. Камера не отвечает. Проверьте URL, сетевое подключение и настройки CORS в Home Assistant.");
-                setLoadState('error');
-             }
-          }, 15000); // 15-second timeout
-        } else {
-            if (isMounted) setLoadState('idle');
+        if (getCameraStreamUrl) {
+          const hlsUrl = await getCameraStreamUrl(entityId);
+          if (isMounted) {
+            const cleanHaUrl = haUrl.replace(/^(https?):\/\//, '');
+            const finalUrl = `${window.location.protocol}//${cleanHaUrl}${hlsUrl}`;
+            setStreamUrl(finalUrl);
+            setStreamType('hls');
+            setLoadState('loaded');
+            return;
+          }
         }
       } catch (err) {
-        if (!isMounted) return;
-        console.error(`Failed to get signed URL for ${entityId}:`, err);
-        setError("Не удалось получить URL для камеры от Home Assistant.");
-        setLoadState('error');
+        console.warn(`Failed to get HLS stream for ${entityId}, falling back to MJPEG. Error:`, err);
+      }
+
+      try {
+        const result = await signPath(`/api/camera_proxy_stream/${entityId}`);
+        if (isMounted) {
+          const protocol = window.location.protocol;
+          const cleanUrl = haUrl.replace(/^(https?):\/\//, '');
+          const finalUrl = `${protocol}//${cleanUrl}${result.path}`;
+          setStreamUrl(finalUrl);
+          setStreamType('mjpeg');
+          setLoadState('loaded');
+        }
+      } catch (err) {
+        if (isMounted) {
+          console.error(`Failed to get signed MJPEG URL for ${entityId}:`, err);
+          setError("Не удалось получить URL для камеры от Home Assistant.");
+          setLoadState('error');
+        }
       }
     };
 
     setupStream();
 
-    return () => {
-      isMounted = false;
-      cleanupTimeout();
-    };
-  }, [entityId, directStreamUrl, haUrl, signPath]);
+    return () => { isMounted = false; };
+  }, [entityId, directStreamUrl, haUrl, signPath, getCameraStreamUrl]);
   
-  const handleLoad = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setLoadState('loaded');
-    setError(null);
-  };
+  const renderStream = () => {
+    if (!streamUrl) return null;
 
-  const handleError = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    setError(`Не удалось загрузить видео. Проверьте URL и настройки CORS в Home Assistant (требуется разрешить '${origin}').`);
-    setLoadState('error');
-  };
-
-  return (
-    <div className="relative w-full h-full bg-black flex items-center justify-center">
-      {streamUrl && (
-        directStreamUrl ? (
+    switch (streamType) {
+      case 'hls':
+        return <VideoPlayer src={streamUrl} />;
+      case 'iframe':
+        return (
           <div className="w-full h-full overflow-hidden">
             <iframe
               src={streamUrl}
-              className={`w-full h-full border-0 bg-black transition-opacity duration-500 ${loadState === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+              className="w-full h-full border-0 bg-black"
               title={altText}
-              onLoad={handleLoad}
-              onError={handleError}
               allow="autoplay; encrypted-media; picture-in-picture"
               sandbox="allow-scripts allow-same-origin"
             />
           </div>
-        ) : (
+        );
+      case 'mjpeg':
+        return (
           <img
-            key={streamUrl}
             src={streamUrl}
-            className={`w-full h-full border-0 bg-black object-cover transition-opacity duration-500 ${loadState === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+            className="w-full h-full border-0 bg-black object-contain"
             alt={altText}
-            onLoad={handleLoad}
-            onError={handleError}
           />
-        )
-      )}
+        );
+      default:
+        return null;
+    }
+  };
+
+
+  return (
+    <div className="relative w-full h-full bg-black flex items-center justify-center">
+      {loadState === 'loaded' && renderStream()}
 
       {loadState === 'loading' && (
          <div className="absolute inset-0 flex items-center justify-center">
@@ -163,9 +292,10 @@ interface DeviceCardProps {
   cardSize: CardSize;
   haUrl?: string;
   signPath?: (path: string) => Promise<{ path: string }>;
+  getCameraStreamUrl?: (entityId: string) => Promise<string>;
 }
 
-const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperatureChange, onBrightnessChange, onPresetChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu, cardSize, haUrl, signPath }) => {
+const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperatureChange, onBrightnessChange, onPresetChange, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu, cardSize, haUrl, signPath, getCameraStreamUrl }) => {
   const isOn = device.status.toLowerCase() === 'включено';
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
   const presetMenuRef = useRef<HTMLDivElement>(null);
@@ -271,8 +401,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
   const renderContent = () => {
     switch (device.type) {
       case DeviceType.Camera:
-        if (!haUrl || !signPath) {
-            return <div>Ошибка: Требуется haUrl и signPath для камеры.</div>
+        if (!haUrl || !signPath || !getCameraStreamUrl) {
+            return <div>Ошибка: Требуется haUrl, signPath и getCameraStreamUrl для камеры.</div>
         }
         return (
             <div className="relative w-full h-full bg-black">
@@ -280,12 +410,9 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
                     entityId={device.id}
                     haUrl={haUrl}
                     signPath={signPath}
+                    getCameraStreamUrl={getCameraStreamUrl}
                     altText={device.name}
                 />
-                 <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent pointer-events-none">
-                    <p className={`${styles.nameText} text-white text-ellipsis overflow-hidden whitespace-nowrap`}>{device.name}</p>
-                    <p className={`${styles.statusText} text-gray-300`}>{device.status}</p>
-                </div>
             </div>
         )
       case DeviceType.DimmableLight:
