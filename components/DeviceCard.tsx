@@ -7,10 +7,9 @@ import Hls from 'hls.js';
 // --- Video Player Component ---
 interface VideoPlayerProps {
   src: string;
-  onContainerClick?: () => void;
 }
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, onContainerClick }) => {
+const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   
@@ -89,23 +88,15 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, onContainerClick }) => {
   }, []);
 
   return (
-    <div className="relative w-full h-full bg-black flex items-center justify-center group">
-      <video ref={videoRef} className="w-full h-full object-contain pointer-events-none" muted autoPlay playsInline />
-      
-      {/* Click overlay to handle opening the floating window */}
-      {onContainerClick && (
-        <div 
-          className="absolute inset-0 z-10 cursor-pointer" 
-          onClick={onContainerClick} 
-        />
-      )}
+    <div className="relative w-full h-full bg-black flex items-center justify-center group pointer-events-none">
+      <video ref={videoRef} className="w-full h-full object-contain" muted autoPlay playsInline />
 
-      <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded-md text-white text-xs font-bold tracking-wider fade-in z-20">
+      <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded-md text-white text-xs font-bold tracking-wider fade-in">
         RTC
       </div>
       
       {/* Controls are placed on a higher z-index to be clickable */}
-      <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20 pointer-events-auto">
+      <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-auto">
         <div className="flex items-center gap-3">
           <button onClick={togglePlay} className="text-white flex-shrink-0 p-1">
             {isPlaying ? (
@@ -119,7 +110,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, onContainerClick }) => {
             )}
           </button>
           
-          <div className="w-full h-1.5 bg-gray-500/50 rounded-full flex items-center cursor-pointer">
+          <div className="w-full h-1.5 bg-gray-500/50 rounded-full flex items-center">
             <div className="w-full h-full bg-gray-400/80 rounded-full"></div>
           </div>
           
@@ -138,7 +129,6 @@ interface CameraStreamContentProps {
   signPath: (path: string) => Promise<{ path: string }>;
   getCameraStreamUrl: (entityId: string) => Promise<string>;
   altText?: string;
-  onContainerClick?: () => void;
 }
 
 export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
@@ -148,7 +138,6 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
   signPath,
   getCameraStreamUrl,
   altText = 'Прямая трансляция',
-  onContainerClick,
 }) => {
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -228,10 +217,10 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
 
     switch (streamType) {
       case 'hls':
-        return <VideoPlayer src={streamUrl} onContainerClick={onContainerClick} />;
+        return <VideoPlayer src={streamUrl} />;
       case 'iframe':
         return (
-          <div className="w-full h-full overflow-hidden relative">
+          <div className="w-full h-full overflow-hidden relative pointer-events-none">
             <iframe
               src={streamUrl}
               className="w-full h-full border-0 bg-black"
@@ -239,12 +228,11 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
               allow="autoplay; encrypted-media; picture-in-picture"
               sandbox="allow-scripts allow-same-origin"
             />
-             {onContainerClick && <div className="absolute inset-0 z-10 cursor-pointer" onClick={onContainerClick} />}
           </div>
         );
       case 'mjpeg':
         return (
-          <div className="relative w-full h-full cursor-pointer" onClick={onContainerClick}>
+          <div className="relative w-full h-full pointer-events-none">
             <img
               src={streamUrl}
               className="w-full h-full border-0 bg-black object-contain"
@@ -295,16 +283,16 @@ interface DeviceCardProps {
   onTemperatureChange: (change: number) => void;
   onBrightnessChange: (brightness: number) => void;
   onPresetChange: (preset: string) => void;
-  onCameraCardClick?: (device: Device) => void;
+  onCameraCardClick: (device: Device) => void;
   isEditMode: boolean;
   onEditDevice: (device: Device) => void;
   onRemoveFromTab?: () => void;
   onContextMenu: (event: React.MouseEvent) => void;
   cardSize: CardSize;
-  haUrl?: string;
-  signPath?: (path: string) => Promise<{ path: string }>;
-  getCameraStreamUrl?: (entityId: string) => Promise<string>;
-  debugLightOn?: boolean;
+  haUrl: string;
+  signPath: (path: string) => Promise<{ path: string }>;
+  getCameraStreamUrl: (entityId: string) => Promise<string>;
+  debugLightOn: boolean;
 }
 
 const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperatureChange, onBrightnessChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu, cardSize, haUrl, signPath, getCameraStreamUrl, debugLightOn }) => {
@@ -402,9 +390,9 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
   const handleClick = () => {
     if (isEditMode) return;
     
-    // Camera clicks are now handled by the onContainerClick prop passed to the player.
-    // This handler remains for other togglable devices.
-    if (isTogglable) {
+    if (isCamera) {
+      onCameraCardClick(device);
+    } else if (isTogglable) {
       onToggle();
     }
   };
@@ -421,23 +409,14 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
             return <div>Ошибка: Требуется haUrl, signPath и getCameraStreamUrl для камеры.</div>
         }
         return (
-            <div className="relative w-full h-full bg-black">
+            <div className="w-full h-full bg-black">
                 <CameraStreamContent 
-                    onContainerClick={() => onCameraCardClick?.(device)}
                     entityId={device.id}
                     haUrl={haUrl}
                     signPath={signPath}
                     getCameraStreamUrl={getCameraStreamUrl}
                     altText={device.name}
                 />
-                {debugLightOn !== undefined && (
-                  <div
-                    className={`absolute bottom-2 left-2 w-4 h-4 rounded-full border-2 border-white transition-colors z-30 ${
-                      debugLightOn ? 'bg-yellow-400' : 'bg-gray-600'
-                    }`}
-                    title={`Debug Light: ${debugLightOn ? 'ON' : 'OFF'}`}
-                  />
-                )}
             </div>
         )
       case DeviceType.DimmableLight:
@@ -561,7 +540,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
   };
 
   const getCardClasses = () => {
-    const baseClasses = "rounded-2xl flex flex-col transition-all duration-200 ease-in-out select-none";
+    const baseClasses = "rounded-2xl flex flex-col transition-all duration-200 ease-in-out select-none relative";
     const onStateClasses = "bg-gray-200 text-gray-900 shadow-lg";
     const offStateClasses = "bg-gray-800/80 hover:bg-gray-700/80 ring-1 ring-white/10";
     
@@ -575,7 +554,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
         finalClasses += `${styles.padding} ${isOn ? onStateClasses : offStateClasses}`;
     }
   
-    if (isTogglable && !isEditMode) {
+    if ((isTogglable || isCamera) && !isEditMode) {
         finalClasses += ' cursor-pointer';
     }
     return finalClasses;
@@ -583,9 +562,9 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
 
   return (
     <div className={getCardClasses()} onClick={handleClick} onContextMenu={handleContextMenu}>
-       <div className="relative w-full h-full">
+       <div className="w-full h-full">
          {isEditMode && (
-          <div className="absolute -top-2 -right-2 z-10 flex flex-col gap-2">
+          <div className="absolute -top-2 -right-2 z-20 flex flex-col gap-2">
             {onRemoveFromTab && (
               <button
                 onClick={(e) => { e.stopPropagation(); onRemoveFromTab(); }}
@@ -610,7 +589,15 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
           </div>
         )}
         {renderContent()}
-      </div>
+       </div>
+        {isCamera && debugLightOn !== undefined && (
+          <div
+            className={`absolute bottom-2 left-2 w-4 h-4 rounded-full border-2 border-white transition-colors z-30 ${
+              debugLightOn ? 'bg-yellow-400' : 'bg-gray-600'
+            }`}
+            title={`Debug Light: ${debugLightOn ? 'ON' : 'OFF'}`}
+          />
+        )}
     </div>
   );
 };
