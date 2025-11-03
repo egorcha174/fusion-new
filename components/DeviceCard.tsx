@@ -89,10 +89,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
 
   return (
     <div className="relative w-full h-full bg-black flex items-center justify-center group">
-      <video ref={videoRef} className="w-full h-full object-contain" muted autoPlay playsInline />
-      
-      {/* Invisible overlay to catch clicks for opening the floating window, placed above the video but below controls */}
-      <div className="absolute inset-0 z-10"></div>
+      <video ref={videoRef} className="w-full h-full object-contain pointer-events-none" muted autoPlay playsInline />
 
       <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded-md text-white text-xs font-bold tracking-wider pointer-events-none fade-in z-20">
         RTC
