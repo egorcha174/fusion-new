@@ -21,12 +21,17 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   const [icon, setIcon] = useState(customization.icon ?? customization.type ?? device.type);
   const [isHidden, setIsHidden] = useState(customization.isHidden ?? false);
 
+  const handleTypeChange = (newType: DeviceType) => {
+    setType(newType);
+    // When the type changes, also update the icon to match, providing a sensible default.
+    // The user can then override the icon again if they wish.
+    setIcon(newType);
+  };
 
   const handleSave = () => {
     // Pass the complete, current state of the form up to the parent component (App.tsx).
     // The parent will be responsible for comparing it to the original device and
-    // deciding what needs to be stored in localStorage. This makes the modal "dumber"
-    // and more reliable.
+    // deciding what needs to be stored in localStorage.
     onSave(device.id, {
       name: name.trim(),
       type,
@@ -77,7 +82,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
             <select
                 id="deviceType"
                 value={type}
-                onChange={(e) => setType(Number(e.target.value) as DeviceType)}
+                onChange={(e) => handleTypeChange(Number(e.target.value) as DeviceType)}
                 className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
             >
                 {availableTypes.map(typeOption => (
