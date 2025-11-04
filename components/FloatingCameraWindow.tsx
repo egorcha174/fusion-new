@@ -10,7 +10,7 @@ interface FloatingCameraWindowProps {
   getCameraStreamUrl: (entityId: string) => Promise<string>;
 }
 
-// Минимальный размер окна
+// Устанавливаем минимальный размер окна, чтобы оно не стало непригодным для использования.
 const MIN_WIDTH = 320;
 const MIN_HEIGHT = 240;
 
@@ -22,7 +22,7 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({
   getCameraStreamUrl,
 }) => {
   const [position, setPosition] = useState<{ x: number; y: number }>({
-    x: window.innerWidth / 2 - 250,
+    x: window.innerWidth / 2 - 250, // Изначально центрируем по горизонтали
     y: 100,
   });
   const [size, setSize] = useState<{ width: number; height: number }>({
@@ -30,21 +30,39 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({
     height: 350,
   });
 
-  // TODO: Можно вынести activeDrag/Resize state для визуализации активного состояния и блокировки pointer events
+  /**
+   * ПОЧЕМУ ЭТОТ ПОДХОД РАБОТАЕТ:
+   * Эта реализация исправляет предыдущие ошибки, создавая полностью независимые
+   * обработчики для перетаскивания и изменения размера.
+   * 1. ИЗОЛЯЦИЯ: `e.stopPropagation()` и `e.preventDefault()` вызываются немедленно
+   *    в обработчиках `onPointerDown`. Это останавливает "всплытие" события к
+   *    нижележащим DnD-библиотекам (например, dnd-kit) и отключает действия браузера
+   *    по умолчанию (например, выделение текста), что было основной причиной
+   *    визуальных артефактов и "залипания" окна.
+   * 2. ЗАХВАТ УКАЗАТЕЛЯ: `target.setPointerCapture(e.pointerId)` — это ключевой момент.
+   *    Он сообщает браузеру, что все последующие события указателя (move, up, cancel)
+   *    для этого конкретного взаимодействия должны отправляться ТОЛЬКО этому элементу,
+   *    даже если курсор выходит за его пределы. Это обеспечивает плавное и
+   *    бесперебойное перетаскивание и изменение размера.
+   * 3. НЕЗАВИСИМАЯ ЛОГИКА: Логика перетаскивания привязана только к заголовку, а логика
+   *    изменения размера — только к угловому маркеру. Они не мешают друг другу.
+   *    Кнопка закрытия также в безопасности, поскольку обработчик перетаскивания
+   *    явно игнорирует события, исходящие от кнопок.
+   */
 
-  // Drag только по заголовку
+  // Обрабатывает перетаскивание окна за заголовок.
   const handleDragPointerDown = useCallback((e: React.PointerEvent) => {
-    // Блокируем drag по кнопкам и другим интерактивным элементам
-    if (
-      e.button !== 0 ||
-      (e.target as HTMLElement).closest('button')
-    )
+    // Реагируем только на основную кнопку мыши и игнорируем клики по интерактивным элементам, таким как кнопки.
+    if (e.button !== 0 || (e.target as HTMLElement).closest('button')) {
       return;
+    }
+    
     e.preventDefault();
     e.stopPropagation();
 
     const target = e.currentTarget as HTMLElement;
     target.setPointerCapture(e.pointerId);
+    target.style.cursor = 'grabbing'; // Визуальная обратная связь
 
     const initialPos = { ...position };
     const startMouse = { x: e.clientX, y: e.clientY };
@@ -56,11 +74,11 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({
         x: initialPos.x + dx,
         y: initialPos.y + dy,
       });
-      // TODO: Доработать чтобы окно не выходило за пределы экрана
     };
-
+    
     const handlePointerUp = () => {
       target.releasePointerCapture(e.pointerId);
+      target.style.cursor = 'grab'; // Восстанавливаем курсор
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
     };
@@ -69,9 +87,10 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({
     window.addEventListener('pointerup', handlePointerUp);
   }, [position]);
 
-  // Resize только по правому нижнему углу
+  // Обрабатывает изменение размера окна за правый нижний маркер.
   const handleResizePointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return;
+
     e.preventDefault();
     e.stopPropagation();
 
@@ -82,123 +101,71 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({
     const startMouse = { x: e.clientX, y: e.clientY };
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
-      const dx = moveEvent.clientX - startMouse.x;
-      const dy = moveEvent.clientY - startMouse.y;
-      setSize({
-        width: Math.max(MIN_WIDTH, initialSize.width + dx),
-        height: Math.max(MIN_HEIGHT, initialSize.height + dy),
-      });
-      // TODO: Добавить debounce/throttle, если ресайз будет лагать на слабых устройствах
+        const dx = moveEvent.clientX - startMouse.x;
+        const dy = moveEvent.clientY - startMouse.y;
+        setSize({
+            width: Math.max(MIN_WIDTH, initialSize.width + dx),
+            height: Math.max(MIN_HEIGHT, initialSize.height + dy),
+        });
     };
-
+    
     const handlePointerUp = () => {
-      target.releasePointerCapture(e.pointerId);
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
+        target.releasePointerCapture(e.pointerId);
+        window.removeEventListener('pointermove', handlePointerMove);
+        window.removeEventListener('pointerup', handlePointerUp);
     };
-
+    
     window.addEventListener('pointermove', handlePointerMove);
     window.addEventListener('pointerup', handlePointerUp);
   }, [size]);
-
-  // Максимальная изоляция оконного слоя: z-index: 10000, pointer-events: 'auto'
-  // TODO: добавить aria-label для кнопки закрытия и ресайза для доступности
+  
+  // TODO: Добавить aria-live регионы для объявления состояния окна для доступности.
+  // TODO: Добавить управление с клавиатуры для перемещения и изменения размера окна.
 
   return (
     <div
+      className="fixed z-50 bg-gray-800 rounded-lg shadow-2xl ring-1 ring-white/10 flex flex-col select-none overflow-hidden fade-in"
       style={{
-        position: 'fixed',
-        left: position.x,
-        top: position.y,
-        width: size.width,
-        height: size.height,
-        zIndex: 10000, // Максимальный z-index
-        background: '#222',
-        borderRadius: 8,
-        boxShadow: '0 4px 32px rgba(0,0,0,0.18)',
-        display: 'flex',
-        flexDirection: 'column',
-        userSelect: 'none', // Защита от выделения текста
-        pointerEvents: 'auto',
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        width: `${size.width}px`,
+        height: `${size.height}px`,
+        touchAction: 'none', // Предотвращает прокрутку на сенсорных устройствах во время перетаскивания/изменения размера
       }}
     >
-      <div
-        style={{
-          width: '100%',
-          height: 42,
-          cursor: 'grab',
-          background: '#303036',
-          borderBottom: '1px solid #444',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 12px',
-        }}
+      <header
         onPointerDown={handleDragPointerDown}
+        className="h-10 bg-gray-700/80 flex-shrink-0 flex items-center justify-between px-3 cursor-grab border-b border-gray-600"
       >
-        <span style={{ fontWeight: 600, color: '#fff' }}>
-          {device.name || 'Камера'}
-        </span>
+        <h3 className="font-bold text-white text-sm truncate">{device.name}</h3>
         <button
-          aria-label="Закрыть окно камеры"
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#fff',
-            fontSize: 20,
-            cursor: 'pointer',
-            padding: 0,
-            marginLeft: 8,
-          }}
           onClick={onClose}
+          className="p-1 rounded-full text-gray-300 hover:bg-gray-600 hover:text-white transition-colors"
+          aria-label="Закрыть окно камеры"
         >
-          ×
-        </button>
-      </div>
-      <div
-        style={{
-          flex: 1,
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        <CameraStreamContent
-          device={device}
-          haUrl={haUrl}
-          signPath={signPath}
-          getCameraStreamUrl={getCameraStreamUrl}
-        />
-        {/* TODO: добавить overlay для drag/resize визуализации */}
-        {/* Правый нижний угол для изменения размера */}
-        <div
-          aria-label="Изменить размер окна"
-          style={{
-            position: 'absolute',
-            bottom: 2,
-            right: 2,
-            width: 18,
-            height: 18,
-            cursor: 'nwse-resize',
-            background: 'rgba(120,120,120,0.68)',
-            borderRadius: 4,
-            border: '1px solid #444',
-            zIndex: 10100,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            pointerEvents: 'auto',
-          }}
-          onPointerDown={handleResizePointerDown}
-        >
-          <svg width="14" height="14">
-            <polyline
-              points="2,12 12,12 12,2"
-              stroke="#fff"
-              strokeWidth={2}
-              fill="none"
-            />
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
           </svg>
-        </div>
+        </button>
+      </header>
+      <div className="flex-grow bg-black min-h-0 relative">
+         <CameraStreamContent
+            entityId={device.id} // Исправлено: передаем entityId, а не весь объект device
+            haUrl={haUrl}
+            signPath={signPath}
+            getCameraStreamUrl={getCameraStreamUrl}
+            altText={device.name}
+          />
+         <div
+            onPointerDown={handleResizePointerDown}
+            className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
+            aria-label="Изменить размер окна"
+            style={{
+                // Создает маленький, едва заметный треугольник в углу для изменения размера
+                clipPath: 'polygon(100% 0, 100% 100%, 0 100%)',
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            }}
+        />
       </div>
     </div>
   );
