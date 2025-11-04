@@ -15,51 +15,60 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({ device, onC
   const [size, setSize] = useState({ width: 500, height: 350 });
   const windowRef = useRef<HTMLDivElement>(null);
 
-  // Dragging logic
-  const onDragMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+  // Dragging logic using Pointer Events
+  const onDragPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
-    e.preventDefault();
+    // Stop propagation to prevent dnd-kit or other underlying elements
+    // from capturing this event and starting their own drag operations.
     e.stopPropagation();
+    
+    const target = e.currentTarget;
+    target.setPointerCapture(e.pointerId);
 
     const { left, top } = windowRef.current!.getBoundingClientRect();
     const dragOffset = { x: e.clientX - left, y: e.clientY - top };
 
-    const handleMouseMove = (moveEvent: MouseEvent) => {
+    const handlePointerMove = (moveEvent: PointerEvent) => {
       setPosition({
         x: moveEvent.clientX - dragOffset.x,
         y: moveEvent.clientY - dragOffset.y,
       });
     };
 
-    const handleMouseUp = () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+    const handlePointerUp = (upEvent: PointerEvent) => {
+      target.releasePointerCapture(upEvent.pointerId);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
   };
 
-  // Resizing logic
-  const onResizeMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+  // Resizing logic using Pointer Events
+  const onResizePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); // Prevent text selection
+    e.stopPropagation(); // Prevent event bubbling to dnd-kit
 
-    const handleMouseMove = (moveEvent: MouseEvent) => {
+    const target = e.currentTarget;
+    target.setPointerCapture(e.pointerId);
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
       setSize(currentSize => ({
         width: Math.max(320, currentSize.width + moveEvent.movementX), // Min width 320px
         height: Math.max(240, currentSize.height + moveEvent.movementY), // Min height 240px
       }));
     };
 
-    const handleMouseUp = () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+    const handlePointerUp = (upEvent: PointerEvent) => {
+      target.releasePointerCapture(upEvent.pointerId);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
   };
 
   return (
@@ -75,7 +84,8 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({ device, onC
     >
       <header
         className="h-10 bg-gray-700/80 flex-shrink-0 flex items-center justify-between px-3 cursor-move"
-        onMouseDown={onDragMouseDown}
+        onPointerDown={onDragPointerDown}
+        style={{ touchAction: 'none' }} // Prevents default touch actions like scrolling
       >
         <h3 className="font-bold text-white text-sm truncate">{device.name}</h3>
         <button
@@ -99,8 +109,9 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({ device, onC
       </div>
        <div
         className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
-        onMouseDown={onResizeMouseDown}
+        onPointerDown={onResizePointerDown}
         style={{
+            touchAction: 'none',
             clipPath: 'polygon(100% 0, 100% 100%, 0 100%)',
             backgroundColor: 'rgba(255, 255, 255, 0.2)',
         }}
