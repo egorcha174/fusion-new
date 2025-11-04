@@ -3,6 +3,7 @@ import { Device, DeviceType, CardSize } from '../types';
 import DeviceIcon from './DeviceIcon';
 import SparklineChart from './SparklineChart';
 import Hls from 'hls.js';
+import { constructHaUrl } from '../utils/url';
 
 // --- Video Player Component ---
 interface VideoPlayerProps {
@@ -164,10 +165,9 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
       
       try {
         if (getCameraStreamUrl) {
-          const hlsUrl = await getCameraStreamUrl(entityId);
+          const hlsUrlPath = await getCameraStreamUrl(entityId);
           if (isMounted) {
-            const cleanHaUrl = haUrl.replace(/^(https?):\/\//, '');
-            const finalUrl = `${window.location.protocol}//${cleanHaUrl}${hlsUrl}`;
+            const finalUrl = constructHaUrl(haUrl, hlsUrlPath, 'http');
             setStreamUrl(finalUrl);
             setStreamType('hls');
             setLoadState('loaded');
@@ -181,9 +181,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
       try {
         const result = await signPath(`/api/camera_proxy_stream/${entityId}`);
         if (isMounted) {
-          const protocol = window.location.protocol;
-          const cleanUrl = haUrl.replace(/^(https?):\/\//, '');
-          const finalUrl = `${protocol}//${cleanUrl}${result.path}`;
+          const finalUrl = constructHaUrl(haUrl, result.path, 'http');
           setStreamUrl(finalUrl);
           setStreamType('mjpeg');
           setLoadState('loaded');
@@ -516,7 +514,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
   const getCardClasses = () => {
     const baseClasses = "rounded-2xl flex flex-col transition-all duration-200 ease-in-out select-none relative";
     const onStateClasses = "bg-gray-200 text-gray-900 shadow-lg";
-    const offStateClasses = "bg-gray-800/80 hover:bg-gray-700/80 ring-1 ring-white/10";
+    const offStateClasses = "bg-gray-800/80 hover:bg-gray-700/80 ring-1 ring-white/5";
     
     let finalClasses = `${baseClasses} aspect-square `;
 

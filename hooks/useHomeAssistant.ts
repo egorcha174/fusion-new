@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry } from '../types';
+import { constructHaUrl } from '../utils/url';
 
 interface HassEntities {
   [key: string]: HassEntity;
@@ -101,11 +102,8 @@ const useHomeAssistant = () => {
     setIsLoading(true);
     messageIdRef.current = 1;
 
-    const cleanUrl = url.replace(/^(https?|wss?):\/\//, '');
-    const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-    const wsUrl = `${protocol}${cleanUrl}/api/websocket`;
-
     try {
+      const wsUrl = constructHaUrl(url, '/api/websocket', 'ws');
       const socket = new WebSocket(wsUrl);
       socketRef.current = socket;
 
