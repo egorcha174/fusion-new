@@ -27,7 +27,7 @@ const IconWrapper: React.FC<{
 
   return (
     <div
-      className={`${sizeClasses[cardSize]} mb-1 ${colorClass} ${className}`}
+      className={`${sizeClasses[cardSize]} mb-1 ${colorClass} ${className} transition-colors duration-300`}
       role={ariaLabel ? 'img' : undefined}
       aria-label={ariaLabel}
       aria-hidden={ariaLabel ? undefined : true}

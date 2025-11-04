@@ -405,7 +405,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
              <div className="flex-grow"></div>
             <div className="text-left">
               <p className={`${styles.nameText} text-ellipsis overflow-hidden whitespace-nowrap`}>{device.name}</p>
-              <p className={`${styles.statusText} ${isOn ? textOnClasses : textOffClasses}`}>{device.status}</p>
+              <p className={`${styles.statusText} ${isOn ? textOnClasses : textOffClasses} transition-colors`}>{device.status}</p>
                {isOn && (
                 <div className="mt-2" onClick={(e) => e.stopPropagation()}>
                     <input
@@ -504,7 +504,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
             </div>
             <div className="text-left">
               <p className={`${styles.nameText} text-ellipsis overflow-hidden whitespace-nowrap`}>{device.name}</p>
-              <p className={`${styles.statusText} ${isOn ? textOnClasses : textOffClasses}`}>{device.status}</p>
+              <p className={`${styles.statusText} ${isOn ? textOnClasses : textOffClasses} transition-colors`}>{device.status}</p>
             </div>
           </div>
         );
@@ -513,7 +513,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
 
   const getCardClasses = () => {
     const baseClasses = "rounded-2xl flex flex-col transition-all duration-200 ease-in-out select-none relative";
-    const onStateClasses = "bg-gray-200 text-gray-900 shadow-lg";
+    const onStateClasses = "bg-gray-200 text-gray-900 shadow-lg scale-[1.03]";
     const offStateClasses = "bg-gray-800/80 hover:bg-gray-700/80 ring-1 ring-white/5";
     
     let finalClasses = `${baseClasses} aspect-square `;
