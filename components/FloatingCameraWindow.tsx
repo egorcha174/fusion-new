@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Device } from '../types';
 import { CameraStreamContent } from './DeviceCard';
 
@@ -13,62 +13,74 @@ interface FloatingCameraWindowProps {
 const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({ device, onClose, haUrl, signPath, getCameraStreamUrl }) => {
   const [position, setPosition] = useState({ x: window.innerWidth / 2 - 250, y: 100 });
   const [size, setSize] = useState({ width: 500, height: 350 });
+  
   const windowRef = useRef<HTMLDivElement>(null);
+  // Using a ref for interaction state to prevent re-renders on move
+  const interactionState = useRef({
+    isDragging: false,
+    isResizing: false,
+    dragOffset: { x: 0, y: 0 },
+  });
+  
+  // A stable ref for the onClose callback to use in event handlers
+  const stableOnClose = useRef(onClose);
+  useEffect(() => {
+    stableOnClose.current = onClose;
+  }, [onClose]);
 
-  // Dragging logic using Pointer Events
-  const onDragPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Only react to the primary mouse button
     if (e.button !== 0) return;
-    // Stop propagation to prevent dnd-kit or other underlying elements
-    // from capturing this event and starting their own drag operations.
-    e.stopPropagation();
     
-    const target = e.currentTarget;
-    target.setPointerCapture(e.pointerId);
+    const target = e.target as HTMLElement;
+    const isResizeHandle = !!target.closest('[data-resize-handle]');
+    const isDragHandle = !!target.closest('[data-drag-handle]');
+    const isCloseButton = !!target.closest('[data-close-button]');
+    
+    // If the close button is clicked, close the window and do nothing else.
+    if (isCloseButton) {
+      stableOnClose.current();
+      return;
+    }
 
-    const { left, top } = windowRef.current!.getBoundingClientRect();
-    const dragOffset = { x: e.clientX - left, y: e.clientY - top };
+    // If it's a drag or resize handle, capture the pointer.
+    if (isDragHandle || isResizeHandle) {
+      // Stop event from bubbling up to underlying elements like dnd-kit
+      e.stopPropagation();
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 
-    const handlePointerMove = (moveEvent: PointerEvent) => {
-      setPosition({
-        x: moveEvent.clientX - dragOffset.x,
-        y: moveEvent.clientY - dragOffset.y,
-      });
-    };
-
-    const handlePointerUp = (upEvent: PointerEvent) => {
-      target.releasePointerCapture(upEvent.pointerId);
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-    };
-
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
+      if (isResizeHandle) {
+        interactionState.current.isResizing = true;
+      } else if (isDragHandle) {
+        interactionState.current.isDragging = true;
+        const { left, top } = windowRef.current!.getBoundingClientRect();
+        interactionState.current.dragOffset = { x: e.clientX - left, y: e.clientY - top };
+      }
+    }
   };
 
-  // Resizing logic using Pointer Events
-  const onResizePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0) return;
-    e.preventDefault(); // Prevent text selection
-    e.stopPropagation(); // Prevent event bubbling to dnd-kit
-
-    const target = e.currentTarget;
-    target.setPointerCapture(e.pointerId);
-
-    const handlePointerMove = (moveEvent: PointerEvent) => {
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    // This handler will only receive events if pointer capture is active
+    if (interactionState.current.isResizing) {
       setSize(currentSize => ({
-        width: Math.max(320, currentSize.width + moveEvent.movementX), // Min width 320px
-        height: Math.max(240, currentSize.height + moveEvent.movementY), // Min height 240px
+        width: Math.max(320, currentSize.width + e.movementX),
+        height: Math.max(240, currentSize.height + e.movementY),
       }));
-    };
+    } else if (interactionState.current.isDragging) {
+      setPosition({
+        x: e.clientX - interactionState.current.dragOffset.x,
+        y: e.clientY - interactionState.current.dragOffset.y,
+      });
+    }
+  };
 
-    const handlePointerUp = (upEvent: PointerEvent) => {
-      target.releasePointerCapture(upEvent.pointerId);
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-    };
-
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Reset interaction state and release pointer capture if it was active
+    if (interactionState.current.isDragging || interactionState.current.isResizing) {
+        interactionState.current.isDragging = false;
+        interactionState.current.isResizing = false;
+        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    }
   };
 
   return (
@@ -80,25 +92,29 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({ device, onC
         top: `${position.y}px`,
         width: `${size.width}px`,
         height: `${size.height}px`,
+        touchAction: 'none', // Prevent default touch actions on the entire window
       }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp} // Also handle cancellation (e.g., browser gesture)
     >
       <header
+        data-drag-handle
         className="h-10 bg-gray-700/80 flex-shrink-0 flex items-center justify-between px-3 cursor-move"
-        onPointerDown={onDragPointerDown}
-        style={{ touchAction: 'none' }} // Prevents default touch actions like scrolling
       >
-        <h3 className="font-bold text-white text-sm truncate">{device.name}</h3>
+        <h3 className="font-bold text-white text-sm truncate select-none">{device.name}</h3>
         <button
-          onClick={onClose}
+          data-close-button
           className="p-1 rounded-full text-gray-300 hover:bg-gray-600 hover:text-white transition-colors"
           aria-label="Close camera view"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 pointer-events-none" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
           </svg>
         </button>
       </header>
-      <div className="flex-grow bg-black min-h-0">
+      <div className="flex-grow bg-black min-h-0 pointer-events-none">
          <CameraStreamContent
             entityId={device.id}
             haUrl={haUrl}
@@ -108,10 +124,9 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({ device, onC
           />
       </div>
        <div
+        data-resize-handle
         className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
-        onPointerDown={onResizePointerDown}
         style={{
-            touchAction: 'none',
             clipPath: 'polygon(100% 0, 100% 100%, 0 100%)',
             backgroundColor: 'rgba(255, 255, 255, 0.2)',
         }}
