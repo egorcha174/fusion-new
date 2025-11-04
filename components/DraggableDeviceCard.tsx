@@ -47,9 +47,7 @@ const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onTog
     const isCamera = device.type === DeviceType.Camera;
     const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && device.type !== DeviceType.Sensor && !isCamera;
 
-    if (isCamera) {
-      onCameraCardClick(device);
-    } else if (isTogglable) {
+    if (isTogglable) {
       onToggle();
     }
   };
@@ -76,6 +74,7 @@ const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onTog
         haUrl={haUrl}
         signPath={signPath}
         getCameraStreamUrl={getCameraStreamUrl}
+        onCameraCardClick={onCameraCardClick}
       />
     </div>
   );

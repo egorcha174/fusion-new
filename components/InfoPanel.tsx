@@ -128,87 +128,55 @@ interface CameraWidgetProps {
 }
 
 const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettingsChange, haUrl, signPath, getCameraStreamUrl }) => {
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const menuRef = useRef<HTMLDivElement>(null);
     const selectedCamera = useMemo(() => cameras.find(c => c.id === settings.selectedEntityId), [cameras, settings.selectedEntityId]);
 
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-                setIsMenuOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    const handleSelectCamera = (entityId: string | null) => {
-        setIsMenuOpen(false);
-        onSettingsChange({ selectedEntityId: entityId });
+    const handleSelectCamera = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        onSettingsChange({ selectedEntityId: e.target.value || null });
     };
     
-    const renderContent = () => {
-        if (settings.selectedEntityId) {
-            return (
-                <CameraStreamContent
-                    entityId={settings.selectedEntityId}
-                    haUrl={haUrl}
-                    signPath={signPath}
-                    getCameraStreamUrl={getCameraStreamUrl}
-                    altText={selectedCamera?.name || 'Прямая трансляция'}
-                />
-            );
-        }
+    const renderStream = () => {
+        if (!settings.selectedEntityId) return null;
         
         return (
-            <div className="w-full h-full flex flex-col items-center justify-center text-gray-500 p-4 text-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <p className="mt-2 text-sm">{cameras.length > 0 ? 'Камера не выбрана' : 'Камеры не найдены'}</p>
-                {cameras.length > 0 && (
-                     <button onClick={() => setIsMenuOpen(true)} className="mt-2 px-3 py-1 bg-gray-700 text-white rounded-md text-xs hover:bg-gray-600 transition-colors">Выбрать камеру</button>
-                )}
-            </div>
+            <CameraStreamContent
+                entityId={settings.selectedEntityId}
+                haUrl={haUrl}
+                signPath={signPath}
+                getCameraStreamUrl={getCameraStreamUrl}
+                altText={selectedCamera?.name || 'Прямая трансляция'}
+            />
         );
     }
 
     return (
-        <div className="relative aspect-video bg-gray-800 rounded-lg group text-white overflow-hidden">
-            {renderContent()}
-            <div className="absolute top-2 right-2" ref={menuRef}>
-                <button 
-                    onClick={() => setIsMenuOpen(p => !p)} 
-                    className="p-1.5 bg-black/40 backdrop-blur-sm rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 hover:bg-black/60"
-                    aria-label="Настройки камеры"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                    </svg>
-                </button>
-                {isMenuOpen && (
-                    <div className="absolute top-full right-0 mt-1 w-56 bg-gray-800/90 backdrop-blur-sm rounded-md shadow-lg z-20 ring-1 ring-black/20 p-1 fade-in">
-                        {cameras.length > 0 && (
-                             <div className="max-h-40 overflow-y-auto">
-                                {cameras.map(camera => (
-                                    <button key={camera.id} onClick={() => handleSelectCamera(camera.id)} className="block w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 rounded-md">
-                                        {camera.name}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                        {selectedCamera && (
-                            <>
-                                <div className="h-px bg-gray-600/50 my-1" />
-                                <button onClick={() => handleSelectCamera(null)} className="block w-full text-left px-3 py-1.5 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-md">
-                                    Отключить камеру
-                                </button>
-                            </>
-                        )}
+        <div>
+             <div className="flex justify-between items-center mb-2">
+                 <h3 className="text-lg font-bold">Камера</h3>
+             </div>
+             <div className="relative aspect-video bg-gray-800 rounded-lg text-white overflow-hidden flex items-center justify-center">
+                {settings.selectedEntityId ? renderStream() : (
+                     <div className="text-gray-500 text-center p-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.55a2 2 0 01.95 1.664V16a2 2 0 01-2 2H5a2 2 0 01-2 2v-2.336a2 2 0 01.95-1.664L8 10l3 3 4-3z" />
+                        </svg>
+                        <p className="mt-2 text-sm">{cameras.length > 0 ? 'Камера не выбрана' : 'Камеры не найдены'}</p>
                     </div>
                 )}
-            </div>
+             </div>
+             {cameras.length > 0 && (
+                <select 
+                    value={settings.selectedEntityId || ""} 
+                    onChange={handleSelectCamera}
+                    className="w-full mt-3 bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+                >
+                    <option value="">-- Выбрать камеру --</option>
+                    {cameras.map(camera => (
+                        <option key={camera.id} value={camera.id}>
+                            {camera.name}
+                        </option>
+                    ))}
+                </select>
+             )}
         </div>
     );
 };
@@ -268,7 +236,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, weatherDevice, sid
                  <CameraWidget
                     cameras={cameras}
                     settings={cameraSettings}
-                    onSettingsChange={onCameraSettingsChange}
+                    onCameraSettingsChange={onCameraSettingsChange}
                     haUrl={haUrl}
                     signPath={signPath}
                     getCameraStreamUrl={getCameraStreamUrl}
