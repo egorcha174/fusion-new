@@ -12,8 +12,8 @@ interface FloatingCameraWindowProps {
 }
 
 // --- Минимальные размеры окна ---
-const MIN_WIDTH = 320;
-const MIN_HEIGHT = 240;
+const MIN_WIDTH = 640;
+const MIN_HEIGHT = 480;
 
 const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({
   device,
