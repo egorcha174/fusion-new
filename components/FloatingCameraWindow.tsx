@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Device } from '../types';
 import { CameraStreamContent } from './DeviceCard';
 
@@ -13,60 +13,54 @@ interface FloatingCameraWindowProps {
 const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({ device, onClose, haUrl, signPath, getCameraStreamUrl }) => {
   const [position, setPosition] = useState({ x: window.innerWidth / 2 - 250, y: 100 });
   const [size, setSize] = useState({ width: 500, height: 350 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
-  const dragOffset = useRef({ x: 0, y: 0 });
   const windowRef = useRef<HTMLDivElement>(null);
 
   // Dragging logic
   const onDragMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
-    setIsDragging(true);
-    const { left, top } = windowRef.current!.getBoundingClientRect();
-    dragOffset.current = { x: e.clientX - left, y: e.clientY - top };
     e.preventDefault();
     e.stopPropagation();
+
+    const { left, top } = windowRef.current!.getBoundingClientRect();
+    const dragOffset = { x: e.clientX - left, y: e.clientY - top };
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      setPosition({
+        x: moveEvent.clientX - dragOffset.x,
+        y: moveEvent.clientY - dragOffset.y,
+      });
+    };
+
+    const handleMouseUp = () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
   };
 
   // Resizing logic
   const onResizeMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
-    setIsResizing(true);
     e.preventDefault();
     e.stopPropagation();
-  };
 
-  const onMouseMove = useCallback((e: MouseEvent) => {
-    if (isDragging) {
-      setPosition({
-        x: e.clientX - dragOffset.current.x,
-        y: e.clientY - dragOffset.current.y,
-      });
-    }
-    if (isResizing) {
+    const handleMouseMove = (moveEvent: MouseEvent) => {
       setSize(currentSize => ({
-        width: Math.max(320, currentSize.width + e.movementX), // Min width 320px
-        height: Math.max(240, currentSize.height + e.movementY), // Min height 240px
+        width: Math.max(320, currentSize.width + moveEvent.movementX), // Min width 320px
+        height: Math.max(240, currentSize.height + moveEvent.movementY), // Min height 240px
       }));
-    }
-  }, [isDragging, isResizing]);
+    };
 
-  const onMouseUp = useCallback(() => {
-    setIsDragging(false);
-    setIsResizing(false);
-  }, []);
+    const handleMouseUp = () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
 
-  useEffect(() => {
-    if (isDragging || isResizing) {
-      window.addEventListener('mousemove', onMouseMove);
-      window.addEventListener('mouseup', onMouseUp);
-      return () => {
-        window.removeEventListener('mousemove', onMouseMove);
-        window.removeEventListener('mouseup', onMouseUp);
-      };
-    }
-  }, [isDragging, isResizing, onMouseMove, onMouseUp]);
-
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
 
   return (
     <div
