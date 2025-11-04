@@ -143,7 +143,6 @@ const UngroupedDevicesContainer: React.FC<UngroupedDevicesContainerProps> = ({
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
     const handleDragEnd = (event: DragEndEvent) => {
-        if (props.isEditMode) return;
         const { active, over } = event;
         if (over && active.id !== over.id) {
             const oldIndex = devices.findIndex((d) => d.id === active.id);

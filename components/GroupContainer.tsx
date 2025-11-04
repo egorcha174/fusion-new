@@ -48,7 +48,6 @@ const GroupContainer: React.FC<GroupContainerProps> = ({
   }, [devices, group.orderedDeviceIds]);
 
   const handleDragEnd = (event: DragEndEvent) => {
-    if (props.isEditMode) return;
     const { active, over } = event;
     if (over && active.id !== over.id) {
       const oldIndex = sortedDevices.findIndex((d) => d.id === active.id);

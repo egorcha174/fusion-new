@@ -29,7 +29,7 @@ const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onTog
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: device.id, disabled: isEditMode });
+  } = useSortable({ id: device.id, disabled: !isEditMode });
 
   const style = {
     transform: CSS.Transform.toString(transform),

@@ -223,11 +223,12 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
           <div className="w-full h-full overflow-hidden relative">
             <iframe
               src={streamUrl}
-              className="w-full h-full border-0 bg-black"
+              className="w-full h-full border-0 bg-black pointer-events-none"
               title={altText}
               allow="autoplay; encrypted-media; picture-in-picture"
               sandbox="allow-scripts allow-same-origin"
             />
+            <div className="absolute inset-0 w-full h-full"></div>
           </div>
         );
       case 'mjpeg':
