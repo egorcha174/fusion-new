@@ -1,6 +1,6 @@
 
 
-import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization } from '../types';
+import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization, WeatherForecast } from '../types';
 
 const getDeviceType = (entity: HassEntity): DeviceType => {
   const entityId = entity.entity_id;
@@ -120,8 +120,19 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
   
   if (device.type === DeviceType.Weather) {
       device.temperature = attributes.temperature;
-      device.forecast = attributes.forecast;
       device.condition = entity.state;
+
+      // Robust forecast mapping. HA can send forecasts in various shapes.
+      if (Array.isArray(attributes.forecast)) {
+        device.forecast = attributes.forecast.map((fc: any): WeatherForecast => ({
+          datetime: fc.datetime,
+          condition: fc.condition,
+          temperature: fc.temperature, // This is usually the high temp
+          templow: fc.templow,       // This is usually the low temp
+        })).filter(fc => fc.datetime && fc.condition && fc.temperature !== undefined); // Ensure essential data exists
+      } else {
+        device.forecast = []; // Ensure forecast is always an array
+      }
   }
 
   return device;
