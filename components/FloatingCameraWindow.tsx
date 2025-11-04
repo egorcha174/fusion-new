@@ -152,10 +152,13 @@ const FloatingCameraWindow = ({
         }}
       >
           {/* ВРЕМЕННО вместо видео */}
-  <div style={{color: '#fff', padding: 16}}>
-    <pre>{JSON.stringify(device, null, 2)}</pre>
-    <div>videoUrl: {videoUrl}</div>
-  </div>
+<CameraStreamContent
+  entityId={device.entityId || device.id}
+  haUrl={haUrl}
+  signPath={signPath}
+  getCameraStreamUrl={getCameraStreamUrl}
+  altText={device.name}
+/>
         {/* Уголок resize */}
         <div
           aria-label="Изменить размер окна"
