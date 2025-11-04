@@ -30,7 +30,9 @@ class ErrorBoundary extends Component<Props, State> {
     window.location.reload();
   };
 
-  render() {
+  // FIX: Convert the render method to a class field arrow function.
+  // This ensures `this` is lexically bound to the component instance, resolving potential context issues with TypeScript's type inference.
+  render = (): ReactNode => {
     if (this.state.hasError) {
       // You can render any custom fallback UI
       return (
