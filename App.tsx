@@ -107,11 +107,6 @@ const App: React.FC = () => {
 
   const activeTab = useMemo(() => tabs.find(t => t.id === activeTabId), [tabs, activeTabId]);
 
-  const weatherDevice = useMemo(() => {
-    // Find the first available weather entity to display in the info panel
-    return Array.from(allKnownDevices.values()).find((d: Device) => d.type === DeviceType.Weather);
-  }, [allKnownDevices]);
-  
   const allCameras = useMemo(() => {
     return Array.from(allKnownDevices.values()).filter((d: Device) => d.haDomain === 'camera');
   }, [allKnownDevices]);
@@ -486,7 +481,6 @@ const App: React.FC = () => {
     <div className="flex min-h-screen bg-gray-900 text-gray-200">
       <InfoPanel 
         clockSettings={clockSettings} 
-        weatherDevice={weatherDevice} 
         sidebarWidth={sidebarWidth} 
         setSidebarWidth={setSidebarWidth}
         cameras={allCameras}

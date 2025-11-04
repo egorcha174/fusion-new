@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ClockSettings, Device, ClockSize, CameraSettings, WeatherForecast } from '../types';
+import { ClockSettings, Device, ClockSize, CameraSettings } from '../types';
 import { CameraStreamContent } from './DeviceCard';
 import ContextMenu from './ContextMenu';
+import WeatherWidget from './WeatherWidget';
 
 interface ClockProps {
     settings: ClockSettings;
@@ -51,66 +52,6 @@ const Clock: React.FC<ClockProps> = ({ settings, sidebarWidth }) => {
             style={fontSizeStyle}
         >
             {time.toLocaleTimeString('ru-RU', options)}
-        </div>
-    );
-};
-
-const getWeatherIcon = (condition?: string): string => {
-    if (!condition) return '❔';
-    const iconMap: Record<string, string> = {
-        'clear-night': '🌙',
-        'cloudy': '☁️',
-        'exceptional': '⚠️',
-        'fog': '🌫️',
-        'hail': '🌨️',
-        'lightning': '⚡',
-        'lightning-rainy': '⛈️',
-        'partlycloudy': '⛅',
-        'pouring': '🌧️',
-        'rainy': '🌦️',
-        'snowy': '❄️',
-        'snowy-rainy': '🌨️',
-        'sunny': '☀️',
-        'windy': '🌬️',
-        'windy-variant': '🌬️',
-    };
-    return iconMap[condition.toLowerCase()] || '❔';
-};
-
-
-const Weather: React.FC<{ weather: Device }> = ({ weather }) => {
-    const { temperature, status, condition, forecast } = weather;
-
-    const getShortDay = (dateString: string) => {
-        const date = new Date(dateString);
-        const day = date.toLocaleDateString('ru-RU', { weekday: 'short' });
-        // Make the first letter lowercase as in the screenshot
-        return day;
-    };
-
-    return (
-        <div>
-            {/* Current Weather */}
-            <div className="flex items-center gap-3">
-                <div className="text-5xl flex-shrink-0">{getWeatherIcon(condition)}</div>
-                <div className="overflow-hidden">
-                    <p className="text-2xl font-bold">{Math.round(temperature || 0)}°C</p>
-                    <p className="text-gray-400 text-sm truncate" title={status}>{status}</p>
-                </div>
-            </div>
-
-            {/* 4-Day Forecast */}
-            {forecast && forecast.length > 0 && (
-                <div className="mt-4 grid grid-cols-4 gap-2 text-center">
-                    {forecast.slice(0, 4).map((day: WeatherForecast, index: number) => (
-                        <div key={index} className="flex flex-col items-center space-y-1">
-                            <p className="text-xs font-medium text-gray-400">{getShortDay(day.datetime)}</p>
-                            <div className="text-3xl">{getWeatherIcon(day.condition)}</div>
-                            <p className="text-sm font-semibold">{Math.round(day.temperature)}°C</p>
-                        </div>
-                    ))}
-                </div>
-            )}
         </div>
     );
 };
@@ -206,7 +147,6 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
 
 interface InfoPanelProps {
     clockSettings: ClockSettings;
-    weatherDevice?: Device | null;
     sidebarWidth: number;
     setSidebarWidth: (width: number) => void;
     cameras: Device[];
@@ -218,7 +158,7 @@ interface InfoPanelProps {
     getCameraStreamUrl: (entityId: string) => Promise<string>;
 }
 
-const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, weatherDevice, sidebarWidth, setSidebarWidth, cameras, cameraSettings, onCameraSettingsChange, onCameraWidgetClick, haUrl, signPath, getCameraStreamUrl }) => {
+const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, sidebarWidth, setSidebarWidth, cameras, cameraSettings, onCameraSettingsChange, onCameraWidgetClick, haUrl, signPath, getCameraStreamUrl }) => {
     const [isResizing, setIsResizing] = useState(false);
 
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -266,19 +206,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, weatherDevice, sid
                     getCameraStreamUrl={getCameraStreamUrl}
                 />
             
-                {weatherDevice ? (
-                    <Weather weather={weatherDevice} />
-                ) : (
-                    <div className="opacity-50">
-                         <div className="flex items-center">
-                             <div className="text-5xl">❔</div>
-                             <div className="ml-4">
-                                <p className="text-3xl font-bold">--°</p>
-                                <p className="text-gray-400">Нет данных о погоде</p>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                <WeatherWidget />
             </div>
 
             <div
