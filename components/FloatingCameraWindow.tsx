@@ -118,7 +118,7 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({
     >
       {/* ЗАГОЛОВОК ОКНА */}
       <header
-        onPointerDown={handleDragPointerDown}
+        onPointerDownCapture={handleDragPointerDown}
         className="h-10 bg-gray-700/80 flex-shrink-0 flex items-center justify-between px-3 cursor-move select-none"
       >
         <h3 className="font-bold text-white text-sm truncate">{device.name}</h3>
@@ -149,10 +149,13 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({
 
       {/* УГОЛОК ДЛЯ ИЗМЕНЕНИЯ РАЗМЕРА */}
        <div
-        onPointerDown={handleResizePointerDown}
+        onPointerDownCapture={handleResizePointerDown}
         className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
         aria-label="Изменить размер окна"
-        // TODO: Добавить визуальный индикатор ресайза (например, иконку) для лучшего UX
+        style={{
+            clipPath: 'polygon(100% 0, 100% 100%, 0 100%)',
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        }}
       />
     </div>
   );
