@@ -136,15 +136,15 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey, getCon
     return (
         <div>
             {/* Current Weather */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
                 <img 
                     src={getWeatherIconUrl(current.icon, '2x')} 
                     alt={current.desc} 
-                    className="w-14 h-14 flex-shrink-0"
+                    className="w-16 h-16 flex-shrink-0 -ml-1"
                 />
                 <div className="overflow-hidden">
-                    <p className="text-2xl font-bold">{current.temp}°C</p>
-                    <p className="text-gray-400 text-sm truncate capitalize" title={current.desc}>{current.desc}</p>
+                    <p className="text-4xl font-bold">{current.temp}°C</p>
+                    <p className="text-gray-400 text-sm -mt-1 truncate capitalize" title={current.desc}>{current.desc}</p>
                 </div>
             </div>
 
@@ -156,9 +156,9 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey, getCon
                          <img 
                             src={getWeatherIconUrl(day.icon)} 
                             alt=""
-                            className="w-10 h-10"
+                            className="w-11 h-11"
                         />
-                        <p className="text-sm font-semibold">{Math.round(day.tempMax)}°</p>
+                        <p className="text-lg font-semibold">{Math.round(day.tempMax)}°</p>
                     </div>
                 ))}
             </div>
