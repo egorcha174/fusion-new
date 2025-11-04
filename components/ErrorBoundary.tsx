@@ -10,11 +10,15 @@ interface State {
 }
 
 class ErrorBoundary extends Component<Props, State> {
-  // Use class property syntax for state initialization. This is the modern standard.
-  public state: State = {
-    hasError: false,
-    error: null,
-  };
+  public state: State;
+
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: null,
+    };
+  }
 
   static getDerivedStateFromError(error: Error): State {
     // Update state so the next render will show the fallback UI.
@@ -30,9 +34,6 @@ class ErrorBoundary extends Component<Props, State> {
     window.location.reload();
   };
 
-  // FIX: Changed from a class field arrow function to a standard class method.
-  // The arrow function was causing a TypeScript error where `this.props` was not recognized.
-  // React correctly binds `this` for the render method in class components.
   render(): ReactNode {
     if (this.state.hasError) {
       // You can render any custom fallback UI

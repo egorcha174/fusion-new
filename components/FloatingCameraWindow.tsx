@@ -15,7 +15,6 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({ device, onC
   const [size, setSize] = useState({ width: 500, height: 350 });
 
   const handleDragPointerDown = useCallback((e: React.PointerEvent) => {
-    // Prevent dragging if the target is the close button or not the primary mouse button.
     if (e.button !== 0 || (e.target as HTMLElement).closest('button')) {
       return;
     }
@@ -87,7 +86,7 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({ device, onC
       }}
     >
       <header
-        onPointerDown={handleDragPointerDown}
+        onPointerDownCapture={handleDragPointerDown}
         className="h-10 bg-gray-700/80 flex-shrink-0 flex items-center justify-between px-3 cursor-move"
       >
         <h3 className="font-bold text-white text-sm truncate select-none">{device.name}</h3>
@@ -111,7 +110,7 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({ device, onC
           />
       </div>
        <div
-        onPointerDown={handleResizePointerDown}
+        onPointerDownCapture={handleResizePointerDown}
         className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
         style={{
             clipPath: 'polygon(100% 0, 100% 100%, 0 100%)',
