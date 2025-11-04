@@ -28,6 +28,16 @@ interface TabContentProps {
   getCameraStreamUrl: (entityId: string) => Promise<string>;
 }
 
+// Unified grid class generator. Uses `auto-fill` to create as many columns as will fit
+// with a minimum size, ensuring cards are consistently sized everywhere.
+const getDeviceGridClasses = (size: CardSize): string => {
+    switch (size) {
+        case 'sm': return 'grid gap-3 grid-cols-[repeat(auto-fill,minmax(7rem,1fr))]'; // min 112px
+        case 'lg': return 'grid gap-5 grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]'; // min 176px
+        case 'md': default: return 'grid gap-4 grid-cols-[repeat(auto-fill,minmax(9rem,1fr))]'; // min 144px
+    }
+};
+
 const TabContent: React.FC<TabContentProps> = ({
   tab,
   devices,
@@ -116,6 +126,7 @@ const TabContent: React.FC<TabContentProps> = ({
                         haUrl={haUrl}
                         signPath={signPath}
                         getCameraStreamUrl={getCameraStreamUrl}
+                        getDeviceGridClasses={getDeviceGridClasses}
                     />
                 ))}
             </div>
@@ -157,20 +168,12 @@ const UngroupedDevicesContainer: React.FC<UngroupedDevicesContainerProps> = ({
         }
     };
 
-    const getGridClasses = (size: CardSize): string => {
-        switch (size) {
-            case 'sm': return 'grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-3';
-            case 'lg': return 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5';
-            case 'md': default: return 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4';
-        }
-    };
-
     return (
         <div>
             <h2 className="text-xs font-bold uppercase text-gray-500 mb-4">Несгруппированные</h2>
              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={devices.map(d => d.id)} strategy={rectSortingStrategy}>
-                    <div className={getGridClasses(props.cardSize)}>
+                    <div className={getDeviceGridClasses(props.cardSize)}>
                         {devices.map((device) => (
                             <DraggableDeviceCard
                                 key={device.id}
