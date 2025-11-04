@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ClockSettings, Device, ClockSize, CameraSettings } from '../types';
+import { ClockSettings, Device, ClockSize, CameraSettings, WeatherForecast } from '../types';
 import { CameraStreamContent } from './DeviceCard';
 import ContextMenu from './ContextMenu';
 
@@ -79,40 +79,41 @@ const getWeatherIcon = (condition?: string): string => {
 
 
 const Weather: React.FC<{ weather: Device }> = ({ weather }) => {
-    const { temperature, unit, status, forecast, condition } = weather;
+    const { temperature, status, condition, forecast } = weather;
 
-    const getDayAbbreviation = (dateString: string) => {
+    const getShortDay = (dateString: string) => {
         const date = new Date(dateString);
-        return date.toLocaleDateString('ru-RU', { weekday: 'short' });
-    }
+        const day = date.toLocaleDateString('ru-RU', { weekday: 'short' });
+        // Make the first letter lowercase as in the screenshot
+        return day;
+    };
 
     return (
         <div>
             {/* Current Weather */}
-            <div className="flex items-center">
-                 <div className="text-4xl">{getWeatherIcon(condition)}</div>
-                 <div className="ml-3 flex-1 overflow-hidden">
-                    <p className="text-xl font-bold">{Math.round(temperature || 0)}{unit}</p>
-                    <p className="text-gray-400 text-sm truncate">{status}</p>
-                 </div>
+            <div className="flex items-center gap-3">
+                <div className="text-5xl flex-shrink-0">{getWeatherIcon(condition)}</div>
+                <div className="overflow-hidden">
+                    <p className="text-2xl font-bold">{Math.round(temperature || 0)}°C</p>
+                    <p className="text-gray-400 text-sm truncate" title={status}>{status}</p>
+                </div>
             </div>
-            
-            {/* Forecast */}
-             {forecast && forecast.length > 1 && (
-                 <div className="mt-4 grid grid-cols-4 gap-2 text-center text-gray-400">
-                    {/* Show today + next 3 days */}
-                    {forecast.slice(0, 4).map((day, index) => (
-                        <div key={index}>
-                            <p className="text-sm">{getDayAbbreviation(day.datetime)}</p>
-                            <p className="text-2xl mt-1">{getWeatherIcon(day.condition)}</p>
-                            <p className="font-semibold text-white mt-1">{Math.round(day.temperature)}°</p>
+
+            {/* 4-Day Forecast */}
+            {forecast && forecast.length > 0 && (
+                <div className="mt-4 grid grid-cols-4 gap-2 text-center">
+                    {forecast.slice(0, 4).map((day: WeatherForecast, index: number) => (
+                        <div key={index} className="flex flex-col items-center space-y-1">
+                            <p className="text-xs font-medium text-gray-400">{getShortDay(day.datetime)}</p>
+                            <div className="text-3xl">{getWeatherIcon(day.condition)}</div>
+                            <p className="text-sm font-semibold">{Math.round(day.temperature)}°C</p>
                         </div>
                     ))}
                 </div>
             )}
         </div>
     );
-}
+};
 
 interface CameraWidgetProps {
     cameras: Device[];
