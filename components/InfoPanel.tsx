@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ClockSettings, Device, ClockSize, CameraSettings } from '../types';
 import { CameraStreamContent } from './DeviceCard';
+import ContextMenu from './ContextMenu';
 
 interface ClockProps {
     settings: ClockSettings;
@@ -129,27 +130,12 @@ interface CameraWidgetProps {
 }
 
 const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettingsChange, onCameraWidgetClick, haUrl, signPath, getCameraStreamUrl }) => {
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const menuRef = useRef<HTMLDivElement>(null);
+    const [contextMenu, setContextMenu] = useState<{ x: number, y: number } | null>(null);
     const selectedCamera = useMemo(() => cameras.find(c => c.id === settings.selectedEntityId), [cameras, settings.selectedEntityId]);
-    
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-                setIsMenuOpen(false);
-            }
-        };
-        if (isMenuOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [isMenuOpen]);
 
     const handleSelectCamera = (entityId: string | null) => {
         onSettingsChange({ selectedEntityId: entityId });
-        setIsMenuOpen(false);
+        setContextMenu(null);
     };
 
     const handleCameraClick = () => {
@@ -157,41 +143,22 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
             onCameraWidgetClick(selectedCamera);
         }
     };
+    
+    const handleContextMenu = (event: React.MouseEvent) => {
+        event.preventDefault();
+        setContextMenu({ x: event.clientX, y: event.clientY });
+    };
+
+    const handleCloseContextMenu = () => {
+        setContextMenu(null);
+    };
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-2">
-                <h3 className="text-lg font-bold">Камера</h3>
-                {cameras.length > 0 && (
-                    <div className="relative" ref={menuRef}>
-                        <button
-                            onClick={() => setIsMenuOpen(prev => !prev)}
-                            className="p-1.5 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white"
-                            aria-label="Выбрать камеру"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                            </svg>
-                        </button>
-                        {isMenuOpen && (
-                            <div className="absolute top-full right-0 mt-1 w-48 bg-gray-700 rounded-md shadow-lg z-20 ring-1 ring-black ring-opacity-5 p-1 max-h-48 overflow-y-auto fade-in">
-                                {cameras.map(camera => (
-                                    <button
-                                        key={camera.id}
-                                        onClick={() => handleSelectCamera(camera.id)}
-                                        className="block w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-600 rounded-md"
-                                    >
-                                        {camera.name}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
             <div
                 className="relative aspect-video bg-gray-800 rounded-lg text-white overflow-hidden flex items-center justify-center group"
                 onClick={handleCameraClick}
+                onContextMenu={handleContextMenu}
             >
                 {selectedCamera ? (
                     <>
@@ -213,10 +180,29 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.55a2 2 0 01.95 1.664V16a2 2 0 01-2 2H5a2 2 0 01-2 2v-2.336a2 2 0 01.95-1.664L8 10l3 3 4-3z" />
                         </svg>
-                        <p className="mt-2 text-sm">{cameras.length > 0 ? 'Выберите камеру из меню' : 'Камеры не найдены'}</p>
+                        <p className="mt-2 text-sm">{cameras.length > 0 ? 'Выберите камеру (ПКМ)' : 'Камеры не найдены'}</p>
                     </div>
                 )}
             </div>
+
+            {contextMenu && cameras.length > 0 && (
+                <ContextMenu
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    isOpen={!!contextMenu}
+                    onClose={handleCloseContextMenu}
+                >
+                    {cameras.map(camera => (
+                        <div
+                            key={camera.id}
+                            onClick={() => handleSelectCamera(camera.id)}
+                            className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer text-sm"
+                        >
+                            {camera.name}
+                        </div>
+                    ))}
+                </ContextMenu>
+            )}
         </div>
     );
 };
