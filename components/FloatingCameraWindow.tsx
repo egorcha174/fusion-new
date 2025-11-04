@@ -151,23 +151,11 @@ const FloatingCameraWindow = ({
           background: '#121212',
         }}
       >
-        {
-          videoUrl ? (
-            <video
-              src={videoUrl}
-              autoPlay
-              controls
-              style={{
-                maxWidth: '100%',
-                maxHeight: '100%',
-                background: 'black',
-                borderRadius: 8,
-              }}
-            />
-          ) : (
-            <div style={{ color: '#888', fontSize: 18 }}>Нет ссылки на видео / камера не выбрана</div>
-          )
-        }
+          {/* ВРЕМЕННО вместо видео */}
+  <div style={{color: '#fff', padding: 16}}>
+    <pre>{JSON.stringify(device, null, 2)}</pre>
+    <div>videoUrl: {videoUrl}</div>
+  </div>
         {/* Уголок resize */}
         <div
           aria-label="Изменить размер окна"
