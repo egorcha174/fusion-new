@@ -259,7 +259,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, weatherDevice, sid
                 <Clock settings={clockSettings} sidebarWidth={sidebarWidth} />
             </div>
 
-            <div className="mt-8 space-y-8">
+            <div className="mt-4 space-y-4">
                  <CameraWidget
                     cameras={cameras}
                     settings={cameraSettings}
