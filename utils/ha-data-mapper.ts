@@ -121,13 +121,22 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
       device.temperature = attributes.temperature;
       device.condition = entity.state;
 
-      // More robust forecast mapping to handle different HA weather integration formats.
+      // Fully robust forecast mapping to handle various HA weather integration formats.
       let forecastArray: any[] | undefined = undefined;
-      if (Array.isArray(attributes.forecast)) {
-          forecastArray = attributes.forecast;
-      } else if (typeof attributes.forecast === 'object' && attributes.forecast !== null && Array.isArray(attributes.forecast.daily)) {
-          // Handle cases where forecast is an object with a 'daily' key
-          forecastArray = attributes.forecast.daily;
+      const forecastAttr = attributes.forecast;
+
+      if (Array.isArray(forecastAttr)) {
+          // Case 1: forecast is a direct array: [ {day1}, {day2} ]
+          forecastArray = forecastAttr;
+      } else if (typeof forecastAttr === 'object' && forecastAttr !== null) {
+          // Case 2: forecast is an object with a 'daily' or 'forecast' key.
+          if (Array.isArray(forecastAttr.daily)) {
+              // e.g., { daily: [...] }
+              forecastArray = forecastAttr.daily;
+          } else if (Array.isArray(forecastAttr.forecast)) {
+              // e.g., { forecast: [...] }
+              forecastArray = forecastAttr.forecast;
+          }
       }
 
       if (forecastArray) {
@@ -135,11 +144,13 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
           // Be flexible with property names (e.g., some integrations use 'max_temp' or 'temp')
           const temp = fc.temperature ?? fc.max_temp ?? fc.temp;
           const lowTemp = fc.templow ?? fc.min_temp;
+          const condition = fc.condition ?? fc.state; // also check 'state' for condition
+          const dt = fc.datetime ?? fc.date; // also check 'date' for datetime
           
-          if (fc.datetime && fc.condition && temp !== undefined) {
+          if (dt && condition && temp !== undefined) {
             return {
-              datetime: fc.datetime,
-              condition: fc.condition,
+              datetime: dt,
+              condition: condition,
               temperature: temp,
               templow: lowTemp,
             };

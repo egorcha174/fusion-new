@@ -111,8 +111,8 @@ export interface HassEntity {
     temperature?: number;
     current_temperature?: number;
     device_id?: string;
-    // FIX: Allow forecast to be an array or an object with a 'daily' property to support different HA integrations.
-    forecast?: any[] | { daily?: any[] };
+    // Allow forecast to be `any` to support various unpredictable structures from HA integrations.
+    forecast?: any;
     preset_mode?: string;
     preset_modes?: string[];
     [key: string]: any;
