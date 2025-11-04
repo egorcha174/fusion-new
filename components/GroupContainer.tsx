@@ -57,18 +57,43 @@ const GroupContainer: React.FC<GroupContainerProps> = ({
   };
 
   const getGridClasses = (size: CardSize): string => {
+    const colSpan = group.colSpan || 1;
+     // Base classes
+    let base = 'grid gap-3 ';
+
+    // Responsive columns based on group width
+    switch (colSpan) {
+        case 1: base += 'grid-cols-2 '; break;
+        case 2: base += 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 '; break;
+        case 3: base += 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6 '; break;
+        case 4: base += 'grid-cols-4 sm:grid-cols-6 md:grid-cols-8 '; break;
+        default: base += 'grid-cols-2 sm:grid-cols-4 ';
+    }
+    
+    // Adjust gaps based on card size for better density
     switch (size) {
-      case 'sm': return 'grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-3';
-      case 'lg': return 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5';
-      case 'md': default: return 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4';
+        case 'sm': return base + 'gap-3';
+        case 'lg': return base + 'gap-5';
+        case 'md': default: return base + 'gap-4';
     }
   };
   
   const isCollapsed = group.isCollapsed && !props.isEditMode;
 
+  const colSpan = group.colSpan || 1;
+  const rowSpan = group.rowSpan || 1;
+
+  const groupStyle: React.CSSProperties = {
+      gridColumn: `span ${colSpan} / span ${colSpan}`,
+      gridRow: `span ${rowSpan} / span ${rowSpan}`,
+  };
+
   return (
-    <div>
-        <div className="flex items-center mb-4">
+    <div 
+        style={groupStyle} 
+        className="bg-gray-800/40 rounded-2xl p-4 flex flex-col min-h-[220px]"
+    >
+        <div className="flex items-center mb-4 flex-shrink-0">
             <button onClick={() => props.onToggleCollapse(group.id)} className="p-1 -ml-1 text-gray-500 hover:text-white">
                 <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform ${isCollapsed ? '-rotate-90' : ''}`} viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -84,31 +109,33 @@ const GroupContainer: React.FC<GroupContainerProps> = ({
             )}
         </div>
       {!isCollapsed && (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={sortedDevices.map(d => d.id)} strategy={rectSortingStrategy}>
-            <div className={getGridClasses(props.cardSize)}>
-                {sortedDevices.map((device) => (
-                <DraggableDeviceCard
-                    key={device.id}
-                    device={device}
-                    onToggle={() => props.onDeviceToggle(device.id)}
-                    onTemperatureChange={(change) => props.onTemperatureChange(device.id, change)}
-                    onBrightnessChange={(brightness) => props.onBrightnessChange(device.id, brightness)}
-                    onPresetChange={(preset) => props.onPresetChange(device.id, preset)}
-                    onCameraCardClick={props.onCameraCardClick}
-                    isEditMode={props.isEditMode}
-                    onEditDevice={props.onEditDevice}
-                    onRemoveFromTab={() => props.onDeviceRemoveFromTab(device.id, tabId)}
-                    onContextMenu={(event) => props.onDeviceContextMenu(event, device.id, tabId)}
-                    cardSize={props.cardSize}
-                    haUrl={props.haUrl}
-                    signPath={props.signPath}
-                    getCameraStreamUrl={props.getCameraStreamUrl}
-                />
-                ))}
-            </div>
-            </SortableContext>
-        </DndContext>
+        <div className="flex-grow min-h-0 overflow-y-auto pr-2 -mr-2">
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={sortedDevices.map(d => d.id)} strategy={rectSortingStrategy}>
+                <div className={getGridClasses(props.cardSize)}>
+                    {sortedDevices.map((device) => (
+                    <DraggableDeviceCard
+                        key={device.id}
+                        device={device}
+                        onToggle={() => props.onDeviceToggle(device.id)}
+                        onTemperatureChange={(change) => props.onTemperatureChange(device.id, change)}
+                        onBrightnessChange={(brightness) => props.onBrightnessChange(device.id, brightness)}
+                        onPresetChange={(preset) => props.onPresetChange(device.id, preset)}
+                        onCameraCardClick={props.onCameraCardClick}
+                        isEditMode={props.isEditMode}
+                        onEditDevice={props.onEditDevice}
+                        onRemoveFromTab={() => props.onDeviceRemoveFromTab(device.id, tabId)}
+                        onContextMenu={(event) => props.onDeviceContextMenu(event, device.id, tabId)}
+                        cardSize={props.cardSize}
+                        haUrl={props.haUrl}
+                        signPath={props.signPath}
+                        getCameraStreamUrl={props.getCameraStreamUrl}
+                    />
+                    ))}
+                </div>
+                </SortableContext>
+            </DndContext>
+        </div>
       )}
     </div>
   );

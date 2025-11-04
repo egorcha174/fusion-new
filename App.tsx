@@ -1,5 +1,6 @@
 
 
+
 import React, { useMemo, useState, useEffect } from 'react';
 import Settings from './components/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -189,7 +190,13 @@ const App: React.FC = () => {
   // --- Group Management Handlers ---
     const handleAddGroup = () => {
         if (!activeTabId) return;
-        const newGroup: Group = { id: nanoid(), name: 'Новая группа', orderedDeviceIds: [] };
+        const newGroup: Group = { 
+            id: nanoid(), 
+            name: 'Новая группа', 
+            orderedDeviceIds: [],
+            colSpan: 1, // Default size
+            rowSpan: 1, // Default size
+        };
         setTabs(tabs.map(tab => {
             if (tab.id === activeTabId) {
                 const groups = [...(tab.groups || []), newGroup];
@@ -199,10 +206,10 @@ const App: React.FC = () => {
         }));
     };
 
-    const handleUpdateGroup = (tabId: string, groupId: string, newName: string) => {
+    const handleUpdateGroup = (tabId: string, groupId: string, newValues: { name: string; colSpan: number; rowSpan: number }) => {
         setTabs(tabs.map(tab => {
             if (tab.id === tabId) {
-                const groups = (tab.groups || []).map(g => g.id === groupId ? { ...g, name: newName } : g);
+                const groups = (tab.groups || []).map(g => g.id === groupId ? { ...g, ...newValues } : g);
                 return { ...tab, groups };
             }
             return tab;

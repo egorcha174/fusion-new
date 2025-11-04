@@ -61,6 +61,8 @@ export interface Group {
     name: string;
     isCollapsed?: boolean;
     orderedDeviceIds?: string[];
+    colSpan?: number; // New: for grid layout
+    rowSpan?: number; // New: for grid layout
 }
 
 // Represents a user-created tab on the dashboard

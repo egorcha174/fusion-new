@@ -5,18 +5,20 @@ import ConfirmDialog from './ConfirmDialog';
 interface GroupSettingsModalProps {
     tabId: string;
     group: Group;
-    onSave: (tabId: string, groupId: string, newName: string) => void;
+    onSave: (tabId: string, groupId: string, newValues: { name: string; colSpan: number; rowSpan: number }) => void;
     onDelete: (tabId: string, groupId: string) => void;
     onClose: () => void;
 }
 
 const GroupSettingsModal: React.FC<GroupSettingsModalProps> = ({ tabId, group, onSave, onDelete, onClose }) => {
     const [name, setName] = useState(group.name);
+    const [colSpan, setColSpan] = useState(group.colSpan || 1);
+    const [rowSpan, setRowSpan] = useState(group.rowSpan || 1);
     const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
     const handleSave = () => {
         if (name.trim()) {
-            onSave(tabId, group.id, name.trim());
+            onSave(tabId, group.id, { name: name.trim(), colSpan, rowSpan });
         }
     };
 
@@ -28,6 +30,8 @@ const GroupSettingsModal: React.FC<GroupSettingsModalProps> = ({ tabId, group, o
         onDelete(tabId, group.id);
         setIsConfirmingDelete(false); // onClose will be called by parent
     };
+    
+    const sizeOptions = [1, 2, 3, 4];
 
     return (
         <>
@@ -36,7 +40,7 @@ const GroupSettingsModal: React.FC<GroupSettingsModalProps> = ({ tabId, group, o
                     <div className="p-6 border-b border-gray-700">
                         <h2 className="text-xl font-bold text-white">Настроить группу</h2>
                     </div>
-                    <div className="p-6 space-y-4">
+                    <div className="p-6 space-y-6">
                         <div>
                             <label htmlFor="groupName" className="block text-sm font-medium text-gray-300 mb-2">Название группы</label>
                             <input
@@ -46,6 +50,33 @@ const GroupSettingsModal: React.FC<GroupSettingsModalProps> = ({ tabId, group, o
                                 onChange={(e) => setName(e.target.value)}
                                 className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-medium text-gray-300 mb-2">Размер группы</h3>
+                            <div className="flex gap-4">
+                                <div className="flex-1">
+                                     <label htmlFor="groupColSpan" className="block text-xs text-gray-400 mb-1">Ширина (колонки)</label>
+                                      <select
+                                        id="groupColSpan"
+                                        value={colSpan}
+                                        onChange={(e) => setColSpan(Number(e.target.value))}
+                                        className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+                                      >
+                                          {sizeOptions.map(size => <option key={size} value={size}>{size}</option>)}
+                                      </select>
+                                </div>
+                                 <div className="flex-1">
+                                     <label htmlFor="groupRowSpan" className="block text-xs text-gray-400 mb-1">Высота (строки)</label>
+                                     <select
+                                        id="groupRowSpan"
+                                        value={rowSpan}
+                                        onChange={(e) => setRowSpan(Number(e.target.value))}
+                                        className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+                                      >
+                                          {sizeOptions.map(size => <option key={size} value={size}>{size}</option>)}
+                                      </select>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div className="p-6 flex justify-between items-center bg-gray-800/50 rounded-b-2xl">

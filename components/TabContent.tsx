@@ -91,39 +91,45 @@ const TabContent: React.FC<TabContentProps> = ({
   }
 
   return (
-    <section className="space-y-8">
-        {groups.map(group => (
-            <GroupContainer
-                key={group.id}
-                tabId={tab.id}
-                group={group}
-                devices={groupedDevices.get(group.id) || []}
-                onDeviceOrderChange={onDeviceOrderChange}
-                onDeviceRemoveFromTab={onDeviceRemoveFromTab}
-                onDeviceToggle={onDeviceToggle}
-                onTemperatureChange={onTemperatureChange}
-                onBrightnessChange={onBrightnessChange}
-                onPresetChange={onPresetChange}
-                onCameraCardClick={onCameraCardClick}
-                isEditMode={isEditMode}
-                onEditDevice={onEditDevice}
-                onDeviceContextMenu={onDeviceContextMenu}
-                onEditGroup={onEditGroup}
-                onToggleCollapse={onToggleGroupCollapse}
-                cardSize={cardSize}
-                haUrl={haUrl}
-                signPath={signPath}
-                getCameraStreamUrl={getCameraStreamUrl}
-            />
-        ))}
+    <section>
+        {groups.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 auto-rows-min">
+                {groups.map(group => (
+                    <GroupContainer
+                        key={group.id}
+                        tabId={tab.id}
+                        group={group}
+                        devices={groupedDevices.get(group.id) || []}
+                        onDeviceOrderChange={onDeviceOrderChange}
+                        onDeviceRemoveFromTab={onDeviceRemoveFromTab}
+                        onDeviceToggle={onDeviceToggle}
+                        onTemperatureChange={onTemperatureChange}
+                        onBrightnessChange={onBrightnessChange}
+                        onPresetChange={onPresetChange}
+                        onCameraCardClick={onCameraCardClick}
+                        isEditMode={isEditMode}
+                        onEditDevice={onEditDevice}
+                        onDeviceContextMenu={onDeviceContextMenu}
+                        onEditGroup={onEditGroup}
+                        onToggleCollapse={onToggleGroupCollapse}
+                        cardSize={cardSize}
+                        haUrl={haUrl}
+                        signPath={signPath}
+                        getCameraStreamUrl={getCameraStreamUrl}
+                    />
+                ))}
+            </div>
+        )}
 
         {sortedUngroupedDevices.length > 0 && (
-            <UngroupedDevicesContainer
-                tabId={tab.id}
-                devices={sortedUngroupedDevices}
-                onDeviceOrderChange={(ordered) => onDeviceOrderChange(tab.id, ordered, null)}
-                {...{onDeviceRemoveFromTab, onDeviceToggle, onTemperatureChange, onBrightnessChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onDeviceContextMenu, cardSize, haUrl, signPath, getCameraStreamUrl }}
-            />
+            <div className={groups.length > 0 ? "mt-8" : ""}>
+                <UngroupedDevicesContainer
+                    tabId={tab.id}
+                    devices={sortedUngroupedDevices}
+                    onDeviceOrderChange={(ordered) => onDeviceOrderChange(tab.id, ordered, null)}
+                    {...{onDeviceRemoveFromTab, onDeviceToggle, onTemperatureChange, onBrightnessChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onDeviceContextMenu, cardSize, haUrl, signPath, getCameraStreamUrl }}
+                />
+            </div>
         )}
     </section>
   );
