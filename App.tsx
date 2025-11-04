@@ -70,6 +70,7 @@ const App: React.FC = () => {
   const [cardSize, setCardSize] = useLocalStorage<CardSize>('ha-card-size', 'md');
   const [sidebarWidth, setSidebarWidth] = useLocalStorage<number>('ha-sidebar-width', 320);
   const [haUrl] = useLocalStorage('ha-url', '');
+  const [openWeatherMapKey, setOpenWeatherMapKey] = useLocalStorage<string>('ha-openweathermap-key', '');
 
 
   const isLg = useIsLg();
@@ -440,7 +441,7 @@ const App: React.FC = () => {
   const renderPage = () => {
     switch (currentPage) {
       case 'settings':
-        return <div className="flex justify-center items-start pt-10"><Settings onConnect={connect} connectionStatus={connectionStatus} error={error} onDisconnect={disconnect} clockSettings={clockSettings} onClockSettingsChange={setClockSettings} cardSize={cardSize} onCardSizeChange={setCardSize} /></div>;
+        return <div className="flex justify-center items-start pt-10"><Settings onConnect={connect} connectionStatus={connectionStatus} error={error} onDisconnect={disconnect} clockSettings={clockSettings} onClockSettingsChange={setClockSettings} cardSize={cardSize} onCardSizeChange={setCardSize} openWeatherMapKey={openWeatherMapKey} onOpenWeatherMapKeyChange={setOpenWeatherMapKey} /></div>;
       case 'all-devices':
         return <AllDevicesPage rooms={filteredRoomsForDevicePage} customizations={customizations} onToggleVisibility={handleToggleVisibility} tabs={tabs} onDeviceAddToTab={handleDeviceAddToTab} />;
       case 'dashboard':
@@ -490,6 +491,7 @@ const App: React.FC = () => {
         haUrl={haUrl}
         signPath={signPath}
         getCameraStreamUrl={getCameraStreamUrl}
+        openWeatherMapKey={openWeatherMapKey}
       />
       <div className="flex flex-col flex-1" style={{ marginLeft: isLg ? `${sidebarWidth}px` : '0px' }}>
         <DashboardHeader

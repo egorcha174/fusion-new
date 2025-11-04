@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { OPENWEATHERMAP_KEY } from '../constants';
 import { constructHaUrl } from '../utils/url';
 
 // --- Types ---
@@ -21,7 +20,11 @@ interface WeatherData {
     forecast: ForecastDay[];
 }
 
-const WeatherWidget: React.FC = () => {
+interface WeatherWidgetProps {
+    openWeatherMapKey: string;
+}
+
+const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey }) => {
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -39,7 +42,7 @@ const WeatherWidget: React.FC = () => {
                 setLoading(false);
                 return;
             }
-            if (OPENWEATHERMAP_KEY === 'YOUR_OPENWEATHERMAP_KEY') {
+            if (!openWeatherMapKey) {
                 setError("Ключ API OpenWeatherMap не настроен.");
                 setLoading(false);
                 return;
@@ -69,7 +72,7 @@ const WeatherWidget: React.FC = () => {
                 }
 
                 // 2. Get forecast from OpenWeatherMap
-                const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${OPENWEATHERMAP_KEY}&units=metric&lang=ru`;
+                const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${openWeatherMapKey}&units=metric&lang=ru`;
                 const weatherRes = await fetch(forecastUrl);
 
                 if (!weatherRes.ok) {
@@ -116,7 +119,7 @@ const WeatherWidget: React.FC = () => {
         };
 
         fetchWeather();
-    }, [haUrl, token]);
+    }, [haUrl, token, openWeatherMapKey]);
 
     if (loading) {
         return (

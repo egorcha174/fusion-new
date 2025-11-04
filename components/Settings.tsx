@@ -1,4 +1,5 @@
 
+
 import React, { useRef, useState } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ClockSettings, CardSize, ClockSize } from '../types';
@@ -14,6 +15,8 @@ interface SettingsProps {
   onClockSettingsChange?: (settings: ClockSettings) => void;
   cardSize?: CardSize;
   onCardSizeChange?: (size: CardSize) => void;
+  openWeatherMapKey?: string;
+  onOpenWeatherMapKeyChange?: (key: string) => void;
 }
 
 // Keys to be backed up
@@ -26,9 +29,10 @@ const LOCAL_STORAGE_KEYS = [
   'ha-clock-settings',
   'ha-card-size',
   'ha-sidebar-width',
+  'ha-openweathermap-key',
 ];
 
-const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error, onDisconnect, clockSettings, onClockSettingsChange, cardSize, onCardSizeChange }) => {
+const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error, onDisconnect, clockSettings, onClockSettingsChange, cardSize, onCardSizeChange, openWeatherMapKey, onOpenWeatherMapKeyChange }) => {
   const [url, setUrl] = useLocalStorage('ha-url', '');
   const [token, setToken] = useLocalStorage('ha-token', '');
   const [localError, setLocalError] = useState('');
@@ -119,7 +123,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
 
   const isLoading = connectionStatus === 'connecting';
 
-  if (connectionStatus === 'connected' && onDisconnect && clockSettings && onClockSettingsChange && cardSize && onCardSizeChange) {
+  if (connectionStatus === 'connected' && onDisconnect && clockSettings && onClockSettingsChange && cardSize && onCardSizeChange && openWeatherMapKey !== undefined && onOpenWeatherMapKeyChange) {
     return (
         <div className="w-full max-w-md bg-gray-800 p-8 rounded-2xl shadow-lg ring-1 ring-white/10 space-y-8">
             <div>
@@ -201,6 +205,26 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                         className={`flex-1 py-2 rounded-lg text-sm transition-colors ${cardSize === 'lg' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
                         Большой
                     </button>
+                </div>
+            </div>
+            
+            <div className="border-t border-gray-700 pt-6">
+                <h2 className="text-xl font-bold text-gray-100 mb-4">API Ключи</h2>
+                <div>
+                    <label htmlFor="owmKey" className="block text-sm font-medium text-gray-300 mb-2">
+                        OpenWeatherMap API Key
+                    </label>
+                    <input
+                        id="owmKey"
+                        type="password"
+                        value={openWeatherMapKey}
+                        onChange={(e) => onOpenWeatherMapKeyChange(e.target.value)}
+                        placeholder="Введите ваш API ключ"
+                        className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-2">
+                        Необходим для виджета погоды.
+                    </p>
                 </div>
             </div>
 
