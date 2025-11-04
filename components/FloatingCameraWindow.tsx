@@ -27,7 +27,7 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({
 
   // Обработчик для перетаскивания окна.
   // Использует Pointer Events для лучшей совместимости и предотвращения конфликтов.
-  // useCallback мемоизирует функцию, чтобы избежать лишних ререндеров дочерних компонентов.
+  // useCallback мемоизирует функцию, чтобы избежать лишних ререндеров.
   const handleDragPointerDown = useCallback((e: React.PointerEvent) => {
     // Игнорируем клики не левой кнопкой мыши и клики по кнопкам внутри заголовка.
     if (e.button !== 0 || (e.target as HTMLElement).closest('button')) {
@@ -129,7 +129,6 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({
         {/*
           КЛЮЧЕВОЕ ИЗМЕНЕНИЕ:
           Рендерим компонент CameraStreamContent, который отвечает за получение и отображение видеопотока.
-          Передаем ему все необходимые props, полученные от родителя (App.tsx).
         */}
         <CameraStreamContent
           entityId={device.id}
