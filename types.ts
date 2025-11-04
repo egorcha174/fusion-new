@@ -1,6 +1,5 @@
 
 
-
 export enum DeviceType {
   Light,
   Lamp,
@@ -112,7 +111,8 @@ export interface HassEntity {
     temperature?: number;
     current_temperature?: number;
     device_id?: string;
-    forecast?: WeatherForecast[];
+    // FIX: Allow forecast to be an array or an object with a 'daily' property to support different HA integrations.
+    forecast?: any[] | { daily?: any[] };
     preset_mode?: string;
     preset_modes?: string[];
     [key: string]: any;

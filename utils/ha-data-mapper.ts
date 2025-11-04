@@ -1,5 +1,4 @@
 
-
 import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization, WeatherForecast } from '../types';
 
 const getDeviceType = (entity: HassEntity): DeviceType => {
@@ -122,14 +121,31 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
       device.temperature = attributes.temperature;
       device.condition = entity.state;
 
-      // Robust forecast mapping. HA can send forecasts in various shapes.
+      // More robust forecast mapping to handle different HA weather integration formats.
+      let forecastArray: any[] | undefined = undefined;
       if (Array.isArray(attributes.forecast)) {
-        device.forecast = attributes.forecast.map((fc: any): WeatherForecast => ({
-          datetime: fc.datetime,
-          condition: fc.condition,
-          temperature: fc.temperature, // This is usually the high temp
-          templow: fc.templow,       // This is usually the low temp
-        })).filter(fc => fc.datetime && fc.condition && fc.temperature !== undefined); // Ensure essential data exists
+          forecastArray = attributes.forecast;
+      } else if (typeof attributes.forecast === 'object' && attributes.forecast !== null && Array.isArray(attributes.forecast.daily)) {
+          // Handle cases where forecast is an object with a 'daily' key
+          forecastArray = attributes.forecast.daily;
+      }
+
+      if (forecastArray) {
+        device.forecast = forecastArray.map((fc: any): WeatherForecast | null => {
+          // Be flexible with property names (e.g., some integrations use 'max_temp' or 'temp')
+          const temp = fc.temperature ?? fc.max_temp ?? fc.temp;
+          const lowTemp = fc.templow ?? fc.min_temp;
+          
+          if (fc.datetime && fc.condition && temp !== undefined) {
+            return {
+              datetime: fc.datetime,
+              condition: fc.condition,
+              temperature: temp,
+              templow: lowTemp,
+            };
+          }
+          return null;
+        }).filter((fc): fc is WeatherForecast => fc !== null); // Filter out any null (invalid) entries
       } else {
         device.forecast = []; // Ensure forecast is always an array
       }
