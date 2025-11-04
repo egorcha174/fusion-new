@@ -91,9 +91,9 @@ const GroupContainer: React.FC<GroupContainerProps> = ({
   return (
     <div 
         style={groupStyle} 
-        className="bg-gray-800/40 rounded-2xl p-4 flex flex-col min-h-[220px]"
+        className="bg-gray-800/40 rounded-2xl p-4"
     >
-        <div className="flex items-center mb-4 flex-shrink-0">
+        <div className="flex items-center mb-4">
             <button onClick={() => props.onToggleCollapse(group.id)} className="p-1 -ml-1 text-gray-500 hover:text-white">
                 <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform ${isCollapsed ? '-rotate-90' : ''}`} viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -109,7 +109,7 @@ const GroupContainer: React.FC<GroupContainerProps> = ({
             )}
         </div>
       {!isCollapsed && (
-        <div className="flex-grow min-h-0 overflow-y-auto pr-2 -mr-2">
+        <div>
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={sortedDevices.map(d => d.id)} strategy={rectSortingStrategy}>
                 <div className={getGridClasses(props.cardSize)}>
