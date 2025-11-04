@@ -22,8 +22,8 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({
   signPath,
   getCameraStreamUrl,
 }) => {
-  const [position, setPosition] = useState({ x: window.innerWidth / 2 - 250, y: 100 });
-  const [size, setSize] = useState({ width: 500, height: 350 });
+  const [position, setPosition] = useState({ x: window.innerWidth / 2 - 500, y: 100 });
+  const [size, setSize] = useState({ width: 1000, height: 700 });
 
   /**
    * ОБРАБОТЧИК ПЕРЕТАСКИВАНИЯ (DRAG)
