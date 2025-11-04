@@ -2,7 +2,7 @@ import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import DeviceCard from './DeviceCard';
-import { Device, CardSize } from '../types';
+import { Device, CardSize, DeviceType } from '../types';
 
 interface DraggableDeviceCardProps {
   device: Device;
@@ -38,19 +38,40 @@ const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onTog
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const handleClick = (e: React.MouseEvent) => {
+    // Prevent click logic from firing if a child element like a button stopped propagation
+    if (e.isDefaultPrevented()) return;
+
+    if (isEditMode) return;
+
+    const isCamera = device.type === DeviceType.Camera;
+    const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && device.type !== DeviceType.Sensor && !isCamera;
+
+    if (isCamera) {
+      onCameraCardClick(device);
+    } else if (isTogglable) {
+      onToggle();
+    }
+  };
+
+
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      {...attributes} 
+      {...listeners}
+      onClick={handleClick}
+      onContextMenu={onContextMenu}
+    >
       <DeviceCard 
         device={device} 
-        onToggle={onToggle} 
         onTemperatureChange={onTemperatureChange}
         onBrightnessChange={onBrightnessChange}
         onPresetChange={onPresetChange}
-        onCameraCardClick={onCameraCardClick}
         isEditMode={isEditMode}
         onEditDevice={onEditDevice}
         onRemoveFromTab={onRemoveFromTab}
-        onContextMenu={onContextMenu}
         cardSize={cardSize}
         haUrl={haUrl}
         signPath={signPath}

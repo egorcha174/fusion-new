@@ -65,6 +65,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
 
   const togglePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     const video = videoRef.current;
     if (!video) return;
     if (video.paused) {
@@ -283,22 +284,19 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
 // --- Device Card Component ---
 interface DeviceCardProps {
   device: Device;
-  onToggle: () => void;
   onTemperatureChange: (change: number) => void;
   onBrightnessChange: (brightness: number) => void;
   onPresetChange: (preset: string) => void;
-  onCameraCardClick: (device: Device) => void;
   isEditMode: boolean;
   onEditDevice: (device: Device) => void;
   onRemoveFromTab?: () => void;
-  onContextMenu: (event: React.MouseEvent) => void;
   cardSize: CardSize;
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
   getCameraStreamUrl: (entityId: string) => Promise<string>;
 }
 
-const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperatureChange, onBrightnessChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu, cardSize, haUrl, signPath, getCameraStreamUrl }) => {
+const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, onBrightnessChange, onPresetChange, isEditMode, onEditDevice, onRemoveFromTab, cardSize, haUrl, signPath, getCameraStreamUrl }) => {
   const isOn = device.status.toLowerCase() === 'включено';
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
   const presetMenuRef = useRef<HTMLDivElement>(null);
@@ -389,21 +387,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
   
   const isCamera = device.type === DeviceType.Camera;
   const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && device.type !== DeviceType.Sensor && !isCamera;
-
-  const handleClick = () => {
-    if (isEditMode) return;
-    
-    if (isCamera) {
-      onCameraCardClick(device);
-    } else if (isTogglable) {
-      onToggle();
-    }
-  };
-  
-  const handleContextMenu = (e: React.MouseEvent) => {
-    if (isEditMode) return;
-    onContextMenu(e);
-  };
 
   const renderContent = () => {
     switch (device.type) {
@@ -564,7 +547,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onToggle, onTemperature
   }
 
   return (
-    <div className={getCardClasses()} onClick={handleClick} onContextMenu={handleContextMenu}>
+    <div className={getCardClasses()}>
        <div className="w-full h-full">
          {isEditMode && (
           <div className="absolute -top-2 -right-2 z-20 flex flex-col gap-2">
