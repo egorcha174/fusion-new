@@ -128,7 +128,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
 // --- Universal Camera Stream Component ---
 interface CameraStreamContentProps {
   entityId?: string | null;
-  directStreamUrl?: string;
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
   getCameraStreamUrl: (entityId: string) => Promise<string>;
@@ -137,7 +136,6 @@ interface CameraStreamContentProps {
 
 export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
   entityId,
-  directStreamUrl,
   haUrl,
   signPath,
   getCameraStreamUrl,
@@ -146,7 +144,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadState, setLoadState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
-  const [streamType, setStreamType] = useState<'hls' | 'mjpeg' | 'iframe' | 'none'>('none');
+  const [streamType, setStreamType] = useState<'hls' | 'mjpeg' | 'none'>('none');
   
   useEffect(() => {
     let isMounted = true;
@@ -158,18 +156,6 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
       setError(null);
       setLoadState('loading');
       setStreamType('none');
-
-      if (directStreamUrl) {
-          if (directStreamUrl.includes('.m3u8')) {
-              setStreamType('hls');
-              setStreamUrl(directStreamUrl);
-          } else {
-              setStreamType('iframe');
-              setStreamUrl(directStreamUrl);
-          }
-          setLoadState('loaded');
-          return;
-      }
       
       if (!entityId || !haUrl) {
           setLoadState('idle');
@@ -214,7 +200,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
     setupStream();
 
     return () => { isMounted = false; };
-  }, [entityId, directStreamUrl, haUrl, signPath, getCameraStreamUrl]);
+  }, [entityId, haUrl, signPath, getCameraStreamUrl]);
   
   const renderStream = () => {
     if (!streamUrl) return null;
@@ -222,19 +208,6 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
     switch (streamType) {
       case 'hls':
         return <VideoPlayer src={streamUrl} />;
-      case 'iframe':
-        return (
-          <div className="w-full h-full overflow-hidden relative">
-            <iframe
-              src={streamUrl}
-              className="w-full h-full border-0 bg-black pointer-events-none"
-              title={altText}
-              allow="autoplay; encrypted-media; picture-in-picture"
-              sandbox="allow-scripts allow-same-origin"
-            />
-            <div className="absolute inset-0 w-full h-full"></div>
-          </div>
-        );
       case 'mjpeg':
         return (
           <div className="relative w-full h-full">

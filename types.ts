@@ -98,7 +98,6 @@ export interface ClockSettings {
 
 export interface CameraSettings {
   selectedEntityId: string | null;
-  directStreamUrl?: string;
 }
 
 // Types for Home Assistant WebSocket API

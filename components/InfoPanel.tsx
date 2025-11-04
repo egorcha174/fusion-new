@@ -144,32 +144,14 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
 
     const handleSelectCamera = (entityId: string | null) => {
         setIsMenuOpen(false);
-        onSettingsChange({ selectedEntityId: entityId, directStreamUrl: undefined });
-    };
-
-    const handleSetDirectUrl = () => {
-        const newUrl = window.prompt("Введите прямой URL видеопотока:", settings.directStreamUrl || '');
-        if (newUrl !== null) { // User didn't cancel
-            if (newUrl) { // URL provided, deselect HA entity
-                onSettingsChange({ selectedEntityId: null, directStreamUrl: newUrl });
-            } else { // URL cleared
-                onSettingsChange({ ...settings, directStreamUrl: undefined });
-            }
-        }
-        setIsMenuOpen(false);
-    };
-
-    const handleResetDirectUrl = () => {
-        onSettingsChange({ ...settings, directStreamUrl: undefined });
-        setIsMenuOpen(false);
+        onSettingsChange({ selectedEntityId: entityId });
     };
     
     const renderContent = () => {
-        if (settings.selectedEntityId || settings.directStreamUrl) {
+        if (settings.selectedEntityId) {
             return (
                 <CameraStreamContent
                     entityId={settings.selectedEntityId}
-                    directStreamUrl={settings.directStreamUrl}
                     haUrl={haUrl}
                     signPath={signPath}
                     getCameraStreamUrl={getCameraStreamUrl}
@@ -216,16 +198,7 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
                                 ))}
                             </div>
                         )}
-                        <div className="h-px bg-gray-600/50 my-1" />
-                        <button onClick={handleSetDirectUrl} className="block w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 rounded-md">
-                            Указать URL потока
-                        </button>
-                        {settings.directStreamUrl && (
-                             <button onClick={handleResetDirectUrl} className="block w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 rounded-md">
-                                Сбросить URL
-                            </button>
-                        )}
-                        {selectedCamera && !settings.directStreamUrl && (
+                        {selectedCamera && (
                             <>
                                 <div className="h-px bg-gray-600/50 my-1" />
                                 <button onClick={() => handleSelectCamera(null)} className="block w-full text-left px-3 py-1.5 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-md">
