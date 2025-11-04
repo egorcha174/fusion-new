@@ -156,7 +156,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey, getCon
                          <img 
                             src={getWeatherIconUrl(day.icon)} 
                             alt=""
-                            className="w-11 h-11"
+                            className="w-14 h-14"
                         />
                         <p className="text-lg font-semibold">{Math.round(day.tempMax)}°</p>
                     </div>
