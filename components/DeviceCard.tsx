@@ -91,12 +91,15 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
     <div className="relative w-full h-full bg-black flex items-center justify-center group">
       <video ref={videoRef} className="w-full h-full object-contain" muted autoPlay playsInline />
 
+      {/* This overlay captures clicks on the video area and lets them bubble up, while controls sit on top with a higher z-index */}
+      <div className="absolute inset-0" />
+
       <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded-md text-white text-xs font-bold tracking-wider fade-in">
         RTC
       </div>
       
       {/* Controls are placed on a higher z-index to be clickable */}
-      <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-auto">
+      <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-auto z-10">
         <div className="flex items-center gap-3">
           <button onClick={togglePlay} className="text-white flex-shrink-0 p-1">
             {isPlaying ? (
