@@ -19,6 +19,7 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({ device, onC
       return;
     }
     
+    e.preventDefault();
     e.stopPropagation();
     const target = e.currentTarget as HTMLElement;
     target.setPointerCapture(e.pointerId);
@@ -48,6 +49,7 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({ device, onC
   const handleResizePointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return;
 
+    e.preventDefault();
     e.stopPropagation();
     const target = e.currentTarget as HTMLElement;
     target.setPointerCapture(e.pointerId);
@@ -86,7 +88,7 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({ device, onC
       }}
     >
       <header
-        onPointerDownCapture={handleDragPointerDown}
+        onPointerDown={handleDragPointerDown}
         className="h-10 bg-gray-700/80 flex-shrink-0 flex items-center justify-between px-3 cursor-move"
       >
         <h3 className="font-bold text-white text-sm truncate select-none">{device.name}</h3>
@@ -110,7 +112,7 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({ device, onC
           />
       </div>
        <div
-        onPointerDownCapture={handleResizePointerDown}
+        onPointerDown={handleResizePointerDown}
         className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
         style={{
             clipPath: 'polygon(100% 0, 100% 100%, 0 100%)',
