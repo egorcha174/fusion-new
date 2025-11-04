@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
-import { constructHaUrl } from '../utils/url';
 
 // --- Types ---
 interface CurrentWeather {
@@ -22,14 +20,13 @@ interface WeatherData {
 
 interface WeatherWidgetProps {
     openWeatherMapKey: string;
+    getConfig: () => Promise<any>;
 }
 
-const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey }) => {
+const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey, getConfig }) => {
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [haUrl] = useLocalStorage('ha-url', '');
-    const [token] = useLocalStorage('ha-token', '');
 
     const getWeatherIconUrl = (iconCode: string, size: '2x' | '1x' = '1x') => {
         return `https://openweathermap.org/img/wn/${iconCode}${size === '2x' ? '@2x' : ''}.png`;
@@ -37,13 +34,13 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey }) => {
 
     useEffect(() => {
         const fetchWeather = async () => {
-            if (!haUrl || !token) {
-                setError("Home Assistant не настроен.");
+            if (!openWeatherMapKey) {
+                setError("Ключ API OpenWeatherMap не настроен.");
                 setLoading(false);
                 return;
             }
-            if (!openWeatherMapKey) {
-                setError("Ключ API OpenWeatherMap не настроен.");
+            if (!getConfig) {
+                setError("Функция получения конфигурации недоступна.");
                 setLoading(false);
                 return;
             }
@@ -52,19 +49,8 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey }) => {
             setError(null);
 
             try {
-                // 1. Get location from Home Assistant
-                const configUrl = constructHaUrl(haUrl, '/api/config', 'http');
-                const configRes = await fetch(configUrl, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (!configRes.ok) {
-                    throw new Error(`Ошибка при получении конфигурации HA: ${configRes.statusText}`);
-                }
-                
-                const haConfig = await configRes.json();
+                // 1. Get location from Home Assistant via WebSocket
+                const haConfig = await getConfig();
                 const { latitude: lat, longitude: lon } = haConfig;
 
                 if (!lat || !lon) {
@@ -76,6 +62,9 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey }) => {
                 const weatherRes = await fetch(forecastUrl);
 
                 if (!weatherRes.ok) {
+                    if (weatherRes.status === 401) {
+                         throw new Error("Неверный ключ API OpenWeatherMap.");
+                    }
                     throw new Error(`Ошибка при получении прогноза: ${weatherRes.statusText}`);
                 }
 
@@ -119,7 +108,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey }) => {
         };
 
         fetchWeather();
-    }, [haUrl, token, openWeatherMapKey]);
+    }, [openWeatherMapKey, getConfig]);
 
     if (loading) {
         return (

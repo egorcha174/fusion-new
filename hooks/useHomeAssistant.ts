@@ -21,6 +21,7 @@ const useHomeAssistant = () => {
   const initialFetchIds = useRef<Set<number>>(new Set());
   const signPathCallbacks = useRef<Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>>(new Map());
   const cameraStreamCallbacks = useRef<Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>>(new Map());
+  const configCallbacks = useRef<Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>>(new Map());
   const connectionStatusRef = useRef(connectionStatus);
   
   useEffect(() => {
@@ -87,6 +88,23 @@ const useHomeAssistant = () => {
             if (cameraStreamCallbacks.current.has(id)) {
                 reject(new Error("Timeout waiting for camera stream URL response."));
                 cameraStreamCallbacks.current.delete(id);
+            }
+        }, 10000); // 10 second timeout
+    });
+  }, [sendMessage]);
+  
+  const getConfig = useCallback(async (): Promise<any> => {
+    return new Promise((resolve, reject) => {
+        const id = messageIdRef.current++;
+        configCallbacks.current.set(id, { resolve, reject });
+        sendMessage({
+            id,
+            type: 'get_config',
+        });
+        setTimeout(() => {
+            if (configCallbacks.current.has(id)) {
+                reject(new Error("Timeout waiting for get_config response."));
+                configCallbacks.current.delete(id);
             }
         }, 10000); // 10 second timeout
     });
@@ -181,6 +199,17 @@ const useHomeAssistant = () => {
             return;
         }
 
+        if (data.type === 'result' && configCallbacks.current.has(data.id)) {
+            const callback = configCallbacks.current.get(data.id);
+            if (data.success) {
+                callback?.resolve(data.result);
+            } else {
+                callback?.reject(data.error);
+            }
+            configCallbacks.current.delete(data.id);
+            return;
+        }
+
         switch (data.type) {
           case 'result':
             handleInitialFetches(data);
@@ -260,7 +289,7 @@ const useHomeAssistant = () => {
     }
   }, []);
 
-  return { connectionStatus, isLoading, error, entities, areas, devices, entityRegistry, connect, disconnect, callService, signPath, getCameraStreamUrl };
+  return { connectionStatus, isLoading, error, entities, areas, devices, entityRegistry, connect, disconnect, callService, signPath, getCameraStreamUrl, getConfig };
 };
 
 export default useHomeAssistant;

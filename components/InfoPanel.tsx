@@ -157,9 +157,10 @@ interface InfoPanelProps {
     signPath: (path: string) => Promise<{ path: string }>;
     getCameraStreamUrl: (entityId: string) => Promise<string>;
     openWeatherMapKey: string;
+    getConfig: () => Promise<any>;
 }
 
-const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, sidebarWidth, setSidebarWidth, cameras, cameraSettings, onCameraSettingsChange, onCameraWidgetClick, haUrl, signPath, getCameraStreamUrl, openWeatherMapKey }) => {
+const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, sidebarWidth, setSidebarWidth, cameras, cameraSettings, onCameraSettingsChange, onCameraWidgetClick, haUrl, signPath, getCameraStreamUrl, openWeatherMapKey, getConfig }) => {
     const [isResizing, setIsResizing] = useState(false);
 
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -207,7 +208,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, sidebarWidth, setS
                     getCameraStreamUrl={getCameraStreamUrl}
                 />
             
-                <WeatherWidget openWeatherMapKey={openWeatherMapKey} />
+                <WeatherWidget openWeatherMapKey={openWeatherMapKey} getConfig={getConfig} />
             </div>
 
             <div

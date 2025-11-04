@@ -43,6 +43,7 @@ const App: React.FC = () => {
     callService,
     signPath,
     getCameraStreamUrl,
+    getConfig,
   } = useHomeAssistant();
 
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -492,6 +493,7 @@ const App: React.FC = () => {
         signPath={signPath}
         getCameraStreamUrl={getCameraStreamUrl}
         openWeatherMapKey={openWeatherMapKey}
+        getConfig={getConfig}
       />
       <div className="flex flex-col flex-1" style={{ marginLeft: isLg ? `${sidebarWidth}px` : '0px' }}>
         <DashboardHeader
