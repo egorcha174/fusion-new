@@ -122,61 +122,101 @@ interface CameraWidgetProps {
     cameras: Device[];
     settings: CameraSettings;
     onSettingsChange: (settings: CameraSettings) => void;
+    onCameraWidgetClick: (device: Device) => void;
     haUrl: string;
     signPath: (path: string) => Promise<{ path: string }>;
     getCameraStreamUrl: (entityId: string) => Promise<string>;
 }
 
-const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettingsChange, haUrl, signPath, getCameraStreamUrl }) => {
+const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettingsChange, onCameraWidgetClick, haUrl, signPath, getCameraStreamUrl }) => {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
     const selectedCamera = useMemo(() => cameras.find(c => c.id === settings.selectedEntityId), [cameras, settings.selectedEntityId]);
-
-    const handleSelectCamera = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        onSettingsChange({ selectedEntityId: e.target.value || null });
-    };
     
-    const renderStream = () => {
-        if (!settings.selectedEntityId) return null;
-        
-        return (
-            <CameraStreamContent
-                entityId={settings.selectedEntityId}
-                haUrl={haUrl}
-                signPath={signPath}
-                getCameraStreamUrl={getCameraStreamUrl}
-                altText={selectedCamera?.name || 'Прямая трансляция'}
-            />
-        );
-    }
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setIsMenuOpen(false);
+            }
+        };
+        if (isMenuOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isMenuOpen]);
+
+    const handleSelectCamera = (entityId: string | null) => {
+        onSettingsChange({ selectedEntityId: entityId });
+        setIsMenuOpen(false);
+    };
+
+    const handleCameraClick = () => {
+        if (selectedCamera) {
+            onCameraWidgetClick(selectedCamera);
+        }
+    };
 
     return (
         <div>
-             <div className="flex justify-between items-center mb-2">
-                 <h3 className="text-lg font-bold">Камера</h3>
-             </div>
-             <div className="relative aspect-video bg-gray-800 rounded-lg text-white overflow-hidden flex items-center justify-center">
-                {settings.selectedEntityId ? renderStream() : (
-                     <div className="text-gray-500 text-center p-4">
+            <div className="flex justify-between items-center mb-2">
+                <h3 className="text-lg font-bold">Камера</h3>
+                {cameras.length > 0 && (
+                    <div className="relative" ref={menuRef}>
+                        <button
+                            onClick={() => setIsMenuOpen(prev => !prev)}
+                            className="p-1.5 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white"
+                            aria-label="Выбрать камеру"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                            </svg>
+                        </button>
+                        {isMenuOpen && (
+                            <div className="absolute top-full right-0 mt-1 w-48 bg-gray-700 rounded-md shadow-lg z-20 ring-1 ring-black ring-opacity-5 p-1 max-h-48 overflow-y-auto fade-in">
+                                {cameras.map(camera => (
+                                    <button
+                                        key={camera.id}
+                                        onClick={() => handleSelectCamera(camera.id)}
+                                        className="block w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-600 rounded-md"
+                                    >
+                                        {camera.name}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+            <div
+                className="relative aspect-video bg-gray-800 rounded-lg text-white overflow-hidden flex items-center justify-center group"
+                onClick={handleCameraClick}
+            >
+                {selectedCamera ? (
+                    <>
+                        <CameraStreamContent
+                            entityId={settings.selectedEntityId}
+                            haUrl={haUrl}
+                            signPath={signPath}
+                            getCameraStreamUrl={getCameraStreamUrl}
+                            altText={selectedCamera.name}
+                        />
+                         <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer pointer-events-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5zM5 5a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V11a1 1 0 10-2 0v6H5V7h6a1 1 0 000-2H5z" />
+                            </svg>
+                        </div>
+                    </>
+                ) : (
+                    <div className="text-gray-500 text-center p-4">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.55a2 2 0 01.95 1.664V16a2 2 0 01-2 2H5a2 2 0 01-2 2v-2.336a2 2 0 01.95-1.664L8 10l3 3 4-3z" />
                         </svg>
-                        <p className="mt-2 text-sm">{cameras.length > 0 ? 'Камера не выбрана' : 'Камеры не найдены'}</p>
+                        <p className="mt-2 text-sm">{cameras.length > 0 ? 'Выберите камеру из меню' : 'Камеры не найдены'}</p>
                     </div>
                 )}
-             </div>
-             {cameras.length > 0 && (
-                <select 
-                    value={settings.selectedEntityId || ""} 
-                    onChange={handleSelectCamera}
-                    className="w-full mt-3 bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
-                >
-                    <option value="">-- Выбрать камеру --</option>
-                    {cameras.map(camera => (
-                        <option key={camera.id} value={camera.id}>
-                            {camera.name}
-                        </option>
-                    ))}
-                </select>
-             )}
+            </div>
         </div>
     );
 };
@@ -190,12 +230,13 @@ interface InfoPanelProps {
     cameras: Device[];
     cameraSettings: CameraSettings;
     onCameraSettingsChange: (settings: CameraSettings) => void;
+    onCameraWidgetClick: (device: Device) => void;
     haUrl: string;
     signPath: (path: string) => Promise<{ path: string }>;
     getCameraStreamUrl: (entityId: string) => Promise<string>;
 }
 
-const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, weatherDevice, sidebarWidth, setSidebarWidth, cameras, cameraSettings, onCameraSettingsChange, haUrl, signPath, getCameraStreamUrl }) => {
+const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, weatherDevice, sidebarWidth, setSidebarWidth, cameras, cameraSettings, onCameraSettingsChange, onCameraWidgetClick, haUrl, signPath, getCameraStreamUrl }) => {
     const [isResizing, setIsResizing] = useState(false);
 
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -236,7 +277,8 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, weatherDevice, sid
                  <CameraWidget
                     cameras={cameras}
                     settings={cameraSettings}
-                    onCameraSettingsChange={onCameraSettingsChange}
+                    onSettingsChange={onCameraSettingsChange}
+                    onCameraWidgetClick={onCameraWidgetClick}
                     haUrl={haUrl}
                     signPath={signPath}
                     getCameraStreamUrl={getCameraStreamUrl}

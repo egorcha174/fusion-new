@@ -369,7 +369,14 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
             return <div>Ошибка: Требуется haUrl, signPath и getCameraStreamUrl для камеры.</div>
         }
         return (
-            <div className="w-full h-full bg-black group relative">
+            <div 
+              className="w-full h-full bg-black group relative"
+              onClick={(e) => { 
+                  if (isEditMode) return;
+                  e.stopPropagation(); 
+                  onCameraCardClick(device); 
+              }}
+            >
                 <CameraStreamContent 
                     entityId={device.id}
                     haUrl={haUrl}
@@ -378,15 +385,11 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                     altText={device.name}
                 />
                 {!isEditMode && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onCameraCardClick(device); }}
-                    className="absolute top-2 left-2 z-20 p-1.5 bg-black/40 backdrop-blur-sm rounded-full text-white opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-black/60 transition-opacity"
-                    aria-label="Развернуть камеру"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5zM5 5a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V11a1 1 0 10-2 0v6H5V7h6a1 1 0 000-2H5z" />
                     </svg>
-                  </button>
+                  </div>
                 )}
             </div>
         )
@@ -525,7 +528,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
         finalClasses += `${styles.padding} ${isOn ? onStateClasses : offStateClasses}`;
     }
   
-    if (isTogglable && !isEditMode) {
+    if ((isTogglable || isCamera) && !isEditMode) {
         finalClasses += ' cursor-pointer';
     }
     return finalClasses;

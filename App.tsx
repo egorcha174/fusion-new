@@ -1,4 +1,5 @@
 
+
 import React, { useMemo, useState, useEffect } from 'react';
 import Settings from './components/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -491,6 +492,7 @@ const App: React.FC = () => {
         cameras={allCameras}
         cameraSettings={cameraSettings}
         onCameraSettingsChange={setCameraSettings}
+        onCameraWidgetClick={handleCameraCardClick}
         haUrl={haUrl}
         signPath={signPath}
         getCameraStreamUrl={getCameraStreamUrl}
