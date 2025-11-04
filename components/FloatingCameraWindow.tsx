@@ -13,21 +13,26 @@ interface FloatingCameraWindowProps {
 const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({ device, onClose, haUrl, signPath, getCameraStreamUrl }) => {
   const [position, setPosition] = useState({ x: window.innerWidth / 2 - 250, y: 100 });
   const [size, setSize] = useState({ width: 500, height: 350 });
-  const windowRef = useRef<HTMLDivElement>(null);
 
   const handleDragPointerDown = useCallback((e: React.PointerEvent) => {
-    if (e.button !== 0) return;
+    // Prevent dragging if the target is the close button or not the primary mouse button.
+    if (e.button !== 0 || (e.target as HTMLElement).closest('button')) {
+      return;
+    }
     
     e.stopPropagation();
     const target = e.currentTarget as HTMLElement;
     target.setPointerCapture(e.pointerId);
 
     const initialPos = { ...position };
+    const startMouse = { x: e.clientX, y: e.clientY };
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
+      const dx = moveEvent.clientX - startMouse.x;
+      const dy = moveEvent.clientY - startMouse.y;
       setPosition({
-        x: initialPos.x + (moveEvent.clientX - e.clientX),
-        y: initialPos.y + (moveEvent.clientY - e.clientY),
+        x: initialPos.x + dx,
+        y: initialPos.y + dy,
       });
     };
     
@@ -49,13 +54,14 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({ device, onC
     target.setPointerCapture(e.pointerId);
 
     const initialSize = { ...size };
+    const startMouse = { x: e.clientX, y: e.clientY };
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
-        const newWidth = initialSize.width + (moveEvent.clientX - e.clientX);
-        const newHeight = initialSize.height + (moveEvent.clientY - e.clientY);
+        const dx = moveEvent.clientX - startMouse.x;
+        const dy = moveEvent.clientY - startMouse.y;
         setSize({
-            width: Math.max(320, newWidth),
-            height: Math.max(240, newHeight),
+            width: Math.max(320, initialSize.width + dx),
+            height: Math.max(240, initialSize.height + dy),
         });
     };
     
@@ -71,7 +77,6 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({ device, onC
 
   return (
     <div
-      ref={windowRef}
       className="fixed z-40 bg-gray-800 rounded-lg shadow-2xl ring-1 ring-white/10 flex flex-col overflow-hidden fade-in"
       style={{
         left: `${position.x}px`,
