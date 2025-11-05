@@ -32,18 +32,26 @@ interface TabContentProps {
 const UNGROUPED_DEVICES_ID = '---ungrouped-devices---';
 
 // Unified grid class generator. Uses fixed-width columns to ensure all cards have the exact same size
-// regardless of their container's width. 'auto-fill' creates as many columns as possible, and the grid
-// container will have leftover space if its width is not a perfect multiple of the column width + gap.
-// This is preferable to having differently sized cards.
+// regardless of their container's width. 'auto-fill' creates as many columns as possible.
 const getDeviceGridClasses = (size: CardSize): string => {
-    switch (size) {
-        case 'xs': return 'grid gap-2 grid-cols-[repeat(auto-fill,5.5rem)] grid-auto-rows-[5.5rem]';
-        case 'sm': return 'grid gap-3 grid-cols-[repeat(auto-fill,7rem)] grid-auto-rows-[7rem]';
-        case 'lg': return 'grid gap-5 grid-cols-[repeat(auto-fill,11rem)] grid-auto-rows-[11rem]';
-        case 'xl': return 'grid gap-6 grid-cols-[repeat(auto-fill,13rem)] grid-auto-rows-[13rem]';
-        case 'md': default: return 'grid gap-4 grid-cols-[repeat(auto-fill,9rem)] grid-auto-rows-[9rem]';
-    }
+    const sizeMap = {
+        xs: '5.5rem', // 88px
+        sm: '7rem',   // 112px
+        md: '9rem',   // 144px
+        lg: '11rem',  // 176px
+        xl: '13rem',  // 208px
+    };
+    const gapMap = {
+        xs: 'gap-2',
+        sm: 'gap-3',
+        md: 'gap-4',
+        lg: 'gap-5',
+        xl: 'gap-6',
+    };
+    const cardWidth = sizeMap[size];
+    return `grid ${gapMap[size]} grid-cols-[repeat(auto-fill,${cardWidth})] grid-auto-rows-[${cardWidth}]`;
 };
+
 
 const SortableGroupWrapper: React.FC<{
     id: string;
@@ -142,7 +150,7 @@ const TabContent: React.FC<TabContentProps> = ({
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={sortableItemIds} strategy={rectSortingStrategy}>
-        <div className="grid items-start gap-x-8 gap-y-12 grid-cols-[repeat(auto-fit,minmax(304px,1fr))]">
+        <div className="flex flex-wrap items-start gap-8">
           {sortableItems.map(item => (
             <SortableGroupWrapper key={item!.id} id={item!.id} isEditMode={props.isEditMode}>
               {(dragHandleProps) => {

@@ -83,14 +83,18 @@ const getStatusText = (entity: HassEntity): string => {
     if (domain === 'sensor') {
         const numericState = parseFloat(entity.state);
         if (!isNaN(numericState)) {
+            // Round to one decimal place for display
             return String(Math.round(numericState * 10) / 10);
         }
-        // Return the raw state if it's not a number and not 'unavailable'/'unknown'
-        return entity.state;
+        // For non-numeric sensor states, just return the state capitalized.
+        // The 'unavailable'/'unknown' checks at the top have already handled those.
+        return entity.state.charAt(0).toUpperCase() + entity.state.slice(1);
     }
     
     if (entity.state === 'on') return 'Включено';
     if (entity.state === 'off') return 'Выключено';
+    
+    // Default fallback for any other states (e.g., 'heating' for climate)
     return entity.state.charAt(0).toUpperCase() + entity.state.slice(1);
 }
 

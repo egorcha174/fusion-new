@@ -499,11 +499,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
           </div>
         );
       case DeviceType.Sensor:
-        // NOTE: Using mock data for the sparkline as historical data fetching is not yet implemented.
-        // In a real scenario, this data would come from the `device.history` prop.
         const mockHistory = useMemo(() => {
             const value = parseFloat(device.status) || 20;
-            // Generate a more realistic trend (e.g., a gentle sine wave variation)
             return Array.from({ length: 20 }, (_, i) => 
                 value + (Math.sin(i / 3) * (value * 0.05)) + (Math.random() - 0.5) * (value * 0.05)
             );
