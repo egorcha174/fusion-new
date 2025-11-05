@@ -3,7 +3,8 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from 
 import type { DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable';
 import DraggableDeviceCard from './DraggableDeviceCard';
-import { Group, Device, CardSize, DeviceCustomizations } from '../types';
+import { Group, Device, CardSize } from '../types';
+import FixedGridGroup from './FixedGridGroup';
 
 interface GroupContainerProps {
   tabId: string;
@@ -24,7 +25,6 @@ interface GroupContainerProps {
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
   getCameraStreamUrl: (entityId: string) => Promise<string>;
-  getDeviceGridClasses: (size: CardSize) => string;
   dragHandleProps?: any;
 }
 
@@ -33,7 +33,6 @@ const GroupContainer: React.FC<GroupContainerProps> = ({
   group,
   devices,
   onDeviceOrderChange,
-  getDeviceGridClasses,
   dragHandleProps,
   ...props
 }) => {
@@ -80,7 +79,7 @@ const GroupContainer: React.FC<GroupContainerProps> = ({
         </div>
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={sortedDevices.map(d => d.id)} strategy={rectSortingStrategy}>
-            <div className={getDeviceGridClasses(props.cardSize)}>
+            <FixedGridGroup>
                 {sortedDevices.map((device) => (
                     <DraggableDeviceCard
                         key={device.id}
@@ -100,7 +99,7 @@ const GroupContainer: React.FC<GroupContainerProps> = ({
                         getCameraStreamUrl={props.getCameraStreamUrl}
                     />
                 ))}
-            </div>
+            </FixedGridGroup>
             </SortableContext>
         </DndContext>
     </div>

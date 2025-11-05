@@ -91,7 +91,12 @@ const TabContent: React.FC<TabContentProps> = ({
     for (const device of devices) {
         const groupId = customizations[device.id]?.groupId;
         if (groupId && grouped.has(groupId)) {
-            grouped.get(groupId)!.push(device);
+            const groupList = grouped.get(groupId)!;
+            if (groupList.length < 4) {
+                groupList.push(device);
+            } else {
+                ungrouped.push(device);
+            }
         } else {
             ungrouped.push(device);
         }
@@ -151,7 +156,7 @@ const TabContent: React.FC<TabContentProps> = ({
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={sortableItemIds} strategy={rectSortingStrategy}>
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(304px,1fr))] gap-8 items-start">
+        <div className="space-y-8">
           {sortableItems.map(item => (
             <SortableGroupWrapper key={item!.id} id={item!.id} isEditMode={props.isEditMode}>
               {(dragHandleProps) => {
@@ -162,7 +167,6 @@ const TabContent: React.FC<TabContentProps> = ({
                       devices={sortedUngroupedDevices}
                       onDeviceOrderChange={(ordered) => onDeviceOrderChange(tab.id, ordered, null)}
                       dragHandleProps={dragHandleProps}
-                      // FIX: Pass the 'customizations' prop to satisfy the UngroupedDevicesContainerProps type.
                       customizations={customizations}
                       {...props}
                     />
@@ -176,7 +180,6 @@ const TabContent: React.FC<TabContentProps> = ({
                     devices={groupedDevices.get(group.id) || []}
                     onDeviceOrderChange={onDeviceOrderChange}
                     dragHandleProps={dragHandleProps}
-                    getDeviceGridClasses={getDeviceGridClasses}
                     {...props}
                   />
                 );
