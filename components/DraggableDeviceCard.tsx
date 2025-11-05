@@ -2,11 +2,10 @@ import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import DeviceCard from './DeviceCard';
-import { Device, CardSize, DeviceType, DeviceCustomization } from '../types';
+import { Device, CardSize, DeviceType } from '../types';
 
 interface DraggableDeviceCardProps {
   device: Device;
-  customization: DeviceCustomization;
   onToggle: () => void;
   onTemperatureChange: (change: number) => void;
   onBrightnessChange: (brightness: number) => void;
@@ -22,7 +21,7 @@ interface DraggableDeviceCardProps {
   getCameraStreamUrl: (entityId: string) => Promise<string>;
 }
 
-const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, customization, onToggle, onTemperatureChange, onBrightnessChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu, cardSize, haUrl, signPath, getCameraStreamUrl }) => {
+const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, onToggle, onTemperatureChange, onBrightnessChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onRemoveFromTab, onContextMenu, cardSize, haUrl, signPath, getCameraStreamUrl }) => {
   const {
     attributes,
     listeners,
@@ -32,15 +31,11 @@ const DraggableDeviceCard: React.FC<DraggableDeviceCardProps> = ({ device, custo
     isDragging,
   } = useSortable({ id: device.id, disabled: !isEditMode });
   
-  const { colSpan = 1, rowSpan = 1 } = customization;
-
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     zIndex: isDragging ? 10 : 'auto',
     opacity: isDragging ? 0.5 : 1,
-    gridColumn: `span ${colSpan}`,
-    gridRow: `span ${rowSpan}`,
   };
 
   const handleClick = (e: React.MouseEvent) => {

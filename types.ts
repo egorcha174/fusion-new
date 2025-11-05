@@ -80,8 +80,6 @@ export interface DeviceCustomization {
   icon?: DeviceType;
   isHidden?: boolean;
   groupId?: string | null;
-  colSpan?: number;
-  rowSpan?: number;
 }
 
 export type DeviceCustomizations = Record<string, DeviceCustomization>; // Key is device.id (entity_id)

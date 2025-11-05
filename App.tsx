@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useMemo, useState, useEffect } from 'react';
 import Settings from './components/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -364,7 +365,7 @@ const App: React.FC = () => {
 
 
   // --- Customization ---
-  const handleSaveCustomization = (deviceId: string, newValues: { name: string; type: DeviceType; icon: DeviceType; isHidden: boolean; colSpan: number; rowSpan: number; }) => {
+  const handleSaveCustomization = (deviceId: string, newValues: { name: string; type: DeviceType; icon: DeviceType; isHidden: boolean; }) => {
     const originalDevice = allKnownDevices.get(deviceId);
     if (!originalDevice) return;
     
@@ -388,14 +389,6 @@ const App: React.FC = () => {
 
     if (newValues.isHidden) {
         newCustomization.isHidden = true;
-    }
-    
-    if (newValues.colSpan && newValues.colSpan !== 1) {
-        newCustomization.colSpan = newValues.colSpan;
-    }
-
-    if (newValues.rowSpan && newValues.rowSpan !== 1) {
-        newCustomization.rowSpan = newValues.rowSpan;
     }
 
     setCustomizations(prev => {
@@ -426,8 +419,6 @@ const App: React.FC = () => {
       type: currentCustomization.type || originalDevice.type,
       icon: currentCustomization.icon || currentCustomization.type || originalDevice.type,
       isHidden: isHidden,
-      colSpan: currentCustomization.colSpan || 1,
-      rowSpan: currentCustomization.rowSpan || 1,
     });
   };
 

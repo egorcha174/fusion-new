@@ -9,7 +9,6 @@ interface GroupContainerProps {
   tabId: string;
   group: Group;
   devices: Device[];
-  customizations: DeviceCustomizations;
   onDeviceOrderChange: (tabId: string, newDevices: Device[], groupId: string) => void;
   onDeviceRemoveFromTab: (deviceId: string, tabId: string) => void;
   onDeviceToggle: (deviceId: string) => void;
@@ -33,7 +32,6 @@ const GroupContainer: React.FC<GroupContainerProps> = ({
   tabId,
   group,
   devices,
-  customizations,
   onDeviceOrderChange,
   getDeviceGridClasses,
   dragHandleProps,
@@ -83,13 +81,10 @@ const GroupContainer: React.FC<GroupContainerProps> = ({
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={sortedDevices.map(d => d.id)} strategy={rectSortingStrategy}>
             <div className={getDeviceGridClasses(props.cardSize)}>
-                {sortedDevices.map((device) => {
-                  const customization = customizations[device.id] || {};
-                  return (
+                {sortedDevices.map((device) => (
                     <DraggableDeviceCard
                         key={device.id}
                         device={device}
-                        customization={customization}
                         onToggle={() => props.onDeviceToggle(device.id)}
                         onTemperatureChange={(change) => props.onTemperatureChange(device.id, change)}
                         onBrightnessChange={(brightness) => props.onBrightnessChange(device.id, brightness)}
@@ -104,8 +99,7 @@ const GroupContainer: React.FC<GroupContainerProps> = ({
                         signPath={props.signPath}
                         getCameraStreamUrl={props.getCameraStreamUrl}
                     />
-                  );
-                })}
+                ))}
             </div>
             </SortableContext>
         </DndContext>
