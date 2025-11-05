@@ -23,11 +23,10 @@ const FixedGridGroup: React.FC<FixedGridGroupProps> = ({
   expandSingleItem = false,
   className = "",
 }) => {
-  // До 4 children!
   const childrenArray = React.Children.toArray(children).slice(0, 4);
+  const count = childrenArray.length;
 
-  if (childrenArray.length === 1 && expandSingleItem) {
-    // Один элемент — на весь блок
+  if (count === 1 && expandSingleItem) {
     return (
       <div className={`grid grid-cols-2 grid-rows-2 gap-4 ${className}`}>
         <div className="col-span-2 row-span-2">{childrenArray[0]}</div>
@@ -35,13 +34,12 @@ const FixedGridGroup: React.FC<FixedGridGroupProps> = ({
     );
   }
 
-  // Формируем ровно 4 ячейки grids, лишние — пустые
-  const cells = [];
-  for (let i = 0; i < 4; ++i) {
-    cells.push(
-      <div key={i}>{childrenArray[i] ?? null}</div>
-    );
-  }
+  // Генерируем ровно 4 ячейки, даже если элементов меньше
+  const cells = Array.from({ length: 4 }, (_, i) => (
+    <div key={i}>
+      {childrenArray[i] ?? null}
+    </div>
+  ));
 
   return (
     <div className={`grid grid-cols-2 grid-rows-2 gap-4 ${className}`}>
@@ -49,5 +47,6 @@ const FixedGridGroup: React.FC<FixedGridGroupProps> = ({
     </div>
   );
 };
+
 
 export default FixedGridGroup;
