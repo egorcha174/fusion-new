@@ -1,46 +1,51 @@
-
-import React from 'react';
+import React from "react";
 
 interface FixedGridGroupProps {
-  /** The child elements to display within the grid. A maximum of 4 children will be rendered. */
+  /** Элементы группы. Можно максимум 4. */
   children: React.ReactNode;
   /**
-   * If true and there is only one child, that child will expand to fill the entire 2x2 grid.
-   * @default false
+   * Если true и в группе один элемент, он занимает всю группу (2x2).
+   * По умолчанию false — тогда одиночный элемент обычного размера (1x1).
    */
   expandSingleItem?: boolean;
-  /** Optional additional classes to apply to the container. */
+  /** Дополнительные CSS-классы к контейнеру. */
   className?: string;
 }
 
 /**
- * A layout component that displays children in a fixed 2x2 grid (2 rows, 2 columns).
- * - With 2, 3, or 4 children, each takes up one cell (1x1).
- * - With 1 child, it takes up one cell (1x1) by default.
- * - With 1 child and `expandSingleItem` set to true, it takes up the entire grid (2x2).
+ * Сетка 2x2 для групп дашбоарда:
+ * — 1 элемент (expandSingleItem=false): обычный 1x1
+ * — 1 элемент (expandSingleItem=true): большой (2x2)
+ * — 2-4 элемента: равномерная сетка 2x2, пустые ячейки невидимы
  */
 const FixedGridGroup: React.FC<FixedGridGroupProps> = ({
   children,
   expandSingleItem = false,
-  className = '',
+  className = "",
 }) => {
-  // Ensure we only ever deal with a maximum of 4 children
+  // До 4 children!
   const childrenArray = React.Children.toArray(children).slice(0, 4);
-  const childrenCount = childrenArray.length;
 
-  // Determine if the special 2x2 span should be applied
-  const isSingleAndExpanded = childrenCount === 1 && expandSingleItem;
+  if (childrenArray.length === 1 && expandSingleItem) {
+    // Один элемент — на весь блок
+    return (
+      <div className={`grid grid-cols-2 grid-rows-2 gap-4 ${className}`}>
+        <div className="col-span-2 row-span-2">{childrenArray[0]}</div>
+      </div>
+    );
+  }
+
+  // Формируем ровно 4 ячейки grids, лишние — пустые
+  const cells = [];
+  for (let i = 0; i < 4; ++i) {
+    cells.push(
+      <div key={i}>{childrenArray[i] ?? null}</div>
+    );
+  }
 
   return (
     <div className={`grid grid-cols-2 grid-rows-2 gap-4 ${className}`}>
-      {childrenArray.map((child, index) => (
-        <div
-          key={index}
-          className={isSingleAndExpanded ? 'col-span-2 row-span-2' : ''}
-        >
-          {child}
-        </div>
-      ))}
+      {cells}
     </div>
   );
 };
