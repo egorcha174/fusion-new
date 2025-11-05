@@ -189,21 +189,31 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
 
             <div className="border-t border-gray-700 pt-6">
                 <h2 className="text-xl font-bold text-gray-100 mb-4">Размер карточек</h2>
-                 <div className="flex gap-4">
+                 <div className="grid grid-cols-3 gap-2">
+                    <button 
+                        onClick={() => onCardSizeChange('xs')}
+                        className={`py-2 rounded-lg text-sm transition-colors ${cardSize === 'xs' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                        Очень маленький
+                    </button>
                     <button 
                         onClick={() => onCardSizeChange('sm')}
-                        className={`flex-1 py-2 rounded-lg text-sm transition-colors ${cardSize === 'sm' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                        className={`py-2 rounded-lg text-sm transition-colors ${cardSize === 'sm' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
                         Маленький
                     </button>
                     <button 
                         onClick={() => onCardSizeChange('md')}
-                        className={`flex-1 py-2 rounded-lg text-sm transition-colors ${cardSize === 'md' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                        className={`py-2 rounded-lg text-sm transition-colors ${cardSize === 'md' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
                         Средний
                     </button>
                     <button 
                         onClick={() => onCardSizeChange('lg')}
-                        className={`flex-1 py-2 rounded-lg text-sm transition-colors ${cardSize === 'lg' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                        className={`py-2 rounded-lg text-sm transition-colors ${cardSize === 'lg' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
                         Большой
+                    </button>
+                    <button 
+                        onClick={() => onCardSizeChange('xl')}
+                        className={`py-2 rounded-lg text-sm transition-colors ${cardSize === 'xl' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                        Очень большой
                     </button>
                 </div>
             </div>

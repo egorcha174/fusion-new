@@ -32,8 +32,10 @@ interface TabContentProps {
 // with a minimum size, ensuring cards are consistently sized everywhere.
 const getDeviceGridClasses = (size: CardSize): string => {
     switch (size) {
+        case 'xs': return 'grid gap-2 grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))]'; // min 88px
         case 'sm': return 'grid gap-3 grid-cols-[repeat(auto-fill,minmax(7rem,1fr))]'; // min 112px
         case 'lg': return 'grid gap-5 grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]'; // min 176px
+        case 'xl': return 'grid gap-6 grid-cols-[repeat(auto-fill,minmax(13rem,1fr))]'; // min 208px
         case 'md': default: return 'grid gap-4 grid-cols-[repeat(auto-fill,minmax(9rem,1fr))]'; // min 144px
     }
 };

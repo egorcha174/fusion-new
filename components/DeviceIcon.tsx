@@ -20,9 +20,11 @@ const IconWrapper: React.FC<{
 }> = ({ children, isOn, cardSize, className = '', ariaLabel }) => {
   const colorClass = isOn ? 'text-blue-500' : 'text-gray-400';
   const sizeClasses: Record<CardSize, string> = {
+    xs: 'w-7 h-7',
     sm: 'w-8 h-8',
-    md: 'w-8 h-8 sm:w-10 sm:h-10',
+    md: 'w-10 h-10',
     lg: 'w-12 h-12',
+    xl: 'w-14 h-14',
   };
 
   return (

@@ -274,6 +274,20 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
   const presetMenuRef = useRef<HTMLDivElement>(null);
   
   const cardStyles = {
+    xs: {
+      padding: 'p-1.5',
+      nameText: 'text-[11px] font-semibold leading-tight',
+      statusText: 'text-[10px]',
+      sensorStatusText: 'text-xl font-bold',
+      sensorUnitText: 'text-sm font-medium',
+      thermostatTempText: 'font-bold text-sm',
+      thermostatTargetText: 'text-[10px] font-medium',
+      thermostatButton: 'w-5 h-5 text-xs font-semibold',
+      thermostatPresetButton: 'w-5 h-5',
+      thermostatPresetIcon: 'h-3 w-3',
+      brightnessCircle: 'w-7 h-7',
+      brightnessText: 'text-[10px] font-semibold',
+    },
     sm: {
       padding: 'p-2',
       nameText: 'text-xs font-semibold leading-tight',
@@ -315,6 +329,20 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
       thermostatPresetIcon: 'h-6 w-6',
       brightnessCircle: 'w-11 h-11',
       brightnessText: 'text-sm font-semibold',
+    },
+    xl: {
+      padding: 'p-5',
+      nameText: 'text-lg font-semibold leading-tight',
+      statusText: 'text-base',
+      sensorStatusText: 'text-5xl font-bold',
+      sensorUnitText: 'text-2xl font-medium',
+      thermostatTempText: 'font-bold text-3xl',
+      thermostatTargetText: 'text-base font-medium',
+      thermostatButton: 'w-9 h-9 text-xl font-semibold',
+      thermostatPresetButton: 'w-9 h-9',
+      thermostatPresetIcon: 'h-7 w-7',
+      brightnessCircle: 'w-12 h-12',
+      brightnessText: 'text-base font-semibold',
     }
   };
   const styles = cardStyles[cardSize];

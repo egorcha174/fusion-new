@@ -83,7 +83,7 @@ export interface DeviceCustomization {
 
 export type DeviceCustomizations = Record<string, DeviceCustomization>; // Key is device.id (entity_id)
 
-export type CardSize = 'sm' | 'md' | 'lg';
+export type CardSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 export type Page = 'dashboard' | 'settings' | 'all-devices';
 
