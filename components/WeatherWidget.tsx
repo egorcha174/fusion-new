@@ -10,6 +10,7 @@ interface CurrentWeather {
 interface ForecastDay {
     day: string;
     tempMax: number;
+    tempMin: number;
     icon: string;
 }
 
@@ -28,8 +29,9 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey, getCon
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const getWeatherIconUrl = (iconCode: string, size: '2x' | '1x' = '1x') => {
-        return `https://openweathermap.org/img/wn/${iconCode}${size === '2x' ? '@2x' : ''}.png`;
+    const getWeatherIconUrl = (iconCode: string, size: '4x' | '2x' | '1x' = '1x') => {
+        const sizeSuffix = size === '1x' ? '' : `@${size}`;
+        return `https://openweathermap.org/img/wn/${iconCode}${sizeSuffix}.png`;
     };
 
     useEffect(() => {
@@ -82,9 +84,10 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey, getCon
                     const dt = new Date(dayKey);
                     const dayName = dt.toLocaleDateString("ru-RU", { weekday: "short" });
                     const tempMax = Math.max(...arr.map((e) => e.main.temp_max));
+                    const tempMin = Math.min(...arr.map((e) => e.main.temp_min));
                     const noonSample = arr[Math.floor(arr.length / 2)];
                     const icon = noonSample.weather[0].icon;
-                    return { day: dayName, tempMax, icon };
+                    return { day: dayName, tempMax, tempMin, icon };
                 });
 
                 const now = data.list[0];
@@ -138,9 +141,9 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey, getCon
             {/* Current Weather */}
             <div className="flex items-center gap-2">
                 <img 
-                    src={getWeatherIconUrl(current.icon, '2x')} 
+                    src={getWeatherIconUrl(current.icon, '4x')} 
                     alt={current.desc} 
-                    className="w-16 h-16 flex-shrink-0 -ml-1"
+                    className="w-24 h-24 flex-shrink-0 -ml-2"
                 />
                 <div className="overflow-hidden">
                     <p className="text-4xl font-bold">{current.temp}°C</p>
@@ -154,11 +157,14 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey, getCon
                     <div key={index} className="flex flex-col items-center space-y-1">
                         <p className="text-xs font-medium text-gray-400 capitalize">{day.day}</p>
                          <img 
-                            src={getWeatherIconUrl(day.icon)} 
+                            src={getWeatherIconUrl(day.icon, '2x')} 
                             alt=""
-                            className="w-16 h-16"
+                            className="w-12 h-12"
                         />
-                        <p className="text-lg font-semibold">{Math.round(day.tempMax)}°</p>
+                        <div>
+                            <p className="text-lg font-semibold">{Math.round(day.tempMax)}°</p>
+                            <p className="text-sm text-gray-400 -mt-1">{Math.round(day.tempMin)}°</p>
+                        </div>
                     </div>
                 ))}
             </div>
