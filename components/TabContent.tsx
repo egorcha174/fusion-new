@@ -33,13 +33,14 @@ const UNGROUPED_DEVICES_ID = '---ungrouped-devices---';
 
 // Unified grid class generator. Uses `auto-fill` to create as many columns as will fit
 // with a minimum size, ensuring cards are consistently sized everywhere.
+// Added `grid-auto-rows` to ensure consistent row heights for spanning.
 const getDeviceGridClasses = (size: CardSize): string => {
     switch (size) {
-        case 'xs': return 'grid gap-2 grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))]'; // min 88px
-        case 'sm': return 'grid gap-3 grid-cols-[repeat(auto-fill,minmax(7rem,1fr))]'; // min 112px
-        case 'lg': return 'grid gap-5 grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]'; // min 176px
-        case 'xl': return 'grid gap-6 grid-cols-[repeat(auto-fill,minmax(13rem,1fr))]'; // min 208px
-        case 'md': default: return 'grid gap-4 grid-cols-[repeat(auto-fill,minmax(9rem,1fr))]'; // min 144px
+        case 'xs': return 'grid gap-2 grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] grid-auto-rows-[5.5rem]';
+        case 'sm': return 'grid gap-3 grid-cols-[repeat(auto-fill,minmax(7rem,1fr))] grid-auto-rows-[7rem]';
+        case 'lg': return 'grid gap-5 grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] grid-auto-rows-[11rem]';
+        case 'xl': return 'grid gap-6 grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] grid-auto-rows-[13rem]';
+        case 'md': default: return 'grid gap-4 grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] grid-auto-rows-[9rem]';
     }
 };
 
@@ -151,6 +152,7 @@ const TabContent: React.FC<TabContentProps> = ({
                       devices={sortedUngroupedDevices}
                       onDeviceOrderChange={(ordered) => onDeviceOrderChange(tab.id, ordered, null)}
                       dragHandleProps={dragHandleProps}
+                      customizations={customizations}
                       {...props}
                     />
                   );
@@ -164,6 +166,7 @@ const TabContent: React.FC<TabContentProps> = ({
                     onDeviceOrderChange={onDeviceOrderChange}
                     dragHandleProps={dragHandleProps}
                     getDeviceGridClasses={getDeviceGridClasses}
+                    customizations={customizations}
                     {...props}
                   />
                 );
@@ -176,15 +179,16 @@ const TabContent: React.FC<TabContentProps> = ({
   );
 };
 
-interface UngroupedDevicesContainerProps extends Omit<TabContentProps, 'tab' | 'devices' | 'customizations' | 'onDeviceOrderChange' | 'onGroupOrderChange' | 'onEditGroup'> {
+interface UngroupedDevicesContainerProps extends Omit<TabContentProps, 'tab' | 'devices' | 'onDeviceOrderChange' | 'onGroupOrderChange' | 'onEditGroup'> {
     tabId: string;
     devices: Device[];
     onDeviceOrderChange: (newDevices: Device[]) => void;
     dragHandleProps: any;
+    customizations: DeviceCustomizations;
 }
 
 const UngroupedDevicesContainer: React.FC<UngroupedDevicesContainerProps> = ({
-    tabId, devices, onDeviceOrderChange, dragHandleProps, ...props
+    tabId, devices, onDeviceOrderChange, dragHandleProps, customizations, ...props
 }) => {
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -212,25 +216,29 @@ const UngroupedDevicesContainer: React.FC<UngroupedDevicesContainerProps> = ({
              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDeviceDragEnd}>
                 <SortableContext items={devices.map(d => d.id)} strategy={rectSortingStrategy}>
                     <div className={getDeviceGridClasses(props.cardSize)}>
-                        {devices.map((device) => (
-                            <DraggableDeviceCard
-                                key={device.id}
-                                device={device}
-                                onToggle={() => props.onDeviceToggle(device.id)}
-                                onTemperatureChange={(change) => props.onTemperatureChange(device.id, change)}
-                                onBrightnessChange={(brightness) => props.onBrightnessChange(device.id, brightness)}
-                                onPresetChange={(preset) => props.onPresetChange(device.id, preset)}
-                                onCameraCardClick={props.onCameraCardClick}
-                                isEditMode={props.isEditMode}
-                                onEditDevice={props.onEditDevice}
-                                onRemoveFromTab={() => props.onDeviceRemoveFromTab(device.id, tabId)}
-                                onContextMenu={(event) => props.onDeviceContextMenu(event, device.id, tabId)}
-                                cardSize={props.cardSize}
-                                haUrl={props.haUrl}
-                                signPath={props.signPath}
-                                getCameraStreamUrl={props.getCameraStreamUrl}
-                            />
-                        ))}
+                        {devices.map((device) => {
+                            const customization = customizations[device.id] || {};
+                            return (
+                                <DraggableDeviceCard
+                                    key={device.id}
+                                    device={device}
+                                    customization={customization}
+                                    onToggle={() => props.onDeviceToggle(device.id)}
+                                    onTemperatureChange={(change) => props.onTemperatureChange(device.id, change)}
+                                    onBrightnessChange={(brightness) => props.onBrightnessChange(device.id, brightness)}
+                                    onPresetChange={(preset) => props.onPresetChange(device.id, preset)}
+                                    onCameraCardClick={props.onCameraCardClick}
+                                    isEditMode={props.isEditMode}
+                                    onEditDevice={props.onEditDevice}
+                                    onRemoveFromTab={() => props.onDeviceRemoveFromTab(device.id, tabId)}
+                                    onContextMenu={(event) => props.onDeviceContextMenu(event, device.id, tabId)}
+                                    cardSize={props.cardSize}
+                                    haUrl={props.haUrl}
+                                    signPath={props.signPath}
+                                    getCameraStreamUrl={props.getCameraStreamUrl}
+                                />
+                            )
+                        })}
                     </div>
                 </SortableContext>
             </DndContext>

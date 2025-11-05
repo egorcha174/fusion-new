@@ -5,7 +5,7 @@ import DeviceIcon, { icons } from './DeviceIcon';
 interface DeviceSettingsModalProps {
   device: Device;
   customization: DeviceCustomization;
-  onSave: (deviceId: string, newValues: { name: string; type: DeviceType; icon: DeviceType; isHidden: boolean }) => void;
+  onSave: (deviceId: string, newValues: { name: string; type: DeviceType; icon: DeviceType; isHidden: boolean; colSpan: number; rowSpan: number; }) => void;
   onClose: () => void;
 }
 
@@ -20,6 +20,8 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   // The initial icon should respect the custom icon, then the custom type, then the device's original type.
   const [icon, setIcon] = useState(customization.icon ?? customization.type ?? device.type);
   const [isHidden, setIsHidden] = useState(customization.isHidden ?? false);
+  const [colSpan, setColSpan] = useState(customization.colSpan ?? 1);
+  const [rowSpan, setRowSpan] = useState(customization.rowSpan ?? 1);
 
   const handleTypeChange = (newType: DeviceType) => {
     setType(newType);
@@ -37,6 +39,8 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
       type,
       icon,
       isHidden,
+      colSpan,
+      rowSpan,
     });
     onClose();
   };
@@ -108,6 +112,36 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                  })}
             </div>
          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Размер карточки</label>
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <label htmlFor="colSpan" className="block text-xs text-gray-400 mb-1">Ширина (колонки)</label>
+                <select
+                  id="colSpan"
+                  value={colSpan}
+                  onChange={(e) => setColSpan(Number(e.target.value))}
+                  className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value={1}>1</option>
+                  <option value={2}>2</option>
+                </select>
+              </div>
+              <div className="flex-1">
+                <label htmlFor="rowSpan" className="block text-xs text-gray-400 mb-1">Высота (строки)</label>
+                <select
+                  id="rowSpan"
+                  value={rowSpan}
+                  onChange={(e) => setRowSpan(Number(e.target.value))}
+                  className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value={1}>1</option>
+                  <option value={2}>2</option>
+                </select>
+              </div>
+            </div>
+          </div>
           
           <div className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg">
             <div>

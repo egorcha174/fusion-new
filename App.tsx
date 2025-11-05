@@ -1,7 +1,6 @@
 
 
 
-
 import React, { useMemo, useState, useEffect } from 'react';
 import Settings from './components/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -365,51 +364,51 @@ const App: React.FC = () => {
 
 
   // --- Customization ---
-  const handleSaveCustomization = (deviceId: string, newValues: { name: string; type: DeviceType; icon: DeviceType; isHidden: boolean }) => {
+  const handleSaveCustomization = (deviceId: string, newValues: { name: string; type: DeviceType; icon: DeviceType; isHidden: boolean; colSpan: number; rowSpan: number; }) => {
     const originalDevice = allKnownDevices.get(deviceId);
     if (!originalDevice) return;
     
     const existingCustomization = customizations[deviceId] || {};
 
-    // Start with a clean slate for this device's customization.
     const newCustomization: DeviceCustomization = {
-        groupId: existingCustomization.groupId, // Preserve group ID
+        groupId: existingCustomization.groupId,
     };
 
-    // 1. Save name if it differs from the original HA name.
     if (newValues.name !== originalDevice.name) {
         newCustomization.name = newValues.name;
     }
 
-    // 2. Save type if it differs from the original auto-detected type.
     if (newValues.type !== originalDevice.type) {
         newCustomization.type = newValues.type;
     }
 
-    // 3. Save icon ONLY if it's different from the selected type.
-    //    If icon === type, it means "use the default icon for this type".
     if (newValues.icon !== newValues.type) {
         newCustomization.icon = newValues.icon;
     }
 
-    // 4. Save visibility if it's set to hidden.
     if (newValues.isHidden) {
         newCustomization.isHidden = true;
     }
     
+    if (newValues.colSpan && newValues.colSpan !== 1) {
+        newCustomization.colSpan = newValues.colSpan;
+    }
+
+    if (newValues.rowSpan && newValues.rowSpan !== 1) {
+        newCustomization.rowSpan = newValues.rowSpan;
+    }
+
     setCustomizations(prev => {
         const newCustomizations = { ...prev };
-        // If the resulting customization object is empty (ignoring groupId), it means all settings
-        // are default. We should remove the entry for this device to keep storage clean, but preserve groupId.
-        const { groupId, ...rest } = newCustomization;
-        if (Object.keys(rest).length === 0) {
+        const { groupId, ...restOfCustomization } = newCustomization;
+        
+        if (Object.keys(restOfCustomization).length === 0) {
             if (groupId) {
                  newCustomizations[deviceId] = { groupId };
             } else {
                  delete newCustomizations[deviceId];
             }
         } else {
-            // Otherwise, save the new, complete customization object.
             newCustomizations[deviceId] = newCustomization;
         }
         return newCustomizations;
@@ -426,7 +425,9 @@ const App: React.FC = () => {
       name: currentCustomization.name || originalDevice.name,
       type: currentCustomization.type || originalDevice.type,
       icon: currentCustomization.icon || currentCustomization.type || originalDevice.type,
-      isHidden: isHidden
+      isHidden: isHidden,
+      colSpan: currentCustomization.colSpan || 1,
+      rowSpan: currentCustomization.rowSpan || 1,
     });
   };
 

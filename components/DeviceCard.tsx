@@ -540,11 +540,11 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
   };
 
   const getCardClasses = () => {
-    const baseClasses = "rounded-2xl flex flex-col transition-all duration-200 ease-in-out select-none relative";
+    const baseClasses = "rounded-2xl flex flex-col transition-all duration-200 ease-in-out select-none relative w-full h-full";
     const onStateClasses = "bg-gray-200 text-gray-900";
     const offStateClasses = "bg-gray-800/80 hover:bg-gray-700/80";
     
-    let finalClasses = `${baseClasses} aspect-square `;
+    let finalClasses = `${baseClasses} `;
 
     if (isCamera) {
       finalClasses += `p-0 overflow-hidden ${offStateClasses}`;
