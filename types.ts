@@ -1,5 +1,3 @@
-
-
 export enum DeviceType {
   Light,
   Lamp,
@@ -67,14 +65,37 @@ export interface Group {
     height?: number;
 }
 
+// --- Grid Layout Types ---
+export enum LayoutMode {
+    Flow, // The original vertical flow layout
+    Grid, // The new coordinate-based grid layout
+}
+
+export interface LayoutItem {
+  i: string;      // Unique ID of the item (deviceId)
+  x: number;      // Position on the x-axis in grid units
+  y: number;      // Position on the y-axis in grid units
+  w: number;      // Width in grid units
+  h: number;      // Height in grid units
+}
+// --- End Grid Layout Types ---
+
 // Represents a user-created tab on the dashboard
 export interface Tab {
   id: string;
   name: string;
-  deviceIds: string[]; // Still keep all device IDs for easy reference
-  orderedDeviceIds: string[]; // This will now represent order for UNGROUPED devices
+  deviceIds: string[];
+  
+  // --- Layout Mode Specific Properties ---
+  layoutMode: LayoutMode;
+
+  // For Flow Layout
+  orderedDeviceIds: string[]; // For ungrouped devices
   groups?: Group[];
-  orderedGroupIds?: string[]; // New: Stores the sort order of groups and the ungrouped container
+  orderedGroupIds?: string[];
+  
+  // For Grid Layout
+  gridLayout: LayoutItem[];
 }
 
 // Types for user customizations

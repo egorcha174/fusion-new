@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Tab } from '../types';
+import { Tab, LayoutMode } from '../types';
 import ConfirmDialog from './ConfirmDialog';
 
 interface TabSettingsModalProps {
@@ -8,9 +7,10 @@ interface TabSettingsModalProps {
     onSave: (tabId: string, newName: string) => void;
     onDelete: (tabId: string) => void;
     onClose: () => void;
+    onSetLayoutMode: (mode: LayoutMode) => void;
 }
 
-const TabSettingsModal: React.FC<TabSettingsModalProps> = ({ tab, onSave, onDelete, onClose }) => {
+const TabSettingsModal: React.FC<TabSettingsModalProps> = ({ tab, onSave, onDelete, onClose, onSetLayoutMode }) => {
     const [name, setName] = useState(tab.name);
     const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
@@ -36,7 +36,7 @@ const TabSettingsModal: React.FC<TabSettingsModalProps> = ({ tab, onSave, onDele
                     <div className="p-6 border-b border-gray-700">
                         <h2 className="text-xl font-bold text-white">Настроить вкладку</h2>
                     </div>
-                    <div className="p-6 space-y-4">
+                    <div className="p-6 space-y-6">
                         <div>
                             <label htmlFor="tabName" className="block text-sm font-medium text-gray-300 mb-2">Название вкладки</label>
                             <input
@@ -46,6 +46,24 @@ const TabSettingsModal: React.FC<TabSettingsModalProps> = ({ tab, onSave, onDele
                                 onChange={(e) => setName(e.target.value)}
                                 className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-2">Режим компоновки</label>
+                            <div className="flex gap-2 bg-gray-700/50 p-1 rounded-lg">
+                                <button 
+                                    onClick={() => onSetLayoutMode(LayoutMode.Flow)}
+                                    className={`flex-1 py-1.5 rounded-md text-sm transition-colors ${tab.layoutMode === LayoutMode.Flow ? 'bg-blue-600 text-white shadow' : 'hover:bg-gray-600/50'}`}>
+                                    Поточный
+                                </button>
+                                <button 
+                                    onClick={() => onSetLayoutMode(LayoutMode.Grid)}
+                                    className={`flex-1 py-1.5 rounded-md text-sm transition-colors ${(tab.layoutMode === LayoutMode.Grid || tab.layoutMode === undefined) ? 'bg-blue-600 text-white shadow' : 'hover:bg-gray-600/50'}`}>
+                                    Сетка
+                                </button>
+                            </div>
+                            <p className="text-xs text-gray-400 mt-2">
+                                {tab.layoutMode === LayoutMode.Grid ? "Свободное размещение карточек на сетке." : "Автоматическое размещение групп друг под другом."}
+                            </p>
                         </div>
                     </div>
                     <div className="p-6 flex justify-between items-center bg-gray-800/50 rounded-b-2xl">

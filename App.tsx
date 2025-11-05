@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useMemo, useState, useEffect } from 'react';
 import Settings from './components/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -17,7 +13,7 @@ import FloatingCameraWindow from './components/FloatingCameraWindow';
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
-import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CardSize, CameraSettings, Group } from './types';
+import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CardSize, CameraSettings, Group, LayoutMode, LayoutItem } from './types';
 import { nanoid } from 'nanoid'; // A small library for unique IDs
 
 // Hook to check for large screens to conditionally apply margin
@@ -83,7 +79,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (connectionStatus === 'connected' && !isLoading) {
       if (tabs.length === 0) {
-        const newTab: Tab = { id: nanoid(), name: 'Главная', deviceIds: [], orderedDeviceIds: [] };
+        const newTab: Tab = { id: nanoid(), name: 'Главная', deviceIds: [], orderedDeviceIds: [], layoutMode: LayoutMode.Flow, gridLayout: [] };
         setTabs([newTab]);
         setActiveTabId(newTab.id);
       } else if (!activeTabId || !tabs.some(t => t.id === activeTabId)) {
@@ -165,7 +161,7 @@ const App: React.FC = () => {
   // --- Tab Management Handlers ---
   const handleAddTab = () => {
     const newTabName = `Вкладка ${tabs.length + 1}`;
-    const newTab: Tab = { id: nanoid(), name: newTabName, deviceIds: [], orderedDeviceIds: [] };
+    const newTab: Tab = { id: nanoid(), name: newTabName, deviceIds: [], orderedDeviceIds: [], layoutMode: LayoutMode.Flow, gridLayout: [] };
     setTabs([...tabs, newTab]);
     setActiveTabId(newTab.id);
   };
@@ -187,6 +183,50 @@ const App: React.FC = () => {
   const handleTabOrderChange = (newTabs: Tab[]) => {
     setTabs(newTabs);
   };
+  
+    const handleSetTabLayout = (tabId: string, mode: LayoutMode) => {
+        setTabs(tabs.map(tab => {
+            if (tab.id === tabId) {
+                if (tab.layoutMode === mode) return tab; // No change
+
+                const updatedTab = { ...tab, layoutMode: mode };
+
+                // MIGRATION: If switching to Grid for the first time, generate a default layout
+                if (mode === LayoutMode.Grid && (!updatedTab.gridLayout || updatedTab.gridLayout.length === 0)) {
+                    const COLS = 20; // Default columns for the grid layout
+                    const CARD_WIDTH = 2;
+                    const CARD_HEIGHT = 2;
+                    let cursorX = 0;
+                    let cursorY = 0;
+
+                    updatedTab.gridLayout = updatedTab.deviceIds.map(deviceId => {
+                        if (cursorX + CARD_WIDTH > COLS) {
+                            cursorX = 0;
+                            cursorY += CARD_HEIGHT;
+                        }
+                        const item: LayoutItem = {
+                            i: deviceId,
+                            x: cursorX,
+                            y: cursorY,
+                            w: CARD_WIDTH,
+                            h: CARD_HEIGHT,
+                        };
+                        cursorX += CARD_WIDTH;
+                        return item;
+                    });
+                }
+                return updatedTab;
+            }
+            return tab;
+        }));
+    };
+
+    const handleGridLayoutChange = (tabId: string, newLayout: LayoutItem[]) => {
+      setTabs(tabs.map(tab =>
+        tab.id === tabId ? { ...tab, gridLayout: newLayout } : tab
+      ));
+    };
+
 
   // --- Group Management Handlers ---
     const handleAddGroup = () => {
@@ -253,7 +293,15 @@ const App: React.FC = () => {
   const handleDeviceAddToTab = (deviceId: string, tabId: string) => {
     setTabs(tabs.map(tab => {
       if (tab.id === tabId && !tab.deviceIds.includes(deviceId)) {
-        return { ...tab, deviceIds: [...tab.deviceIds, deviceId] };
+        const newDeviceIds = [...tab.deviceIds, deviceId];
+        // Also add to grid layout if in grid mode
+        let newGridLayout = tab.gridLayout || [];
+        if (tab.layoutMode === LayoutMode.Grid && !newGridLayout.some(item => item.i === deviceId)) {
+          // Add to the bottom of the grid
+          const y = newGridLayout.length > 0 ? Math.max(...newGridLayout.map(it => it.y + it.h)) : 0;
+          newGridLayout = [...newGridLayout, { i: deviceId, x: 0, y, w: 2, h: 2 }];
+        }
+        return { ...tab, deviceIds: newDeviceIds, gridLayout: newGridLayout };
       }
       return tab;
     }));
@@ -264,7 +312,8 @@ const App: React.FC = () => {
         if (tab.id === tabId) {
             const newDeviceIds = tab.deviceIds.filter(id => id !== deviceId);
             const newOrderedDeviceIds = (tab.orderedDeviceIds || []).filter(id => id !== deviceId);
-            return { ...tab, deviceIds: newDeviceIds, orderedDeviceIds: newOrderedDeviceIds };
+            const newGridLayout = (tab.gridLayout || []).filter(item => item.i !== deviceId);
+            return { ...tab, deviceIds: newDeviceIds, orderedDeviceIds: newOrderedDeviceIds, gridLayout: newGridLayout };
         }
         return tab;
      }));
@@ -278,19 +327,16 @@ const App: React.FC = () => {
     // Unassign from group in the old tab
     handleAssignDeviceToGroup(deviceId, null);
     
+    // Add to new tab first to get its layout updated
+    handleDeviceAddToTab(deviceId, toTabId);
+
+    // Then remove from old tab
     setTabs(currentTabs => currentTabs.map(tab => {
-        // Add to the destination tab
-        if (tab.id === toTabId) {
-            if (tab.deviceIds.includes(deviceId)) {
-                return tab; // Already exists, do nothing
-            }
-            return { ...tab, deviceIds: [...tab.deviceIds, deviceId] };
-        }
-        // Remove from the source tab
         if (tab.id === fromTabId) {
             const newDeviceIds = tab.deviceIds.filter(id => id !== deviceId);
             const newOrderedDeviceIds = (tab.orderedDeviceIds || []).filter(id => id !== deviceId);
-            return { ...tab, deviceIds: newDeviceIds, orderedDeviceIds: newOrderedDeviceIds };
+             const newGridLayout = (tab.gridLayout || []).filter(item => item.i !== deviceId);
+            return { ...tab, deviceIds: newDeviceIds, orderedDeviceIds: newOrderedDeviceIds, gridLayout: newGridLayout };
         }
         return tab;
     }));
@@ -450,9 +496,11 @@ const App: React.FC = () => {
             key={activeTab.id}
             tab={activeTab}
             devices={filteredDevicesForTab}
+            allDevices={allKnownDevices}
             customizations={customizations}
             onDeviceOrderChange={handleDeviceOrderChangeOnTab}
             onGroupOrderChange={handleGroupOrderChange}
+            onGridLayoutChange={handleGridLayoutChange}
             onDeviceRemoveFromTab={handleDeviceRemoveFromTab}
             onDeviceToggle={handleDeviceToggle}
             onTemperatureChange={handleTemperatureChange}
@@ -525,7 +573,13 @@ const App: React.FC = () => {
         <DeviceSettingsModal device={editingDevice} customization={customizations[editingDevice.id] || {}} onSave={handleSaveCustomization} onClose={() => setEditingDevice(null)} />
       )}
       {editingTab && (
-        <TabSettingsModal tab={editingTab} onSave={handleUpdateTab} onDelete={handleDeleteTab} onClose={() => setEditingTab(null)} />
+        <TabSettingsModal 
+          tab={editingTab} 
+          onSave={handleUpdateTab} 
+          onDelete={handleDeleteTab} 
+          onClose={() => setEditingTab(null)}
+          onSetLayoutMode={(mode) => handleSetTabLayout(editingTab.id, mode)}
+        />
       )}
       {editingGroup && (
         <GroupSettingsModal
