@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useMemo, useState, useEffect } from 'react';
 import Settings from './components/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -194,8 +195,6 @@ const App: React.FC = () => {
             id: nanoid(), 
             name: 'Новая группа', 
             orderedDeviceIds: [],
-            colSpan: 1, // Default size
-            rowSpan: 1, // Default size
         };
         setTabs(tabs.map(tab => {
             if (tab.id === activeTabId) {
@@ -206,7 +205,7 @@ const App: React.FC = () => {
         }));
     };
 
-    const handleUpdateGroup = (tabId: string, groupId: string, newValues: { name: string; colSpan: number; rowSpan: number }) => {
+    const handleUpdateGroup = (tabId: string, groupId: string, newValues: { name: string; }) => {
         setTabs(tabs.map(tab => {
             if (tab.id === tabId) {
                 const groups = (tab.groups || []).map(g => g.id === groupId ? { ...g, ...newValues } : g);

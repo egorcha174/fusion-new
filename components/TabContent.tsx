@@ -101,48 +101,42 @@ const TabContent: React.FC<TabContentProps> = ({
   }
 
   return (
-    <section>
-        {groups.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 auto-rows-min">
-                {groups.map(group => (
-                    <GroupContainer
-                        key={group.id}
-                        tabId={tab.id}
-                        group={group}
-                        devices={groupedDevices.get(group.id) || []}
-                        onDeviceOrderChange={onDeviceOrderChange}
-                        onDeviceRemoveFromTab={onDeviceRemoveFromTab}
-                        onDeviceToggle={onDeviceToggle}
-                        onTemperatureChange={onTemperatureChange}
-                        onBrightnessChange={onBrightnessChange}
-                        onPresetChange={onPresetChange}
-                        onCameraCardClick={onCameraCardClick}
-                        isEditMode={isEditMode}
-                        onEditDevice={onEditDevice}
-                        onDeviceContextMenu={onDeviceContextMenu}
-                        onEditGroup={onEditGroup}
-                        onToggleCollapse={onToggleGroupCollapse}
-                        cardSize={cardSize}
-                        haUrl={haUrl}
-                        signPath={signPath}
-                        getCameraStreamUrl={getCameraStreamUrl}
-                        getDeviceGridClasses={getDeviceGridClasses}
-                    />
-                ))}
-            </div>
-        )}
+    <div className="flex flex-wrap items-start gap-x-8 gap-y-12">
+        {groups.map(group => (
+            <GroupContainer
+                key={group.id}
+                tabId={tab.id}
+                group={group}
+                devices={groupedDevices.get(group.id) || []}
+                onDeviceOrderChange={onDeviceOrderChange}
+                onDeviceRemoveFromTab={onDeviceRemoveFromTab}
+                onDeviceToggle={onDeviceToggle}
+                onTemperatureChange={onTemperatureChange}
+                onBrightnessChange={onBrightnessChange}
+                onPresetChange={onPresetChange}
+                onCameraCardClick={onCameraCardClick}
+                isEditMode={isEditMode}
+                onEditDevice={onEditDevice}
+                onDeviceContextMenu={onDeviceContextMenu}
+                onEditGroup={onEditGroup}
+                onToggleCollapse={onToggleGroupCollapse}
+                cardSize={cardSize}
+                haUrl={haUrl}
+                signPath={signPath}
+                getCameraStreamUrl={getCameraStreamUrl}
+                getDeviceGridClasses={getDeviceGridClasses}
+            />
+        ))}
 
         {sortedUngroupedDevices.length > 0 && (
-            <div className={groups.length > 0 ? "mt-8" : ""}>
-                <UngroupedDevicesContainer
-                    tabId={tab.id}
-                    devices={sortedUngroupedDevices}
-                    onDeviceOrderChange={(ordered) => onDeviceOrderChange(tab.id, ordered, null)}
-                    {...{onDeviceRemoveFromTab, onDeviceToggle, onTemperatureChange, onBrightnessChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onDeviceContextMenu, cardSize, haUrl, signPath, getCameraStreamUrl }}
-                />
-            </div>
+            <UngroupedDevicesContainer
+                tabId={tab.id}
+                devices={sortedUngroupedDevices}
+                onDeviceOrderChange={(ordered) => onDeviceOrderChange(tab.id, ordered, null)}
+                {...{onDeviceRemoveFromTab, onDeviceToggle, onTemperatureChange, onBrightnessChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onDeviceContextMenu, cardSize, haUrl, signPath, getCameraStreamUrl }}
+            />
         )}
-    </section>
+    </div>
   );
 };
 
@@ -169,8 +163,8 @@ const UngroupedDevicesContainer: React.FC<UngroupedDevicesContainerProps> = ({
     };
 
     return (
-        <div>
-            <h2 className="text-xs font-bold uppercase text-gray-500 mb-4">Несгруппированные</h2>
+        <div className="flex-1 min-w-[304px]">
+            <h2 className="text-2xl font-bold mb-4">Несгруппированные</h2>
              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={devices.map(d => d.id)} strategy={rectSortingStrategy}>
                     <div className={getDeviceGridClasses(props.cardSize)}>

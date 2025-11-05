@@ -57,29 +57,11 @@ const GroupContainer: React.FC<GroupContainerProps> = ({
       onDeviceOrderChange(tabId, arrayMove(sortedDevices, oldIndex, newIndex), group.id);
     }
   };
-  
-  const isCollapsed = group.isCollapsed && !props.isEditMode;
-
-  const colSpan = group.colSpan || 1;
-  const rowSpan = group.rowSpan || 1;
-
-  const groupStyle: React.CSSProperties = {
-      gridColumn: `span ${colSpan} / span ${colSpan}`,
-      gridRow: `span ${rowSpan} / span ${rowSpan}`,
-  };
 
   return (
-    <div 
-        style={groupStyle} 
-        className="bg-gray-800/40 rounded-2xl p-4 flex flex-col min-h-0"
-    >
-        <div className="flex items-center mb-4 flex-shrink-0">
-            <button onClick={() => props.onToggleCollapse(group.id)} className="p-1 -ml-1 text-gray-500 hover:text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform ${isCollapsed ? '-rotate-90' : ''}`} viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-            </button>
-            <h2 className="text-xl font-bold">{group.name}</h2>
+    <div className="flex-shrink-0 min-w-[304px]">
+        <div className="flex items-center mb-4">
+            <h2 className="text-2xl font-bold">{group.name}</h2>
             {props.isEditMode && (
                 <button onClick={() => props.onEditGroup(group)} className="ml-2 p-1 text-gray-400 hover:text-white">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -88,35 +70,31 @@ const GroupContainer: React.FC<GroupContainerProps> = ({
                 </button>
             )}
         </div>
-      {!isCollapsed && (
-        <div className="flex-grow min-h-0">
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext items={sortedDevices.map(d => d.id)} strategy={rectSortingStrategy}>
-                <div className={getDeviceGridClasses(props.cardSize)}>
-                    {sortedDevices.map((device) => (
-                    <DraggableDeviceCard
-                        key={device.id}
-                        device={device}
-                        onToggle={() => props.onDeviceToggle(device.id)}
-                        onTemperatureChange={(change) => props.onTemperatureChange(device.id, change)}
-                        onBrightnessChange={(brightness) => props.onBrightnessChange(device.id, brightness)}
-                        onPresetChange={(preset) => props.onPresetChange(device.id, preset)}
-                        onCameraCardClick={props.onCameraCardClick}
-                        isEditMode={props.isEditMode}
-                        onEditDevice={props.onEditDevice}
-                        onRemoveFromTab={() => props.onDeviceRemoveFromTab(device.id, tabId)}
-                        onContextMenu={(event) => props.onDeviceContextMenu(event, device.id, tabId)}
-                        cardSize={props.cardSize}
-                        haUrl={props.haUrl}
-                        signPath={props.signPath}
-                        getCameraStreamUrl={props.getCameraStreamUrl}
-                    />
-                    ))}
-                </div>
-                </SortableContext>
-            </DndContext>
-        </div>
-      )}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={sortedDevices.map(d => d.id)} strategy={rectSortingStrategy}>
+            <div className={getDeviceGridClasses(props.cardSize)}>
+                {sortedDevices.map((device) => (
+                <DraggableDeviceCard
+                    key={device.id}
+                    device={device}
+                    onToggle={() => props.onDeviceToggle(device.id)}
+                    onTemperatureChange={(change) => props.onTemperatureChange(device.id, change)}
+                    onBrightnessChange={(brightness) => props.onBrightnessChange(device.id, brightness)}
+                    onPresetChange={(preset) => props.onPresetChange(device.id, preset)}
+                    onCameraCardClick={props.onCameraCardClick}
+                    isEditMode={props.isEditMode}
+                    onEditDevice={props.onEditDevice}
+                    onRemoveFromTab={() => props.onDeviceRemoveFromTab(device.id, tabId)}
+                    onContextMenu={(event) => props.onDeviceContextMenu(event, device.id, tabId)}
+                    cardSize={props.cardSize}
+                    haUrl={props.haUrl}
+                    signPath={props.signPath}
+                    getCameraStreamUrl={props.getCameraStreamUrl}
+                />
+                ))}
+            </div>
+            </SortableContext>
+        </DndContext>
     </div>
   );
 };
