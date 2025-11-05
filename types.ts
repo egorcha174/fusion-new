@@ -96,6 +96,7 @@ export interface Tab {
   
   // For Grid Layout
   gridLayout: LayoutItem[];
+  gridCols?: number; // Number of columns for the grid layout
 }
 
 // Types for user customizations

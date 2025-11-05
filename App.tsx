@@ -79,7 +79,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (connectionStatus === 'connected' && !isLoading) {
       if (tabs.length === 0) {
-        const newTab: Tab = { id: nanoid(), name: 'Главная', deviceIds: [], orderedDeviceIds: [], layoutMode: LayoutMode.Flow, gridLayout: [] };
+        const newTab: Tab = { id: nanoid(), name: 'Главная', deviceIds: [], orderedDeviceIds: [], layoutMode: LayoutMode.Flow, gridLayout: [], gridCols: 24 };
         setTabs([newTab]);
         setActiveTabId(newTab.id);
       } else if (!activeTabId || !tabs.some(t => t.id === activeTabId)) {
@@ -161,41 +161,23 @@ const App: React.FC = () => {
   // --- Tab Management Handlers ---
   const handleAddTab = () => {
     const newTabName = `Вкладка ${tabs.length + 1}`;
-    const newTab: Tab = { id: nanoid(), name: newTabName, deviceIds: [], orderedDeviceIds: [], layoutMode: LayoutMode.Flow, gridLayout: [] };
+    const newTab: Tab = { id: nanoid(), name: newTabName, deviceIds: [], orderedDeviceIds: [], layoutMode: LayoutMode.Flow, gridLayout: [], gridCols: 24 };
     setTabs([...tabs, newTab]);
     setActiveTabId(newTab.id);
   };
 
-  const handleUpdateTab = (tabId: string, newName: string) => {
-    setTabs(tabs.map(t => (t.id === tabId ? { ...t, name: newName } : t)));
-    setEditingTab(null);
-  };
-
-  const handleDeleteTab = (tabId: string) => {
-    const newTabs = tabs.filter(t => t.id !== tabId);
-    setTabs(newTabs);
-    if (activeTabId === tabId) {
-      setActiveTabId(newTabs.length > 0 ? newTabs[0].id : null);
-    }
-    setEditingTab(null);
-  };
-
-  const handleTabOrderChange = (newTabs: Tab[]) => {
-    setTabs(newTabs);
-  };
-  
-    const handleSetTabLayout = (tabId: string, mode: LayoutMode) => {
+    const handleUpdateTabSettings = (tabId: string, settings: { name: string; layoutMode: LayoutMode; gridCols?: number }) => {
         setTabs(tabs.map(tab => {
             if (tab.id === tabId) {
-                if (tab.layoutMode === mode) return tab; // No change
-
-                const updatedTab = { ...tab, layoutMode: mode };
+                const needsMigration = tab.layoutMode !== LayoutMode.Grid && settings.layoutMode === LayoutMode.Grid;
+                
+                const updatedTab = { ...tab, ...settings };
 
                 // MIGRATION: If switching to Grid for the first time, generate a default layout
-                if (mode === LayoutMode.Grid && (!updatedTab.gridLayout || updatedTab.gridLayout.length === 0)) {
-                    const COLS = 20; // Default columns for the grid layout
-                    const CARD_WIDTH = 2;
-                    const CARD_HEIGHT = 2;
+                if (needsMigration && (!updatedTab.gridLayout || updatedTab.gridLayout.length === 0)) {
+                    const COLS = updatedTab.gridCols || 24;
+                    const CARD_WIDTH = 4; // Default width in grid units
+                    const CARD_HEIGHT = 4; // Default height
                     let cursorX = 0;
                     let cursorY = 0;
 
@@ -219,8 +201,22 @@ const App: React.FC = () => {
             }
             return tab;
         }));
+        setEditingTab(null);
     };
 
+  const handleDeleteTab = (tabId: string) => {
+    const newTabs = tabs.filter(t => t.id !== tabId);
+    setTabs(newTabs);
+    if (activeTabId === tabId) {
+      setActiveTabId(newTabs.length > 0 ? newTabs[0].id : null);
+    }
+    setEditingTab(null);
+  };
+
+  const handleTabOrderChange = (newTabs: Tab[]) => {
+    setTabs(newTabs);
+  };
+  
     const handleGridLayoutChange = (tabId: string, newLayout: LayoutItem[]) => {
       setTabs(tabs.map(tab =>
         tab.id === tabId ? { ...tab, gridLayout: newLayout } : tab
@@ -575,10 +571,9 @@ const App: React.FC = () => {
       {editingTab && (
         <TabSettingsModal 
           tab={editingTab} 
-          onSave={handleUpdateTab} 
+          onSave={handleUpdateTabSettings} 
           onDelete={handleDeleteTab} 
           onClose={() => setEditingTab(null)}
-          onSetLayoutMode={(mode) => handleSetTabLayout(editingTab.id, mode)}
         />
       )}
       {editingGroup && (

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Responsive, WidthProvider } from 'react-grid-layout';
 import DeviceCard from './DeviceCard';
-import { Tab, Device, CardSize, LayoutItem } from '../types';
+import { Tab, Device, LayoutItem, DeviceType } from '../types';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -18,29 +18,26 @@ interface GridTabLayoutProps {
   isEditMode: boolean;
   onEditDevice: (device: Device) => void;
   onDeviceContextMenu: (event: React.MouseEvent, deviceId: string, tabId: string) => void;
-  cardSize: CardSize;
+  // cardSize is no longer needed for layout, but kept for DeviceCard if it uses it internally.
+  // We can remove it if DeviceCard becomes fully adaptive. Let's assume it's still needed for now.
+  // Update: It's better to make DeviceCard adaptive. We'll pass a size that's always consistent.
+  // cardSize: CardSize;
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
   getCameraStreamUrl: (entityId: string) => Promise<string>;
+  // Injected by WidthProvider
+  width?: number;
 }
 
-// Map card size to row height
-const cardSizeToRowHeight: Record<CardSize, number> = {
-    xs: 56,  // (96px card + 16px vertical margin) / 2 rows = 56
-    sm: 66,  // (120+16)/2
-    md: 80,  // (144+16)/2
-    lg: 96,  // (176+16)/2
-    xl: 112, // (208+16)/2
-};
 
 const GridTabLayout: React.FC<GridTabLayoutProps> = ({
   tab,
   allDevices,
   onGridLayoutChange,
   isEditMode,
+  width, // from WidthProvider
   ...props
 }) => {
-
   const handleLayoutChange = (newLayout: LayoutItem[]) => {
     // Prevent layout changes when not in edit mode
     if (isEditMode) {
@@ -55,22 +52,32 @@ const GridTabLayout: React.FC<GridTabLayoutProps> = ({
         return;
     }
     // Logic from DraggableDeviceCard
-    const isCamera = device.type === 18; // DeviceType.Camera
-    const isTogglable = device.type !== 11 && device.type !== 3 && device.type !== 12 && !isCamera; // Thermostat, Climate, Sensor
+    const isCamera = device.type === DeviceType.Camera;
+    const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && device.type !== DeviceType.Sensor && !isCamera;
 
     if (isTogglable) {
       props.onDeviceToggle(device.id);
     }
   };
+  
+  // --- Dynamic Square Grid Calculation ---
+  const cols = tab.gridCols || 24;
+  const margin: [number, number] = [16, 16]; // Corresponds to Tailwind gap-4
+  // Calculate row height based on width to create square grid cells.
+  // The formula is: (total_width - total_horizontal_margin) / number_of_columns
+  const rowHeight = width ? (width - margin[0] * (cols + 1)) / cols : 100;
 
   return (
     <ResponsiveGridLayout
       className="layout"
       layouts={{ lg: tab.gridLayout }}
-      breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-      cols={{ lg: 24, md: 20, sm: 12, xs: 8, xxs: 4 }}
-      rowHeight={cardSizeToRowHeight[props.cardSize]}
-      margin={[16, 16]}
+      // Use the same column count for all breakpoints for predictable sizing,
+      // let the container width handle responsiveness.
+      // Or define responsive columns if needed, but squareness is only guaranteed at one breakpoint.
+      // Let's keep it simple and consistent for now.
+      cols={{ lg: cols, md: cols, sm: cols, xs: cols, xxs: cols }}
+      rowHeight={rowHeight}
+      margin={margin}
       onLayoutChange={handleLayoutChange}
       isDraggable={isEditMode}
       isResizable={isEditMode}
@@ -101,7 +108,8 @@ const GridTabLayout: React.FC<GridTabLayoutProps> = ({
               isEditMode={isEditMode}
               onEditDevice={() => props.onEditDevice(device)}
               onRemoveFromTab={() => props.onDeviceRemoveFromTab(device.id, tab.id)}
-              cardSize={props.cardSize}
+              // In grid mode, cardSize is determined by the grid, let's use a medium default for internal styles
+              cardSize={'md'}
               haUrl={props.haUrl}
               signPath={props.signPath}
               getCameraStreamUrl={props.getCameraStreamUrl}
