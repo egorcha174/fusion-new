@@ -199,7 +199,9 @@ const App: React.FC = () => {
         setTabs(tabs.map(tab => {
             if (tab.id === activeTabId) {
                 const groups = [...(tab.groups || []), newGroup];
-                return { ...tab, groups };
+                 const existingOrder = tab.orderedGroupIds || (tab.groups?.map(g => g.id) || []);
+                const orderedGroupIds = [...existingOrder, newGroup.id];
+                return { ...tab, groups, orderedGroupIds };
             }
             return tab;
         }));
@@ -232,22 +234,20 @@ const App: React.FC = () => {
         setTabs(tabs.map(tab => {
             if (tab.id === tabId) {
                 const groups = (tab.groups || []).filter(g => g.id !== groupId);
-                return { ...tab, groups };
+                const orderedGroupIds = (tab.orderedGroupIds || []).filter(id => id !== groupId);
+                return { ...tab, groups, orderedGroupIds };
             }
             return tab;
         }));
         setEditingGroup(null);
     };
-
-    const handleToggleGroupCollapse = (tabId: string, groupId: string) => {
-        setTabs(tabs.map(tab => {
-            if (tab.id === tabId) {
-                const groups = (tab.groups || []).map(g => g.id === groupId ? { ...g, isCollapsed: !g.isCollapsed } : g);
-                return { ...tab, groups };
-            }
-            return tab;
-        }));
+    
+    const handleGroupOrderChange = (tabId: string, newOrderedGroupIds: string[]) => {
+      setTabs(tabs.map(tab =>
+        tab.id === tabId ? { ...tab, orderedGroupIds: newOrderedGroupIds } : tab
+      ));
     };
+
 
   // --- Device Management on Tabs ---
   const handleDeviceAddToTab = (deviceId: string, tabId: string) => {
@@ -460,6 +460,7 @@ const App: React.FC = () => {
             devices={filteredDevicesForTab}
             customizations={customizations}
             onDeviceOrderChange={handleDeviceOrderChangeOnTab}
+            onGroupOrderChange={handleGroupOrderChange}
             onDeviceRemoveFromTab={handleDeviceRemoveFromTab}
             onDeviceToggle={handleDeviceToggle}
             onTemperatureChange={handleTemperatureChange}
@@ -470,7 +471,6 @@ const App: React.FC = () => {
             onEditDevice={setEditingDevice}
             onDeviceContextMenu={handleDeviceContextMenu}
             onEditGroup={(group) => setEditingGroup({ tabId: activeTab.id, group })}
-            onToggleGroupCollapse={(groupId) => handleToggleGroupCollapse(activeTab.id, groupId)}
             cardSize={cardSize}
             haUrl={haUrl}
             signPath={signPath}

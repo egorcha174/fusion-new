@@ -70,6 +70,7 @@ export interface Tab {
   deviceIds: string[]; // Still keep all device IDs for easy reference
   orderedDeviceIds: string[]; // This will now represent order for UNGROUPED devices
   groups?: Group[];
+  orderedGroupIds?: string[]; // New: Stores the sort order of groups and the ungrouped container
 }
 
 // Types for user customizations

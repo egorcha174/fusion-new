@@ -20,12 +20,12 @@ interface GroupContainerProps {
   onEditDevice: (device: Device) => void;
   onDeviceContextMenu: (event: React.MouseEvent, deviceId: string, tabId: string) => void;
   onEditGroup: (group: Group) => void;
-  onToggleCollapse: (groupId: string) => void;
   cardSize: CardSize;
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
   getCameraStreamUrl: (entityId: string) => Promise<string>;
   getDeviceGridClasses: (size: CardSize) => string;
+  dragHandleProps?: any;
 }
 
 const GroupContainer: React.FC<GroupContainerProps> = ({
@@ -34,6 +34,7 @@ const GroupContainer: React.FC<GroupContainerProps> = ({
   devices,
   onDeviceOrderChange,
   getDeviceGridClasses,
+  dragHandleProps,
   ...props
 }) => {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
@@ -61,6 +62,13 @@ const GroupContainer: React.FC<GroupContainerProps> = ({
   return (
     <div>
         <div className="flex items-center mb-4">
+            {props.isEditMode && (
+                <div {...dragHandleProps} className="p-1 -ml-1 mr-1 cursor-move text-gray-500 hover:text-white rounded-full">
+                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M5 8a1 1 0 11-2 0 1 1 0 012 0zM5 12a1 1 0 11-2 0 1 1 0 012 0zM11 8a1 1 0 100-2 1 1 0 000 2zM11 12a1 1 0 100-2 1 1 0 000 2zM15 8a1 1 0 11-2 0 1 1 0 012 0zM15 12a1 1 0 11-2 0 1 1 0 012 0z" />
+                   </svg>
+                </div>
+            )}
             <h2 className="text-2xl font-bold">{group.name}</h2>
             {props.isEditMode && (
                 <button onClick={() => props.onEditGroup(group)} className="ml-2 p-1 text-gray-400 hover:text-white">

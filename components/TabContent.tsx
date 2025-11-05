@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable';
+import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import DraggableDeviceCard from './DraggableDeviceCard';
 import GroupContainer from './GroupContainer';
 import { Tab, Device, CardSize, DeviceCustomizations, Group } from '../types';
@@ -11,6 +12,7 @@ interface TabContentProps {
   devices: Device[];
   customizations: DeviceCustomizations;
   onDeviceOrderChange: (tabId: string, newDevices: Device[], groupId?: string | null) => void;
+  onGroupOrderChange: (tabId: string, newOrderedGroupIds: string[]) => void;
   onDeviceRemoveFromTab: (deviceId: string, tabId: string) => void;
   onDeviceToggle: (deviceId: string) => void;
   onTemperatureChange: (deviceId: string, change: number) => void;
@@ -21,12 +23,13 @@ interface TabContentProps {
   onEditDevice: (device: Device) => void;
   onDeviceContextMenu: (event: React.MouseEvent, deviceId: string, tabId: string) => void;
   onEditGroup: (group: Group) => void;
-  onToggleGroupCollapse: (groupId: string) => void;
   cardSize: CardSize;
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
   getCameraStreamUrl: (entityId: string) => Promise<string>;
 }
+
+const UNGROUPED_DEVICES_ID = '---ungrouped-devices---';
 
 // Unified grid class generator. Uses `auto-fill` to create as many columns as will fit
 // with a minimum size, ensuring cards are consistently sized everywhere.
@@ -40,26 +43,31 @@ const getDeviceGridClasses = (size: CardSize): string => {
     }
 };
 
+const SortableGroupWrapper: React.FC<{
+    id: string;
+    isEditMode: boolean;
+    children: (dragHandleProps: any) => React.ReactNode;
+}> = ({ id, isEditMode, children }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+        id,
+        disabled: !isEditMode,
+    });
+    const style: React.CSSProperties = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    };
+
+    return <div ref={setNodeRef} style={style}>{children({ ...attributes, ...listeners })}</div>;
+};
+
 const TabContent: React.FC<TabContentProps> = ({
   tab,
   devices,
   customizations,
   onDeviceOrderChange,
-  onDeviceRemoveFromTab,
-  onDeviceToggle,
-  onTemperatureChange,
-  onBrightnessChange,
-  onPresetChange,
-  onCameraCardClick,
-  isEditMode,
-  onEditDevice,
-  onDeviceContextMenu,
-  onEditGroup,
-  onToggleGroupCollapse,
-  cardSize,
-  haUrl,
-  signPath,
-  getCameraStreamUrl,
+  onGroupOrderChange,
+  ...props
 }) => {
   const { groups = [] } = tab;
 
@@ -92,6 +100,33 @@ const TabContent: React.FC<TabContentProps> = ({
     return { groupedDevices: grouped, sortedUngroupedDevices: sortedUngrouped };
   }, [devices, customizations, groups, tab.orderedDeviceIds]);
 
+  const sortableItems = useMemo(() => {
+    const groupMap = new Map(groups.map(g => [g.id, g]));
+    const hasUngrouped = sortedUngroupedDevices.length > 0;
+    const defaultOrder = [...groups.map(g => g.id), ...(hasUngrouped ? [UNGROUPED_DEVICES_ID] : [])];
+    const orderedIds = tab.orderedGroupIds || defaultOrder;
+  
+    return orderedIds
+      .map(id => {
+        if (id === UNGROUPED_DEVICES_ID) {
+          return hasUngrouped ? { id: UNGROUPED_DEVICES_ID, isUngrouped: true } : null;
+        }
+        return groupMap.get(id);
+      })
+      .filter(item => !!item);
+  }, [tab.orderedGroupIds, groups, sortedUngroupedDevices.length]);
+
+  const sortableItemIds = useMemo(() => sortableItems.map(item => item!.id), [sortableItems]);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 10 } }));
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+        const oldIndex = sortableItemIds.indexOf(active.id as string);
+        const newIndex = sortableItemIds.indexOf(over.id as string);
+        onGroupOrderChange(tab.id, arrayMove(sortableItemIds, oldIndex, newIndex));
+    }
+  };
 
   if (devices.length === 0) {
       return (
@@ -103,59 +138,57 @@ const TabContent: React.FC<TabContentProps> = ({
   }
 
   return (
-    <div className="grid items-start gap-x-8 gap-y-12 grid-cols-[repeat(auto-fit,minmax(304px,1fr))]">
-        {groups.map(group => (
-            <GroupContainer
-                key={group.id}
-                tabId={tab.id}
-                group={group}
-                devices={groupedDevices.get(group.id) || []}
-                onDeviceOrderChange={onDeviceOrderChange}
-                onDeviceRemoveFromTab={onDeviceRemoveFromTab}
-                onDeviceToggle={onDeviceToggle}
-                onTemperatureChange={onTemperatureChange}
-                onBrightnessChange={onBrightnessChange}
-                onPresetChange={onPresetChange}
-                onCameraCardClick={onCameraCardClick}
-                isEditMode={isEditMode}
-                onEditDevice={onEditDevice}
-                onDeviceContextMenu={onDeviceContextMenu}
-                onEditGroup={onEditGroup}
-                onToggleCollapse={onToggleGroupCollapse}
-                cardSize={cardSize}
-                haUrl={haUrl}
-                signPath={signPath}
-                getCameraStreamUrl={getCameraStreamUrl}
-                getDeviceGridClasses={getDeviceGridClasses}
-            />
-        ))}
-
-        {sortedUngroupedDevices.length > 0 && (
-            <UngroupedDevicesContainer
-                tabId={tab.id}
-                devices={sortedUngroupedDevices}
-                onDeviceOrderChange={(ordered) => onDeviceOrderChange(tab.id, ordered, null)}
-                {...{onDeviceRemoveFromTab, onDeviceToggle, onTemperatureChange, onBrightnessChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onDeviceContextMenu, cardSize, haUrl, signPath, getCameraStreamUrl }}
-            />
-        )}
-    </div>
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext items={sortableItemIds} strategy={rectSortingStrategy}>
+        <div className="grid items-start gap-x-8 gap-y-12 grid-cols-[repeat(auto-fit,minmax(304px,1fr))]">
+          {sortableItems.map(item => (
+            <SortableGroupWrapper key={item!.id} id={item!.id} isEditMode={props.isEditMode}>
+              {(dragHandleProps) => {
+                if ('isUngrouped' in item!) {
+                  return (
+                    <UngroupedDevicesContainer
+                      tabId={tab.id}
+                      devices={sortedUngroupedDevices}
+                      onDeviceOrderChange={(ordered) => onDeviceOrderChange(tab.id, ordered, null)}
+                      dragHandleProps={dragHandleProps}
+                      {...props}
+                    />
+                  );
+                }
+                const group = item as Group;
+                return (
+                  <GroupContainer
+                    tabId={tab.id}
+                    group={group}
+                    devices={groupedDevices.get(group.id) || []}
+                    onDeviceOrderChange={onDeviceOrderChange}
+                    dragHandleProps={dragHandleProps}
+                    getDeviceGridClasses={getDeviceGridClasses}
+                    {...props}
+                  />
+                );
+              }}
+            </SortableGroupWrapper>
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
   );
 };
 
-
-// A separate component for the ungrouped devices to encapsulate their DND context
-interface UngroupedDevicesContainerProps extends Omit<TabContentProps, 'tab' | 'devices' | 'customizations' | 'onDeviceOrderChange' | 'onEditGroup' | 'onToggleGroupCollapse'> {
+interface UngroupedDevicesContainerProps extends Omit<TabContentProps, 'tab' | 'devices' | 'customizations' | 'onDeviceOrderChange' | 'onGroupOrderChange' | 'onEditGroup'> {
     tabId: string;
     devices: Device[];
     onDeviceOrderChange: (newDevices: Device[]) => void;
+    dragHandleProps: any;
 }
 
 const UngroupedDevicesContainer: React.FC<UngroupedDevicesContainerProps> = ({
-    tabId, devices, onDeviceOrderChange, ...props
+    tabId, devices, onDeviceOrderChange, dragHandleProps, ...props
 }) => {
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
-    const handleDragEnd = (event: DragEndEvent) => {
+    const handleDeviceDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
         if (over && active.id !== over.id) {
             const oldIndex = devices.findIndex((d) => d.id === active.id);
@@ -166,8 +199,17 @@ const UngroupedDevicesContainer: React.FC<UngroupedDevicesContainerProps> = ({
 
     return (
         <div>
-            <h2 className="text-2xl font-bold mb-4">Несгруппированные</h2>
-             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <div className="flex items-center mb-4">
+                 {props.isEditMode && (
+                    <div {...dragHandleProps} className="p-1 -ml-1 mr-1 cursor-move text-gray-500 hover:text-white rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                           <path d="M5 8a1 1 0 11-2 0 1 1 0 012 0zM5 12a1 1 0 11-2 0 1 1 0 012 0zM11 8a1 1 0 100-2 1 1 0 000 2zM11 12a1 1 0 100-2 1 1 0 000 2zM15 8a1 1 0 11-2 0 1 1 0 012 0zM15 12a1 1 0 11-2 0 1 1 0 012 0z" />
+                        </svg>
+                    </div>
+                )}
+                <h2 className="text-2xl font-bold">Несгруппированные</h2>
+            </div>
+             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDeviceDragEnd}>
                 <SortableContext items={devices.map(d => d.id)} strategy={rectSortingStrategy}>
                     <div className={getDeviceGridClasses(props.cardSize)}>
                         {devices.map((device) => (
