@@ -79,7 +79,7 @@ const GroupContainer: React.FC<GroupContainerProps> = ({
         </div>
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={sortedDevices.map(d => d.id)} strategy={rectSortingStrategy}>
-            <FixedGridGroup>
+            <FixedGridGroup cardSize={props.cardSize}>
                 {sortedDevices.map((device) => (
                     <DraggableDeviceCard
                         key={device.id}
