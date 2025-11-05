@@ -31,16 +31,17 @@ interface TabContentProps {
 
 const UNGROUPED_DEVICES_ID = '---ungrouped-devices---';
 
-// Unified grid class generator. Uses `auto-fill` to create as many columns as will fit
-// with a minimum size, ensuring cards are consistently sized everywhere.
-// Added `grid-auto-rows` to ensure consistent row heights for spanning.
+// Unified grid class generator. Uses fixed-width columns to ensure all cards have the exact same size
+// regardless of their container's width. 'auto-fill' creates as many columns as possible, and the grid
+// container will have leftover space if its width is not a perfect multiple of the column width + gap.
+// This is preferable to having differently sized cards.
 const getDeviceGridClasses = (size: CardSize): string => {
     switch (size) {
-        case 'xs': return 'grid gap-2 grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] grid-auto-rows-[5.5rem]';
-        case 'sm': return 'grid gap-3 grid-cols-[repeat(auto-fill,minmax(7rem,1fr))] grid-auto-rows-[7rem]';
-        case 'lg': return 'grid gap-5 grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] grid-auto-rows-[11rem]';
-        case 'xl': return 'grid gap-6 grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] grid-auto-rows-[13rem]';
-        case 'md': default: return 'grid gap-4 grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] grid-auto-rows-[9rem]';
+        case 'xs': return 'grid gap-2 grid-cols-[repeat(auto-fill,5.5rem)] grid-auto-rows-[5.5rem]';
+        case 'sm': return 'grid gap-3 grid-cols-[repeat(auto-fill,7rem)] grid-auto-rows-[7rem]';
+        case 'lg': return 'grid gap-5 grid-cols-[repeat(auto-fill,11rem)] grid-auto-rows-[11rem]';
+        case 'xl': return 'grid gap-6 grid-cols-[repeat(auto-fill,13rem)] grid-auto-rows-[13rem]';
+        case 'md': default: return 'grid gap-4 grid-cols-[repeat(auto-fill,9rem)] grid-auto-rows-[9rem]';
     }
 };
 

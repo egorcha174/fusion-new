@@ -509,6 +509,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
             );
         }, [device.status]);
 
+        const isNumericStatus = !isNaN(parseFloat(device.status));
+
         return (
           <div className="flex flex-col h-full text-left">
             <div>
@@ -519,8 +521,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
               <SparklineChart data={device.history || mockHistory} />
             </div>
             <div className="flex items-baseline mt-auto flex-shrink-0">
-              <p className={styles.sensorStatusText}>{device.status}</p>
-              {device.unit && <p className={`${styles.sensorUnitText} text-gray-400 ml-1`}>{device.unit}</p>}
+              <p className={`${isNumericStatus ? styles.sensorStatusText : 'text-lg font-semibold break-words'}`}>{device.status}</p>
+              {device.unit && isNumericStatus && <p className={`${styles.sensorUnitText} text-gray-400 ml-1`}>{device.unit}</p>}
             </div>
           </div>
         );

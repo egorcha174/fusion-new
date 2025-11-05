@@ -1,4 +1,3 @@
-
 import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization, WeatherForecast } from '../types';
 
 const getDeviceType = (entity: HassEntity): DeviceType => {
@@ -53,6 +52,10 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
 };
 
 const getStatusText = (entity: HassEntity): string => {
+    // Handle universal states first for consistency across all device types.
+    if (entity.state === 'unavailable') return 'Недоступно';
+    if (entity.state === 'unknown') return 'Неизвестно';
+    
     const domain = entity.entity_id.split('.')[0];
     const attributes = entity.attributes || {};
 
@@ -82,10 +85,10 @@ const getStatusText = (entity: HassEntity): string => {
         if (!isNaN(numericState)) {
             return String(Math.round(numericState * 10) / 10);
         }
+        // Return the raw state if it's not a number and not 'unavailable'/'unknown'
         return entity.state;
     }
     
-    if (entity.state === 'unavailable') return 'Недоступно';
     if (entity.state === 'on') return 'Включено';
     if (entity.state === 'off') return 'Выключено';
     return entity.state.charAt(0).toUpperCase() + entity.state.slice(1);
