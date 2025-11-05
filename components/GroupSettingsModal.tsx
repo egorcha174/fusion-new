@@ -5,18 +5,24 @@ import ConfirmDialog from './ConfirmDialog';
 interface GroupSettingsModalProps {
     tabId: string;
     group: Group;
-    onSave: (tabId: string, groupId: string, newValues: { name: string }) => void;
+    onSave: (tabId: string, groupId: string, newValues: { name: string; width?: number; height?: number; }) => void;
     onDelete: (tabId: string, groupId: string) => void;
     onClose: () => void;
 }
 
 const GroupSettingsModal: React.FC<GroupSettingsModalProps> = ({ tabId, group, onSave, onDelete, onClose }) => {
     const [name, setName] = useState(group.name);
+    const [width, setWidth] = useState(group.width || 4);
+    const [height, setHeight] = useState(group.height || 0); // 0 for unlimited
     const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
     const handleSave = () => {
         if (name.trim()) {
-            onSave(tabId, group.id, { name: name.trim() });
+            onSave(tabId, group.id, { 
+                name: name.trim(),
+                width: width,
+                height: height > 0 ? height : undefined, // Store undefined if height is unlimited
+            });
         }
     };
 
@@ -46,6 +52,40 @@ const GroupSettingsModal: React.FC<GroupSettingsModalProps> = ({ tabId, group, o
                                 onChange={(e) => setName(e.target.value)}
                                 className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
+                        </div>
+                         <div>
+                            <label htmlFor="groupWidth" className="block text-sm font-medium text-gray-300 mb-2">Ширина группы</label>
+                            <div className="flex items-center gap-4">
+                                <input
+                                    id="groupWidth"
+                                    type="range"
+                                    min="1"
+                                    max="4"
+                                    step="1"
+                                    value={width}
+                                    onChange={(e) => setWidth(parseInt(e.target.value, 10))}
+                                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                />
+                                <span className="w-8 text-center text-gray-300 font-mono">{width}</span>
+                            </div>
+                            <p className="text-xs text-gray-400 mt-1">Количество карточек в ширину.</p>
+                        </div>
+                        <div>
+                            <label htmlFor="groupHeight" className="block text-sm font-medium text-gray-300 mb-2">Максимальная высота</label>
+                            <div className="flex items-center gap-4">
+                                <input
+                                    id="groupHeight"
+                                    type="range"
+                                    min="0"
+                                    max="3"
+                                    step="1"
+                                    value={height}
+                                    onChange={(e) => setHeight(parseInt(e.target.value, 10))}
+                                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                />
+                                <span className="w-8 text-center text-gray-300 font-mono">{height === 0 ? '∞' : height}</span>
+                            </div>
+                            <p className="text-xs text-gray-400 mt-1">Количество рядов карточек. 0 = без ограничений.</p>
                         </div>
                     </div>
                     <div className="p-6 flex justify-between items-center bg-gray-800/50 rounded-b-2xl">

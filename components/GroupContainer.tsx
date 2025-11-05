@@ -4,6 +4,7 @@ import type { DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable';
 import DraggableDeviceCard from './DraggableDeviceCard';
 import { Group, Device, CardSize } from '../types';
+import { calculateGroupMaxHeight, getGridClasses } from '../utils/grid-calculations';
 
 interface GroupContainerProps {
   tabId: string;
@@ -57,24 +58,16 @@ const GroupContainer: React.FC<GroupContainerProps> = ({
     }
   };
 
-  const gridClasses = useMemo(() => {
-    const sizeMap: Record<CardSize, string> = {
-        xs: '6rem',
-        sm: '7.5rem',
-        md: '9rem',
-        lg: '11rem',
-        xl: '13rem',
-    };
-     const gapMap: Record<CardSize, string> = {
-        xs: 'gap-2',
-        sm: 'gap-3',
-        md: 'gap-4',
-        lg: 'gap-5',
-        xl: 'gap-6',
-    };
-    const minSize = sizeMap[props.cardSize];
-    return `grid ${gapMap[props.cardSize]} grid-cols-[repeat(auto-fill,minmax(${minSize},1fr))]`;
-  }, [props.cardSize]);
+  const gridClasses = getGridClasses(props.cardSize);
+  
+  const gridWrapperStyle: React.CSSProperties = {};
+  if (group.height && group.height > 0) {
+      gridWrapperStyle.maxHeight = `${calculateGroupMaxHeight(group.height, props.cardSize)}px`;
+      gridWrapperStyle.overflowY = 'auto';
+      // Add padding to avoid scrollbar overlap
+      gridWrapperStyle.paddingRight = '8px';
+  }
+
 
   return (
     <div>
@@ -95,31 +88,33 @@ const GroupContainer: React.FC<GroupContainerProps> = ({
                 </button>
             )}
         </div>
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={sortedDevices.map(d => d.id)} strategy={rectSortingStrategy}>
-            <div className={gridClasses}>
-                {sortedDevices.map((device) => (
-                    <DraggableDeviceCard
-                        key={device.id}
-                        device={device}
-                        onToggle={() => props.onDeviceToggle(device.id)}
-                        onTemperatureChange={(change) => props.onTemperatureChange(device.id, change)}
-                        onBrightnessChange={(brightness) => props.onBrightnessChange(device.id, brightness)}
-                        onPresetChange={(preset) => props.onPresetChange(device.id, preset)}
-                        onCameraCardClick={props.onCameraCardClick}
-                        isEditMode={props.isEditMode}
-                        onEditDevice={props.onEditDevice}
-                        onRemoveFromTab={() => props.onDeviceRemoveFromTab(device.id, tabId)}
-                        onContextMenu={(event) => props.onDeviceContextMenu(event, device.id, tabId)}
-                        cardSize={props.cardSize}
-                        haUrl={props.haUrl}
-                        signPath={props.signPath}
-                        getCameraStreamUrl={props.getCameraStreamUrl}
-                    />
-                ))}
-            </div>
-            </SortableContext>
-        </DndContext>
+        <div style={gridWrapperStyle}>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={sortedDevices.map(d => d.id)} strategy={rectSortingStrategy}>
+                <div className={gridClasses}>
+                    {sortedDevices.map((device) => (
+                        <DraggableDeviceCard
+                            key={device.id}
+                            device={device}
+                            onToggle={() => props.onDeviceToggle(device.id)}
+                            onTemperatureChange={(change) => props.onTemperatureChange(device.id, change)}
+                            onBrightnessChange={(brightness) => props.onBrightnessChange(device.id, brightness)}
+                            onPresetChange={(preset) => props.onPresetChange(device.id, preset)}
+                            onCameraCardClick={props.onCameraCardClick}
+                            isEditMode={props.isEditMode}
+                            onEditDevice={props.onEditDevice}
+                            onRemoveFromTab={() => props.onDeviceRemoveFromTab(device.id, tabId)}
+                            onContextMenu={(event) => props.onDeviceContextMenu(event, device.id, tabId)}
+                            cardSize={props.cardSize}
+                            haUrl={props.haUrl}
+                            signPath={props.signPath}
+                            getCameraStreamUrl={props.getCameraStreamUrl}
+                        />
+                    ))}
+                </div>
+                </SortableContext>
+            </DndContext>
+        </div>
     </div>
   );
 };

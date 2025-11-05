@@ -61,6 +61,10 @@ export interface Group {
     name: string;
     isCollapsed?: boolean;
     orderedDeviceIds?: string[];
+    /** Ширина группы в количестве карточек (1-4). */
+    width?: number;
+    /** Максимальная высота группы в количестве карточек (1-3). При переполнении появится скролл. */
+    height?: number;
 }
 
 // Represents a user-created tab on the dashboard

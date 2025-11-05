@@ -6,6 +6,7 @@ import { CSS } from '@dnd-kit/utilities';
 import DraggableDeviceCard from './DraggableDeviceCard';
 import GroupContainer from './GroupContainer';
 import { Tab, Device, CardSize, DeviceCustomizations, Group } from '../types';
+import { getGridClasses } from '../utils/grid-calculations';
 
 interface TabContentProps {
   tab: Tab;
@@ -31,45 +32,29 @@ interface TabContentProps {
 
 const UNGROUPED_DEVICES_ID = '---ungrouped-devices---';
 
-// Uses an adaptive grid that allows cards to stretch and fill space.
-const getDeviceGridClasses = (size: CardSize): string => {
-    const sizeMap: Record<CardSize, string> = {
-        xs: '6rem',   // 96px
-        sm: '7.5rem', // 120px
-        md: '9rem',   // 144px
-        lg: '11rem',  // 176px
-        xl: '13rem',  // 208px
-    };
-     const gapMap: Record<CardSize, string> = {
-        xs: 'gap-2',
-        sm: 'gap-3',
-        md: 'gap-4',
-        lg: 'gap-5',
-        xl: 'gap-6',
-    };
-    const minSize = sizeMap[size];
-    // Use minmax to allow cards to stretch. Use auto-fill to keep sizes consistent across rows.
-    return `grid ${gapMap[size]} grid-cols-[repeat(auto-fill,minmax(${minSize},1fr))]`;
-};
-
-
-const SortableGroupWrapper: React.FC<{
+interface SortableGridItemProps {
     id: string;
     isEditMode: boolean;
     children: (dragHandleProps: any) => React.ReactNode;
-}> = ({ id, isEditMode, children }) => {
+    style?: React.CSSProperties;
+}
+
+const SortableGridItem: React.FC<SortableGridItemProps> = ({ id, isEditMode, children, style: gridStyle }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id,
         disabled: !isEditMode,
     });
     const style: React.CSSProperties = {
+        ...gridStyle,
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.5 : 1,
+        alignSelf: 'start', // Prevents items from stretching to fill the grid row height
     };
 
-    return <div ref={setNodeRef} style={style}>{children({ ...attributes, ...listeners })}</div>;
+    return <div ref={setNodeRef} style={style} {...attributes}>{children(listeners)}</div>;
 };
+
 
 const TabContent: React.FC<TabContentProps> = ({
   tab,
@@ -137,6 +122,8 @@ const TabContent: React.FC<TabContentProps> = ({
         onGroupOrderChange(tab.id, arrayMove(sortableItemIds, oldIndex, newIndex));
     }
   };
+  
+  const mainGridClasses = getGridClasses(props.cardSize);
 
   if (devices.length === 0) {
       return (
@@ -150,36 +137,41 @@ const TabContent: React.FC<TabContentProps> = ({
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={sortableItemIds} strategy={rectSortingStrategy}>
-        <div className="space-y-12">
-          {sortableItems.map(item => (
-            <SortableGroupWrapper key={item!.id} id={item!.id} isEditMode={props.isEditMode}>
-              {(dragHandleProps) => {
-                if ('isUngrouped' in item!) {
-                  return (
-                    <UngroupedDevicesContainer
+        <div className={mainGridClasses}>
+            {sortableItems.map(item => {
+              const id = item!.id;
+              if ('isUngrouped' in item!) {
+                return (
+                  <SortableGridItem key={id} id={id} isEditMode={props.isEditMode} style={{ gridColumn: '1 / -1' }}>
+                    {(dragHandleProps) => (
+                      <UngroupedDevicesContainer
+                        tabId={tab.id}
+                        devices={sortedUngroupedDevices}
+                        onDeviceOrderChange={(ordered) => onDeviceOrderChange(tab.id, ordered, null)}
+                        dragHandleProps={dragHandleProps}
+                        customizations={customizations}
+                        {...props}
+                      />
+                    )}
+                  </SortableGridItem>
+                );
+              }
+              const group = item as Group;
+              return (
+                <SortableGridItem key={id} id={id} isEditMode={props.isEditMode} style={{ gridColumn: `span ${Math.min(group.width || 4, 4)}` }}>
+                  {(dragHandleProps) => (
+                    <GroupContainer
                       tabId={tab.id}
-                      devices={sortedUngroupedDevices}
-                      onDeviceOrderChange={(ordered) => onDeviceOrderChange(tab.id, ordered, null)}
+                      group={group}
+                      devices={groupedDevices.get(group.id) || []}
+                      onDeviceOrderChange={onDeviceOrderChange}
                       dragHandleProps={dragHandleProps}
-                      customizations={customizations}
                       {...props}
                     />
-                  );
-                }
-                const group = item as Group;
-                return (
-                  <GroupContainer
-                    tabId={tab.id}
-                    group={group}
-                    devices={groupedDevices.get(group.id) || []}
-                    onDeviceOrderChange={onDeviceOrderChange}
-                    dragHandleProps={dragHandleProps}
-                    {...props}
-                  />
-                );
-              }}
-            </SortableGroupWrapper>
-          ))}
+                  )}
+                </SortableGridItem>
+              );
+            })}
         </div>
       </SortableContext>
     </DndContext>
@@ -221,7 +213,7 @@ const UngroupedDevicesContainer: React.FC<UngroupedDevicesContainerProps> = ({
             </div>
              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDeviceDragEnd}>
                 <SortableContext items={devices.map(d => d.id)} strategy={rectSortingStrategy}>
-                    <div className={getDeviceGridClasses(props.cardSize)}>
+                    <div className={getGridClasses(props.cardSize)}>
                         {devices.map((device) => (
                             <DraggableDeviceCard
                                 key={device.id}

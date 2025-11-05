@@ -207,7 +207,7 @@ const App: React.FC = () => {
         }));
     };
 
-    const handleUpdateGroup = (tabId: string, groupId: string, newValues: { name: string; }) => {
+    const handleUpdateGroup = (tabId: string, groupId: string, newValues: { name: string; width?: number; height?: number; }) => {
         setTabs(tabs.map(tab => {
             if (tab.id === tabId) {
                 const groups = (tab.groups || []).map(g => g.id === groupId ? { ...g, ...newValues } : g);
