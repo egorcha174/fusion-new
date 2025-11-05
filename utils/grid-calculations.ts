@@ -2,11 +2,11 @@ import { CardSize } from '../types';
 
 // These values must be kept in sync with the Tailwind CSS theme.
 const CARD_SIZES_PX: Record<CardSize, number> = {
-    xs: 96,    // 6rem
-    sm: 120,   // 7.5rem
-    md: 144,   // 9rem
-    lg: 176,   // 11rem
-    xl: 208,   // 13rem
+    xs: 112,   // 7rem
+    sm: 140,   // 8.75rem
+    md: 168,   // 10.5rem
+    lg: 200,   // 12.5rem
+    xl: 232,   // 14.5rem
 };
 
 /**
