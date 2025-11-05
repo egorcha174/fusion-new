@@ -31,7 +31,7 @@ interface TabContentProps {
 
 const UNGROUPED_DEVICES_ID = '---ungrouped-devices---';
 
-// Uses an adaptive grid that ensures all cards are the same size.
+// Uses an adaptive grid that allows cards to stretch and fill space.
 const getDeviceGridClasses = (size: CardSize): string => {
     const sizeMap: Record<CardSize, string> = {
         xs: '6rem',   // 96px
@@ -47,9 +47,9 @@ const getDeviceGridClasses = (size: CardSize): string => {
         lg: 'gap-5',
         xl: 'gap-6',
     };
-    // This creates a grid with columns of a fixed size, matching the group behavior.
     const minSize = sizeMap[size];
-    return `grid ${gapMap[size]} grid-cols-[repeat(auto-fit,${minSize})] justify-center`;
+    // Use minmax to allow cards to stretch. Use auto-fill to keep sizes consistent across rows.
+    return `grid ${gapMap[size]} grid-cols-[repeat(auto-fill,minmax(${minSize},1fr))]`;
 };
 
 
@@ -90,12 +90,7 @@ const TabContent: React.FC<TabContentProps> = ({
     for (const device of devices) {
         const groupId = customizations[device.id]?.groupId;
         if (groupId && grouped.has(groupId)) {
-            const groupList = grouped.get(groupId)!;
-            if (groupList.length < 4) {
-                groupList.push(device);
-            } else {
-                ungrouped.push(device);
-            }
+            grouped.get(groupId)!.push(device);
         } else {
             ungrouped.push(device);
         }
@@ -155,7 +150,7 @@ const TabContent: React.FC<TabContentProps> = ({
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={sortableItemIds} strategy={rectSortingStrategy}>
-        <div className="flex flex-row flex-wrap items-start gap-x-16 gap-y-8">
+        <div className="space-y-12">
           {sortableItems.map(item => (
             <SortableGroupWrapper key={item!.id} id={item!.id} isEditMode={props.isEditMode}>
               {(dragHandleProps) => {
@@ -213,7 +208,7 @@ const UngroupedDevicesContainer: React.FC<UngroupedDevicesContainerProps> = ({
     };
 
     return (
-        <div className="w-full">
+        <div>
             <div className="flex items-center mb-4">
                  {props.isEditMode && (
                     <div {...dragHandleProps} className="p-1 -ml-1 mr-1 cursor-move text-gray-500 hover:text-white rounded-full">

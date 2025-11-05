@@ -4,7 +4,6 @@ import type { DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable';
 import DraggableDeviceCard from './DraggableDeviceCard';
 import { Group, Device, CardSize } from '../types';
-import FixedGridGroup from './FixedGridGroup';
 
 interface GroupContainerProps {
   tabId: string;
@@ -58,6 +57,25 @@ const GroupContainer: React.FC<GroupContainerProps> = ({
     }
   };
 
+  const gridClasses = useMemo(() => {
+    const sizeMap: Record<CardSize, string> = {
+        xs: '6rem',
+        sm: '7.5rem',
+        md: '9rem',
+        lg: '11rem',
+        xl: '13rem',
+    };
+     const gapMap: Record<CardSize, string> = {
+        xs: 'gap-2',
+        sm: 'gap-3',
+        md: 'gap-4',
+        lg: 'gap-5',
+        xl: 'gap-6',
+    };
+    const minSize = sizeMap[props.cardSize];
+    return `grid ${gapMap[props.cardSize]} grid-cols-[repeat(auto-fill,minmax(${minSize},1fr))]`;
+  }, [props.cardSize]);
+
   return (
     <div>
         <div className="flex items-center mb-4">
@@ -79,7 +97,7 @@ const GroupContainer: React.FC<GroupContainerProps> = ({
         </div>
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={sortedDevices.map(d => d.id)} strategy={rectSortingStrategy}>
-            <FixedGridGroup cardSize={props.cardSize}>
+            <div className={gridClasses}>
                 {sortedDevices.map((device) => (
                     <DraggableDeviceCard
                         key={device.id}
@@ -99,7 +117,7 @@ const GroupContainer: React.FC<GroupContainerProps> = ({
                         getCameraStreamUrl={props.getCameraStreamUrl}
                     />
                 ))}
-            </FixedGridGroup>
+            </div>
             </SortableContext>
         </DndContext>
     </div>
