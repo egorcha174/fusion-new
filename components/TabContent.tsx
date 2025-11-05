@@ -156,7 +156,7 @@ const TabContent: React.FC<TabContentProps> = ({
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={sortableItemIds} strategy={rectSortingStrategy}>
-        <div className="space-y-8">
+        <div className="flex flex-row flex-wrap items-start gap-x-16 gap-y-8">
           {sortableItems.map(item => (
             <SortableGroupWrapper key={item!.id} id={item!.id} isEditMode={props.isEditMode}>
               {(dragHandleProps) => {
@@ -214,7 +214,7 @@ const UngroupedDevicesContainer: React.FC<UngroupedDevicesContainerProps> = ({
     };
 
     return (
-        <div>
+        <div className="w-full">
             <div className="flex items-center mb-4">
                  {props.isEditMode && (
                     <div {...dragHandleProps} className="p-1 -ml-1 mr-1 cursor-move text-gray-500 hover:text-white rounded-full">
