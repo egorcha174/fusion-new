@@ -59,7 +59,7 @@ const GroupContainer: React.FC<GroupContainerProps> = ({
   };
 
   return (
-    <div className="flex-shrink-0 min-w-[304px]">
+    <div>
         <div className="flex items-center mb-4">
             <h2 className="text-2xl font-bold">{group.name}</h2>
             {props.isEditMode && (

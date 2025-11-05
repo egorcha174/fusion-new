@@ -101,7 +101,7 @@ const TabContent: React.FC<TabContentProps> = ({
   }
 
   return (
-    <div className="flex flex-wrap items-start gap-x-8 gap-y-12">
+    <div className="grid items-start gap-x-8 gap-y-12 grid-cols-[repeat(auto-fit,minmax(304px,1fr))]">
         {groups.map(group => (
             <GroupContainer
                 key={group.id}
@@ -163,7 +163,7 @@ const UngroupedDevicesContainer: React.FC<UngroupedDevicesContainerProps> = ({
     };
 
     return (
-        <div className="flex-1 min-w-[304px]">
+        <div>
             <h2 className="text-2xl font-bold mb-4">Несгруппированные</h2>
              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={devices.map(d => d.id)} strategy={rectSortingStrategy}>
