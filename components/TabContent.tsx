@@ -47,10 +47,9 @@ const getDeviceGridClasses = (size: CardSize): string => {
         lg: 'gap-5',
         xl: 'gap-6',
     };
-    // This creates a grid with columns that are at least `minSize` wide,
-    // but can stretch to fill the container, ensuring all items in the row are the same width.
+    // This creates a grid with columns of a fixed size, matching the group behavior.
     const minSize = sizeMap[size];
-    return `grid ${gapMap[size]} grid-cols-[repeat(auto-fill,minmax(${minSize},1fr))]`;
+    return `grid ${gapMap[size]} grid-cols-[repeat(auto-fit,${minSize})] justify-center`;
 };
 
 
