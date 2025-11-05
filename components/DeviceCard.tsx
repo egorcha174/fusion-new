@@ -513,8 +513,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
 
   const getCardClasses = () => {
     const baseClasses = "rounded-2xl flex flex-col transition-all duration-200 ease-in-out select-none relative";
-    const onStateClasses = "bg-gray-200 text-gray-900 shadow-lg";
-    const offStateClasses = "bg-gray-800/80 hover:bg-gray-700/80 ring-1 ring-white/5";
+    const onStateClasses = "bg-gray-200 text-gray-900";
+    const offStateClasses = "bg-gray-800/80 hover:bg-gray-700/80";
     
     let finalClasses = `${baseClasses} aspect-square `;
 
