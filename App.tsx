@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import Settings from './components/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
 import InfoPanel from './components/InfoPanel';
@@ -66,8 +66,17 @@ const App: React.FC = () => {
   const [haUrl] = useLocalStorage('ha-url', '');
   const [openWeatherMapKey, setOpenWeatherMapKey] = useLocalStorage<string>('ha-openweathermap-key', '');
 
-
+  const brightnessTimeoutRef = useRef<number | null>(null);
   const isLg = useIsLg();
+
+  // Cleanup for brightness debounce timer on component unmount
+  useEffect(() => {
+    return () => {
+        if (brightnessTimeoutRef.current) {
+            clearTimeout(brightnessTimeoutRef.current);
+        }
+    };
+  }, []);
 
 
   // Ensure there's always at least one tab and an active tab is set
@@ -242,14 +251,19 @@ const App: React.FC = () => {
       callService('climate', 'set_temperature', { entity_id: entity.entity_id, temperature: newTemp });
   };
 
-  const handleBrightnessChange = (deviceId: string, brightness: number) => {
-    const entity = entities[deviceId];
-    if (!entity) return;
-    callService('light', 'turn_on', {
-      entity_id: entity.entity_id,
-      brightness_pct: brightness,
-    });
-  };
+  const handleBrightnessChange = useCallback((deviceId: string, brightness: number) => {
+    if (brightnessTimeoutRef.current) {
+        clearTimeout(brightnessTimeoutRef.current);
+    }
+    brightnessTimeoutRef.current = window.setTimeout(() => {
+        const entity = entities[deviceId];
+        if (!entity) return;
+        callService('light', 'turn_on', {
+          entity_id: entity.entity_id,
+          brightness_pct: brightness,
+        });
+    }, 200); // 200ms debounce
+  }, [entities, callService]);
 
   const handlePresetChange = (deviceId: string, preset: string) => {
     callService('climate', 'set_preset_mode', { entity_id: deviceId, preset_mode: preset });
@@ -265,41 +279,48 @@ const App: React.FC = () => {
     const originalDevice = allKnownDevices.get(deviceId);
     if (!originalDevice) return;
     
-    const newCustomization: Partial<DeviceCustomization> = {};
-
-    if (newValues.name !== originalDevice.name) {
-        newCustomization.name = newValues.name;
-    }
-
-    if (newValues.type !== originalDevice.type) {
-        newCustomization.type = newValues.type;
-    }
-
-    if (newValues.icon !== newValues.type) {
-        newCustomization.icon = newValues.icon;
-    }
-
-    if (newValues.isHidden) {
-        newCustomization.isHidden = true;
-    } else {
-        newCustomization.isHidden = false;
-    }
-    
     setCustomizations(prev => {
         const newCustomizations = { ...prev };
-        
-        // If the new customization is empty (all values match original and not hidden), remove the entry
-        if (Object.keys(newCustomization).length === 1 && newCustomization.isHidden === false) {
-             delete newCustomizations[deviceId];
+        const currentCustomization: Partial<DeviceCustomization> = { ...newCustomizations[deviceId] };
+
+        // 1. Handle Name
+        if (newValues.name && newValues.name !== originalDevice.name) {
+            currentCustomization.name = newValues.name;
         } else {
-            newCustomizations[deviceId] = {
-                ...prev[deviceId],
-                ...newCustomization
-            };
-            if (newCustomization.isHidden === false) {
-                delete newCustomizations[deviceId].isHidden;
-            }
+            delete currentCustomization.name;
         }
+
+        // 2. Handle Type
+        if (newValues.type !== originalDevice.type) {
+            currentCustomization.type = newValues.type;
+        } else {
+            delete currentCustomization.type;
+        }
+
+        // 3. Handle Icon
+        // The "default" icon is whatever the type is set to.
+        // We only store an icon override if it's different from the type.
+        if (newValues.icon !== newValues.type) {
+            currentCustomization.icon = newValues.icon;
+        } else {
+            delete currentCustomization.icon;
+        }
+
+        // 4. Handle isHidden
+        if (newValues.isHidden) {
+            currentCustomization.isHidden = true;
+        } else {
+            delete currentCustomization.isHidden;
+        }
+
+        // 5. Finalize
+        // If the customization object is now empty, remove it entirely.
+        if (Object.keys(currentCustomization).length === 0) {
+            delete newCustomizations[deviceId];
+        } else {
+            newCustomizations[deviceId] = currentCustomization;
+        }
+        
         return newCustomizations;
     });
     setEditingDevice(null);
