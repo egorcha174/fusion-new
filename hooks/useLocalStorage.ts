@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { Tab } from '../types';
 
 export function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
   const [storedValue, setStoredValue] = useState<T>(() => {
@@ -14,16 +15,31 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, React.Disp
 
       // --- MIGRATION LOGIC for backward compatibility ---
       if (key === 'ha-tabs' && Array.isArray(parsedItem)) {
-        parsedItem = parsedItem.map((tab: any) => {
-          // If old 'deviceOrder' property exists and new 'orderedDeviceIds' doesn't
-          if (tab.deviceOrder && tab.orderedDeviceIds === undefined) {
-            // Migrate the order for the current tab
-            tab.orderedDeviceIds = tab.deviceOrder[tab.id] || [];
-            delete tab.deviceOrder; // Clean up old property
-          } else if (tab.orderedDeviceIds === undefined) {
-            // Ensure new property exists even if deviceOrder didn't
-            tab.orderedDeviceIds = [];
+        parsedItem = parsedItem.map((tab: any): Tab => {
+          // If tab is from the old structure (has groups, layoutMode, etc.)
+          if (tab.layoutMode !== undefined || tab.groups !== undefined || tab.gridLayout !== undefined) {
+             const allDeviceIdsInOldTab = [
+              ...(tab.orderedDeviceIds || []),
+              ...(tab.groups || []).flatMap((g: any) => g.orderedDeviceIds || [])
+            ];
+            
+            // Create a unique set of device IDs
+            const uniqueDeviceIds = [...new Set(allDeviceIdsInOldTab)];
+            
+            return {
+              id: tab.id,
+              name: tab.name,
+              deviceIds: uniqueDeviceIds,
+              orderedDeviceIds: uniqueDeviceIds, // Use the flattened list as the new order
+              gridSettings: { cols: 8, rows: 5 } // Assign default grid settings
+            };
           }
+          
+          // If it's a newer tab but missing gridSettings for some reason
+          if (tab.gridSettings === undefined) {
+            tab.gridSettings = { cols: 8, rows: 5 };
+          }
+
           return tab;
         });
       }

@@ -7,14 +7,13 @@ import AllDevicesPage from './components/AllDevicesPage';
 import TabContent from './components/TabContent';
 import DeviceSettingsModal from './components/DeviceSettingsModal';
 import TabSettingsModal from './components/TabSettingsModal';
-import GroupSettingsModal from './components/GroupSettingsModal';
 import ContextMenu from './components/ContextMenu';
 import FloatingCameraWindow from './components/FloatingCameraWindow';
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
-import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CardSize, CameraSettings, Group, LayoutMode, LayoutItem } from './types';
-import { nanoid } from 'nanoid'; // A small library for unique IDs
+import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CardSize, CameraSettings } from './types';
+import { nanoid } from 'nanoid';
 
 // Hook to check for large screens to conditionally apply margin
 const useIsLg = () => {
@@ -48,13 +47,10 @@ const App: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [editingTab, setEditingTab] = useState<Tab | null>(null);
-  const [editingGroup, setEditingGroup] = useState<{tabId: string, group: Group} | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, deviceId: string, tabId: string } | null>(null);
   const [floatingCamera, setFloatingCamera] = useState<Device | null>(null);
 
-
-  // --- New Tab-based State Management ---
   const [tabs, setTabs] = useLocalStorage<Tab[]>('ha-tabs', []);
   const [activeTabId, setActiveTabId] = useLocalStorage<string | null>('ha-active-tab', null);
   const [customizations, setCustomizations] = useLocalStorage<DeviceCustomizations>('ha-device-customizations', {});
@@ -79,7 +75,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (connectionStatus === 'connected' && !isLoading) {
       if (tabs.length === 0) {
-        const newTab: Tab = { id: nanoid(), name: 'Главная', deviceIds: [], orderedDeviceIds: [], layoutMode: LayoutMode.Flow, gridLayout: [], gridCols: 24 };
+        const newTab: Tab = { id: nanoid(), name: 'Главная', deviceIds: [], orderedDeviceIds: [], gridSettings: { cols: 8, rows: 5 } };
         setTabs([newTab]);
         setActiveTabId(newTab.id);
       } else if (!activeTabId || !tabs.some(t => t.id === activeTabId)) {
@@ -114,7 +110,8 @@ const App: React.FC = () => {
   const filteredDevicesForTab = useMemo(() => {
     if (!activeTab) return [];
     
-    const activeTabDevices = activeTab.deviceIds
+    // Get devices based on the ordered list for stability
+    const activeTabDevices = activeTab.orderedDeviceIds
       .map(id => allKnownDevices.get(id))
       .filter((d): d is Device => !!d);
 
@@ -150,6 +147,7 @@ const App: React.FC = () => {
   // --- Context Menu Handlers ---
   const handleDeviceContextMenu = (event: React.MouseEvent, deviceId: string, tabId: string) => {
     event.preventDefault();
+    if (isEditMode) return;
     setContextMenu({ x: event.clientX, y: event.clientY, deviceId, tabId });
   };
   
@@ -161,46 +159,13 @@ const App: React.FC = () => {
   // --- Tab Management Handlers ---
   const handleAddTab = () => {
     const newTabName = `Вкладка ${tabs.length + 1}`;
-    const newTab: Tab = { id: nanoid(), name: newTabName, deviceIds: [], orderedDeviceIds: [], layoutMode: LayoutMode.Flow, gridLayout: [], gridCols: 24 };
+    const newTab: Tab = { id: nanoid(), name: newTabName, deviceIds: [], orderedDeviceIds: [], gridSettings: { cols: 8, rows: 5 } };
     setTabs([...tabs, newTab]);
     setActiveTabId(newTab.id);
   };
 
-    const handleUpdateTabSettings = (tabId: string, settings: { name: string; layoutMode: LayoutMode; gridCols?: number }) => {
-        setTabs(tabs.map(tab => {
-            if (tab.id === tabId) {
-                const needsMigration = tab.layoutMode !== LayoutMode.Grid && settings.layoutMode === LayoutMode.Grid;
-                
-                const updatedTab = { ...tab, ...settings };
-
-                // MIGRATION: If switching to Grid for the first time, generate a default layout
-                if (needsMigration && (!updatedTab.gridLayout || updatedTab.gridLayout.length === 0)) {
-                    const COLS = updatedTab.gridCols || 24;
-                    const CARD_WIDTH = 4; // Default width in grid units
-                    const CARD_HEIGHT = 4; // Default height
-                    let cursorX = 0;
-                    let cursorY = 0;
-
-                    updatedTab.gridLayout = updatedTab.deviceIds.map(deviceId => {
-                        if (cursorX + CARD_WIDTH > COLS) {
-                            cursorX = 0;
-                            cursorY += CARD_HEIGHT;
-                        }
-                        const item: LayoutItem = {
-                            i: deviceId,
-                            x: cursorX,
-                            y: cursorY,
-                            w: CARD_WIDTH,
-                            h: CARD_HEIGHT,
-                        };
-                        cursorX += CARD_WIDTH;
-                        return item;
-                    });
-                }
-                return updatedTab;
-            }
-            return tab;
-        }));
+    const handleUpdateTabSettings = (tabId: string, settings: { name: string; gridSettings: { cols: number, rows: number } }) => {
+        setTabs(tabs.map(tab => (tab.id === tabId) ? { ...tab, ...settings } : tab));
         setEditingTab(null);
     };
 
@@ -216,88 +181,17 @@ const App: React.FC = () => {
   const handleTabOrderChange = (newTabs: Tab[]) => {
     setTabs(newTabs);
   };
-  
-    const handleGridLayoutChange = (tabId: string, newLayout: LayoutItem[]) => {
-      setTabs(tabs.map(tab =>
-        tab.id === tabId ? { ...tab, gridLayout: newLayout } : tab
-      ));
-    };
-
-
-  // --- Group Management Handlers ---
-    const handleAddGroup = () => {
-        if (!activeTabId) return;
-        const newGroup: Group = { 
-            id: nanoid(), 
-            name: 'Новая группа', 
-            orderedDeviceIds: [],
-        };
-        setTabs(tabs.map(tab => {
-            if (tab.id === activeTabId) {
-                const groups = [...(tab.groups || []), newGroup];
-                 const existingOrder = tab.orderedGroupIds || (tab.groups?.map(g => g.id) || []);
-                const orderedGroupIds = [...existingOrder, newGroup.id];
-                return { ...tab, groups, orderedGroupIds };
-            }
-            return tab;
-        }));
-    };
-
-    const handleUpdateGroup = (tabId: string, groupId: string, newValues: { name: string; width?: number; height?: number; }) => {
-        setTabs(tabs.map(tab => {
-            if (tab.id === tabId) {
-                const groups = (tab.groups || []).map(g => g.id === groupId ? { ...g, ...newValues } : g);
-                return { ...tab, groups };
-            }
-            return tab;
-        }));
-        setEditingGroup(null);
-    };
-
-    const handleDeleteGroup = (tabId: string, groupId: string) => {
-        // Un-assign all devices from this group first
-        setCustomizations(prev => {
-            const newCustomizations = { ...prev };
-            Object.keys(newCustomizations).forEach(deviceId => {
-                if (newCustomizations[deviceId].groupId === groupId) {
-                    delete newCustomizations[deviceId].groupId;
-                }
-            });
-            return newCustomizations;
-        });
-
-        // Then remove the group itself
-        setTabs(tabs.map(tab => {
-            if (tab.id === tabId) {
-                const groups = (tab.groups || []).filter(g => g.id !== groupId);
-                const orderedGroupIds = (tab.orderedGroupIds || []).filter(id => id !== groupId);
-                return { ...tab, groups, orderedGroupIds };
-            }
-            return tab;
-        }));
-        setEditingGroup(null);
-    };
-    
-    const handleGroupOrderChange = (tabId: string, newOrderedGroupIds: string[]) => {
-      setTabs(tabs.map(tab =>
-        tab.id === tabId ? { ...tab, orderedGroupIds: newOrderedGroupIds } : tab
-      ));
-    };
 
 
   // --- Device Management on Tabs ---
   const handleDeviceAddToTab = (deviceId: string, tabId: string) => {
     setTabs(tabs.map(tab => {
       if (tab.id === tabId && !tab.deviceIds.includes(deviceId)) {
-        const newDeviceIds = [...tab.deviceIds, deviceId];
-        // Also add to grid layout if in grid mode
-        let newGridLayout = tab.gridLayout || [];
-        if (tab.layoutMode === LayoutMode.Grid && !newGridLayout.some(item => item.i === deviceId)) {
-          // Add to the bottom of the grid
-          const y = newGridLayout.length > 0 ? Math.max(...newGridLayout.map(it => it.y + it.h)) : 0;
-          newGridLayout = [...newGridLayout, { i: deviceId, x: 0, y, w: 2, h: 2 }];
-        }
-        return { ...tab, deviceIds: newDeviceIds, gridLayout: newGridLayout };
+        return { 
+            ...tab, 
+            deviceIds: [...tab.deviceIds, deviceId],
+            orderedDeviceIds: [...tab.orderedDeviceIds, deviceId]
+        };
       }
       return tab;
     }));
@@ -306,70 +200,30 @@ const App: React.FC = () => {
   const handleDeviceRemoveFromTab = (deviceId: string, tabId: string) => {
      setTabs(tabs.map(tab => {
         if (tab.id === tabId) {
-            const newDeviceIds = tab.deviceIds.filter(id => id !== deviceId);
-            const newOrderedDeviceIds = (tab.orderedDeviceIds || []).filter(id => id !== deviceId);
-            const newGridLayout = (tab.gridLayout || []).filter(item => item.i !== deviceId);
-            return { ...tab, deviceIds: newDeviceIds, orderedDeviceIds: newOrderedDeviceIds, gridLayout: newGridLayout };
+            return { 
+                ...tab, 
+                deviceIds: tab.deviceIds.filter(id => id !== deviceId),
+                orderedDeviceIds: tab.orderedDeviceIds.filter(id => id !== deviceId)
+            };
         }
         return tab;
      }));
-     // Also remove from any group it might be in
-     handleAssignDeviceToGroup(deviceId, null);
   };
   
   const handleDeviceMoveToTab = (deviceId: string, fromTabId: string, toTabId: string) => {
     if (fromTabId === toTabId) return;
-
-    // Unassign from group in the old tab
-    handleAssignDeviceToGroup(deviceId, null);
-    
-    // Add to new tab first to get its layout updated
     handleDeviceAddToTab(deviceId, toTabId);
-
-    // Then remove from old tab
-    setTabs(currentTabs => currentTabs.map(tab => {
-        if (tab.id === fromTabId) {
-            const newDeviceIds = tab.deviceIds.filter(id => id !== deviceId);
-            const newOrderedDeviceIds = (tab.orderedDeviceIds || []).filter(id => id !== deviceId);
-             const newGridLayout = (tab.gridLayout || []).filter(item => item.i !== deviceId);
-            return { ...tab, deviceIds: newDeviceIds, orderedDeviceIds: newOrderedDeviceIds, gridLayout: newGridLayout };
-        }
-        return tab;
-    }));
+    handleDeviceRemoveFromTab(deviceId, fromTabId);
 };
 
-  const handleDeviceOrderChangeOnTab = (tabId: string, orderedDevices: Device[], groupId?: string | null) => {
+  const handleDeviceOrderChangeOnTab = (tabId: string, newOrderedDeviceIds: string[]) => {
       setTabs(tabs.map(tab => {
           if (tab.id === tabId) {
-              if (groupId) {
-                  const newGroups = (tab.groups || []).map(g => {
-                      if (g.id === groupId) {
-                          return { ...g, orderedDeviceIds: orderedDevices.map(d => d.id) };
-                      }
-                      return g;
-                  });
-                  return { ...tab, groups: newGroups };
-              } else {
-                  return { ...tab, orderedDeviceIds: orderedDevices.map(d => d.id) };
-              }
+              return { ...tab, orderedDeviceIds: newOrderedDeviceIds };
           }
           return tab;
       }));
   };
-  
-    const handleAssignDeviceToGroup = (deviceId: string, groupId: string | null) => {
-        setCustomizations(prev => {
-            const newCustomizations = { ...prev };
-            const current = newCustomizations[deviceId] || {};
-            if (groupId === null) {
-                delete current.groupId;
-            } else {
-                current.groupId = groupId;
-            }
-            newCustomizations[deviceId] = current;
-            return newCustomizations;
-        });
-    };
 
 
   // --- Core Device Interaction ---
@@ -411,11 +265,7 @@ const App: React.FC = () => {
     const originalDevice = allKnownDevices.get(deviceId);
     if (!originalDevice) return;
     
-    const existingCustomization = customizations[deviceId] || {};
-
-    const newCustomization: DeviceCustomization = {
-        groupId: existingCustomization.groupId,
-    };
+    const newCustomization: Partial<DeviceCustomization> = {};
 
     if (newValues.name !== originalDevice.name) {
         newCustomization.name = newValues.name;
@@ -431,20 +281,24 @@ const App: React.FC = () => {
 
     if (newValues.isHidden) {
         newCustomization.isHidden = true;
+    } else {
+        newCustomization.isHidden = false;
     }
-
+    
     setCustomizations(prev => {
         const newCustomizations = { ...prev };
-        const { groupId, ...restOfCustomization } = newCustomization;
         
-        if (Object.keys(restOfCustomization).length === 0) {
-            if (groupId) {
-                 newCustomizations[deviceId] = { groupId };
-            } else {
-                 delete newCustomizations[deviceId];
-            }
+        // If the new customization is empty (all values match original and not hidden), remove the entry
+        if (Object.keys(newCustomization).length === 1 && newCustomization.isHidden === false) {
+             delete newCustomizations[deviceId];
         } else {
-            newCustomizations[deviceId] = newCustomization;
+            newCustomizations[deviceId] = {
+                ...prev[deviceId],
+                ...newCustomization
+            };
+            if (newCustomization.isHidden === false) {
+                delete newCustomizations[deviceId].isHidden;
+            }
         }
         return newCustomizations;
     });
@@ -492,11 +346,7 @@ const App: React.FC = () => {
             key={activeTab.id}
             tab={activeTab}
             devices={filteredDevicesForTab}
-            allDevices={allKnownDevices}
-            customizations={customizations}
             onDeviceOrderChange={handleDeviceOrderChangeOnTab}
-            onGroupOrderChange={handleGroupOrderChange}
-            onGridLayoutChange={handleGridLayoutChange}
             onDeviceRemoveFromTab={handleDeviceRemoveFromTab}
             onDeviceToggle={handleDeviceToggle}
             onTemperatureChange={handleTemperatureChange}
@@ -506,8 +356,6 @@ const App: React.FC = () => {
             isEditMode={isEditMode}
             onEditDevice={setEditingDevice}
             onDeviceContextMenu={handleDeviceContextMenu}
-            onEditGroup={(group) => setEditingGroup({ tabId: activeTab.id, group })}
-            cardSize={cardSize}
             haUrl={haUrl}
             signPath={signPath}
             getCameraStreamUrl={getCameraStreamUrl}
@@ -519,7 +367,6 @@ const App: React.FC = () => {
   };
 
   const otherTabs = tabs.filter(t => t.id !== contextMenu?.tabId);
-  const currentDeviceGroupId = contextMenu ? customizations[contextMenu.deviceId]?.groupId : null;
 
   return (
     <div className="flex min-h-screen bg-gray-900 text-gray-200">
@@ -551,14 +398,13 @@ const App: React.FC = () => {
             onNavigate={(page) => setCurrentPage(page)}
             onAddTab={handleAddTab}
             onEditTab={setEditingTab}
-            onAddGroup={handleAddGroup}
             currentPage={currentPage}
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
         />
-        <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
-          <div className="container mx-auto">
-            <div key={currentPage + (activeTab?.id || '')} className="fade-in">
+        <main className="flex-1 overflow-y-auto">
+          <div className="container mx-auto h-full">
+            <div key={currentPage + (activeTab?.id || '')} className="fade-in h-full">
               {renderPage()}
             </div>
           </div>
@@ -576,15 +422,6 @@ const App: React.FC = () => {
           onClose={() => setEditingTab(null)}
         />
       )}
-      {editingGroup && (
-        <GroupSettingsModal
-            tabId={editingGroup.tabId}
-            group={editingGroup.group}
-            onSave={handleUpdateGroup}
-            onDelete={handleDeleteGroup}
-            onClose={() => setEditingGroup(null)}
-        />
-      )}
 
       {contextMenu && (
         <ContextMenu
@@ -593,22 +430,8 @@ const App: React.FC = () => {
           isOpen={!!contextMenu}
           onClose={handleCloseContextMenu}
         >
-             <div className="relative group/menu">
-                <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-default flex justify-between items-center">
-                    Переместить в группу <span className="text-xs ml-4">▶</span>
-                </div>
-                <div className="absolute left-full top-[-5px] z-10 hidden group-hover/menu:block bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-white/10 p-1 min-w-[150px]">
-                    {(activeTab?.groups || []).map(group => (
-                        <div key={group.id} onClick={() => { handleAssignDeviceToGroup(contextMenu.deviceId, group.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer">{group.name}</div>
-                    ))}
-                    {currentDeviceGroupId && <div className="h-px bg-gray-600/50 my-1" />}
-                    {currentDeviceGroupId && <div onClick={() => { handleAssignDeviceToGroup(contextMenu.deviceId, null); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer">Без группы</div>}
-                </div>
-            </div>
-
             {otherTabs.length > 0 && (
                 <>
-                    <div className="h-px bg-gray-600/50 my-1" />
                     <div className="relative group/menu">
                         <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-default flex justify-between items-center">
                             Копировать в... <span className="text-xs ml-4">▶</span>
@@ -630,12 +453,12 @@ const App: React.FC = () => {
                             ))}
                         </div>
                     </div>
+                     <div className="h-px bg-gray-600/50 my-1" />
                 </>
             )}
 
-             <div className="h-px bg-gray-600/50 my-1" />
              <div onClick={() => { handleDeviceRemoveFromTab(contextMenu.deviceId, contextMenu.tabId); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer">
-                Скрыть на этой вкладке
+                Удалить с вкладки
             </div>
 
         </ContextMenu>

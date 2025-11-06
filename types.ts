@@ -53,50 +53,16 @@ export interface Room {
   devices: Device[];
 }
 
-// Represents a user-created group on a tab
-export interface Group {
-    id: string;
-    name: string;
-    isCollapsed?: boolean;
-    orderedDeviceIds?: string[];
-    /** Ширина группы в количестве карточек (1-4). */
-    width?: number;
-    /** Максимальная высота группы в количестве карточек (1-3). При переполнении появится скролл. */
-    height?: number;
-}
-
-// --- Grid Layout Types ---
-export enum LayoutMode {
-    Flow, // The original vertical flow layout
-    Grid, // The new coordinate-based grid layout
-}
-
-export interface LayoutItem {
-  i: string;      // Unique ID of the item (deviceId)
-  x: number;      // Position on the x-axis in grid units
-  y: number;      // Position on the y-axis in grid units
-  w: number;      // Width in grid units
-  h: number;      // Height in grid units
-}
-// --- End Grid Layout Types ---
-
 // Represents a user-created tab on the dashboard
 export interface Tab {
   id: string;
   name: string;
-  deviceIds: string[];
-  
-  // --- Layout Mode Specific Properties ---
-  layoutMode: LayoutMode;
-
-  // For Flow Layout
-  orderedDeviceIds: string[]; // For ungrouped devices
-  groups?: Group[];
-  orderedGroupIds?: string[];
-  
-  // For Grid Layout
-  gridLayout: LayoutItem[];
-  gridCols?: number; // Number of columns for the grid layout
+  deviceIds: string[]; // Contains the set of devices on this tab
+  orderedDeviceIds: string[]; // The source of truth for device order in the grid
+  gridSettings: {
+    cols: number;
+    rows: number;
+  };
 }
 
 // Types for user customizations
@@ -105,7 +71,6 @@ export interface DeviceCustomization {
   type?: DeviceType;
   icon?: DeviceType;
   isHidden?: boolean;
-  groupId?: string | null;
 }
 
 export type DeviceCustomizations = Record<string, DeviceCustomization>; // Key is device.id (entity_id)

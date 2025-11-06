@@ -305,53 +305,21 @@ interface DeviceCardProps {
   isEditMode: boolean;
   onEditDevice: (device: Device) => void;
   onRemoveFromTab?: () => void;
-  cardSize: CardSize;
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
   getCameraStreamUrl: (entityId: string) => Promise<string>;
 }
 
-const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, onBrightnessChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onRemoveFromTab, cardSize, haUrl, signPath, getCameraStreamUrl }) => {
+const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, onBrightnessChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onRemoveFromTab, haUrl, signPath, getCameraStreamUrl }) => {
   const isOn = device.status.toLowerCase() === 'включено';
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
   const presetMenuRef = useRef<HTMLDivElement>(null);
   const textContainerRef = useRef<HTMLDivElement>(null);
 
-  const sizeMap: Record<CardSize, number> = {
-    'xs': 12, 'sm': 14, 'md': 16, 'lg': 18, 'xl': 20
-  };
-  
-  const cardStyles = {
-    xs: {
-      padding: 'p-2',
-      nameText: 'text-xs font-semibold leading-tight',
-      statusText: 'text-[11px]',
-      sensorStatusText: 'text-xl font-bold',
-      sensorUnitText: 'text-xs font-medium',
-      thermostatTempText: 'font-bold text-sm',
-      thermostatTargetText: 'text-[11px] font-medium',
-      thermostatButton: 'w-6 h-6 text-sm font-semibold',
-      thermostatPresetButton: 'w-6 h-6',
-      thermostatPresetIcon: 'h-3 w-3',
-      brightnessCircle: 'w-8 h-8',
-      brightnessText: 'text-[10px] font-semibold',
-    },
-    sm: {
-      padding: 'p-2.5',
-      nameText: 'text-sm font-semibold leading-tight',
-      statusText: 'text-xs',
-      sensorStatusText: 'text-2xl font-bold',
-      sensorUnitText: 'text-sm font-medium',
-      thermostatTempText: 'font-bold text-base',
-      thermostatTargetText: 'text-xs font-medium',
-      thermostatButton: 'w-7 h-7 text-base font-semibold',
-      thermostatPresetButton: 'w-7 h-7',
-      thermostatPresetIcon: 'h-4 w-4',
-      brightnessCircle: 'w-9 h-9',
-      brightnessText: 'text-[11px] font-semibold',
-    },
-    md: {
-      padding: 'p-3',
+  // --- Adaptive styles based on container size ---
+  // Using a base 'md' size from the old system for fluid scaling reference
+   const styles = {
+      padding: 'p-[8%]',
       nameText: 'text-base font-semibold leading-tight',
       statusText: 'text-sm',
       sensorStatusText: 'text-3xl font-bold',
@@ -363,38 +331,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
       thermostatPresetIcon: 'h-5 w-5',
       brightnessCircle: 'w-10 h-10',
       brightnessText: 'text-xs font-semibold',
-    },
-    lg: {
-      padding: 'p-4',
-      nameText: 'text-lg font-semibold leading-tight',
-      statusText: 'text-base',
-      sensorStatusText: 'text-4xl font-bold',
-      sensorUnitText: 'text-lg font-medium',
-      thermostatTempText: 'font-bold text-xl',
-      thermostatTargetText: 'text-base font-medium',
-      thermostatButton: 'w-9 h-9 text-xl font-semibold',
-      thermostatPresetButton: 'w-9 h-9',
-      thermostatPresetIcon: 'h-6 w-6',
-      brightnessCircle: 'w-11 h-11',
-      brightnessText: 'text-sm font-semibold',
-    },
-    xl: {
-      padding: 'p-5',
-      nameText: 'text-xl font-semibold leading-tight',
-      statusText: 'text-lg',
-      sensorStatusText: 'text-5xl font-bold',
-      sensorUnitText: 'text-xl font-medium',
-      thermostatTempText: 'font-bold text-2xl',
-      thermostatTargetText: 'text-lg font-medium',
-      thermostatButton: 'w-10 h-10 text-2xl font-semibold',
-      thermostatPresetButton: 'w-10 h-10',
-      thermostatPresetIcon: 'h-7 w-7',
-      brightnessCircle: 'w-12 h-12',
-      brightnessText: 'text-base font-semibold',
-    }
-  };
-  const styles = cardStyles[cardSize];
-
+    };
 
   // --- Translation for presets ---
   const presetTranslations: { [key: string]: string } = {
@@ -471,7 +408,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
         return (
           <div className="flex flex-col h-full">
             <div className="flex justify-between items-start flex-shrink-0">
-              <DeviceIcon type={device.icon ?? device.type} isOn={isOn} cardSize={cardSize} />
+              <DeviceIcon type={device.icon ?? device.type} isOn={isOn} />
               {isOn && device.brightness !== undefined && (
                 <div className={`${styles.brightnessCircle} rounded-full border-2 ${isOn ? 'border-gray-400/50' : 'border-gray-500'} flex items-center justify-center`}>
                   <span className={`${styles.brightnessText} ${isOn ? textOnClasses : textOffClasses}`}>{device.brightness}%</span>
@@ -481,7 +418,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
             <div ref={textContainerRef} className="flex-grow text-left overflow-hidden flex flex-col justify-end">
                 <AutoFitText
                     text={device.name}
-                    baseFontSize={sizeMap[cardSize]}
+                    baseFontSize={16}
                     className={styles.nameText}
                     containerRef={textContainerRef}
                 />
@@ -506,7 +443,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
           <div className="flex flex-col h-full text-left">
             {/* Top row */}
             <div className="flex justify-between items-start">
-                <DeviceIcon type={device.icon ?? device.type} isOn={false} cardSize={cardSize} />
+                <DeviceIcon type={device.icon ?? device.type} isOn={false} />
 
                 {device.presetModes && device.presetModes.length > 0 && (
                     <div className="relative z-10" ref={presetMenuRef}>
@@ -563,7 +500,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
         return (
           <div className="flex flex-col h-full text-left">
             <div>
-              <DeviceIcon type={device.icon ?? device.type} isOn={false} cardSize={cardSize} />
+              <DeviceIcon type={device.icon ?? device.type} isOn={false} />
               <p className={`${styles.nameText} mt-2`}>{device.name}</p>
             </div>
              <div className="flex-grow flex items-center w-full my-1 min-h-0">
@@ -579,12 +516,12 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
         return (
           <div className="flex flex-col h-full">
             <div className="flex-shrink-0">
-               <DeviceIcon type={device.icon ?? device.type} isOn={isOn} cardSize={cardSize} />
+               <DeviceIcon type={device.icon ?? device.type} isOn={isOn} />
             </div>
             <div ref={textContainerRef} className="flex-grow text-left overflow-hidden flex flex-col justify-end">
                 <AutoFitText
                     text={device.name}
-                    baseFontSize={sizeMap[cardSize]}
+                    baseFontSize={16}
                     className={styles.nameText}
                     containerRef={textContainerRef}
                 />
@@ -596,7 +533,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
   };
 
   const getCardClasses = () => {
-    const baseClasses = "aspect-square rounded-2xl flex flex-col transition-all duration-200 ease-in-out select-none relative";
+    const baseClasses = "w-full h-full rounded-2xl flex flex-col transition-all duration-200 ease-in-out select-none relative";
     const onStateClasses = "bg-gray-200 text-gray-900";
     const offStateClasses = "bg-gray-800/80 hover:bg-gray-700/80";
     

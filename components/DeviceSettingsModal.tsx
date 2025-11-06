@@ -101,7 +101,8 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                     return (
                         <div key={iconType} onClick={() => setIcon(iconType)} className={`p-2 rounded-lg cursor-pointer transition-colors aspect-square flex items-center justify-center ${isSelected ? 'bg-blue-600 ring-2 ring-blue-400' : 'bg-gray-800 hover:bg-gray-700'}`}>
                            <div className="w-8 h-8">
-                            <DeviceIcon type={iconType} isOn={false} cardSize="sm" />
+                            {/* FIX: Removed invalid `cardSize` prop from DeviceIcon. */}
+<DeviceIcon type={iconType} isOn={false} />
                            </div>
                         </div>
                     )

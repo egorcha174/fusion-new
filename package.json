@@ -16,8 +16,7 @@
     "@dnd-kit/sortable": "7.0.2",
     "@dnd-kit/utilities": "3.2.2",
     "@iconify/react": "latest",
-    "hls.js": "1.5.8",
-    "react-grid-layout": "1.4.4"
+    "hls.js": "1.5.8"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

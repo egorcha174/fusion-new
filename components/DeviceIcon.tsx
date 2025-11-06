@@ -6,7 +6,6 @@ import { DeviceType, CardSize } from '../types';
 interface DeviceIconProps {
   type: DeviceType;
   isOn: boolean;
-  cardSize: CardSize;
   className?: string;
   ariaLabel?: string;
 }
@@ -14,22 +13,15 @@ interface DeviceIconProps {
 const IconWrapper: React.FC<{
   children: React.ReactNode;
   isOn: boolean;
-  cardSize: CardSize;
   className?: string;
   ariaLabel?: string;
-}> = ({ children, isOn, cardSize, className = '', ariaLabel }) => {
+}> = ({ children, isOn, className = '', ariaLabel }) => {
   const colorClass = isOn ? 'text-blue-500' : 'text-gray-400';
-  const sizeClasses: Record<CardSize, string> = {
-    xs: 'w-7 h-7',
-    sm: 'w-8 h-8',
-    md: 'w-10 h-10',
-    lg: 'w-12 h-12',
-    xl: 'w-14 h-14',
-  };
+  const sizeClasses = 'w-[40%] h-[40%]'; // Use relative size
 
   return (
     <div
-      className={`${sizeClasses[cardSize]} mb-1 ${colorClass} ${className} transition-colors duration-300`}
+      className={`${sizeClasses} mb-1 ${colorClass} ${className} transition-colors duration-300`}
       role={ariaLabel ? 'img' : undefined}
       aria-label={ariaLabel}
       aria-hidden={ariaLabel ? undefined : true}
@@ -199,12 +191,12 @@ export const icons: Record<DeviceType, (props: { isOn: boolean }) => React.React
   [DeviceType.Unknown]: () => <SvgUnknown />,
 };
 
-const DeviceIcon: React.FC<DeviceIconProps> = ({ type, isOn, cardSize, className, ariaLabel }) => {
+const DeviceIcon: React.FC<DeviceIconProps> = ({ type, isOn, className, ariaLabel }) => {
   // The `type` prop now directly represents the icon to be rendered.
   // Normalization must happen before this component is called.
   const renderFn = icons[type] ?? icons[DeviceType.Unknown];
   return (
-    <IconWrapper isOn={isOn} cardSize={cardSize} className={className} ariaLabel={ariaLabel}>
+    <IconWrapper isOn={isOn} className={className} ariaLabel={ariaLabel}>
       {renderFn({ isOn })}
     </IconWrapper>
   );

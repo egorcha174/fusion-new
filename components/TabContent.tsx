@@ -1,17 +1,12 @@
 import React from 'react';
-import FlowTabLayout from './FlowTabLayout';
-import GridTabLayout from './GridTabLayout';
-import { Tab, Device, CardSize, DeviceCustomizations, Group, LayoutMode, LayoutItem } from '../types';
+import DashboardGrid from './DashboardGrid';
+import { Tab, Device } from '../types';
 
 interface TabContentProps {
   tab: Tab;
   devices: Device[]; // Filtered devices for the current tab
-  allDevices: Map<string, Device>; // All known devices for lookups
-  customizations: DeviceCustomizations;
-  onDeviceOrderChange: (tabId: string, newDevices: Device[], groupId?: string | null) => void;
-  onGroupOrderChange: (tabId: string, newOrderedGroupIds: string[]) => void;
-  onGridLayoutChange: (tabId: string, newLayout: LayoutItem[]) => void;
-  onDeviceRemoveFromTab: (deviceId: string, tabId: string) => void;
+  onDeviceOrderChange: (tabId: string, newOrderedDeviceIds: string[]) => void;
+  onDeviceRemoveFromTab: (deviceId: string, tabId:string) => void;
   onDeviceToggle: (deviceId: string) => void;
   onTemperatureChange: (deviceId: string, change: number) => void;
   onBrightnessChange: (deviceId: string, brightness: number) => void;
@@ -20,33 +15,24 @@ interface TabContentProps {
   isEditMode: boolean;
   onEditDevice: (device: Device) => void;
   onDeviceContextMenu: (event: React.MouseEvent, deviceId: string, tabId: string) => void;
-  onEditGroup: (group: Group) => void;
-  cardSize: CardSize;
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
   getCameraStreamUrl: (entityId: string) => Promise<string>;
 }
 
 const TabContent: React.FC<TabContentProps> = (props) => {
-  const { tab, devices } = props;
+  const { devices } = props;
 
   if (devices.length === 0) {
       return (
           <div className="text-center py-20 text-gray-500">
               <h3 className="text-xl">Эта вкладка пуста</h3>
-              <p className="mt-2">Перейдите на вкладку "Все устройства" или в режим редактирования, чтобы добавить их.</p>
+              <p className="mt-2">Перейдите в "Все устройства" или включите режим редактирования, чтобы добавить их.</p>
           </div>
       )
   }
-
-  // Ensure layoutMode exists, default to Flow for backward compatibility
-  const layoutMode = tab.layoutMode ?? LayoutMode.Flow;
-
-  if (layoutMode === LayoutMode.Grid) {
-    return <GridTabLayout {...props} />;
-  }
   
-  return <FlowTabLayout {...props} />;
+  return <DashboardGrid {...props} />;
 };
 
 export default TabContent;
