@@ -3,7 +3,7 @@ import { DeviceType } from '../types';
 import { Icon } from '@iconify/react';
 
 interface DeviceIconProps {
-  type: DeviceType;
+  icon: string | DeviceType;
   isOn: boolean;
   className?: string;
   ariaLabel?: string;
@@ -16,7 +16,7 @@ const iconMap: Record<DeviceType, { on: string; off: string; spinning?: boolean 
   [DeviceType.Spotlight]: { on: 'mdi:spotlight', off: 'mdi:spotlight-beam' },
   [DeviceType.BalconyLight]: { on: 'mdi:wall-sconce-flat', off: 'mdi:wall-sconce-flat-outline' },
   [DeviceType.Climate]: { on: 'mdi:thermostat-box', off: 'mdi:thermostat-box' },
-  [DeviceType.Thermostat]: { on: 'mdi:thermostat-box', off: 'mdi:thermostat-box' },
+  [DeviceType.Thermostat]: { on: 'ic:baseline-device-thermostat', off: 'ic:baseline-device-thermostat' },
   [DeviceType.TV]: { on: 'mdi:television-classic', off: 'mdi:television-classic' },
   [DeviceType.Computer]: { on: 'mdi:desktop-tower-monitor', off: 'mdi:desktop-tower-monitor' },
   [DeviceType.Monitor]: { on: 'mdi:monitor', off: 'mdi:monitor' },
@@ -36,10 +36,26 @@ const iconMap: Record<DeviceType, { on: string; off: string; spinning?: boolean 
 // This export provides the list of available icon types for the settings modal.
 export const icons: Record<DeviceType, any> = iconMap;
 
-const DeviceIcon: React.FC<DeviceIconProps> = ({ type, isOn, className = '', ariaLabel }) => {
-  const iconData = iconMap[type] ?? iconMap[DeviceType.Unknown];
-  const iconName = isOn ? iconData.on : iconData.off;
-  const isSpinning = isOn && iconData.spinning;
+export const getIconNameForDeviceType = (type: DeviceType, isOn: boolean): string => {
+    const iconData = iconMap[type] ?? iconMap[DeviceType.Unknown];
+    return isOn ? iconData.on : iconData.off;
+};
+
+const DeviceIcon: React.FC<DeviceIconProps> = ({ icon, isOn, className = '', ariaLabel }) => {
+  let iconName: string;
+  let isSpinning = false;
+
+  if (typeof icon === 'string') {
+    iconName = icon;
+    // Basic spinning heuristic for custom icons
+    if (isOn && (icon.includes('fan') || icon.includes('spinner'))) {
+        isSpinning = true;
+    }
+  } else {
+    const iconData = iconMap[icon] ?? iconMap[DeviceType.Unknown];
+    iconName = isOn ? iconData.on : iconData.off;
+    isSpinning = isOn && iconData.spinning === true;
+  }
 
   const colorClass = isOn ? 'text-blue-500' : 'text-gray-400';
   // Default size for DeviceCard. Can be overridden by passing a className.

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Device, DeviceCustomization, DeviceType } from '../types';
-import DeviceIcon, { icons } from './DeviceIcon';
+import DeviceIcon, { icons, getIconNameForDeviceType } from './DeviceIcon';
 
 interface DeviceSettingsModalProps {
   device: Device;
   customization: DeviceCustomization;
-  onSave: (deviceId: string, newValues: { name: string; type: DeviceType; icon: DeviceType; isHidden: boolean; }) => void;
+  onSave: (deviceId: string, newValues: { name: string; type: DeviceType; icon: string; isHidden: boolean; }) => void;
   onClose: () => void;
 }
 
@@ -15,23 +15,25 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   onSave,
   onClose,
 }) => {
+  const getDefaultIcon = () => {
+    if (customization.icon) return customization.icon;
+    // Use the 'off' state icon as the default representation.
+    return getIconNameForDeviceType(customization.type ?? device.type, false);
+  };
+  
   const [name, setName] = useState(customization.name ?? device.name);
   const [type, setType] = useState(customization.type ?? device.type);
-  // The initial icon should respect the custom icon, then the custom type, then the device's original type.
-  const [icon, setIcon] = useState(customization.icon ?? customization.type ?? device.type);
+  const [icon, setIcon] = useState<string>(getDefaultIcon());
   const [isHidden, setIsHidden] = useState(customization.isHidden ?? false);
 
   const handleTypeChange = (newType: DeviceType) => {
     setType(newType);
-    // When the type changes, also update the icon to match, providing a sensible default.
-    // The user can then override the icon again if they wish.
-    setIcon(newType);
+    // When the type changes, also update the icon to match, using the Iconify name.
+    setIcon(getIconNameForDeviceType(newType, false));
   };
 
   const handleSave = () => {
     // Pass the complete, current state of the form up to the parent component (App.tsx).
-    // The parent will be responsible for comparing it to the original device and
-    // deciding what needs to be stored in localStorage.
     onSave(device.id, {
       name: name.trim(),
       type,
@@ -95,14 +97,23 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Иконка</label>
+            <p className="text-xs text-gray-400 mb-2">Вставьте название с <a href="https://iconify.design/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Iconify.design</a> или выберите из стандартных.</p>
+            <input
+              id="deviceIcon"
+              type="text"
+              value={icon}
+              onChange={e => setIcon(e.target.value)}
+              placeholder="например, mdi:lightbulb"
+              className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
+            />
             <div className="bg-gray-700/50 p-3 rounded-lg grid grid-cols-5 sm:grid-cols-7 gap-3">
                  {availableIcons.map(iconType => {
-                    const isSelected = icon === iconType;
+                    const iconName = getIconNameForDeviceType(iconType, false);
+                    const isSelected = icon === iconName;
                     return (
-                        <div key={iconType} onClick={() => setIcon(iconType)} className={`p-2 rounded-lg cursor-pointer transition-colors aspect-square flex items-center justify-center ${isSelected ? 'bg-blue-600 ring-2 ring-blue-400' : 'bg-gray-800 hover:bg-gray-700'}`}>
+                        <div key={iconType} onClick={() => setIcon(iconName)} className={`p-2 rounded-lg cursor-pointer transition-colors aspect-square flex items-center justify-center ${isSelected ? 'bg-blue-600 ring-2 ring-blue-400' : 'bg-gray-800 hover:bg-gray-700'}`}>
                            <div className="w-8 h-8">
-                            {/* FIX: Removed invalid `cardSize` prop from DeviceIcon. */}
-<DeviceIcon type={iconType} isOn={false} />
+                            <DeviceIcon icon={iconType} isOn={false} />
                            </div>
                         </div>
                     )

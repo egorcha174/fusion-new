@@ -15,6 +15,7 @@ import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
 import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CameraSettings, GridLayoutItem, CardTemplates, CardTemplate } from './types';
 import { nanoid } from 'nanoid';
+import { getIconNameForDeviceType } from './components/DeviceIcon';
 
 // Hook to check for large screens to conditionally apply margin
 const useIsLg = () => {
@@ -340,7 +341,7 @@ const App: React.FC = () => {
 
 
   // --- Customization ---
-  const handleSaveCustomization = (deviceId: string, newValues: { name: string; type: DeviceType; icon: DeviceType; isHidden: boolean; }) => {
+  const handleSaveCustomization = (deviceId: string, newValues: { name: string; type: DeviceType; icon: string; isHidden: boolean; }) => {
     const originalDevice = allKnownDevices.get(deviceId);
     if (!originalDevice) return;
     
@@ -362,10 +363,10 @@ const App: React.FC = () => {
             delete currentCustomization.type;
         }
 
-        // 3. Handle Icon
-        // The "default" icon is whatever the type is set to.
-        // We only store an icon override if it's different from the type.
-        if (newValues.icon !== newValues.type) {
+        // 3. Handle Icon (string)
+        // Only store an icon override if it's different from the default for the *selected type*.
+        const defaultIconForNewType = getIconNameForDeviceType(newValues.type, false);
+        if (newValues.icon !== defaultIconForNewType) {
             currentCustomization.icon = newValues.icon;
         } else {
             delete currentCustomization.icon;
@@ -396,10 +397,13 @@ const App: React.FC = () => {
     const originalDevice = allKnownDevices.get(deviceId);
     if (!originalDevice) return;
 
+    const currentType = currentCustomization.type || originalDevice.type;
+    const defaultIcon = getIconNameForDeviceType(currentType, false);
+
     handleSaveCustomization(deviceId, {
       name: currentCustomization.name || originalDevice.name,
-      type: currentCustomization.type || originalDevice.type,
-      icon: currentCustomization.icon || currentCustomization.type || originalDevice.type,
+      type: currentType,
+      icon: currentCustomization.icon || defaultIcon,
       isHidden: isHidden,
     });
   };

@@ -78,7 +78,7 @@ const AllDevicesPage: React.FC<AllDevicesPageProps> = ({ rooms, customizations, 
                                         <div className="flex items-center gap-4 overflow-hidden">
                                             <div className="w-10 h-10 flex-shrink-0">
                                                 <DeviceIcon
-                                                    type={device.icon ?? device.type}
+                                                    icon={device.icon ?? device.type}
                                                     isOn={device.status.toLowerCase() === 'включено'}
                                                 />
                                             </div>
