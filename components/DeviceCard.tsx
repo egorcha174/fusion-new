@@ -419,7 +419,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
         case 'icon':
           return (
             <div key={element.id} style={style} className={`${isOn ? 'text-blue-500' : 'text-gray-400'}`}>
-              <DeviceIcon icon={device.icon ?? device.type} isOn={isOn} className="!w-full !h-full" />
+              <DeviceIcon icon={device.icon ?? device.type} isOn={isOn} className="!w-full !h-full" iconAnimation={device.iconAnimation} />
             </div>
           );
         case 'status':
@@ -522,7 +522,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
         return (
           <div className="flex flex-col h-full">
             <div className="flex justify-between items-start flex-shrink-0">
-              <DeviceIcon icon={device.icon ?? device.type} isOn={isOn} />
+              <DeviceIcon icon={device.icon ?? device.type} isOn={isOn} iconAnimation={device.iconAnimation} />
               {isOn && device.brightness !== undefined && (
                 <div className={`${styles.brightnessCircle} rounded-full border-2 ${isOn ? 'border-gray-400/50' : 'border-gray-500'} flex items-center justify-center`}>
                   <span className={`${styles.brightnessText} ${isOn ? textOnClasses : textOffClasses}`}>{device.brightness}%</span>
@@ -559,7 +559,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
         return (
           <div className="flex flex-col h-full text-left">
             <div className="flex justify-between items-start flex-shrink-0">
-                <DeviceIcon icon={device.icon ?? device.type} isOn={false} />
+                <DeviceIcon icon={device.icon ?? device.type} isOn={false} iconAnimation={device.iconAnimation} />
 
                 {device.presetModes && device.presetModes.length > 0 && (
                     <div className="relative z-10" ref={presetMenuRef}>
@@ -615,7 +615,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
         return (
           <div className="flex flex-col h-full">
             <div className="flex-shrink-0">
-               <DeviceIcon icon={device.icon ?? device.type} isOn={isOn} />
+               <DeviceIcon icon={device.icon ?? device.type} isOn={isOn} iconAnimation={device.iconAnimation} />
             </div>
             <div className="flex-grow text-left overflow-hidden flex flex-col justify-end min-h-0">
               <div className="flex-grow flex items-end min-h-0">

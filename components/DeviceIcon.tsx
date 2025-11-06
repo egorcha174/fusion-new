@@ -7,9 +7,10 @@ interface DeviceIconProps {
   isOn: boolean;
   className?: string;
   ariaLabel?: string;
+  iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow';
 }
 
-const iconMap: Record<DeviceType, { on: string; off: string; spinning?: boolean }> = {
+const iconMap: Record<DeviceType, { on: string; off: string; animation?: 'spin' | 'pulse' | 'glow' }> = {
   [DeviceType.Light]: { on: 'mdi:lightbulb', off: 'mdi:lightbulb-outline' },
   [DeviceType.DimmableLight]: { on: 'mdi:lightbulb', off: 'mdi:lightbulb-outline' },
   [DeviceType.Lamp]: { on: 'mdi:lamp', off: 'mdi:lamp-outline' },
@@ -20,7 +21,7 @@ const iconMap: Record<DeviceType, { on: string; off: string; spinning?: boolean 
   [DeviceType.TV]: { on: 'mdi:television-classic', off: 'mdi:television-classic' },
   [DeviceType.Computer]: { on: 'mdi:desktop-tower-monitor', off: 'mdi:desktop-tower-monitor' },
   [DeviceType.Monitor]: { on: 'mdi:monitor', off: 'mdi:monitor' },
-  [DeviceType.Fan]: { on: 'mdi:fan', off: 'mdi:fan', spinning: true },
+  [DeviceType.Fan]: { on: 'mdi:fan', off: 'mdi:fan', animation: 'spin' },
   [DeviceType.Speaker]: { on: 'mdi:speaker', off: 'mdi:speaker' },
   [DeviceType.Playstation]: { on: 'mdi:sony-playstation', off: 'mdi:sony-playstation' },
   [DeviceType.Sensor]: { on: 'mdi:radar', off: 'mdi:radar' },
@@ -41,20 +42,32 @@ export const getIconNameForDeviceType = (type: DeviceType, isOn: boolean): strin
     return isOn ? iconData.on : iconData.off;
 };
 
-const DeviceIcon: React.FC<DeviceIconProps> = ({ icon, isOn, className = '', ariaLabel }) => {
+const DeviceIcon: React.FC<DeviceIconProps> = ({ icon, isOn, className = '', ariaLabel, iconAnimation }) => {
   let iconName: string;
-  let isSpinning = false;
+  let animationClass = '';
+
+  const defaultAnimation = typeof icon !== 'string' ? (iconMap[icon] ?? iconMap[DeviceType.Unknown]).animation : undefined;
+  const effectiveAnimation = iconAnimation === 'none' ? undefined : (iconAnimation ?? defaultAnimation);
+  
+  if (isOn && effectiveAnimation) {
+    switch (effectiveAnimation) {
+      case 'spin':
+        animationClass = 'animate-spin';
+        break;
+      case 'pulse':
+        animationClass = 'animate-pulse-scale';
+        break;
+      case 'glow':
+        animationClass = 'animate-glow';
+        break;
+    }
+  }
 
   if (typeof icon === 'string') {
     iconName = icon;
-    // Basic spinning heuristic for custom icons
-    if (isOn && (icon.includes('fan') || icon.includes('spinner'))) {
-        isSpinning = true;
-    }
   } else {
     const iconData = iconMap[icon] ?? iconMap[DeviceType.Unknown];
     iconName = isOn ? iconData.on : iconData.off;
-    isSpinning = isOn && iconData.spinning === true;
   }
 
   const colorClass = isOn ? 'text-blue-500' : 'text-gray-400';
@@ -69,7 +82,7 @@ const DeviceIcon: React.FC<DeviceIconProps> = ({ icon, isOn, className = '', ari
     >
       <Icon
         icon={iconName}
-        className={`w-full h-full transition-colors duration-300 ${colorClass} ${isSpinning ? 'animate-spin' : ''}`}
+        className={`w-full h-full transition-colors duration-300 ${colorClass} ${animationClass}`}
       />
     </div>
   );

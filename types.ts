@@ -35,6 +35,7 @@ export interface Device {
   status: string; // 'På', 'Okänt', 'Heating', etc.
   type: DeviceType;
   icon?: string; // Custom icon override (Iconify name)
+  iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow';
   brightness?: number; // For DimmableLight
   temperature?: number; // For Thermostat current temp or weather temp
   targetTemperature?: number; // For Thermostat target temp
@@ -78,6 +79,7 @@ export interface DeviceCustomization {
   icon?: string; // Iconify name
   isHidden?: boolean;
   templateId?: string; // ID of the CardTemplate to use
+  iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow';
 }
 
 export type DeviceCustomizations = Record<string, DeviceCustomization>; // Key is device.id (entity_id)

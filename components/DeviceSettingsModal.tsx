@@ -6,7 +6,7 @@ import DeviceIcon, { icons, getIconNameForDeviceType } from './DeviceIcon';
 interface DeviceSettingsModalProps {
   device: Device;
   customization: DeviceCustomization;
-  onSave: (deviceId: string, newValues: { name: string; type: DeviceType; icon: string; isHidden: boolean; templateId?: string; }) => void;
+  onSave: (deviceId: string, newValues: { name: string; type: DeviceType; icon: string; isHidden: boolean; templateId?: string; iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow'; }) => void;
   onClose: () => void;
   templates: CardTemplates;
 }
@@ -29,6 +29,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   const [icon, setIcon] = useState<string>(getDefaultIcon());
   const [isHidden, setIsHidden] = useState(customization.isHidden ?? false);
   const [templateId, setTemplateId] = useState(customization.templateId ?? '');
+  const [iconAnimation, setIconAnimation] = useState(customization.iconAnimation ?? 'none');
 
   const handleTypeChange = (newType: DeviceType) => {
     setType(newType);
@@ -44,6 +45,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
       icon,
       isHidden,
       templateId,
+      iconAnimation,
     });
     onClose();
   };
@@ -63,6 +65,13 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
     : (device.type === DeviceType.Switch)
       ? 'switch'
       : 'sensor';
+
+  const animationOptions = [
+    { value: 'none', name: 'Нет' },
+    { value: 'spin', name: 'Вращение' },
+    { value: 'pulse', name: 'Пульсация' },
+    { value: 'glow', name: 'Сияние' },
+  ];
 
 
   return (
@@ -155,6 +164,22 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
             </div>
          </div>
           
+          <div>
+            <label htmlFor="iconAnimation" className="block text-sm font-medium text-gray-300 mb-2">Анимация иконки (для вкл. состояния)</label>
+            <select
+              id="iconAnimation"
+              value={iconAnimation}
+              onChange={(e) => setIconAnimation(e.target.value as 'none' | 'spin' | 'pulse' | 'glow')}
+              className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+            >
+              {animationOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg">
             <div>
               <label htmlFor="isHidden" className="text-sm font-medium text-gray-200">Скрыть устройство</label>

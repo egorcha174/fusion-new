@@ -447,7 +447,7 @@ const App: React.FC = () => {
 
 
   // --- Customization ---
-  const handleSaveCustomization = (deviceId: string, newValues: { name: string; type: DeviceType; icon: string; isHidden: boolean; templateId?: string; }) => {
+  const handleSaveCustomization = (deviceId: string, newValues: { name: string; type: DeviceType; icon: string; isHidden: boolean; templateId?: string; iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow'; }) => {
     const originalDevice = allKnownDevices.get(deviceId);
     if (!originalDevice) return;
     
@@ -490,8 +490,16 @@ const App: React.FC = () => {
         } else {
             delete currentCustomization.templateId;
         }
+        
+        // 6. Handle iconAnimation
+        if (newValues.iconAnimation && newValues.iconAnimation !== 'none') {
+            currentCustomization.iconAnimation = newValues.iconAnimation;
+        } else {
+            delete currentCustomization.iconAnimation;
+        }
 
-        // 6. Finalize
+
+        // 7. Finalize
         if (Object.keys(currentCustomization).length === 0) {
             delete newCustomizations[deviceId];
         } else {
@@ -517,6 +525,7 @@ const App: React.FC = () => {
       icon: currentCustomization.icon || defaultIcon,
       isHidden: isHidden,
       templateId: currentCustomization.templateId,
+      iconAnimation: currentCustomization.iconAnimation,
     });
   };
 
