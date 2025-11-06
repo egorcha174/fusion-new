@@ -11,7 +11,8 @@ import {
   DragStartEvent,
   DragMoveEvent,
   useDraggable,
-  UniqueIdentifier
+  UniqueIdentifier,
+  DragOverlay
 } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -90,17 +91,13 @@ const SortableLayerItem: React.FC<{
 const DraggableElementOverlay: React.FC<{
   element: CardElement;
   isSelected: boolean;
-  isBeingDragged: boolean;
   onSelect: (id: CardElementId) => void;
-}> = ({ element, isSelected, isBeingDragged, onSelect }) => {
-  const { attributes, listeners, setNodeRef } = useDraggable({
+}> = ({ element, isSelected, onSelect }) => {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: element.id,
     data: { type: 'element' },
+    disabled: !element.visible,
   });
-
-  if (!element.visible) {
-    return null;
-  }
 
   return (
     <div
@@ -108,7 +105,7 @@ const DraggableElementOverlay: React.FC<{
       {...listeners}
       {...attributes}
       onClick={(e) => { e.stopPropagation(); onSelect(element.id); }}
-      className={`absolute group cursor-move transition-all duration-100 ${isBeingDragged ? 'opacity-50' : ''}`}
+      className="absolute group cursor-move transition-all duration-100"
       style={{
         left: `${element.position.x}%`,
         top: `${element.position.y}%`,
@@ -117,6 +114,8 @@ const DraggableElementOverlay: React.FC<{
         zIndex: element.zIndex + 10,
         outline: isSelected ? '2px solid #3b82f6' : '1px dashed rgba(59, 130, 246, 0.3)',
         outlineOffset: '2px',
+        display: element.visible ? 'block' : 'none',
+        visibility: isDragging ? 'hidden' : 'visible',
       }}
     >
       {isSelected && (
@@ -143,6 +142,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
   const [editedTemplate, setEditedTemplate] = useState<CardTemplate>(template);
   const [selectedElementId, setSelectedElementId] = useState<CardElementId | null>(null);
   const [activeDragId, setActiveDragId] = useState<UniqueIdentifier | null>(null);
+  const [activeDragData, setActiveDragData] = useState<any>(null);
   const [dragStartData, setDragStartData] = useState<{ element: CardElement, startPos: {x:number, y:number} } | null>(null);
   
   const previewRef = useRef<HTMLDivElement>(null);
@@ -179,9 +179,10 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
     setActiveDragId(active.id);
+    setActiveDragData(active.data.current);
 
     const type = active.data.current?.type;
-    const elementId = active.data.current?.elementId || active.id as CardElementId;
+    const elementId = (active.data.current?.elementId || active.id) as CardElementId;
     const element = editedTemplate.elements.find(el => el.id === elementId);
 
     if (element && (type === 'element' || type === 'resize')) {
@@ -294,6 +295,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
     }
 
     setActiveDragId(null);
+    setActiveDragData(null);
     setDragStartData(null);
   };
   
@@ -321,20 +323,14 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
               isEditMode={false} onEditDevice={()=>{}} haUrl="" signPath={async()=>({path:''})} getCameraStreamUrl={async()=>''}
             />
             {/* --- Interactive Overlays --- */}
-            {editedTemplate.elements.map(element => {
-              const isSelected = selectedElementId === element.id;
-              const isBeingDragged = activeDragId === element.id;
-
-              return (
+            {editedTemplate.elements.map(element => (
                 <DraggableElementOverlay
                   key={element.id}
                   element={element}
-                  isSelected={isSelected}
-                  isBeingDragged={isBeingDragged}
+                  isSelected={selectedElementId === element.id}
                   onSelect={setSelectedElementId}
                 />
-              );
-            })}
+            ))}
           </div>
         </div>
         
@@ -402,6 +398,27 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
             <button onClick={handleSave} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Сохранить</button>
           </div>
         </div>
+
+        <DragOverlay dropAnimation={null}>
+            {(() => {
+              if (!activeDragId || activeDragData?.type !== 'element') return null;
+
+              const activeElement = editedTemplate.elements.find(el => el.id === activeDragId);
+              if (!activeElement) return null;
+              
+              const previewRect = previewRef.current?.getBoundingClientRect();
+              const width = previewRect ? (activeElement.size.width / 100) * previewRect.width : 0;
+              const height = previewRect ? (activeElement.size.height / 100) * previewRect.height : 0;
+              
+              return (
+                <div
+                  className="bg-blue-500/20 ring-2 ring-blue-500 rounded-sm opacity-75"
+                  style={{ width, height }}
+                />
+              );
+            })()}
+        </DragOverlay>
+
         </DndContext>
       </div>
     </div>
