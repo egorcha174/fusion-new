@@ -9,9 +9,11 @@ import { constructHaUrl } from '../utils/url';
 // --- Auto-fitting Text Component (New and Improved) ---
 const AutoFitText: React.FC<{
   text: string;
-  className?: string; // For the container div
-  pClassName?: string; // For the <p> tag
-}> = ({ text, className, pClassName }) => {
+  className?: string;
+  pClassName?: string;
+  maxFontSize?: number;
+  mode?: 'single-line' | 'multi-line';
+}> = ({ text, className, pClassName, maxFontSize = 48, mode = 'multi-line' }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const pRef = React.useRef<HTMLParagraphElement>(null);
 
@@ -21,31 +23,38 @@ const AutoFitText: React.FC<{
     if (!container || !p) return;
 
     const fitText = () => {
-      let currentSize = 48; // Start from a reasonably large size for sensors
+      let currentSize = maxFontSize;
+      const tolerance = 1;
+
+      // --- Pass 1: Horizontal Fit (try to keep on one line) ---
+      p.style.whiteSpace = 'nowrap';
       p.style.fontSize = `${currentSize}px`;
 
-      const tolerance = 1;
-      // Reduce font size until it fits
-      while (
-        currentSize > 8 && // Minimum font size
-        (p.scrollHeight > container.clientHeight + tolerance ||
-         p.scrollWidth > container.clientWidth + tolerance)
-      ) {
+      while (currentSize > 8 && p.scrollWidth > container.clientWidth + tolerance) {
         currentSize -= 1;
         p.style.fontSize = `${currentSize}px`;
+      }
+      
+      // --- Pass 2: Vertical Fit (allow wrapping if needed) ---
+      if (mode === 'multi-line') {
+        p.style.whiteSpace = 'normal';
+        while (currentSize > 8 && p.scrollHeight > container.clientHeight + tolerance) {
+          currentSize -= 1;
+          p.style.fontSize = `${currentSize}px`;
+        }
       }
     };
 
     const resizeObserver = new ResizeObserver(fitText);
     resizeObserver.observe(container);
-    fitText(); // Initial fit
+    fitText();
 
     return () => resizeObserver.disconnect();
-  }, [text]);
+  }, [text, maxFontSize, mode]);
 
   return (
-    <div ref={containerRef} className={className}>
-      <p ref={pRef} className={pClassName} style={{ lineHeight: 1.2, wordBreak: 'break-word', display: 'inline-block' }}>
+    <div ref={containerRef} className={`${className} flex items-center justify-start`}>
+      <p ref={pRef} className={pClassName} style={{ lineHeight: 1.15, wordBreak: 'break-word' }}>
         {text}
       </p>
     </div>
@@ -435,6 +444,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                         text={device.name}
                         className="w-full h-full"
                         pClassName={styles.nameText}
+                        maxFontSize={18}
+                        mode="multi-line"
                     />
                 </div>
               <p className={`${styles.statusText} ${isOn ? textOnClasses : textOffClasses} transition-colors flex-shrink-0`}>{device.status}</p>
@@ -494,6 +505,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                         text={device.name}
                         className="w-full h-full"
                         pClassName={styles.nameText}
+                        maxFontSize={18}
+                        mode="multi-line"
                     />
                 </div>
                 <p className={`${styles.thermostatTempText} text-white flex-shrink-0`}>{device.temperature}{device.unit}</p>
@@ -512,27 +525,34 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
             <div className="flex-shrink-0">
               <DeviceIcon type={device.icon ?? device.type} isOn={false} />
             </div>
-            <div className="flex-grow flex items-center w-full my-1 min-h-0">
+
+            <div className="flex-grow" />
+
+            <div className="flex-shrink-0 w-full h-8 my-1">
               <SparklineChart data={device.history || mockHistory} />
             </div>
-            <div className="flex-shrink-0 flex flex-col overflow-hidden" style={{ minHeight: '40%' }}>
-              <div className="flex-grow overflow-hidden min-h-0">
+            
+            <div className="flex-shrink-0 overflow-hidden">
                 <AutoFitText
                     text={device.name}
-                    className="w-full h-full"
+                    className="w-full"
                     pClassName={styles.nameText}
+                    maxFontSize={18}
+                    mode="multi-line"
                 />
-              </div>
-              <div className="flex items-baseline mt-auto flex-shrink-0">
+            </div>
+
+            <div className="flex items-baseline mt-1 flex-shrink-0">
                 <div className="flex-grow overflow-hidden min-w-0">
                    <AutoFitText
                         text={device.status}
-                        className="w-full h-full"
+                        className="w-full"
                         pClassName={`${isNumericStatus ? styles.sensorStatusText : 'text-lg font-semibold break-words'}`}
+                        maxFontSize={40}
+                        mode="single-line"
                     />
                 </div>
-                {device.unit && isNumericStatus && <p className={`${styles.sensorUnitText} text-gray-400 ml-1 flex-shrink-0 text-base`}>{device.unit}</p>}
-              </div>
+                {device.unit && isNumericStatus && <p className="text-gray-400 ml-1 flex-shrink-0 text-lg">{device.unit}</p>}
             </div>
           </div>
         );
@@ -548,6 +568,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                     text={device.name}
                     className="w-full h-full"
                     pClassName={styles.nameText}
+                    maxFontSize={18}
+                    mode="multi-line"
                 />
               </div>
               <p className={`${styles.statusText} ${isOn ? textOnClasses : textOffClasses} transition-colors flex-shrink-0`}>{device.status}</p>
