@@ -518,44 +518,51 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
             </div>
           </div>
         );
-      case DeviceType.Sensor:
+      case DeviceType.Sensor: {
         const isNumericStatus = !isNaN(parseFloat(device.status));
         return (
           <div className="flex flex-col h-full text-left">
-            <div className="flex-shrink-0">
-              <DeviceIcon type={device.icon ?? device.type} isOn={false} />
-            </div>
-
-            <div className="flex-grow" />
-
-            <div className="flex-shrink-0 w-full h-8 my-1">
-              <SparklineChart data={device.history || mockHistory} />
-            </div>
-            
-            <div className="flex-shrink-0 overflow-hidden">
+            {/* Top row: Name and Icon */}
+            <div className="flex justify-between items-start flex-shrink-0">
+              <div className="flex-grow overflow-hidden pr-2 min-h-[2.5rem] flex items-center">
                 <AutoFitText
-                    text={device.name}
-                    className="w-full"
-                    pClassName={styles.nameText}
-                    maxFontSize={18}
-                    mode="multi-line"
+                  text={device.name}
+                  className="w-full h-full"
+                  pClassName={`${styles.nameText} text-white`}
+                  maxFontSize={18}
+                  mode="multi-line"
                 />
+              </div>
+              <div className="flex-shrink-0 w-7 h-7">
+                <DeviceIcon type={device.icon ?? device.type} isOn={false} className="!w-full !h-full" />
+              </div>
             </div>
 
-            <div className="flex items-baseline mt-1 flex-shrink-0">
-                <div className="flex-grow overflow-hidden min-w-0">
-                   <AutoFitText
-                        text={device.status}
-                        className="w-full"
-                        pClassName={`${isNumericStatus ? styles.sensorStatusText : 'text-lg font-semibold break-words'}`}
-                        maxFontSize={40}
-                        mode="single-line"
-                    />
-                </div>
-                {device.unit && isNumericStatus && <p className="text-gray-400 ml-1 flex-shrink-0 text-lg">{device.unit}</p>}
+            {/* Middle section: Value */}
+            <div className="flex-grow flex items-center justify-center overflow-hidden min-h-0 text-white">
+              <div className="flex items-baseline" style={{ lineHeight: 1 }}>
+                <AutoFitText
+                  text={device.status}
+                  className="w-full"
+                  pClassName="font-light"
+                  maxFontSize={72}
+                  mode="single-line"
+                />
+                {device.unit && isNumericStatus && (
+                  <p className="text-gray-400 ml-1 flex-shrink-0 text-3xl font-light">
+                    {device.unit}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Bottom section: Sparkline Chart */}
+            <div className="flex-shrink-0 w-full h-1/4 max-h-10 -mb-2">
+              <SparklineChart data={device.history || mockHistory} />
             </div>
           </div>
         );
+      }
       default:
         return (
           <div className="flex flex-col h-full">
