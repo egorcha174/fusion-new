@@ -39,7 +39,7 @@ const defaultSensorTemplate: CardTemplate = {
       position: { x: 8, y: 7 },
       size: { width: 65, height: 22 },
       zIndex: 2,
-      styles: { fontSize: 17 },
+      styles: {},
     },
     {
       id: 'icon',
@@ -55,7 +55,7 @@ const defaultSensorTemplate: CardTemplate = {
       position: { x: 8, y: 35 },
       size: { width: 70, height: 40 },
       zIndex: 2,
-      styles: { fontSize: 48 },
+      styles: {},
     },
     {
       id: 'unit',

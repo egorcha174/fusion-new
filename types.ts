@@ -104,7 +104,6 @@ export interface CardElement {
   size: { width: number; height: number }; // in %
   zIndex: number;
   styles: {
-    fontSize?: number; // in px
     // other styles can be added here
   };
 }

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useMemo } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement } from '../types';
 import DeviceCard from './DeviceCard';
@@ -358,17 +357,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
                             <span className={`inline-block w-3 h-3 transform bg-white rounded-full transition-transform ${selectedElement.visible ? 'translate-x-5' : 'translate-x-1'}`} />
                         </button>
                     </div>
-                    {(selectedElement.id === 'name' || selectedElement.id === 'value') && (
-                         <div className="flex items-center justify-between">
-                            <label htmlFor="fontSize" className="text-sm text-gray-200">Размер шрифта</label>
-                            <div className="flex items-center gap-2">
-                               <input type="range" id="fontSize" min="10" max="64" value={selectedElement.styles.fontSize || 16} 
-                                   onChange={(e) => handleElementUpdate(selectedElement.id, { styles: { ...selectedElement.styles, fontSize: parseInt(e.target.value) } })}
-                                   className="w-32 accent-blue-500" />
-                               <span className="text-xs text-gray-400 w-8 text-right">{selectedElement.styles.fontSize}px</span>
-                            </div>
-                        </div>
-                    )}
                 </div>
             )}
             

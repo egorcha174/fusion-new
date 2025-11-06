@@ -12,7 +12,8 @@ const AutoFitText: React.FC<{
   pClassName?: string;
   maxFontSize?: number;
   mode?: 'single-line' | 'multi-line';
-}> = ({ text, className, pClassName, maxFontSize = 48, mode = 'multi-line' }) => {
+  maxLines?: number;
+}> = ({ text, className, pClassName, maxFontSize = 48, mode = 'multi-line', maxLines = 2 }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const pRef = React.useRef<HTMLParagraphElement>(null);
 
@@ -50,9 +51,16 @@ const AutoFitText: React.FC<{
     };
   }, [text, maxFontSize, mode]);
 
+  const multiLineStyles: React.CSSProperties = mode === 'multi-line' ? {
+      display: '-webkit-box',
+      WebkitLineClamp: maxLines,
+      WebkitBoxOrient: 'vertical',
+      overflow: 'hidden',
+  } : {};
+
   return (
     <div ref={containerRef} className={`${className} flex items-center justify-start`}>
-      <p ref={pRef} className={pClassName} style={{ lineHeight: 1.15, wordBreak: 'break-word' }}>
+      <p ref={pRef} className={pClassName} style={{ lineHeight: 1.15, wordBreak: 'break-word', ...multiLineStyles }}>
         {text}
       </p>
     </div>
@@ -526,7 +534,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                 case 'name':
                     return (
                         <div key={element.id} style={style}>
-                            <AutoFitText text={device.name} className="w-full h-full" pClassName="font-medium text-gray-300 leading-tight" maxFontSize={element.styles.fontSize} mode="multi-line" />
+                            <AutoFitText text={device.name} className="w-full h-full" pClassName="font-medium text-gray-300 leading-tight" maxFontSize={100} mode="multi-line" maxLines={2} />
                         </div>
                     );
                 case 'icon':
@@ -538,7 +546,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                 case 'value':
                     return (
                          <div key={element.id} style={style} className="flex items-center">
-                            <AutoFitText text={device.status} className="w-full h-full" pClassName="font-semibold text-gray-100" maxFontSize={element.styles.fontSize} mode="single-line" />
+                            <AutoFitText text={device.status} className="w-full h-full" pClassName="font-semibold text-gray-100" maxFontSize={100} mode="single-line" />
                         </div>
                     );
                 case 'unit':
