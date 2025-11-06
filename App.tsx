@@ -12,7 +12,7 @@ import FloatingCameraWindow from './components/FloatingCameraWindow';
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
-import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CameraSettings } from './types';
+import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CameraSettings, GridLayoutItem } from './types';
 import { nanoid } from 'nanoid';
 
 // Hook to check for large screens to conditionally apply margin
@@ -74,7 +74,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (connectionStatus === 'connected' && !isLoading) {
       if (tabs.length === 0) {
-        const newTab: Tab = { id: nanoid(), name: 'Главная', deviceIds: [], orderedDeviceIds: [], gridSettings: { cols: 8, rows: 5 } };
+        const newTab: Tab = { id: nanoid(), name: 'Главная', layout: [], gridSettings: { cols: 8, rows: 5 } };
         setTabs([newTab]);
         setActiveTabId(newTab.id);
       } else if (!activeTabId || !tabs.some(t => t.id === activeTabId)) {
@@ -105,23 +105,6 @@ const App: React.FC = () => {
   const allCameras = useMemo(() => {
     return Array.from(allKnownDevices.values()).filter((d: Device) => d.haDomain === 'camera');
   }, [allKnownDevices]);
-
-  const filteredDevicesForTab = useMemo(() => {
-    if (!activeTab) return [];
-    
-    // Get devices based on the ordered list for stability
-    const activeTabDevices = activeTab.orderedDeviceIds
-      .map(id => allKnownDevices.get(id))
-      .filter((d): d is Device => !!d);
-
-    if (!searchTerm) return activeTabDevices;
-    
-    const lowercasedFilter = searchTerm.toLowerCase();
-    return activeTabDevices.filter(device =>
-        device.name.toLowerCase().includes(lowercasedFilter) ||
-        device.id.toLowerCase().includes(lowercasedFilter)
-    );
-  }, [searchTerm, activeTab, allKnownDevices]);
   
   const filteredRoomsForDevicePage = useMemo(() => {
     if (!searchTerm) return allRoomsForDevicePage;
@@ -157,7 +140,7 @@ const App: React.FC = () => {
   // --- Tab Management Handlers ---
   const handleAddTab = () => {
     const newTabName = `Вкладка ${tabs.length + 1}`;
-    const newTab: Tab = { id: nanoid(), name: newTabName, deviceIds: [], orderedDeviceIds: [], gridSettings: { cols: 8, rows: 5 } };
+    const newTab: Tab = { id: nanoid(), name: newTabName, layout: [], gridSettings: { cols: 8, rows: 5 } };
     setTabs([...tabs, newTab]);
     setActiveTabId(newTab.id);
   };
@@ -184,14 +167,34 @@ const App: React.FC = () => {
   // --- Device Management on Tabs ---
   const handleDeviceAddToTab = (deviceId: string, tabId: string) => {
     setTabs(tabs.map(tab => {
-      if (tab.id === tabId && !tab.deviceIds.includes(deviceId)) {
-        return { 
-            ...tab, 
-            deviceIds: [...tab.deviceIds, deviceId],
-            orderedDeviceIds: [...tab.orderedDeviceIds, deviceId]
-        };
-      }
-      return tab;
+        if (tab.id === tabId && !tab.layout.some(item => item.deviceId === deviceId)) {
+            // Find the first empty cell
+            const { cols, rows } = tab.gridSettings;
+            let emptyCell: { col: number, row: number } | null = null;
+            
+            const occupiedCells = new Set(tab.layout.map(item => `${item.col},${item.row}`));
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (!occupiedCells.has(`${c},${r}`)) {
+                        emptyCell = { col: c, row: r };
+                        break;
+                    }
+                }
+                if (emptyCell) break;
+            }
+            
+            if (emptyCell) {
+                const newLayoutItem = { deviceId, col: emptyCell.col, row: emptyCell.row };
+                return { 
+                    ...tab, 
+                    layout: [...tab.layout, newLayoutItem]
+                };
+            } else {
+                console.warn(`Tab "${tab.name}" is full. Cannot add device "${deviceId}".`);
+            }
+        }
+        return tab;
     }));
   };
 
@@ -200,8 +203,7 @@ const App: React.FC = () => {
         if (tab.id === tabId) {
             return { 
                 ...tab, 
-                deviceIds: tab.deviceIds.filter(id => id !== deviceId),
-                orderedDeviceIds: tab.orderedDeviceIds.filter(id => id !== deviceId)
+                layout: tab.layout.filter(item => item.deviceId !== deviceId)
             };
         }
         return tab;
@@ -214,10 +216,10 @@ const App: React.FC = () => {
     handleDeviceRemoveFromTab(deviceId, fromTabId);
 };
 
-  const handleDeviceOrderChangeOnTab = (tabId: string, newOrderedDeviceIds: string[]) => {
+  const handleDeviceLayoutChangeOnTab = (tabId: string, newLayout: GridLayoutItem[]) => {
       setTabs(tabs.map(tab => {
           if (tab.id === tabId) {
-              return { ...tab, orderedDeviceIds: newOrderedDeviceIds };
+              return { ...tab, layout: newLayout };
           }
           return tab;
       }));
@@ -343,9 +345,9 @@ const App: React.FC = () => {
           <TabContent
             key={activeTab.id}
             tab={activeTab}
-            devices={filteredDevicesForTab}
-            onDeviceOrderChange={handleDeviceOrderChangeOnTab}
-            onDeviceRemoveFromTab={handleDeviceRemoveFromTab}
+            allKnownDevices={allKnownDevices}
+            searchTerm={searchTerm}
+            onDeviceLayoutChange={handleDeviceLayoutChangeOnTab}
             onDeviceToggle={handleDeviceToggle}
             onTemperatureChange={handleTemperatureChange}
             onBrightnessChange={handleBrightnessChange}

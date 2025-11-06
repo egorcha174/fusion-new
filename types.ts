@@ -53,12 +53,17 @@ export interface Room {
   devices: Device[];
 }
 
+export interface GridLayoutItem {
+  deviceId: string;
+  col: number;
+  row: number;
+}
+
 // Represents a user-created tab on the dashboard
 export interface Tab {
   id: string;
   name: string;
-  deviceIds: string[]; // Contains the set of devices on this tab
-  orderedDeviceIds: string[]; // The source of truth for device order in the grid
+  layout: GridLayoutItem[]; // The source of truth for device positions
   gridSettings: {
     cols: number;
     rows: number;

@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { Tab } from '../types';
+import { Tab, GridLayoutItem } from '../types';
 
 export function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
   const [storedValue, setStoredValue] = useState<T>(() => {
@@ -16,28 +15,44 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, React.Disp
       // --- MIGRATION LOGIC for backward compatibility ---
       if (key === 'ha-tabs' && Array.isArray(parsedItem)) {
         parsedItem = parsedItem.map((tab: any): Tab => {
-          // If tab is from the old structure (has groups, layoutMode, etc.)
+          // MIGRATION 1: From list-based (orderedDeviceIds, groups) to simple list
           if (tab.layoutMode !== undefined || tab.groups !== undefined || tab.gridLayout !== undefined) {
              const allDeviceIdsInOldTab = [
               ...(tab.orderedDeviceIds || []),
               ...(tab.groups || []).flatMap((g: any) => g.orderedDeviceIds || [])
             ];
-            
-            // Create a unique set of device IDs
-            const uniqueDeviceIds = [...new Set(allDeviceIdsInOldTab)];
-            
-            return {
-              id: tab.id,
-              name: tab.name,
-              deviceIds: uniqueDeviceIds,
-              orderedDeviceIds: uniqueDeviceIds, // Use the flattened list as the new order
-              gridSettings: { cols: 8, rows: 5 } // Assign default grid settings
-            };
+            tab.orderedDeviceIds = [...new Set(allDeviceIdsInOldTab)];
+            delete tab.groups;
+            delete tab.layoutMode;
+            delete tab.gridLayout;
+            delete tab.deviceIds;
+          }
+
+          // MIGRATION 2: From simple list (orderedDeviceIds) to coordinate-based (layout)
+          if (tab.orderedDeviceIds && !tab.layout) {
+            const { cols } = tab.gridSettings || { cols: 8 };
+            const newLayout: GridLayoutItem[] = [];
+            // FIX: Explicitly cast `tab.orderedDeviceIds` to `string[]`. This ensures `uniqueDeviceIds`
+            // is correctly inferred as `string[]` instead of `unknown[]`, fixing the type error on line 39.
+            const uniqueDeviceIds = [...new Set(tab.orderedDeviceIds as string[])];
+
+            uniqueDeviceIds.forEach((deviceId, index) => {
+              newLayout.push({
+                deviceId,
+                col: index % cols,
+                row: Math.floor(index / cols),
+              });
+            });
+            tab.layout = newLayout;
+            delete tab.orderedDeviceIds;
+            delete tab.deviceIds;
           }
           
-          // If it's a newer tab but missing gridSettings for some reason
           if (tab.gridSettings === undefined) {
             tab.gridSettings = { cols: 8, rows: 5 };
+          }
+          if (!tab.layout) {
+              tab.layout = [];
           }
 
           return tab;

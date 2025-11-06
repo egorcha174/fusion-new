@@ -1,12 +1,12 @@
 import React from 'react';
 import DashboardGrid from './DashboardGrid';
-import { Tab, Device } from '../types';
+import { Tab, Device, GridLayoutItem } from '../types';
 
 interface TabContentProps {
   tab: Tab;
-  devices: Device[]; // Filtered devices for the current tab
-  onDeviceOrderChange: (tabId: string, newOrderedDeviceIds: string[]) => void;
-  onDeviceRemoveFromTab: (deviceId: string, tabId:string) => void;
+  allKnownDevices: Map<string, Device>;
+  searchTerm: string;
+  onDeviceLayoutChange: (tabId: string, newLayout: GridLayoutItem[]) => void;
   onDeviceToggle: (deviceId: string) => void;
   onTemperatureChange: (deviceId: string, change: number) => void;
   onBrightnessChange: (deviceId: string, brightness: number) => void;
@@ -21,9 +21,9 @@ interface TabContentProps {
 }
 
 const TabContent: React.FC<TabContentProps> = (props) => {
-  const { devices } = props;
+  const { tab } = props;
 
-  if (devices.length === 0) {
+  if (tab.layout.length === 0) {
       return (
           <div className="text-center py-20 text-gray-500">
               <h3 className="text-xl">Эта вкладка пуста</h3>

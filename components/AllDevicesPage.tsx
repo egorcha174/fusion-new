@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import { Room, DeviceCustomizations, Tab, Device } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -20,7 +18,7 @@ const AddToTabButton: React.FC<{
     const [isOpen, setIsOpen] = useState(false);
 
     // Filter out tabs that already contain the device
-    const availableTabs = tabs.filter(tab => !tab.deviceIds.includes(device.id));
+    const availableTabs = tabs.filter(tab => !tab.layout.some(item => item.deviceId === device.id));
 
     if (availableTabs.length === 0) return (
         <button
