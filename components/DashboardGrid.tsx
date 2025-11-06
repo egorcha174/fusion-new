@@ -23,10 +23,22 @@ const DraggableDevice: React.FC<{
   // Pass all other props down to DeviceCard
   [key: string]: any;
 }> = ({ device, isEditMode, onDeviceToggle, ...cardProps }) => {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef: setDraggableNodeRef, isDragging } = useDraggable({
     id: device.id,
     disabled: !isEditMode,
   });
+  
+  // Make the device card itself a droppable area for swapping
+  const { setNodeRef: setDroppableNodeRef } = useDroppable({
+    id: device.id, // The droppable ID is the device's own ID
+    data: { type: 'device' }
+  });
+  
+  // Combine refs for dnd-kit
+  const setNodeRef = (node: HTMLElement | null) => {
+      setDraggableNodeRef(node);
+      setDroppableNodeRef(node);
+  };
 
   const handleClick = (e: React.MouseEvent) => {
     if (isEditMode) {
@@ -159,39 +171,47 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
       const draggedDeviceId = active.id as string;
       const currentLayout = tab.layout;
 
-      const draggedItem = currentLayout.find(item => item.deviceId === draggedDeviceId);
-      if (!draggedItem) return;
-
       let targetCol: number;
       let targetRow: number;
 
-      // Determine target coordinates from either a droppable cell or a droppable device
+      // Determine target coordinates from the `over` object
       if (over.data.current?.type === 'cell') {
+          // Case 1: Dropped onto an empty cell
           targetCol = over.data.current.col;
           targetRow = over.data.current.row;
       } else {
+          // Case 2: Dropped onto another device
+          // The `over.id` is the deviceId of the target device
           const overItem = currentLayout.find(item => item.deviceId === over.id);
-          if (!overItem) return; // Should not happen if 'over' is a device on the grid
+          if (!overItem) return; // Target device not found in layout, something is wrong
           targetCol = overItem.col;
           targetRow = overItem.row;
       }
       
-      // Create a mutable copy of the layout to work with
-      const newLayout = currentLayout.map(item => ({ ...item }));
-
-      const draggedItemInNewLayout = newLayout.find(item => item.deviceId === draggedDeviceId)!;
-      const targetItemInNewLayout = newLayout.find(item => item.col === targetCol && item.row === targetRow);
+      // Find the indices of the dragged item and the item at the target location
+      const draggedItemIndex = currentLayout.findIndex(item => item.deviceId === draggedDeviceId);
+      const targetItemIndex = currentLayout.findIndex(item => item.col === targetCol && item.row === targetRow);
       
-      // If the target cell is occupied by a different item, perform a swap.
-      if (targetItemInNewLayout && targetItemInNewLayout.deviceId !== draggedDeviceId) {
-          // Move the item at the target location to the dragged item's original spot
-          targetItemInNewLayout.col = draggedItemInNewLayout.col;
-          targetItemInNewLayout.row = draggedItemInNewLayout.row;
-      }
+      if (draggedItemIndex === -1) return; // Should not happen
+      
+      const newLayout = [...currentLayout];
+      const draggedItem = newLayout[draggedItemIndex];
+      
+      if (targetItemIndex !== -1) {
+        // --- SWAP ---
+        // The target cell is occupied, so swap items.
+        const targetItem = newLayout[targetItemIndex];
+        
+        // The target item gets the dragged item's original coordinates
+        newLayout[targetItemIndex] = { ...targetItem, col: draggedItem.col, row: draggedItem.row };
+        // The dragged item gets the target's coordinates
+        newLayout[draggedItemIndex] = { ...draggedItem, col: targetCol, row: targetRow };
 
-      // Move the dragged item to the target location
-      draggedItemInNewLayout.col = targetCol;
-      draggedItemInNewLayout.row = targetRow;
+      } else {
+        // --- MOVE ---
+        // The target cell is empty, just move the dragged item.
+        newLayout[draggedItemIndex] = { ...draggedItem, col: targetCol, row: targetRow };
+      }
       
       onDeviceLayoutChange(tab.id, newLayout);
     };
