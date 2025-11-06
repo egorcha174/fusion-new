@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import Settings from './components/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -56,7 +57,9 @@ const defaultSensorTemplate: CardTemplate = {
       position: { x: 8, y: 35 },
       size: { width: 70, height: 40 },
       zIndex: 2,
-      styles: {},
+      styles: {
+        decimalPlaces: 1,
+      },
     },
     {
       id: 'unit',

@@ -1,3 +1,4 @@
+
 export enum DeviceType {
   Light,
   Lamp,
@@ -105,6 +106,7 @@ export interface CardElement {
   zIndex: number;
   styles: {
     // other styles can be added here
+    decimalPlaces?: number;
   };
 }
 

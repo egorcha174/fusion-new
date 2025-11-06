@@ -1,3 +1,4 @@
+
 import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization, WeatherForecast } from '../types';
 
 const getDeviceType = (entity: HassEntity): DeviceType => {
@@ -81,14 +82,9 @@ const getStatusText = (entity: HassEntity): string => {
     }
     
     if (domain === 'sensor') {
-        const numericState = parseFloat(entity.state);
-        if (!isNaN(numericState)) {
-            // Round to one decimal place for display
-            return String(Math.round(numericState * 10) / 10);
-        }
-        // For non-numeric sensor states, just return the state capitalized.
-        // The 'unavailable'/'unknown' checks at the top have already handled those.
-        return entity.state.charAt(0).toUpperCase() + entity.state.slice(1);
+        // Formatting (e.g., rounding) is handled in DeviceCard based on template settings.
+        // We pass the raw state through.
+        return entity.state;
     }
     
     if (entity.state === 'on') return 'Включено';

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useMemo } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement } from '../types';
 import DeviceCard from './DeviceCard';
@@ -529,6 +530,26 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
                             <span className={`inline-block w-3 h-3 transform bg-white rounded-full transition-transform ${selectedElement.visible ? 'translate-x-5' : 'translate-x-1'}`} />
                         </button>
                     </div>
+                    {selectedElement.id === 'value' && (
+                      <div className="flex items-center justify-between">
+                        <label htmlFor="decimalPlaces" className="text-sm text-gray-200">Знаков после запятой</label>
+                        <input
+                          id="decimalPlaces"
+                          type="number"
+                          min="0"
+                          max="5"
+                          step="1"
+                          value={selectedElement.styles.decimalPlaces ?? ''}
+                          onChange={(e) => {
+                            const value = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
+                            handleElementUpdate(selectedElement.id, {
+                              styles: { ...selectedElement.styles, decimalPlaces: value }
+                            });
+                          }}
+                          className="w-20 bg-gray-900 text-gray-100 border border-gray-600 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    )}
                 </div>
             )}
             

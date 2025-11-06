@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -543,12 +544,21 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                            <DeviceIcon icon={device.icon ?? device.type} isOn={false} className="!w-full !h-full" />
                         </div>
                     );
-                case 'value':
+                case 'value': {
+                    const { decimalPlaces } = element.styles;
+                    let valueText = device.status;
+
+                    const numericStatus = parseFloat(device.status);
+                    if (!isNaN(numericStatus) && typeof decimalPlaces === 'number' && decimalPlaces >= 0) {
+                        valueText = numericStatus.toFixed(decimalPlaces);
+                    }
+
                     return (
                          <div key={element.id} style={style} className="flex items-center">
-                            <AutoFitText text={device.status} className="w-full h-full" pClassName="font-semibold text-gray-100" maxFontSize={100} mode="single-line" />
+                            <AutoFitText text={valueText} className="w-full h-full" pClassName="font-semibold text-gray-100" maxFontSize={100} mode="single-line" />
                         </div>
                     );
+                }
                 case 'unit':
                      const isNumericStatus = !isNaN(parseFloat(device.status));
                      if (!device.unit || !isNumericStatus) return null;
