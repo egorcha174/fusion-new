@@ -15,6 +15,25 @@ import {
 import DeviceCard from './DeviceCard';
 import { Tab, Device, DeviceType, GridLayoutItem } from '../types';
 
+// --- Новый дочерний компонент для безопасного использования useDndMonitor ---
+const DragMonitorHandler: React.FC<{
+    setOverlayTransform: React.Dispatch<React.SetStateAction<string>>;
+}> = ({ setOverlayTransform }) => {
+    useDndMonitor({
+        onDragMove: (event: DragMoveEvent) => {
+            setOverlayTransform(`translate3d(${event.delta.x}px, ${event.delta.y}px, 0)`);
+        },
+        onDragEnd: () => {
+            setOverlayTransform('');
+        },
+        onDragCancel: () => {
+            setOverlayTransform('');
+        },
+    });
+    return null; // Этот компонент не отрисовывает ничего в DOM
+};
+
+
 // --- Draggable Item ---
 const DraggableDevice: React.FC<{
   device: Device;
@@ -135,18 +154,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
 
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
-    useDndMonitor({
-        onDragMove: (event: DragMoveEvent) => {
-            setOverlayTransform(`translate3d(${event.delta.x}px, ${event.delta.y}px, 0)`);
-        },
-        onDragEnd: () => {
-            setOverlayTransform('');
-        },
-        onDragCancel: () => {
-            setOverlayTransform('');
-        },
-    });
-
     const handleDragStart = (event: DragStartEvent) => {
         setActiveId(event.active.id as string);
         if (event.active.rect.current.initial) {
@@ -182,7 +189,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
           const originalTargetPosition = { col: currentLayout[targetItemIndex].col, row: currentLayout[targetItemIndex].row };
           
           newLayout[draggedItemIndex] = { ...newLayout[draggedItemIndex], ...originalTargetPosition };
-          // FIX: Corrected a typo from `originalPosition` to `originalDraggedPosition`.
           newLayout[targetItemIndex] = { ...newLayout[targetItemIndex], ...originalDraggedPosition };
       }
       
@@ -257,6 +263,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                       </div>
                     ) : null}
                 </DragOverlay>
+                <DragMonitorHandler setOverlayTransform={setOverlayTransform} />
             </DndContext>
         </div>
     );
