@@ -57,8 +57,12 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
     
   const availableIcons = Object.keys(icons).map(Number) as DeviceType[];
   
-  const isTemplateable = device.type === DeviceType.Sensor || device.type === DeviceType.Light || device.type === DeviceType.DimmableLight;
-  const templateType = (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight) ? 'light' : 'sensor';
+  const isTemplateable = device.type === DeviceType.Sensor || device.type === DeviceType.Light || device.type === DeviceType.DimmableLight || device.type === DeviceType.Switch;
+  const templateType = (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight)
+    ? 'light'
+    : (device.type === DeviceType.Switch)
+      ? 'switch'
+      : 'sensor';
 
 
   return (

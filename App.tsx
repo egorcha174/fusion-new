@@ -31,6 +31,7 @@ const useIsLg = () => {
 
 const DEFAULT_SENSOR_TEMPLATE_ID = 'default-sensor';
 const DEFAULT_LIGHT_TEMPLATE_ID = 'default-light';
+const DEFAULT_SWITCH_TEMPLATE_ID = 'default-switch';
 
 
 const defaultSensorTemplate: CardTemplate = {
@@ -150,6 +151,46 @@ const defaultLightTemplate: CardTemplate = {
     ],
 };
 
+const defaultSwitchTemplate: CardTemplate = {
+    id: DEFAULT_SWITCH_TEMPLATE_ID,
+    name: 'Стандартный переключатель',
+    deviceType: 'switch',
+    styles: {
+      backgroundColor: 'rgb(55 65 81 / 0.8)', // bg-gray-600/80 for off state
+    },
+    elements: [
+      {
+        id: 'icon',
+        visible: true,
+        position: { x: 8, y: 8 },
+        size: { width: 20, height: 20 },
+        zIndex: 2,
+        styles: {},
+      },
+      {
+        id: 'name',
+        visible: true,
+        position: { x: 8, y: 35 },
+        size: { width: 84, height: 22 },
+        zIndex: 2,
+        styles: {},
+      },
+      {
+        id: 'status',
+        visible: true,
+        position: { x: 8, y: 58 },
+        size: { width: 84, height: 12 },
+        zIndex: 2,
+        styles: {},
+      },
+      // Hidden elements for type completeness
+      { id: 'slider', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
+      { id: 'value', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
+      { id: 'unit', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
+      { id: 'chart', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
+    ],
+};
+
 
 const App: React.FC = () => {
   const {
@@ -183,6 +224,7 @@ const App: React.FC = () => {
   const [templates, setTemplates] = useLocalStorage<CardTemplates>('ha-card-templates', {
     [DEFAULT_SENSOR_TEMPLATE_ID]: defaultSensorTemplate,
     [DEFAULT_LIGHT_TEMPLATE_ID]: defaultLightTemplate,
+    [DEFAULT_SWITCH_TEMPLATE_ID]: defaultSwitchTemplate,
   });
   const [clockSettings, setClockSettings] = useLocalStorage<ClockSettings>('ha-clock-settings', {
     format: '24h',
@@ -515,11 +557,28 @@ const App: React.FC = () => {
     });
   };
 
-  const createNewBlankTemplate = (deviceType: 'sensor' | 'light'): CardTemplate => {
-    const baseTemplate = deviceType === 'sensor' ? defaultSensorTemplate : defaultLightTemplate;
+  const createNewBlankTemplate = (deviceType: 'sensor' | 'light' | 'switch'): CardTemplate => {
+    let baseTemplate: CardTemplate;
+    let typeName: string;
+
+    switch(deviceType) {
+        case 'sensor':
+            baseTemplate = defaultSensorTemplate;
+            typeName = 'сенсор';
+            break;
+        case 'light':
+            baseTemplate = defaultLightTemplate;
+            typeName = 'светильник';
+            break;
+        case 'switch':
+            baseTemplate = defaultSwitchTemplate;
+            typeName = 'переключатель';
+            break;
+    }
+
     const newTemplate = JSON.parse(JSON.stringify(baseTemplate));
     newTemplate.id = nanoid();
-    newTemplate.name = `Новый ${deviceType === 'sensor' ? 'сенсор' : 'светильник'}`;
+    newTemplate.name = `Новый ${typeName}`;
     newTemplate.deviceType = deviceType;
     return newTemplate;
   };
@@ -540,7 +599,7 @@ const App: React.FC = () => {
   }
   
   const contextMenuDevice = contextMenu ? allKnownDevices.get(contextMenu.deviceId) : null;
-  const isTemplateable = contextMenuDevice?.type === DeviceType.Sensor || contextMenuDevice?.type === DeviceType.DimmableLight || contextMenuDevice?.type === DeviceType.Light;
+  const isTemplateable = contextMenuDevice?.type === DeviceType.Sensor || contextMenuDevice?.type === DeviceType.DimmableLight || contextMenuDevice?.type === DeviceType.Light || contextMenuDevice?.type === DeviceType.Switch;
 
   const getTemplateForDevice = (device: Device | null) => {
     if (!device) return null;
@@ -549,6 +608,7 @@ const App: React.FC = () => {
     if (!templateId) {
         if (device.type === DeviceType.Sensor) templateId = DEFAULT_SENSOR_TEMPLATE_ID;
         if (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight) templateId = DEFAULT_LIGHT_TEMPLATE_ID;
+        if (device.type === DeviceType.Switch) templateId = DEFAULT_SWITCH_TEMPLATE_ID;
     }
     return templateId ? templates[templateId] : null;
   };

@@ -173,6 +173,15 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
         haDomain: 'light',
       };
     }
+    if (templateToEdit.deviceType === 'switch') {
+        return {
+            id: 'switch.sample_outlet',
+            name: 'Розетка на кухне',
+            status: 'Включено',
+            type: DeviceType.Switch,
+            haDomain: 'switch',
+        };
+    }
     // Default to sensor
     return {
       id: 'sensor.sample_temperature',

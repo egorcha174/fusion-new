@@ -114,7 +114,7 @@ export interface CardElement {
 export interface CardTemplate {
   id: string;
   name: string;
-  deviceType: 'sensor' | 'light';
+  deviceType: 'sensor' | 'light' | 'switch';
   elements: CardElement[];
   styles: {
     backgroundColor: string;
