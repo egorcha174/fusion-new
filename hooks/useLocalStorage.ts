@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Tab, GridLayoutItem } from '../types';
+import { Tab, GridLayoutItem, CardTemplates, CardElement } from '../types';
 
 export function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
   const [storedValue, setStoredValue] = useState<T>(() => {
@@ -32,8 +32,6 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, React.Disp
           if (tab.orderedDeviceIds && !tab.layout) {
             const { cols } = tab.gridSettings || { cols: 8 };
             const newLayout: GridLayoutItem[] = [];
-            // FIX: Explicitly cast `tab.orderedDeviceIds` to `string[]`. This ensures `uniqueDeviceIds`
-            // is correctly inferred as `string[]` instead of `unknown[]`, fixing the type error on line 39.
             const uniqueDeviceIds = [...new Set(tab.orderedDeviceIds as string[])];
 
             uniqueDeviceIds.forEach((deviceId, index) => {
@@ -59,19 +57,64 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, React.Disp
         });
       }
 
-      // MIGRATION 3: For card templates (elements object to array)
-      if (key === 'ha-card-templates' && parsedItem?.sensor?.elements && !Array.isArray(parsedItem.sensor.elements)) {
-        console.log("Migrating old sensor template elements from object to array...");
-        const elementsObject = parsedItem.sensor.elements as Record<string, any>;
-        const elementsArray = Object.entries(elementsObject).map(([id, elementData]) => {
-            // Ensure elementData is an object before spreading
-            const data = (typeof elementData === 'object' && elementData !== null) ? elementData : {};
-            return {
-              id: id,
-              ...data
+      // MIGRATION 3: For card templates (ensuring structure and properties)
+      if (key === 'ha-card-templates') {
+        const defaultTemplates = initialValue as CardTemplates;
+        const migratedTemplates = { ...parsedItem };
+
+        Object.keys(defaultTemplates).forEach((templateKey: keyof CardTemplates) => {
+          const defaultTemplate = defaultTemplates[templateKey];
+          const storedTemplate = parsedItem[templateKey];
+
+          if (!storedTemplate || !defaultTemplate) {
+            return; // No stored template or no default, nothing to migrate for this key
+          }
+
+          // Step 1: Ensure `elements` is an array (migration from old object format)
+          let storedElements = storedTemplate.elements;
+          if (storedElements && !Array.isArray(storedElements)) {
+            console.warn(`Migrating template elements for "${templateKey}" from object to array.`);
+            storedElements = Object.values(storedElements);
+          }
+
+          // Step 2: Merge stored elements with defaults to guarantee structure
+          if (Array.isArray(storedElements) && Array.isArray(defaultTemplate.elements)) {
+            const defaultElementsMap = new Map(defaultTemplate.elements.map(el => [el.id, el]));
+            
+            const migratedElements = storedElements
+              .map(storedEl => {
+                if (!storedEl || !storedEl.id) return null; // Filter out invalid elements
+                const defaultEl = defaultElementsMap.get(storedEl.id);
+                if (defaultEl) {
+                  // Deep merge: default provides the structure, stored provides the values
+                  return {
+                    ...defaultEl,
+                    ...storedEl,
+                    position: { ...defaultEl.position, ...(storedEl.position || {}) },
+                    size: { ...defaultEl.size, ...(storedEl.size || {}) },
+                    styles: { ...defaultEl.styles, ...(storedEl.styles || {}) },
+                  };
+                }
+                return null; // Discard elements that are no longer in the default template
+              })
+              .filter((el): el is CardElement => el !== null);
+
+            // Step 3: Ensure all elements from the default template are present
+            defaultTemplate.elements.forEach(defaultEl => {
+              if (!migratedElements.some(el => el.id === defaultEl.id)) {
+                migratedElements.push(defaultEl);
+              }
+            });
+
+            // Update the template in our migrated copy
+            migratedTemplates[templateKey] = {
+              ...defaultTemplate, // Base styles from default
+              ...storedTemplate,  // Overwrite with stored styles
+              elements: migratedElements, // Use the safely merged elements
             };
+          }
         });
-        parsedItem.sensor.elements = elementsArray;
+        parsedItem = migratedTemplates;
       }
       // --- END MIGRATION LOGIC ---
 
