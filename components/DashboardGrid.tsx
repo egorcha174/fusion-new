@@ -9,8 +9,9 @@ import {
   useDraggable,
   useDroppable,
   DragOverlay,
-  pointerWithin, // <-- Implemented pointerWithin for precise collision detection
+  pointerWithin,
 } from '@dnd-kit/core';
+import { snapCenterToCursor } from '@dnd-kit/modifiers';
 import DeviceCard from './DeviceCard';
 import { Tab, Device, DeviceType, GridLayoutItem } from '../types';
 
@@ -39,7 +40,8 @@ const DraggableDevice: React.FC<{
   return (
     <div
       ref={setNodeRef}
-      className={`w-full h-full relative ${isEditMode ? 'cursor-move' : ''} ${isDragging ? 'opacity-30' : ''}`}
+      style={{ visibility: isDragging ? 'hidden' : 'visible' }}
+      className={`w-full h-full relative ${isEditMode ? 'cursor-move' : ''}`}
       {...listeners}
       {...attributes}
       onClick={handleClick}
@@ -66,17 +68,21 @@ const DraggableDevice: React.FC<{
 const DroppableCell: React.FC<{
   col: number;
   row: number;
-  isOver: boolean;
-}> = ({ col, row, isOver }) => {
-  const { setNodeRef } = useDroppable({
+  isEditMode: boolean;
+}> = ({ col, row, isEditMode }) => {
+  const { setNodeRef, isOver } = useDroppable({
     id: `cell-${col}-${row}`,
     data: { type: 'cell', col, row }
   });
 
+  const baseClasses = 'w-full h-full transition-colors duration-200 rounded-xl';
+  const editModeClasses = isEditMode ? 'bg-gray-800/50 border-2 border-dashed border-gray-700/50' : '';
+  const overClasses = isOver ? 'bg-blue-500/20 border-solid border-blue-400' : '';
+
   return (
     <div
       ref={setNodeRef}
-      className={`w-full h-full transition-colors ${isOver ? 'bg-white/5' : ''}`}
+      className={`${baseClasses} ${isOver ? overClasses : editModeClasses}`}
     />
   );
 };
@@ -213,7 +219,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         <div ref={viewportRef} className="w-full h-full flex items-start justify-start p-4">
             <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={pointerWithin}>
                 <div 
-                    className={`grid relative ${isEditMode ? 'bg-black/10' : ''}`}
+                    className="grid relative"
                     style={gridStyle}
                 >
                     {Array.from({ length: tab.gridSettings.cols * tab.gridSettings.rows }).map((_, index) => {
@@ -227,16 +233,16 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                                 {device ? (
                                     <DraggableDevice device={device} {...props} />
                                 ) : (
-                                    <DroppableCell col={col} row={row} isOver={false} />
+                                    <DroppableCell col={col} row={row} isEditMode={isEditMode} />
                                 )}
                             </div>
                         );
                     })}
                 </div>
-                 <DragOverlay dropAnimation={null}>
+                 <DragOverlay dropAnimation={null} modifiers={[snapCenterToCursor]}>
                     {activeDevice && activeDragItemRect ? (
                       <div 
-                        className="opacity-80 backdrop-blur-sm shadow-2xl rounded-2xl"
+                        className="opacity-80 shadow-2xl rounded-2xl"
                         style={{
                             width: activeDragItemRect.width,
                             height: activeDragItemRect.height,
