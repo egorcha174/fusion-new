@@ -153,7 +153,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
     };
 
     return (
-        <div ref={viewportRef} className="w-full h-full flex items-center justify-center">
+        <div ref={viewportRef} className="w-full h-full flex items-start justify-start p-4">
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={devices.map(d => d.id)} strategy={rectSortingStrategy}>
                     <div 
