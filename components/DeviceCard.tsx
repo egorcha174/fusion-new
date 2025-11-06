@@ -470,7 +470,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
       case DeviceType.DimmableLight:
         return (
           <div className="flex flex-col h-full">
-            <div className="flex justify-between items-start">
+            <div className="flex justify-between items-start flex-shrink-0">
               <DeviceIcon type={device.icon ?? device.type} isOn={isOn} cardSize={cardSize} />
               {isOn && device.brightness !== undefined && (
                 <div className={`${styles.brightnessCircle} rounded-full border-2 ${isOn ? 'border-gray-400/50' : 'border-gray-500'} flex items-center justify-center`}>
@@ -478,8 +478,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                 </div>
               )}
             </div>
-            <div className="flex-grow"></div>
-            <div ref={textContainerRef} className="text-left overflow-hidden">
+            <div ref={textContainerRef} className="flex-grow text-left overflow-hidden flex flex-col justify-end">
                 <AutoFitText
                     text={device.name}
                     baseFontSize={sizeMap[cardSize]}
@@ -578,11 +577,11 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
         );
       default:
         return (
-          <div className="flex flex-col justify-between h-full">
+          <div className="flex flex-col h-full">
             <div className="flex-shrink-0">
                <DeviceIcon type={device.icon ?? device.type} isOn={isOn} cardSize={cardSize} />
             </div>
-            <div ref={textContainerRef} className="text-left overflow-hidden">
+            <div ref={textContainerRef} className="flex-grow text-left overflow-hidden flex flex-col justify-end">
                 <AutoFitText
                     text={device.name}
                     baseFontSize={sizeMap[cardSize]}
