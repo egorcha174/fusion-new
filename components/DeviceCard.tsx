@@ -542,9 +542,9 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
             <div className="flex items-baseline" style={{ lineHeight: 1 }}>
               <AutoFitText
                 text={device.status}
-                className="flex-grow w-full"
+                className=""
                 pClassName="font-semibold text-gray-100"
-                maxFontSize={30}
+                maxFontSize={48}
                 mode="single-line"
               />
               {device.unit && isNumericStatus && (
