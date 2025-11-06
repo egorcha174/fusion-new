@@ -544,7 +544,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                 text={device.status}
                 className="flex-grow w-full"
                 pClassName="font-semibold text-gray-100"
-                maxFontSize={60}
+                maxFontSize={30}
                 mode="single-line"
               />
               {device.unit && isNumericStatus && (
