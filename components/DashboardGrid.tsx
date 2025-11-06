@@ -5,6 +5,7 @@ import {
   useSensor, 
   useSensors, 
   DragEndEvent, 
+  DragStartEvent,
   useDraggable, 
   useDroppable,
   DragOverlay
@@ -103,6 +104,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
     const viewportRef = useRef<HTMLDivElement>(null);
     const [gridStyle, setGridStyle] = useState<React.CSSProperties>({});
     const [activeId, setActiveId] = useState<string | null>(null);
+    const [activeDragItemRect, setActiveDragItemRect] = useState<{ width: number; height: number } | null>(null);
 
     useLayoutEffect(() => {
         const calculateGrid = () => {
@@ -130,12 +132,17 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
 
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
-    const handleDragStart = (event: any) => {
-        setActiveId(event.active.id);
+    const handleDragStart = (event: DragStartEvent) => {
+        setActiveId(event.active.id as string);
+        if (event.active.rect.current.initial) {
+            const { width, height } = event.active.rect.current.initial;
+            setActiveDragItemRect({ width, height });
+        }
     };
 
     const handleDragEnd = (event: DragEndEvent) => {
       setActiveId(null);
+      setActiveDragItemRect(null);
       const { active, over } = event;
       if (!over || !isEditMode) return;
 
@@ -210,8 +217,14 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                     })}
                 </div>
                  <DragOverlay>
-                    {activeDevice ? (
-                      <div className="opacity-80 backdrop-blur-sm scale-105 shadow-2xl rounded-2xl">
+                    {activeDevice && activeDragItemRect ? (
+                      <div 
+                        className="opacity-80 backdrop-blur-sm scale-105 shadow-2xl rounded-2xl"
+                        style={{
+                            width: activeDragItemRect.width,
+                            height: activeDragItemRect.height,
+                        }}
+                      >
                         <DeviceCard
                            device={activeDevice}
                            isEditMode={true}
