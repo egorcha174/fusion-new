@@ -97,7 +97,7 @@ export interface CameraSettings {
 }
 
 // --- Card Template System ---
-export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status';
+export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status' | 'slider';
 
 export interface CardElement {
   id: CardElementId;
@@ -114,7 +114,7 @@ export interface CardElement {
 export interface CardTemplate {
   id: string;
   name: string;
-  deviceType: 'sensor'; // Kept for now as a hint
+  deviceType: 'sensor' | 'light';
   elements: CardElement[];
   styles: {
     backgroundColor: string;

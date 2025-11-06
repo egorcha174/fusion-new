@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useLayoutEffect, useMemo } from 'react';
 import {
   DndContext,
@@ -131,6 +132,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
     const [activeDragItemRect, setActiveDragItemRect] = useState<{ width: number; height: number } | null>(null);
     
     const DEFAULT_SENSOR_TEMPLATE_ID = 'default-sensor';
+    const DEFAULT_LIGHT_TEMPLATE_ID = 'default-light';
+
 
     useLayoutEffect(() => {
         const calculateGrid = () => {
@@ -242,9 +245,15 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
 
     const activeDevice = activeId ? allKnownDevices.get(activeId) : null;
     let activeDeviceTemplate: CardTemplate | undefined;
-    if (activeDevice?.type === DeviceType.Sensor) {
-        const templateId = customizations[activeDevice.id]?.templateId || DEFAULT_SENSOR_TEMPLATE_ID;
-        activeDeviceTemplate = templates[templateId];
+    if (activeDevice) {
+        const templateId = customizations[activeDevice.id]?.templateId;
+        if (templateId) {
+             activeDeviceTemplate = templates[templateId];
+        } else if (activeDevice.type === DeviceType.Sensor) {
+            activeDeviceTemplate = templates[DEFAULT_SENSOR_TEMPLATE_ID];
+        } else if (activeDevice.type === DeviceType.Light || activeDevice.type === DeviceType.DimmableLight) {
+            activeDeviceTemplate = templates[DEFAULT_LIGHT_TEMPLATE_ID];
+        }
     }
 
 
@@ -262,14 +271,15 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                         const device = deviceId ? allKnownDevices.get(deviceId) : null;
 
                         let templateToUse: CardTemplate | undefined;
-                        if (device?.type === DeviceType.Sensor) {
+                        if (device) {
                             const deviceCustomization = customizations[device.id];
                             const templateId = deviceCustomization?.templateId;
                             if (templateId && templates[templateId]) {
                                 templateToUse = templates[templateId];
-                            } else {
-                                // Fallback to the default sensor template
+                            } else if (device.type === DeviceType.Sensor) {
                                 templateToUse = templates[DEFAULT_SENSOR_TEMPLATE_ID];
+                            } else if (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight) {
+                                templateToUse = templates[DEFAULT_LIGHT_TEMPLATE_ID];
                             }
                         }
 

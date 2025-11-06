@@ -67,7 +67,8 @@ const SortableLayerItem: React.FC<{
       value: 'Значение',
       unit: 'Единица изм.',
       chart: 'График',
-      status: 'Статус'
+      status: 'Статус',
+      slider: 'Слайдер'
   };
 
   return (
@@ -161,15 +162,29 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   const previewRef = useRef<HTMLDivElement>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
-  const sampleDevice: Device = {
-    id: 'sensor.sample_temperature',
-    name: 'Температура в кабинете',
-    status: '25.9',
-    type: DeviceType.Sensor,
-    unit: '°C',
-    history: Array.from({ length: 20 }, (_, i) => 25 + Math.sin(i / 3) + (Math.random() - 0.5)),
-    haDomain: 'sensor',
-  };
+  const sampleDevice: Device = useMemo(() => {
+    if (templateToEdit.deviceType === 'light') {
+      return {
+        id: 'light.sample_dimmable',
+        name: 'Лампа в гостиной',
+        status: 'Включено',
+        type: DeviceType.DimmableLight,
+        brightness: 80,
+        haDomain: 'light',
+      };
+    }
+    // Default to sensor
+    return {
+      id: 'sensor.sample_temperature',
+      name: 'Температура в кабинете',
+      status: '25.9',
+      type: DeviceType.Sensor,
+      unit: '°C',
+      history: Array.from({ length: 20 }, (_, i) => 25 + Math.sin(i / 3) + (Math.random() - 0.5)),
+      haDomain: 'sensor',
+    };
+  }, [templateToEdit.deviceType]);
+
 
   const selectedElementId = selectedElementIds.length === 1 ? selectedElementIds[0] : null;
 
@@ -514,7 +529,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
         <div className="w-1/2 flex flex-col">
           <div className="p-6 border-b border-gray-700">
             <h2 className="text-xl font-bold text-white">Редактор шаблона</h2>
-            <p className="text-sm text-gray-400">Изменения применяются ко всем сенсорам, использующим этот шаблон.</p>
+            <p className="text-sm text-gray-400">Изменения применяются ко всем устройствам, использующим этот шаблон.</p>
           </div>
           
           <div className="flex-grow overflow-y-auto p-6 space-y-6">

@@ -19,7 +19,7 @@ interface SettingsProps {
   templates?: CardTemplates;
   onEditTemplate?: (template: CardTemplate) => void;
   onDeleteTemplate?: (templateId: string) => void;
-  onCreateTemplate?: () => void;
+  onCreateTemplate?: (type: 'sensor' | 'light') => void;
 }
 
 // Keys to be backed up
@@ -42,6 +42,8 @@ const Settings: React.FC<SettingsProps> = (props) => {
   const [localError, setLocalError] = useState('');
   const [deletingTemplate, setDeletingTemplate] = useState<CardTemplate | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
+
 
   const handleConnect = () => {
     if (!url || !token) {
@@ -219,11 +221,14 @@ const Settings: React.FC<SettingsProps> = (props) => {
             
             <div className="border-t border-gray-700 pt-6">
                 <h2 className="text-xl font-bold text-gray-100 mb-4">Шаблоны карточек</h2>
-                 <p className="text-sm text-gray-400 mb-4">Создавайте и управляйте шаблонами для сенсорных карточек.</p>
+                 <p className="text-sm text-gray-400 mb-4">Создавайте и управляйте шаблонами для различных типов устройств.</p>
                  <div className="space-y-2 mb-4">
                     {Object.values(templates).map(template => (
                         <div key={template.id} className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg">
-                            <p className="text-sm text-gray-200 font-medium truncate pr-2">{template.name}</p>
+                            <div className="flex items-center gap-2 overflow-hidden">
+                                <span className="text-xs font-mono bg-gray-600 text-gray-300 px-1.5 py-0.5 rounded">{template.deviceType}</span>
+                                <p className="text-sm text-gray-200 font-medium truncate pr-2">{template.name}</p>
+                            </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
                                 <button onClick={() => onEditTemplate(template)} className="p-1.5 text-gray-400 hover:text-white rounded-md hover:bg-gray-600 transition-colors" title="Редактировать">
                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
@@ -235,9 +240,23 @@ const Settings: React.FC<SettingsProps> = (props) => {
                         </div>
                     ))}
                  </div>
-                 <button onClick={onCreateTemplate} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">
-                    Создать шаблон
-                </button>
+                 <div className="relative">
+                    <button
+                        onClick={() => setIsCreateMenuOpen(prev => !prev)}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200"
+                    >
+                        Создать шаблон
+                    </button>
+                    {isCreateMenuOpen && (
+                         <div
+                            onMouseLeave={() => setIsCreateMenuOpen(false)}
+                            className="absolute bottom-full left-0 right-0 mb-2 w-full bg-gray-700 rounded-lg shadow-lg z-10 ring-1 ring-black ring-opacity-5 overflow-hidden fade-in"
+                        >
+                            <button onClick={() => { onCreateTemplate('sensor'); setIsCreateMenuOpen(false); }} className="block w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-600">Для сенсора</button>
+                            <button onClick={() => { onCreateTemplate('light'); setIsCreateMenuOpen(false); }} className="block w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-600">Для светильника</button>
+                        </div>
+                    )}
+                 </div>
             </div>
 
 

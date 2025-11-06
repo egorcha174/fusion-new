@@ -56,6 +56,10 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
     }));
     
   const availableIcons = Object.keys(icons).map(Number) as DeviceType[];
+  
+  const isTemplateable = device.type === DeviceType.Sensor || device.type === DeviceType.Light || device.type === DeviceType.DimmableLight;
+  const templateType = (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight) ? 'light' : 'sensor';
+
 
   return (
     <div
@@ -100,7 +104,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
             </select>
           </div>
 
-          {device.type === DeviceType.Sensor && (
+          {isTemplateable && (
             <div>
               <label htmlFor="deviceTemplate" className="block text-sm font-medium text-gray-300 mb-2">Шаблон</label>
               <select
@@ -110,7 +114,9 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                   className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
               >
                   <option value="">По умолчанию</option>
-                  {Object.values(templates).map(template => (
+                  {Object.values(templates)
+                    .filter(template => template.deviceType === templateType)
+                    .map(template => (
                       <option key={template.id} value={template.id}>
                           {template.name}
                       </option>

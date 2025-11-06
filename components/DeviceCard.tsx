@@ -395,6 +395,98 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
   const isCamera = device.type === DeviceType.Camera;
   const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && device.type !== DeviceType.Sensor && !isCamera;
 
+  // --- Universal Template Renderer ---
+  if (template) {
+    const renderElement = (element: CardElement) => {
+      if (!element.visible) return null;
+
+      const style: React.CSSProperties = {
+        position: 'absolute',
+        left: `${element.position.x}%`,
+        top: `${element.position.y}%`,
+        width: `${element.size.width}%`,
+        height: `${element.size.height}%`,
+        zIndex: element.zIndex,
+      };
+
+      switch(element.id) {
+        case 'name':
+          return (
+            <div key={element.id} style={style}>
+              <AutoFitText text={device.name} className="w-full h-full" pClassName={`font-medium ${isOn ? 'text-gray-900' : 'text-gray-300'} leading-tight`} maxFontSize={100} mode="multi-line" maxLines={2} />
+            </div>
+          );
+        case 'icon':
+          return (
+            <div key={element.id} style={style} className={`${isOn ? 'text-blue-500' : 'text-gray-400'}`}>
+              <DeviceIcon icon={device.icon ?? device.type} isOn={isOn} className="!w-full !h-full" />
+            </div>
+          );
+        case 'status':
+          return (
+            <div key={element.id} style={style}>
+              <AutoFitText text={device.status} className="w-full h-full" pClassName={`text-sm ${isOn ? 'text-gray-800' : 'text-gray-400'}`} maxFontSize={100} mode="single-line" />
+            </div>
+          );
+        case 'value': {
+          const { decimalPlaces } = element.styles;
+          let valueText = device.status;
+          const numericStatus = parseFloat(device.status);
+          if (!isNaN(numericStatus) && typeof decimalPlaces === 'number' && decimalPlaces >= 0) {
+            valueText = numericStatus.toFixed(decimalPlaces);
+          }
+          return (
+            <div key={element.id} style={style} className="flex items-center">
+              <AutoFitText text={valueText} className="w-full h-full" pClassName="font-semibold text-gray-100" maxFontSize={100} mode="single-line" />
+            </div>
+          );
+        }
+        case 'unit': {
+          const isNumericStatus = !isNaN(parseFloat(device.status));
+          if (!device.unit || !isNumericStatus) return null;
+          return (
+            <div key={element.id} style={style}>
+              <AutoFitText text={device.unit} className="w-full h-full" pClassName="font-medium text-gray-400" maxFontSize={100} mode="single-line" />
+            </div>
+          );
+        }
+        case 'chart':
+          return (
+            <div key={element.id} style={style}>
+              <SparklineChart data={device.history || mockHistory} strokeColor="#E5E7EB" />
+            </div>
+          );
+        case 'slider': {
+           if (!isOn || device.brightness === undefined) return null;
+           return (
+              <div key={element.id} style={style} onClick={(e) => e.stopPropagation()}>
+                <input
+                  type="range"
+                  min="1"
+                  max="100"
+                  value={device.brightness}
+                  onInput={(e) => onBrightnessChange(parseInt(e.currentTarget.value))}
+                  className="w-full h-full bg-gray-700/50 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                />
+              </div>
+           );
+        }
+        default:
+          return null;
+      }
+    };
+    
+    return (
+      <div
+        className="w-full h-full relative overflow-hidden rounded-2xl"
+        style={{ backgroundColor: isOn ? '#E5E7EB' : template.styles.backgroundColor }} // On state is always light gray
+      >
+        {template.elements.map(renderElement)}
+      </div>
+    );
+  }
+
+  // --- Legacy/Default Render Logic ---
   const renderContent = () => {
     switch (device.type) {
       case DeviceType.Camera:
@@ -517,81 +609,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
           </div>
         );
       case DeviceType.Sensor: {
-        if (!template) return null;
-        
-        const renderElement = (element: CardElement) => {
-            if (!element.visible) return null;
-
-            const style: React.CSSProperties = {
-                position: 'absolute',
-                left: `${element.position.x}%`,
-                top: `${element.position.y}%`,
-                width: `${element.size.width}%`,
-                height: `${element.size.height}%`,
-                zIndex: element.zIndex,
-            };
-
-            switch(element.id) {
-                case 'name':
-                    return (
-                        <div key={element.id} style={style}>
-                            <AutoFitText text={device.name} className="w-full h-full" pClassName="font-medium text-gray-300 leading-tight" maxFontSize={100} mode="multi-line" maxLines={2} />
-                        </div>
-                    );
-                case 'icon':
-                    return (
-                        <div key={element.id} style={style} className="text-gray-300">
-                           <DeviceIcon icon={device.icon ?? device.type} isOn={false} className="!w-full !h-full" />
-                        </div>
-                    );
-                case 'value': {
-                    const { decimalPlaces } = element.styles;
-                    let valueText = device.status;
-
-                    const numericStatus = parseFloat(device.status);
-                    if (!isNaN(numericStatus) && typeof decimalPlaces === 'number' && decimalPlaces >= 0) {
-                        valueText = numericStatus.toFixed(decimalPlaces);
-                    }
-
-                    return (
-                         <div key={element.id} style={style} className="flex items-center">
-                            <AutoFitText text={valueText} className="w-full h-full" pClassName="font-semibold text-gray-100" maxFontSize={100} mode="single-line" />
-                        </div>
-                    );
-                }
-                case 'unit':
-                     const isNumericStatus = !isNaN(parseFloat(device.status));
-                     if (!device.unit || !isNumericStatus) return null;
-                     return (
-                         <div key={element.id} style={style}>
-                            <AutoFitText 
-                                text={device.unit} 
-                                className="w-full h-full" 
-                                pClassName="font-medium text-gray-400" 
-                                maxFontSize={100} 
-                                mode="single-line" 
-                            />
-                        </div>
-                     );
-                case 'chart':
-                     return (
-                         <div key={element.id} style={style}>
-                            <SparklineChart data={device.history || mockHistory} strokeColor="#E5E7EB" />
-                         </div>
-                     );
-                default:
-                    return null;
-            }
-        };
-
-        return (
-          <div
-            className="w-full h-full relative overflow-hidden rounded-2xl"
-            style={{ backgroundColor: template.styles.backgroundColor }}
-          >
-            {template.elements.map(renderElement)}
-          </div>
-        );
+        return <div>Sensor should be rendered by template.</div>
       }
       default:
         return (
@@ -618,19 +636,18 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
 
   const getCardClasses = () => {
     const baseClasses = "w-full h-full rounded-2xl flex flex-col transition-all duration-200 ease-in-out select-none relative";
-    const onStateClasses = "bg-gray-200 text-gray-900";
     
-    let offStateClasses = "bg-gray-800/80 hover:bg-gray-700/80";
-    if (device.type === DeviceType.Sensor) {
-      offStateClasses = ""; // Background is now controlled by template
+    if (template) {
+        return baseClasses; // Background is controlled by template
     }
+      
+    const onStateClasses = "bg-gray-200 text-gray-900";
+    const offStateClasses = "bg-gray-800/80 hover:bg-gray-700/80";
     
     let finalClasses = `${baseClasses} `;
 
     if (isCamera) {
       finalClasses += `p-0 overflow-hidden ${offStateClasses}`;
-    } else if (device.type === DeviceType.Sensor) {
-        finalClasses += ` ${offStateClasses}`;
     } else if (device.type === DeviceType.Thermostat) {
         finalClasses += `${styles.padding} ${offStateClasses}`;
     } else {

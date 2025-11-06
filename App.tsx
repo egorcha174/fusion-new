@@ -30,6 +30,8 @@ const useIsLg = () => {
 }
 
 const DEFAULT_SENSOR_TEMPLATE_ID = 'default-sensor';
+const DEFAULT_LIGHT_TEMPLATE_ID = 'default-light';
+
 
 const defaultSensorTemplate: CardTemplate = {
   id: DEFAULT_SENSOR_TEMPLATE_ID,
@@ -82,7 +84,15 @@ const defaultSensorTemplate: CardTemplate = {
       styles: {},
     },
     {
-      id: 'status', // Not displayed for sensor, but keep for type completeness
+      id: 'status',
+      visible: false,
+      position: { x: 0, y: 0},
+      size: { width: 0, height: 0 },
+      zIndex: 0,
+      styles: {}
+    },
+    {
+      id: 'slider',
       visible: false,
       position: { x: 0, y: 0},
       size: { width: 0, height: 0 },
@@ -90,6 +100,54 @@ const defaultSensorTemplate: CardTemplate = {
       styles: {}
     }
   ],
+};
+
+const defaultLightTemplate: CardTemplate = {
+    id: DEFAULT_LIGHT_TEMPLATE_ID,
+    name: 'Стандартный светильник',
+    deviceType: 'light',
+    styles: {
+      backgroundColor: 'rgb(55 65 81 / 0.8)', // bg-gray-600/80 for off state
+    },
+    elements: [
+      {
+        id: 'icon',
+        visible: true,
+        position: { x: 8, y: 8 },
+        size: { width: 20, height: 20 },
+        zIndex: 2,
+        styles: {},
+      },
+      {
+        id: 'name',
+        visible: true,
+        position: { x: 8, y: 35 },
+        size: { width: 84, height: 22 },
+        zIndex: 2,
+        styles: {},
+      },
+      {
+        id: 'status',
+        visible: true,
+        position: { x: 8, y: 58 },
+        size: { width: 84, height: 12 },
+        zIndex: 2,
+        styles: {},
+      },
+      {
+        id: 'slider',
+        visible: true,
+        position: { x: 8, y: 78 },
+        size: { width: 84, height: 14 },
+        zIndex: 2,
+        styles: {},
+      },
+      // Hidden elements for type completeness
+      // FIX: Corrected size properties from w/h to width/height to match the CardElement type.
+      { id: 'value', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
+      { id: 'unit', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
+      { id: 'chart', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
+    ],
 };
 
 
@@ -124,6 +182,7 @@ const App: React.FC = () => {
   const [customizations, setCustomizations] = useLocalStorage<DeviceCustomizations>('ha-device-customizations', {});
   const [templates, setTemplates] = useLocalStorage<CardTemplates>('ha-card-templates', {
     [DEFAULT_SENSOR_TEMPLATE_ID]: defaultSensorTemplate,
+    [DEFAULT_LIGHT_TEMPLATE_ID]: defaultLightTemplate,
   });
   const [clockSettings, setClockSettings] = useLocalStorage<ClockSettings>('ha-clock-settings', {
     format: '24h',
@@ -456,11 +515,12 @@ const App: React.FC = () => {
     });
   };
 
-  const createNewBlankTemplate = (): CardTemplate => {
-    // Create a new template by deep cloning the default sensor template structure
-    const newTemplate = JSON.parse(JSON.stringify(defaultSensorTemplate));
+  const createNewBlankTemplate = (deviceType: 'sensor' | 'light'): CardTemplate => {
+    const baseTemplate = deviceType === 'sensor' ? defaultSensorTemplate : defaultLightTemplate;
+    const newTemplate = JSON.parse(JSON.stringify(baseTemplate));
     newTemplate.id = nanoid();
-    newTemplate.name = "Новый шаблон";
+    newTemplate.name = `Новый ${deviceType === 'sensor' ? 'сенсор' : 'светильник'}`;
+    newTemplate.deviceType = deviceType;
     return newTemplate;
   };
 
@@ -480,9 +540,20 @@ const App: React.FC = () => {
   }
   
   const contextMenuDevice = contextMenu ? allKnownDevices.get(contextMenu.deviceId) : null;
-  const isSensor = contextMenuDevice?.type === DeviceType.Sensor;
-  const currentTemplateId = isSensor ? (customizations[contextMenuDevice.id]?.templateId || DEFAULT_SENSOR_TEMPLATE_ID) : null;
-  const currentTemplate = currentTemplateId ? templates[currentTemplateId] : null;
+  const isTemplateable = contextMenuDevice?.type === DeviceType.Sensor || contextMenuDevice?.type === DeviceType.DimmableLight || contextMenuDevice?.type === DeviceType.Light;
+
+  const getTemplateForDevice = (device: Device | null) => {
+    if (!device) return null;
+    const customization = customizations[device.id];
+    let templateId: string | undefined = customization?.templateId;
+    if (!templateId) {
+        if (device.type === DeviceType.Sensor) templateId = DEFAULT_SENSOR_TEMPLATE_ID;
+        if (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight) templateId = DEFAULT_LIGHT_TEMPLATE_ID;
+    }
+    return templateId ? templates[templateId] : null;
+  };
+
+  const currentTemplate = getTemplateForDevice(contextMenuDevice);
 
   const renderPage = () => {
     switch (currentPage) {
@@ -501,7 +572,7 @@ const App: React.FC = () => {
               templates={templates}
               onEditTemplate={(template) => setEditingTemplate(template)}
               onDeleteTemplate={handleDeleteTemplate}
-              onCreateTemplate={() => setEditingTemplate('new')}
+              onCreateTemplate={(type) => setEditingTemplate(createNewBlankTemplate(type))}
             />
           </div>
         );
@@ -600,7 +671,7 @@ const App: React.FC = () => {
       )}
       {editingTemplate && (
         <TemplateEditorModal
-            templateToEdit={editingTemplate === 'new' ? createNewBlankTemplate() : editingTemplate}
+            templateToEdit={editingTemplate === 'new' ? createNewBlankTemplate('sensor') : editingTemplate}
             onSave={handleSaveTemplate}
             onClose={() => setEditingTemplate(null)}
         />
@@ -624,7 +695,7 @@ const App: React.FC = () => {
                 Редактировать
             </div>
 
-            {isSensor && currentTemplate && (
+            {isTemplateable && currentTemplate && (
               <div 
                   onClick={() => { 
                       setEditingTemplate(currentTemplate);
