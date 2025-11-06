@@ -1,8 +1,6 @@
-
-
 import React, { useRef, useState } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { ClockSettings, CardSize, ClockSize } from '../types';
+import { ClockSettings, ClockSize } from '../types';
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'failed';
 
@@ -13,8 +11,6 @@ interface SettingsProps {
   onDisconnect?: () => void;
   clockSettings?: ClockSettings;
   onClockSettingsChange?: (settings: ClockSettings) => void;
-  cardSize?: CardSize;
-  onCardSizeChange?: (size: CardSize) => void;
   openWeatherMapKey?: string;
   onOpenWeatherMapKeyChange?: (key: string) => void;
 }
@@ -32,7 +28,7 @@ const LOCAL_STORAGE_KEYS = [
   'ha-openweathermap-key',
 ];
 
-const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error, onDisconnect, clockSettings, onClockSettingsChange, cardSize, onCardSizeChange, openWeatherMapKey, onOpenWeatherMapKeyChange }) => {
+const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error, onDisconnect, clockSettings, onClockSettingsChange, openWeatherMapKey, onOpenWeatherMapKeyChange }) => {
   const [url, setUrl] = useLocalStorage('ha-url', '');
   const [token, setToken] = useLocalStorage('ha-token', '');
   const [localError, setLocalError] = useState('');
@@ -123,7 +119,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
 
   const isLoading = connectionStatus === 'connecting';
 
-  if (connectionStatus === 'connected' && onDisconnect && clockSettings && onClockSettingsChange && cardSize && onCardSizeChange && openWeatherMapKey !== undefined && onOpenWeatherMapKeyChange) {
+  if (connectionStatus === 'connected' && onDisconnect && clockSettings && onClockSettingsChange && openWeatherMapKey !== undefined && onOpenWeatherMapKeyChange) {
     return (
         <div className="w-full max-w-md bg-gray-800 p-8 rounded-2xl shadow-lg ring-1 ring-white/10 space-y-8">
             <div>
@@ -184,37 +180,6 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                             </button>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <div className="border-t border-gray-700 pt-6">
-                <h2 className="text-xl font-bold text-gray-100 mb-4">Размер карточек</h2>
-                 <div className="grid grid-cols-3 gap-2">
-                    <button 
-                        onClick={() => onCardSizeChange('xs')}
-                        className={`py-2 rounded-lg text-sm transition-colors ${cardSize === 'xs' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
-                        Очень маленький
-                    </button>
-                    <button 
-                        onClick={() => onCardSizeChange('sm')}
-                        className={`py-2 rounded-lg text-sm transition-colors ${cardSize === 'sm' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
-                        Маленький
-                    </button>
-                    <button 
-                        onClick={() => onCardSizeChange('md')}
-                        className={`py-2 rounded-lg text-sm transition-colors ${cardSize === 'md' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
-                        Средний
-                    </button>
-                    <button 
-                        onClick={() => onCardSizeChange('lg')}
-                        className={`py-2 rounded-lg text-sm transition-colors ${cardSize === 'lg' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
-                        Большой
-                    </button>
-                    <button 
-                        onClick={() => onCardSizeChange('xl')}
-                        className={`py-2 rounded-lg text-sm transition-colors ${cardSize === 'xl' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
-                        Очень большой
-                    </button>
                 </div>
             </div>
             

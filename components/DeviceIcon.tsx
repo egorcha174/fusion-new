@@ -1,7 +1,6 @@
-
-
 import React from 'react';
-import { DeviceType, CardSize } from '../types';
+// FIX: Removed unused 'CardSize' import as it is not exported from '../types'.
+import { DeviceType } from '../types';
 
 interface DeviceIconProps {
   type: DeviceType;

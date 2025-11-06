@@ -12,7 +12,7 @@ import FloatingCameraWindow from './components/FloatingCameraWindow';
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
-import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CardSize, CameraSettings } from './types';
+import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CameraSettings } from './types';
 import { nanoid } from 'nanoid';
 
 // Hook to check for large screens to conditionally apply margin
@@ -62,7 +62,6 @@ const App: React.FC = () => {
   const [cameraSettings, setCameraSettings] = useLocalStorage<CameraSettings>('ha-camera-settings', {
     selectedEntityId: null,
   });
-  const [cardSize, setCardSize] = useLocalStorage<CardSize>('ha-card-size', 'md');
   const [sidebarWidth, setSidebarWidth] = useLocalStorage<number>('ha-sidebar-width', 320);
   const [haUrl] = useLocalStorage('ha-url', '');
   const [openWeatherMapKey, setOpenWeatherMapKey] = useLocalStorage<string>('ha-openweathermap-key', '');
@@ -336,7 +335,7 @@ const App: React.FC = () => {
   const renderPage = () => {
     switch (currentPage) {
       case 'settings':
-        return <div className="flex justify-center items-start pt-10"><Settings onConnect={connect} connectionStatus={connectionStatus} error={error} onDisconnect={disconnect} clockSettings={clockSettings} onClockSettingsChange={setClockSettings} cardSize={cardSize} onCardSizeChange={setCardSize} openWeatherMapKey={openWeatherMapKey} onOpenWeatherMapKeyChange={setOpenWeatherMapKey} /></div>;
+        return <div className="flex justify-center items-start pt-10"><Settings onConnect={connect} connectionStatus={connectionStatus} error={error} onDisconnect={disconnect} clockSettings={clockSettings} onClockSettingsChange={setClockSettings} openWeatherMapKey={openWeatherMapKey} onOpenWeatherMapKeyChange={setOpenWeatherMapKey} /></div>;
       case 'all-devices':
         return <AllDevicesPage rooms={filteredRoomsForDevicePage} customizations={customizations} onToggleVisibility={handleToggleVisibility} tabs={tabs} onDeviceAddToTab={handleDeviceAddToTab} />;
       case 'dashboard':

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Device, DeviceType, CardSize } from '../types';
+// FIX: Removed unused 'CardSize' import as it is not exported from '../types'.
+import { Device, DeviceType } from '../types';
 import DeviceIcon from './DeviceIcon';
 import SparklineChart from './SparklineChart';
 import Hls from 'hls.js';
