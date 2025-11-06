@@ -6,6 +6,8 @@ import {
   useSensors, 
   DragEndEvent, 
   DragStartEvent,
+  DragMoveEvent,
+  useDndMonitor,
   useDraggable, 
   useDroppable,
   DragOverlay
@@ -105,6 +107,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
     const [gridStyle, setGridStyle] = useState<React.CSSProperties>({});
     const [activeId, setActiveId] = useState<string | null>(null);
     const [activeDragItemRect, setActiveDragItemRect] = useState<{ width: number; height: number } | null>(null);
+    const [overlayTransform, setOverlayTransform] = useState<string>('');
 
     useLayoutEffect(() => {
         const calculateGrid = () => {
@@ -131,6 +134,18 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
     }, [tab.gridSettings, isEditMode]);
 
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
+    useDndMonitor({
+        onDragMove: (event: DragMoveEvent) => {
+            setOverlayTransform(`translate3d(${event.delta.x}px, ${event.delta.y}px, 0)`);
+        },
+        onDragEnd: () => {
+            setOverlayTransform('');
+        },
+        onDragCancel: () => {
+            setOverlayTransform('');
+        },
+    });
 
     const handleDragStart = (event: DragStartEvent) => {
         setActiveId(event.active.id as string);
@@ -167,6 +182,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
           const originalTargetPosition = { col: currentLayout[targetItemIndex].col, row: currentLayout[targetItemIndex].row };
           
           newLayout[draggedItemIndex] = { ...newLayout[draggedItemIndex], ...originalTargetPosition };
+          // FIX: Corrected a typo from `originalPosition` to `originalDraggedPosition`.
           newLayout[targetItemIndex] = { ...newLayout[targetItemIndex], ...originalDraggedPosition };
       }
       
@@ -216,13 +232,14 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                         );
                     })}
                 </div>
-                 <DragOverlay>
+                 <DragOverlay dropAnimation={null}>
                     {activeDevice && activeDragItemRect ? (
                       <div 
                         className="opacity-80 backdrop-blur-sm scale-105 shadow-2xl rounded-2xl"
                         style={{
                             width: activeDragItemRect.width,
                             height: activeDragItemRect.height,
+                            transform: overlayTransform,
                         }}
                       >
                         <DeviceCard
