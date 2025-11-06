@@ -1,38 +1,18 @@
 import React, { useRef, useState, useLayoutEffect, useMemo } from 'react';
-import { 
-  DndContext, 
-  PointerSensor, 
-  useSensor, 
-  useSensors, 
-  DragEndEvent, 
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
   DragStartEvent,
-  DragMoveEvent,
-  useDndMonitor,
-  useDraggable, 
+  useDraggable,
   useDroppable,
-  DragOverlay
+  DragOverlay,
+  pointerWithin, // <-- Implemented pointerWithin for precise collision detection
 } from '@dnd-kit/core';
 import DeviceCard from './DeviceCard';
 import { Tab, Device, DeviceType, GridLayoutItem } from '../types';
-
-// --- Новый дочерний компонент для безопасного использования useDndMonitor ---
-const DragMonitorHandler: React.FC<{
-    setOverlayTransform: React.Dispatch<React.SetStateAction<string>>;
-}> = ({ setOverlayTransform }) => {
-    useDndMonitor({
-        onDragMove: (event: DragMoveEvent) => {
-            setOverlayTransform(`translate3d(${event.delta.x}px, ${event.delta.y}px, 0)`);
-        },
-        onDragEnd: () => {
-            setOverlayTransform('');
-        },
-        onDragCancel: () => {
-            setOverlayTransform('');
-        },
-    });
-    return null; // Этот компонент не отрисовывает ничего в DOM
-};
-
 
 // --- Draggable Item ---
 const DraggableDevice: React.FC<{
@@ -126,7 +106,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
     const [gridStyle, setGridStyle] = useState<React.CSSProperties>({});
     const [activeId, setActiveId] = useState<string | null>(null);
     const [activeDragItemRect, setActiveDragItemRect] = useState<{ width: number; height: number } | null>(null);
-    const [overlayTransform, setOverlayTransform] = useState<string>('');
 
     useLayoutEffect(() => {
         const calculateGrid = () => {
@@ -166,31 +145,47 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
       setActiveId(null);
       setActiveDragItemRect(null);
       const { active, over } = event;
-      if (!over || !isEditMode) return;
+
+      if (!over || !isEditMode || active.id === over.id) {
+          return;
+      }
 
       const draggedDeviceId = active.id as string;
-      const targetData = over.data.current;
       const currentLayout = tab.layout;
-      let newLayout = [...currentLayout];
-      const draggedItemIndex = newLayout.findIndex(item => item.deviceId === draggedDeviceId);
 
-      if (draggedItemIndex === -1) return;
+      const draggedItem = currentLayout.find(item => item.deviceId === draggedDeviceId);
+      if (!draggedItem) return;
 
-      // Case 1: Dropped onto an empty cell
-      if (targetData?.type === 'cell') {
-        newLayout[draggedItemIndex] = { ...newLayout[draggedItemIndex], col: targetData.col, row: targetData.row };
+      let targetCol: number;
+      let targetRow: number;
+
+      // Determine target coordinates from either a droppable cell or a droppable device
+      if (over.data.current?.type === 'cell') {
+          targetCol = over.data.current.col;
+          targetRow = over.data.current.row;
+      } else {
+          const overItem = currentLayout.find(item => item.deviceId === over.id);
+          if (!overItem) return; // Should not happen if 'over' is a device on the grid
+          targetCol = overItem.col;
+          targetRow = overItem.row;
       }
       
-      // Case 2: Dropped onto another device (swap)
-      const targetDeviceId = over.id as string;
-      const targetItemIndex = newLayout.findIndex(item => item.deviceId === targetDeviceId);
-      if (targetItemIndex !== -1 && targetItemIndex !== draggedItemIndex) {
-          const originalDraggedPosition = { col: currentLayout[draggedItemIndex].col, row: currentLayout[draggedItemIndex].row };
-          const originalTargetPosition = { col: currentLayout[targetItemIndex].col, row: currentLayout[targetItemIndex].row };
-          
-          newLayout[draggedItemIndex] = { ...newLayout[draggedItemIndex], ...originalTargetPosition };
-          newLayout[targetItemIndex] = { ...newLayout[targetItemIndex], ...originalDraggedPosition };
+      // Create a mutable copy of the layout to work with
+      const newLayout = currentLayout.map(item => ({ ...item }));
+
+      const draggedItemInNewLayout = newLayout.find(item => item.deviceId === draggedDeviceId)!;
+      const targetItemInNewLayout = newLayout.find(item => item.col === targetCol && item.row === targetRow);
+      
+      // If the target cell is occupied by a different item, perform a swap.
+      if (targetItemInNewLayout && targetItemInNewLayout.deviceId !== draggedDeviceId) {
+          // Move the item at the target location to the dragged item's original spot
+          targetItemInNewLayout.col = draggedItemInNewLayout.col;
+          targetItemInNewLayout.row = draggedItemInNewLayout.row;
       }
+
+      // Move the dragged item to the target location
+      draggedItemInNewLayout.col = targetCol;
+      draggedItemInNewLayout.row = targetRow;
       
       onDeviceLayoutChange(tab.id, newLayout);
     };
@@ -216,7 +211,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
 
     return (
         <div ref={viewportRef} className="w-full h-full flex items-start justify-start p-4">
-            <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+            <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={pointerWithin}>
                 <div 
                     className={`grid relative ${isEditMode ? 'bg-black/10' : ''}`}
                     style={gridStyle}
@@ -245,7 +240,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                         style={{
                             width: activeDragItemRect.width,
                             height: activeDragItemRect.height,
-                            transform: overlayTransform,
                         }}
                       >
                         <DeviceCard
@@ -263,7 +257,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                       </div>
                     ) : null}
                 </DragOverlay>
-                <DragMonitorHandler setOverlayTransform={setOverlayTransform} />
             </DndContext>
         </div>
     );
