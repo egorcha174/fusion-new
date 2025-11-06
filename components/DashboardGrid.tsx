@@ -111,15 +111,13 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
             const gridWidth = cols * cellSize + (cols - 1) * gap;
             const gridHeight = rows * cellSize + (rows - 1) * gap;
 
-            // FIX: Changed type to `any` to allow for CSS custom properties in the object literal.
-            // This prevents TypeScript errors when using properties like '--cols'.
             const newStyle: any = {
                 '--cols': cols,
                 '--gap': `${gap}px`,
                 width: `${gridWidth}px`,
                 height: `${gridHeight}px`,
-                gridTemplateColumns: `repeat(${cols}, 1fr)`,
-                gridAutoRows: '1fr',
+                gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
                 gap: `${gap}px`,
             };
             
