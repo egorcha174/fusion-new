@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement } from '../types';
 import DeviceCard from './DeviceCard';
 import {
@@ -8,11 +8,8 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
-  DragStartEvent,
-  DragMoveEvent,
   useDraggable,
   UniqueIdentifier,
-  DragOverlay
 } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -87,17 +84,40 @@ const SortableLayerItem: React.FC<{
   );
 };
 
-// --- Draggable Element Overlay ---
-const DraggableElementOverlay: React.FC<{
+// --- Draggable Element on Canvas ---
+const DraggableCanvasElement: React.FC<{
   element: CardElement;
   isSelected: boolean;
   onSelect: (id: CardElementId) => void;
 }> = ({ element, isSelected, onSelect }) => {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, isDragging, transform } = useDraggable({
     id: element.id,
     data: { type: 'element' },
     disabled: !element.visible,
   });
+  
+  const style: React.CSSProperties = {
+    left: `${element.position.x}%`,
+    top: `${element.position.y}%`,
+    width: `${element.size.width}%`,
+    height: `${element.size.height}%`,
+    zIndex: isSelected ? element.zIndex + 11 : element.zIndex + 10, // Bring selected to front
+    outline: isSelected ? '2px solid #3b82f6' : '1px dashed rgba(59, 130, 246, 0.3)',
+    outlineOffset: '2px',
+    display: element.visible ? 'block' : 'none',
+  };
+
+  if (isDragging) {
+    // Apply transform for visual feedback during drag
+    style.transform = CSS.Transform.toString({
+        x: transform?.x || 0,
+        y: transform?.y || 0,
+        scaleX: 1,
+        scaleY: 1
+    });
+    style.zIndex = 9999; // Ensure dragged item is on top of everything
+  }
+
 
   return (
     <div
@@ -105,18 +125,8 @@ const DraggableElementOverlay: React.FC<{
       {...listeners}
       {...attributes}
       onClick={(e) => { e.stopPropagation(); onSelect(element.id); }}
-      className="absolute group cursor-move transition-all duration-100"
-      style={{
-        left: `${element.position.x}%`,
-        top: `${element.position.y}%`,
-        width: `${element.size.width}%`,
-        height: `${element.size.height}%`,
-        zIndex: element.zIndex + 10,
-        outline: isSelected ? '2px solid #3b82f6' : '1px dashed rgba(59, 130, 246, 0.3)',
-        outlineOffset: '2px',
-        display: element.visible ? 'block' : 'none',
-        visibility: isDragging ? 'hidden' : 'visible',
-      }}
+      className={`absolute group cursor-move ${isDragging ? '' : 'transition-all duration-100'}`}
+      style={style}
     >
       {isSelected && (
         <>
@@ -141,12 +151,9 @@ interface TemplateEditorModalProps {
 const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onSave, onClose }) => {
   const [editedTemplate, setEditedTemplate] = useState<CardTemplate>(template);
   const [selectedElementId, setSelectedElementId] = useState<CardElementId | null>(null);
-  const [activeDragId, setActiveDragId] = useState<UniqueIdentifier | null>(null);
-  const [activeDragData, setActiveDragData] = useState<any>(null);
-  const [dragStartData, setDragStartData] = useState<{ element: CardElement, startPos: {x:number, y:number} } | null>(null);
   
   const previewRef = useRef<HTMLDivElement>(null);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 2 } }));
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const sampleDevice: Device = {
     id: 'sensor.sample_temperature',
@@ -176,127 +183,110 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
   
   const handleSave = () => onSave(editedTemplate);
 
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    setActiveDragId(active.id);
-    setActiveDragData(active.data.current);
-
-    const type = active.data.current?.type;
-    const elementId = (active.data.current?.elementId || active.id) as CardElementId;
-    const element = editedTemplate.elements.find(el => el.id === elementId);
-
-    if (element && (type === 'element' || type === 'resize')) {
-        const previewRect = previewRef.current?.getBoundingClientRect();
-        if (!previewRect) return;
-
-        setDragStartData({
-            element: { ...element },
-            startPos: { 
-                x: (element.position.x / 100) * previewRect.width,
-                y: (element.position.y / 100) * previewRect.height
-            }
-        });
-    }
-  };
-
-  const handleDragMove = (event: DragMoveEvent) => {
-    const { active, delta } = event;
-    if (!dragStartData) return;
-    const { element: startElement } = dragStartData;
-    const type = active.data.current?.type;
-    const previewRect = previewRef.current?.getBoundingClientRect();
-    if (!previewRect) return;
-    
-    let newPosition = { ...startElement.position };
-    let newSize = { ...startElement.size };
-
-    if (type === 'element') {
-        const newPixelX = dragStartData.startPos.x + delta.x;
-        const newPixelY = dragStartData.startPos.y + delta.y;
-        
-        newPosition.x = (Math.round(newPixelX / SNAP_GRID_SIZE) * SNAP_GRID_SIZE / previewRect.width) * 100;
-        newPosition.y = (Math.round(newPixelY / SNAP_GRID_SIZE) * SNAP_GRID_SIZE / previewRect.height) * 100;
-    
-    } else if (type === 'resize') {
-        const handle = active.data.current?.handle;
-        
-        const startWidthPixels = (startElement.size.width / 100) * previewRect.width;
-        const startHeightPixels = (startElement.size.height / 100) * previewRect.height;
-        const startXPixels = (startElement.position.x / 100) * previewRect.width;
-        const startYPixels = (startElement.position.y / 100) * previewRect.height;
-
-        let newWidthPixels = startWidthPixels;
-        let newHeightPixels = startHeightPixels;
-        let newXPixels = startXPixels;
-        let newYPixels = startYPixels;
-
-        if (handle.includes('right')) {
-            newWidthPixels = startWidthPixels + delta.x;
-        }
-        if (handle.includes('bottom')) {
-            newHeightPixels = startHeightPixels + delta.y;
-        }
-        if (handle.includes('left')) {
-            newWidthPixels = startWidthPixels - delta.x;
-            newXPixels = startXPixels + delta.x;
-        }
-        if (handle.includes('top')) {
-            newHeightPixels = startHeightPixels - delta.y;
-            newYPixels = startYPixels + delta.y;
-        }
-        
-        // Snapping
-        const snappedWidth = Math.max(SNAP_GRID_SIZE, Math.round(newWidthPixels / SNAP_GRID_SIZE) * SNAP_GRID_SIZE);
-        const snappedHeight = Math.max(SNAP_GRID_SIZE, Math.round(newHeightPixels / SNAP_GRID_SIZE) * SNAP_GRID_SIZE);
-        const snappedX = Math.round(newXPixels / SNAP_GRID_SIZE) * SNAP_GRID_SIZE;
-        const snappedY = Math.round(newYPixels / SNAP_GRID_SIZE) * SNAP_GRID_SIZE;
-
-        newPosition.x = (snappedX / previewRect.width) * 100;
-        newPosition.y = (snappedY / previewRect.height) * 100;
-        newSize.width = (snappedWidth / previewRect.width) * 100;
-        newSize.height = (snappedHeight / previewRect.height) * 100;
-
-        // Correct position if width/height changed from left/top handles
-        if (handle.includes('left')) {
-            const widthDiffPixels = snappedWidth - startWidthPixels;
-            newPosition.x = ((startXPixels - widthDiffPixels) / previewRect.width) * 100;
-        }
-        if (handle.includes('top')) {
-            const heightDiffPixels = snappedHeight - startHeightPixels;
-            newPosition.y = ((startYPixels - heightDiffPixels) / previewRect.height) * 100;
-        }
-    }
-    
-    // Clamp values between 0 and 100
-    newPosition.x = Math.max(0, Math.min(100 - newSize.width, newPosition.x));
-    newPosition.y = Math.max(0, Math.min(100 - newSize.height, newPosition.y));
-    newSize.width = Math.max(5, Math.min(100 - newPosition.x, newSize.width));
-    newSize.height = Math.max(5, Math.min(100 - newPosition.y, newSize.height));
-
-    handleElementUpdate(startElement.id, { position: newPosition, size: newSize });
-  };
-  
   const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
+    const { active, over, delta } = event;
     const type = active.data.current?.type;
 
-    if (type === 'layer' && over && active.id !== over.id) {
-        setEditedTemplate(prev => {
+    setEditedTemplate(prev => {
+        const previewRect = previewRef.current?.getBoundingClientRect();
+        if (!previewRect) return prev;
+
+        // --- Handle Element Drag ---
+        if (type === 'element') {
+            const elementId = active.id as CardElementId;
+            const elementIndex = prev.elements.findIndex(el => el.id === elementId);
+            if (elementIndex === -1) return prev;
+            
+            const element = prev.elements[elementIndex];
+            
+            const startXPixels = (element.position.x / 100) * previewRect.width;
+            const startYPixels = (element.position.y / 100) * previewRect.height;
+            
+            const newPixelX = startXPixels + delta.x;
+            const newPixelY = startYPixels + delta.y;
+            
+            const snappedX = Math.round(newPixelX / SNAP_GRID_SIZE) * SNAP_GRID_SIZE;
+            const snappedY = Math.round(newPixelY / SNAP_GRID_SIZE) * SNAP_GRID_SIZE;
+
+            let newXPercent = (snappedX / previewRect.width) * 100;
+            let newYPercent = (snappedY / previewRect.height) * 100;
+            
+            // Clamp position
+            newXPercent = Math.max(0, Math.min(100 - element.size.width, newXPercent));
+            newYPercent = Math.max(0, Math.min(100 - element.size.height, newYPercent));
+            
+            const newElements = [...prev.elements];
+            newElements[elementIndex] = { ...element, position: { x: newXPercent, y: newYPercent }};
+            return { ...prev, elements: newElements };
+        }
+        
+        // --- Handle Element Resize ---
+        if (type === 'resize') {
+            const elementId = active.data.current?.elementId as CardElementId;
+            const handle = active.data.current?.handle;
+            const elementIndex = prev.elements.findIndex(el => el.id === elementId);
+            if (elementIndex === -1) return prev;
+
+            const element = prev.elements[elementIndex];
+            let { position, size } = element;
+
+            const startWidthPixels = (size.width / 100) * previewRect.width;
+            const startHeightPixels = (size.height / 100) * previewRect.height;
+            const startXPixels = (position.x / 100) * previewRect.width;
+            const startYPixels = (position.y / 100) * previewRect.height;
+            
+            let newWidthPixels = startWidthPixels;
+            let newHeightPixels = startHeightPixels;
+            let newXPixels = startXPixels;
+            let newYPixels = startYPixels;
+
+            if (handle.includes('right')) newWidthPixels = startWidthPixels + delta.x;
+            if (handle.includes('bottom')) newHeightPixels = startHeightPixels + delta.y;
+            if (handle.includes('left')) {
+                newWidthPixels = startWidthPixels - delta.x;
+                newXPixels = startXPixels + delta.x;
+            }
+            if (handle.includes('top')) {
+                newHeightPixels = startHeightPixels - delta.y;
+                newYPixels = startYPixels + delta.y;
+            }
+
+            let newSize = {
+                width: (Math.max(SNAP_GRID_SIZE * 2, newWidthPixels) / previewRect.width) * 100,
+                height: (Math.max(SNAP_GRID_SIZE * 2, newHeightPixels) / previewRect.height) * 100,
+            };
+            let newPosition = {
+                x: (newXPixels / previewRect.width) * 100,
+                y: (newYPixels / previewRect.height) * 100,
+            };
+            
+            // Clamp size and position
+            newPosition.x = Math.max(0, Math.min(100 - newSize.width, newPosition.x));
+            newPosition.y = Math.max(0, Math.min(100 - newSize.height, newPosition.y));
+            newSize.width = Math.min(100 - newPosition.x, newSize.width);
+            newSize.height = Math.min(100 - newPosition.y, newSize.height);
+
+            const newElements = [...prev.elements];
+            newElements[elementIndex] = { ...element, position: newPosition, size: newSize };
+            return { ...prev, elements: newElements };
+        }
+        
+        // --- Handle Layer Sorting ---
+        if (type === 'layer' && over && active.id !== over.id) {
             const oldIndex = prev.elements.findIndex(e => e.id === active.id);
             const newIndex = prev.elements.findIndex(e => e.id === over.id);
             const reorderedElements = arrayMove(prev.elements, oldIndex, newIndex);
+            
             // Re-assign zIndex based on new order (top of list = higher zIndex)
             const updatedZIndexes = reorderedElements.map((el, index) => ({
                 ...el,
                 zIndex: reorderedElements.length - index
             }));
             return { ...prev, elements: updatedZIndexes };
-        });
-    }
+        }
 
-    setActiveDragId(null);
-    setActiveDragData(null);
-    setDragStartData(null);
+        return prev;
+    });
   };
   
   const defaultBackgroundColor = 'rgb(31 41 55 / 0.8)';
@@ -304,7 +294,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-gray-800 rounded-2xl shadow-lg w-full max-w-6xl h-[80vh] ring-1 ring-white/10 flex" onClick={e => e.stopPropagation()}>
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
 
         {/* Center: Preview */}
         <div className="w-1/2 bg-gray-900/50 p-8 flex flex-col items-center justify-center" onClick={() => setSelectedElementId(null)}>
@@ -324,7 +314,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
             />
             {/* --- Interactive Overlays --- */}
             {editedTemplate.elements.map(element => (
-                <DraggableElementOverlay
+                <DraggableCanvasElement
                   key={element.id}
                   element={element}
                   isSelected={selectedElementId === element.id}
@@ -398,27 +388,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
             <button onClick={handleSave} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Сохранить</button>
           </div>
         </div>
-
-        <DragOverlay dropAnimation={null}>
-            {(() => {
-              if (!activeDragId || activeDragData?.type !== 'element') return null;
-
-              const activeElement = editedTemplate.elements.find(el => el.id === activeDragId);
-              if (!activeElement) return null;
-              
-              const previewRect = previewRef.current?.getBoundingClientRect();
-              const width = previewRect ? (activeElement.size.width / 100) * previewRect.width : 0;
-              const height = previewRect ? (activeElement.size.height / 100) * previewRect.height : 0;
-              
-              return (
-                <div
-                  className="bg-blue-500/20 ring-2 ring-blue-500 rounded-sm opacity-75"
-                  style={{ width, height }}
-                />
-              );
-            })()}
-        </DragOverlay>
-
         </DndContext>
       </div>
     </div>
