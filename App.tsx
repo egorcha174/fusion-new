@@ -146,7 +146,6 @@ const App: React.FC = () => {
   // --- Context Menu Handlers ---
   const handleDeviceContextMenu = (event: React.MouseEvent, deviceId: string, tabId: string) => {
     event.preventDefault();
-    if (isEditMode) return;
     setContextMenu({ x: event.clientX, y: event.clientY, deviceId, tabId });
   };
   
@@ -429,6 +428,19 @@ const App: React.FC = () => {
           isOpen={!!contextMenu}
           onClose={handleCloseContextMenu}
         >
+            <div 
+              onClick={() => { 
+                const deviceToEdit = allKnownDevices.get(contextMenu.deviceId);
+                if (deviceToEdit) setEditingDevice(deviceToEdit);
+                handleCloseContextMenu(); 
+              }} 
+              className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer"
+            >
+                Редактировать
+            </div>
+
+            {otherTabs.length > 0 && <div className="h-px bg-gray-600/50 my-1" />}
+
             {otherTabs.length > 0 && (
                 <>
                     <div className="relative group/menu">
@@ -452,11 +464,15 @@ const App: React.FC = () => {
                             ))}
                         </div>
                     </div>
-                     <div className="h-px bg-gray-600/50 my-1" />
                 </>
             )}
 
-             <div onClick={() => { handleDeviceRemoveFromTab(contextMenu.deviceId, contextMenu.tabId); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer">
+            <div className="h-px bg-gray-600/50 my-1" />
+
+             <div 
+                onClick={() => { handleDeviceRemoveFromTab(contextMenu.deviceId, contextMenu.tabId); handleCloseContextMenu(); }} 
+                className="px-3 py-1.5 rounded-md text-red-400 hover:bg-red-500/20 hover:text-red-300 cursor-pointer"
+            >
                 Удалить с вкладки
             </div>
 
