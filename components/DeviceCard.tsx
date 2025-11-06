@@ -484,35 +484,43 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                 )}
             </div>
             
-            <div className="flex-grow"></div>
-
-            {/* Bottom part */}
-            <div className="flex-shrink-0">
-              <p className={`${styles.nameText}`}>{device.name}</p>
-              <p className={`${styles.thermostatTempText} text-white`}>{device.temperature}{device.unit}</p>
-              <div className="flex items-center justify-between mt-1">
-                <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(-0.5); }} className={`${styles.thermostatButton} rounded-full bg-black/20 text-white flex items-center justify-center font-light text-2xl leading-none pb-1`}>-</button>
-                <span className={`${styles.thermostatTargetText} text-gray-300`}>Цель: {device.targetTemperature}{device.unit}</span>
-                <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(0.5); }} className={`${styles.thermostatButton} rounded-full bg-black/20 text-white flex items-center justify-center font-light text-2xl leading-none pb-1`}>+</button>
-              </div>
+            <div ref={textContainerRef} className="flex-grow flex flex-col justify-end overflow-hidden">
+                <AutoFitText
+                    text={device.name}
+                    baseFontSize={16}
+                    className={styles.nameText}
+                    containerRef={textContainerRef}
+                />
+                <p className={`${styles.thermostatTempText} text-white`}>{device.temperature}{device.unit}</p>
+                <div className="flex items-center justify-between mt-1">
+                    <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(-0.5); }} className={`${styles.thermostatButton} rounded-full bg-black/20 text-white flex items-center justify-center font-light text-2xl leading-none pb-1`}>-</button>
+                    <span className={`${styles.thermostatTargetText} text-gray-300`}>Цель: {device.targetTemperature}{device.unit}</span>
+                    <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(0.5); }} className={`${styles.thermostatButton} rounded-full bg-black/20 text-white flex items-center justify-center font-light text-2xl leading-none pb-1`}>+</button>
+                </div>
             </div>
           </div>
         );
       case DeviceType.Sensor:
         const isNumericStatus = !isNaN(parseFloat(device.status));
-
         return (
           <div className="flex flex-col h-full text-left">
-            <div>
+            <div className="flex-shrink-0">
               <DeviceIcon type={device.icon ?? device.type} isOn={false} />
-              <p className={`${styles.nameText} mt-2`}>{device.name}</p>
             </div>
-             <div className="flex-grow flex items-center w-full my-1 min-h-0">
+            <div className="flex-grow flex items-center w-full my-1 min-h-0">
               <SparklineChart data={device.history || mockHistory} />
             </div>
-            <div className="flex items-baseline mt-auto flex-shrink-0">
-              <p className={`${isNumericStatus ? styles.sensorStatusText : 'text-lg font-semibold break-words'}`}>{device.status}</p>
-              {device.unit && isNumericStatus && <p className={`${styles.sensorUnitText} text-gray-400 ml-1`}>{device.unit}</p>}
+            <div ref={textContainerRef} className="flex-shrink-0 overflow-hidden">
+                <AutoFitText
+                    text={device.name}
+                    baseFontSize={16}
+                    className={styles.nameText}
+                    containerRef={textContainerRef}
+                />
+                <div className="flex items-baseline mt-auto">
+                    <p className={`${isNumericStatus ? styles.sensorStatusText : 'text-lg font-semibold break-words'}`}>{device.status}</p>
+                    {device.unit && isNumericStatus && <p className={`${styles.sensorUnitText} text-gray-400 ml-1`}>{device.unit}</p>}
+                </div>
             </div>
           </div>
         );
