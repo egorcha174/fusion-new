@@ -527,7 +527,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
 
         return (
           <div
-            className="grid h-full overflow-hidden"
+            className="grid h-full overflow-hidden rounded-2xl"
             style={{
               gridTemplateRows: 'auto 1fr auto',
               padding: '10px 13px 14px 13px',

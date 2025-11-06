@@ -55,6 +55,8 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
   };
 
   const availableElements: CardElementId[] = ['name', 'icon', 'value', 'unit', 'chart'];
+  
+  const defaultBackgroundColor = 'rgb(31 41 55 / 0.8)';
 
   return (
     <div
@@ -129,7 +131,18 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
                     </div>
                     <div className="flex items-center justify-between">
                         <label htmlFor="bgColor" className="text-sm text-gray-200">Цвет фона</label>
-                        <input type="color" id="bgColor" value={editedTemplate.styles.backgroundColor} onChange={(e) => handleStyleChange('backgroundColor', e.target.value)} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent" />
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => handleStyleChange('backgroundColor', defaultBackgroundColor)}
+                                title="Сбросить цвет"
+                                className="p-1.5 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white transition-colors"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a5.002 5.002 0 008.057 4.918 1 1 0 011.885.666A7.002 7.002 0 012.199 14.101V17a1 1 0 01-2 0v-5a1 1 0 011-1h5a1 1 0 010 2H4.008z" clipRule="evenodd" />
+                                </svg>
+                            </button>
+                            <input type="color" id="bgColor" value={editedTemplate.styles.backgroundColor} onChange={(e) => handleStyleChange('backgroundColor', e.target.value)} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent" />
+                        </div>
                     </div>
                 </div>
             </div>
