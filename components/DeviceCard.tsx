@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 // FIX: Removed unused 'CardSize' import as it is not exported from '../types'.
-import { Device, DeviceType } from '../types';
+import { Device, DeviceType, CardTemplate } from '../types';
 import DeviceIcon from './DeviceIcon';
 import SparklineChart from './SparklineChart';
 import Hls from 'hls.js';
@@ -323,9 +323,10 @@ interface DeviceCardProps {
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
   getCameraStreamUrl: (entityId: string) => Promise<string>;
+  template?: CardTemplate;
 }
 
-const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, onBrightnessChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onRemoveFromTab, haUrl, signPath, getCameraStreamUrl }) => {
+const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, onBrightnessChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onRemoveFromTab, haUrl, signPath, getCameraStreamUrl, template }) => {
   const isOn = device.status.toLowerCase() === 'включено';
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
   const presetMenuRef = useRef<HTMLDivElement>(null);
@@ -520,52 +521,64 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
           </div>
         );
       case DeviceType.Sensor: {
+        if (!template) return null; // Should not happen if called correctly
+        const { elements, styles: templateStyles } = template;
         const isNumericStatus = !isNaN(parseFloat(device.status));
+
         return (
           <div
             className="grid h-full overflow-hidden"
             style={{
               gridTemplateRows: 'auto 1fr auto',
               padding: '10px 13px 14px 13px',
+              backgroundColor: templateStyles.backgroundColor,
             }}
           >
             {/* Top row: Name and Icon */}
-            <div className="flex justify-between items-start" style={{ minHeight: '40px' }}>
-              <div className="flex-grow overflow-hidden pr-2 h-full">
-                <AutoFitText
-                  text={device.name}
-                  className="w-full h-full"
-                  pClassName="font-medium text-gray-300 leading-tight"
-                  maxFontSize={17}
-                  mode="multi-line"
-                />
-              </div>
-              <div className="flex-shrink-0 w-6 h-6 text-gray-300">
-                <DeviceIcon type={device.icon ?? device.type} isOn={false} className="!w-full !h-full" />
-              </div>
+            <div className="flex justify-between items-start min-h-0" style={{minHeight: '40px'}}>
+              {elements.name?.visible && (
+                <div className="flex-grow overflow-hidden pr-2 h-full min-h-0">
+                  <AutoFitText
+                    text={device.name}
+                    className="w-full h-full"
+                    pClassName="font-medium text-gray-300 leading-tight"
+                    maxFontSize={templateStyles.nameFontSize}
+                    mode="multi-line"
+                  />
+                </div>
+              )}
+              {elements.icon?.visible && (
+                <div className="flex-shrink-0 w-6 h-6 text-gray-300">
+                  <DeviceIcon type={device.icon ?? device.type} isOn={false} className="!w-full !h-full" />
+                </div>
+              )}
             </div>
 
             {/* Middle section: Value */}
             <div className="flex items-center min-h-0">
-              <div className="flex items-baseline" style={{ lineHeight: 1 }}>
-                <AutoFitText
-                  text={device.status}
-                  className=""
-                  pClassName="font-semibold text-gray-100"
-                  maxFontSize={48}
-                  mode="single-line"
-                />
-                {device.unit && isNumericStatus && (
-                  <p className="text-gray-400 ml-1 flex-shrink-0" style={{ fontSize: '50%', fontWeight: 400 }}>
-                    {device.unit}
-                  </p>
-                )}
-              </div>
+               {elements.value?.visible && (
+                 <div className="flex items-baseline" style={{ lineHeight: 1 }}>
+                    <AutoFitText
+                      text={device.status}
+                      className=""
+                      pClassName="font-semibold text-gray-100"
+                      maxFontSize={templateStyles.valueFontSize}
+                      mode="single-line"
+                    />
+                    {elements.unit?.visible && device.unit && isNumericStatus && (
+                      <p className="text-gray-400 ml-1 flex-shrink-0" style={{ fontSize: '50%', fontWeight: 400 }}>
+                        {device.unit}
+                      </p>
+                    )}
+                 </div>
+               )}
             </div>
 
             {/* Bottom section: Sparkline Chart */}
             <div className="flex-shrink-0 w-full h-6 min-h-0">
-              <SparklineChart data={device.history || mockHistory} strokeColor="#E5E7EB" />
+              {elements.chart?.visible && (
+                <SparklineChart data={device.history || mockHistory} strokeColor="#E5E7EB" />
+              )}
             </div>
           </div>
         );
@@ -596,14 +609,17 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
   const getCardClasses = () => {
     const baseClasses = "w-full h-full rounded-2xl flex flex-col transition-all duration-200 ease-in-out select-none relative";
     const onStateClasses = "bg-gray-200 text-gray-900";
-    const offStateClasses = "bg-gray-800/80 hover:bg-gray-700/80";
+    
+    let offStateClasses = "bg-gray-800/80 hover:bg-gray-700/80";
+    if (device.type === DeviceType.Sensor && template) {
+      offStateClasses = ""; // Background is now controlled by template
+    }
     
     let finalClasses = `${baseClasses} `;
 
     if (isCamera) {
       finalClasses += `p-0 overflow-hidden ${offStateClasses}`;
     } else if (device.type === DeviceType.Sensor) {
-        // Sensor card now has its own padding via inline styles
         finalClasses += ` ${offStateClasses}`;
     } else if (device.type === DeviceType.Thermostat) {
         finalClasses += `${styles.padding} ${offStateClasses}`;

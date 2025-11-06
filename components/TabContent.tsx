@@ -1,6 +1,6 @@
 import React from 'react';
 import DashboardGrid from './DashboardGrid';
-import { Tab, Device, GridLayoutItem } from '../types';
+import { Tab, Device, GridLayoutItem, CardTemplate } from '../types';
 
 interface TabContentProps {
   tab: Tab;
@@ -18,6 +18,7 @@ interface TabContentProps {
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
   getCameraStreamUrl: (entityId: string) => Promise<string>;
+  sensorTemplate: CardTemplate;
 }
 
 const TabContent: React.FC<TabContentProps> = (props) => {

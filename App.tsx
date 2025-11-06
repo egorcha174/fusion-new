@@ -9,10 +9,11 @@ import DeviceSettingsModal from './components/DeviceSettingsModal';
 import TabSettingsModal from './components/TabSettingsModal';
 import ContextMenu from './components/ContextMenu';
 import FloatingCameraWindow from './components/FloatingCameraWindow';
+import TemplateEditorModal from './components/TemplateEditorModal';
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
-import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CameraSettings, GridLayoutItem } from './types';
+import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CameraSettings, GridLayoutItem, CardTemplates, CardTemplate } from './types';
 import { nanoid } from 'nanoid';
 
 // Hook to check for large screens to conditionally apply margin
@@ -25,6 +26,23 @@ const useIsLg = () => {
   }, []);
   return isLg;
 }
+
+const defaultSensorTemplate: CardTemplate = {
+  deviceType: 'sensor',
+  elements: {
+    name: { visible: true },
+    icon: { visible: true },
+    value: { visible: true },
+    unit: { visible: true },
+    chart: { visible: true },
+  },
+  styles: {
+    backgroundColor: 'rgb(31 41 55 / 0.8)', // bg-gray-800/80
+    nameFontSize: 17,
+    valueFontSize: 48,
+  },
+};
+
 
 const App: React.FC = () => {
   const {
@@ -47,6 +65,7 @@ const App: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [editingTab, setEditingTab] = useState<Tab | null>(null);
+  const [editingTemplateType, setEditingTemplateType] = useState<DeviceType | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, deviceId: string, tabId: string } | null>(null);
   const [floatingCamera, setFloatingCamera] = useState<Device | null>(null);
@@ -54,6 +73,9 @@ const App: React.FC = () => {
   const [tabs, setTabs] = useLocalStorage<Tab[]>('ha-tabs', []);
   const [activeTabId, setActiveTabId] = useLocalStorage<string | null>('ha-active-tab', null);
   const [customizations, setCustomizations] = useLocalStorage<DeviceCustomizations>('ha-device-customizations', {});
+  const [templates, setTemplates] = useLocalStorage<CardTemplates>('ha-card-templates', {
+    sensor: defaultSensorTemplate,
+  });
   const [clockSettings, setClockSettings] = useLocalStorage<ClockSettings>('ha-clock-settings', {
     format: '24h',
     showSeconds: true,
@@ -68,6 +90,8 @@ const App: React.FC = () => {
 
   const brightnessTimeoutRef = useRef<number | null>(null);
   const isLg = useIsLg();
+
+  const sensorTemplate = useMemo(() => templates.sensor || defaultSensorTemplate, [templates]);
 
   // Cleanup for brightness debounce timer on component unmount
   useEffect(() => {
@@ -339,6 +363,11 @@ const App: React.FC = () => {
     });
   };
 
+  const handleSaveSensorTemplate = (newTemplate: CardTemplate) => {
+    setTemplates(prev => ({ ...prev, sensor: newTemplate }));
+    setEditingTemplateType(null);
+  };
+
 
   // --- RENDER LOGIC ---
 
@@ -380,6 +409,7 @@ const App: React.FC = () => {
             haUrl={haUrl}
             signPath={signPath}
             getCameraStreamUrl={getCameraStreamUrl}
+            sensorTemplate={sensorTemplate}
           />
         ) : (
           <div className="text-center text-gray-500">Выберите или создайте вкладку</div>
@@ -388,6 +418,7 @@ const App: React.FC = () => {
   };
 
   const otherTabs = tabs.filter(t => t.id !== contextMenu?.tabId);
+  const contextMenuDevice = contextMenu ? allKnownDevices.get(contextMenu.deviceId) : null;
 
   return (
     <div className="flex min-h-screen bg-gray-900 text-gray-200">
@@ -443,6 +474,13 @@ const App: React.FC = () => {
           onClose={() => setEditingTab(null)}
         />
       )}
+      {editingTemplateType === DeviceType.Sensor && (
+        <TemplateEditorModal
+            template={sensorTemplate}
+            onSave={handleSaveSensorTemplate}
+            onClose={() => setEditingTemplateType(null)}
+        />
+      )}
 
       {contextMenu && (
         <ContextMenu
@@ -461,6 +499,19 @@ const App: React.FC = () => {
             >
                 Редактировать
             </div>
+
+            {contextMenuDevice?.type === DeviceType.Sensor && (
+              <div 
+                  onClick={() => { 
+                      setEditingTemplateType(DeviceType.Sensor);
+                      handleCloseContextMenu(); 
+                  }} 
+                  className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer"
+              >
+                  Редактировать шаблон
+              </div>
+            )}
+
 
             {otherTabs.length > 0 && <div className="h-px bg-gray-600/50 my-1" />}
 

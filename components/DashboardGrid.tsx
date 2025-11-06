@@ -13,16 +13,17 @@ import {
 } from '@dnd-kit/core';
 import { snapCenterToCursor } from '@dnd-kit/modifiers';
 import DeviceCard from './DeviceCard';
-import { Tab, Device, DeviceType, GridLayoutItem } from '../types';
+import { Tab, Device, DeviceType, GridLayoutItem, CardTemplate } from '../types';
 
 // --- Draggable Item ---
 const DraggableDevice: React.FC<{
   device: Device;
   isEditMode: boolean;
   onDeviceToggle: (id: string) => void;
+  template?: CardTemplate;
   // Pass all other props down to DeviceCard
   [key: string]: any;
-}> = ({ device, isEditMode, onDeviceToggle, ...cardProps }) => {
+}> = ({ device, isEditMode, onDeviceToggle, template, ...cardProps }) => {
   const { attributes, listeners, setNodeRef: setDraggableNodeRef, isDragging } = useDraggable({
     id: device.id,
     disabled: !isEditMode,
@@ -61,6 +62,7 @@ const DraggableDevice: React.FC<{
     >
       <DeviceCard
         device={device}
+        template={template}
         onTemperatureChange={(change) => cardProps.onTemperatureChange(device.id, change)}
         onBrightnessChange={(brightness) => cardProps.onBrightnessChange(device.id, brightness)}
         onPresetChange={(preset) => cardProps.onPresetChange(device.id, preset)}
@@ -116,10 +118,11 @@ interface DashboardGridProps {
     haUrl: string;
     signPath: (path: string) => Promise<{ path: string }>;
     getCameraStreamUrl: (entityId: string) => Promise<string>;
+    sensorTemplate: CardTemplate;
 }
 
 const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
-    const { tab, allKnownDevices, isEditMode, onDeviceLayoutChange, searchTerm } = props;
+    const { tab, allKnownDevices, isEditMode, onDeviceLayoutChange, searchTerm, sensorTemplate } = props;
     const viewportRef = useRef<HTMLDivElement>(null);
     const [gridStyle, setGridStyle] = useState<React.CSSProperties>({});
     const [activeId, setActiveId] = useState<string | null>(null);
@@ -251,7 +254,11 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                         return (
                             <div key={device ? `${device.id}-${device.type}` : `${col}-${row}`} className="w-full h-full relative">
                                 {device ? (
-                                    <DraggableDevice device={device} {...props} />
+                                    <DraggableDevice 
+                                      device={device} 
+                                      template={device.type === DeviceType.Sensor ? sensorTemplate : undefined} 
+                                      {...props} 
+                                    />
                                 ) : (
                                     <DroppableCell col={col} row={row} isEditMode={isEditMode} />
                                 )}
@@ -270,6 +277,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                       >
                         <DeviceCard
                            device={activeDevice}
+                           template={activeDevice.type === DeviceType.Sensor ? sensorTemplate : undefined}
                            isEditMode={true}
                            onTemperatureChange={() => {}}
                            onBrightnessChange={() => {}}

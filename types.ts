@@ -94,6 +94,26 @@ export interface CameraSettings {
   selectedEntityId: string | null;
 }
 
+// --- Card Template System ---
+export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status';
+
+export interface CardTemplate {
+  deviceType: 'sensor';
+  elements: {
+    [key in CardElementId]?: { visible: boolean };
+  };
+  styles: {
+    backgroundColor: string;
+    nameFontSize: number;
+    valueFontSize: number;
+  };
+}
+
+export type CardTemplates = {
+  [key in 'sensor']?: CardTemplate;
+};
+
+
 // Types for Home Assistant WebSocket API
 export interface HassEntity {
   entity_id: string;
