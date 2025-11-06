@@ -317,6 +317,16 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
   const presetMenuRef = useRef<HTMLDivElement>(null);
   const textContainerRef = useRef<HTMLDivElement>(null);
 
+  // FIX: Moved useMemo to the top level of the component to respect the Rules of Hooks.
+  // This prevents the "Rendered fewer hooks than expected" error when device types change.
+  const mockHistory = useMemo(() => {
+    if (device.type !== DeviceType.Sensor) return []; // Only calculate for sensors
+    const value = parseFloat(device.status) || 20;
+    return Array.from({ length: 20 }, (_, i) => 
+        value + (Math.sin(i / 3) * (value * 0.05)) + (Math.random() - 0.5) * (value * 0.05)
+    );
+  }, [device.type, device.status]); // Depend on type and status
+
   // --- Adaptive styles based on container size ---
   // Using a base 'md' size from the old system for fluid scaling reference
    const styles = {
@@ -489,13 +499,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
           </div>
         );
       case DeviceType.Sensor:
-        const mockHistory = useMemo(() => {
-            const value = parseFloat(device.status) || 20;
-            return Array.from({ length: 20 }, (_, i) => 
-                value + (Math.sin(i / 3) * (value * 0.05)) + (Math.random() - 0.5) * (value * 0.05)
-            );
-        }, [device.status]);
-
         const isNumericStatus = !isNaN(parseFloat(device.status));
 
         return (
