@@ -11,6 +11,7 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import ContextMenu from './ContextMenu';
 
 const SNAP_GRID_SIZE = 4; // pixels
 
@@ -89,8 +90,9 @@ const SortableLayerItem: React.FC<{
 const DraggableCanvasElement: React.FC<{
   element: CardElement;
   isSelected: boolean;
-  onSelect: (id: CardElementId) => void;
-}> = ({ element, isSelected, onSelect }) => {
+  onSelect: (id: CardElementId, isMultiSelect: boolean) => void;
+  showResizeHandles: boolean;
+}> = ({ element, isSelected, onSelect, showResizeHandles }) => {
   const { attributes, listeners, setNodeRef, isDragging, transform } = useDraggable({
     id: `element-${element.id}`, // Unique ID for dragging
     data: { type: 'element', elementId: element.id },
@@ -125,11 +127,11 @@ const DraggableCanvasElement: React.FC<{
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      onClick={(e) => { e.stopPropagation(); onSelect(element.id); }}
+      onClick={(e) => { e.stopPropagation(); onSelect(element.id, e.ctrlKey || e.metaKey); }}
       className={`absolute group cursor-move ${isDragging ? '' : 'transition-all duration-100'}`}
       style={style}
     >
-      {isSelected && (
+      {showResizeHandles && (
         <>
           <ResizeHandle elementId={element.id} position="top-left" />
           <ResizeHandle elementId={element.id} position="top-right" />
@@ -151,7 +153,8 @@ interface TemplateEditorModalProps {
 
 const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onSave, onClose }) => {
   const [editedTemplate, setEditedTemplate] = useState<CardTemplate>(template);
-  const [selectedElementId, setSelectedElementId] = useState<CardElementId | null>(null);
+  const [selectedElementIds, setSelectedElementIds] = useState<CardElementId[]>([]);
+  const [contextMenu, setContextMenu] = useState<{ x: number, y: number } | null>(null);
   
   const previewRef = useRef<HTMLDivElement>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -165,6 +168,8 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
     history: Array.from({ length: 20 }, (_, i) => 25 + Math.sin(i / 3) + (Math.random() - 0.5)),
     haDomain: 'sensor',
   };
+
+  const selectedElementId = selectedElementIds.length === 1 ? selectedElementIds[0] : null;
 
   const selectedElement = useMemo(() =>
     editedTemplate.elements.find(el => el.id === selectedElementId)
@@ -183,6 +188,103 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
   };
   
   const handleSave = () => onSave(editedTemplate);
+
+  const handleSelectElement = (id: CardElementId, isMultiSelect: boolean) => {
+    setContextMenu(null); // Close context menu on any selection change
+    if (isMultiSelect) {
+        setSelectedElementIds(prev => 
+            prev.includes(id) ? prev.filter(selectedId => selectedId !== id) : [...prev, id]
+        );
+    } else {
+        setSelectedElementIds(prev => prev.includes(id) && prev.length === 1 ? [] : [id]);
+    }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    if (selectedElementIds.length < 2) return;
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY });
+  };
+  
+  const handleAlignment = (action: string) => {
+    if (selectedElementIds.length < 2) return;
+
+    setEditedTemplate(prev => {
+        const newElements = prev.elements.map(el => ({ 
+            ...el, 
+            position: {...el.position}, 
+            size: {...el.size} 
+        }));
+        
+        const selectedElements = newElements.filter(el => selectedElementIds.includes(el.id));
+        if (selectedElements.length < 2) return prev;
+
+        switch(action) {
+            case 'align-left': {
+                const minX = Math.min(...selectedElements.map(el => el.position.x));
+                selectedElements.forEach(el => el.position.x = minX);
+                break;
+            }
+            case 'align-right': {
+                const maxRight = Math.max(...selectedElements.map(el => el.position.x + el.size.width));
+                selectedElements.forEach(el => el.position.x = maxRight - el.size.width);
+                break;
+            }
+            case 'align-top': {
+                const minY = Math.min(...selectedElements.map(el => el.position.y));
+                selectedElements.forEach(el => el.position.y = minY);
+                break;
+            }
+            case 'align-bottom': {
+                const maxBottom = Math.max(...selectedElements.map(el => el.position.y + el.size.height));
+                selectedElements.forEach(el => el.position.y = maxBottom - el.size.height);
+                break;
+            }
+            case 'align-center-vertical': {
+                const avgCenterX = selectedElements.reduce((sum, el) => sum + el.position.x + el.size.width / 2, 0) / selectedElements.length;
+                selectedElements.forEach(el => el.position.x = avgCenterX - el.size.width / 2);
+                break;
+            }
+            case 'align-center-horizontal': {
+                const avgCenterY = selectedElements.reduce((sum, el) => sum + el.position.y + el.size.height / 2, 0) / selectedElements.length;
+                selectedElements.forEach(el => el.position.y = avgCenterY - el.size.height / 2);
+                break;
+            }
+            case 'distribute-horizontal': {
+                const sorted = [...selectedElements].sort((a, b) => a.position.x - b.position.x);
+                const first = sorted[0];
+                const last = sorted[sorted.length - 1];
+                const totalSpan = (last.position.x + last.size.width) - first.position.x;
+                const totalElementWidth = sorted.reduce((sum, el) => sum + el.size.width, 0);
+                const gap = (totalSpan - totalElementWidth) / (sorted.length - 1);
+                let currentX = first.position.x + first.size.width + gap;
+                for (let i = 1; i < sorted.length - 1; i++) {
+                    sorted[i].position.x = currentX;
+                    currentX += sorted[i].size.width + gap;
+                }
+                break;
+            }
+            case 'distribute-vertical': {
+                const sorted = [...selectedElements].sort((a, b) => a.position.y - b.position.y);
+                const first = sorted[0];
+                const last = sorted[sorted.length - 1];
+                const totalSpan = (last.position.y + last.size.height) - first.position.y;
+                const totalElementHeight = sorted.reduce((sum, el) => sum + el.size.height, 0);
+                const gap = (totalSpan - totalElementHeight) / (sorted.length - 1);
+                let currentY = first.position.y + first.size.height + gap;
+                for (let i = 1; i < sorted.length - 1; i++) {
+                    sorted[i].position.y = currentY;
+                    currentY += sorted[i].size.height + gap;
+                }
+                break;
+            }
+        }
+        
+        return { ...prev, elements: newElements };
+    });
+    setContextMenu(null);
+  };
+
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over, delta } = event;
@@ -300,7 +402,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
 
         {/* Center: Preview */}
-        <div className="w-1/2 bg-gray-900/50 p-8 flex flex-col items-center justify-center" onClick={() => setSelectedElementId(null)}>
+        <div className="w-1/2 bg-gray-900/50 p-8 flex flex-col items-center justify-center" onClick={() => setSelectedElementIds([])} onContextMenu={handleContextMenu}>
           <div ref={previewRef} className="w-[300px] h-[300px] transition-all duration-300 relative">
             <div 
               className="absolute inset-0 bg-center" 
@@ -320,8 +422,9 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
                 <DraggableCanvasElement
                   key={element.id}
                   element={element}
-                  isSelected={selectedElementId === element.id}
-                  onSelect={setSelectedElementId}
+                  isSelected={selectedElementIds.includes(element.id)}
+                  onSelect={handleSelectElement}
+                  showResizeHandles={selectedElementIds.length === 1 && selectedElementIds[0] === element.id}
                 />
             ))}
           </div>
@@ -341,7 +444,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
               <div className="space-y-2">
                 <SortableContext items={editedTemplate.elements.map(e => `layer-${e.id}`)}>
                    {editedTemplate.elements.map(el => (
-                      <SortableLayerItem key={el.id} element={el} isSelected={selectedElementId === el.id} onSelect={() => setSelectedElementId(el.id)} />
+                      <SortableLayerItem key={el.id} element={el} isSelected={selectedElementIds.includes(el.id)} onSelect={() => handleSelectElement(el.id, false)} />
                    ))}
                 </SortableContext>
               </div>
@@ -382,6 +485,26 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
         </div>
         </DndContext>
       </div>
+      
+       {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          isOpen={!!contextMenu}
+          onClose={() => setContextMenu(null)}
+        >
+          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={() => handleAlignment('align-left')}><span>⬅️</span><span>Выровнять по левому краю</span></div>
+          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={() => handleAlignment('align-right')}><span>➡️</span><span>Выровнять по правому краю</span></div>
+          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={() => handleAlignment('align-top')}><span>⬆️</span><span>Выровнять по верхнему краю</span></div>
+          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={() => handleAlignment('align-bottom')}><span>⬇️</span><span>Выровнять по нижнему краю</span></div>
+          <div className="h-px bg-gray-600/50 my-1" />
+          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={() => handleAlignment('align-center-vertical')}><span>↕️</span><span>Выровнять по центру (верт)</span></div>
+          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={() => handleAlignment('align-center-horizontal')}><span>↔️</span><span>Выровнять по центру (гориз)</span></div>
+          <div className="h-px bg-gray-600/50 my-1" />
+          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={() => handleAlignment('distribute-horizontal')}><span>📏</span><span>Распределить по горизонтали</span></div>
+          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={() => handleAlignment('distribute-vertical')}><span>📏</span><span>Распределить по вертикали</span></div>
+        </ContextMenu>
+      )}
     </div>
   );
 };
