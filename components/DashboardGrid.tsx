@@ -249,7 +249,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                         const device = deviceId ? allKnownDevices.get(deviceId) : null;
 
                         return (
-                            <div key={`${col}-${row}`} className="w-full h-full relative">
+                            <div key={device ? `${device.id}-${device.type}` : `${col}-${row}`} className="w-full h-full relative">
                                 {device ? (
                                     <DraggableDevice device={device} {...props} />
                                 ) : (
