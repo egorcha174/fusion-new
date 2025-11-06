@@ -1,4 +1,5 @@
 
+
 export enum DeviceType {
   Light,
   Lamp,
@@ -110,6 +111,7 @@ export interface CardElement {
   styles: {
     // other styles can be added here
     decimalPlaces?: number;
+    onColor?: string;
   };
 }
 
@@ -120,6 +122,7 @@ export interface CardTemplate {
   elements: CardElement[];
   styles: {
     backgroundColor: string;
+    onBackgroundColor?: string;
   };
 }
 

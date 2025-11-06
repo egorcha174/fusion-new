@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -417,8 +418,11 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
             </div>
           );
         case 'icon':
+          const iconColor = isOn
+              ? (element.styles.onColor || 'rgb(59 130 246)') // default blue
+              : 'rgb(156 163 175)'; // default gray-400
           return (
-            <div key={element.id} style={style} className={`${isOn ? 'text-blue-500' : 'text-gray-400'}`}>
+            <div key={element.id} style={{ ...style, color: iconColor }}>
               <DeviceIcon icon={device.icon ?? device.type} isOn={isOn} className="!w-full !h-full" iconAnimation={device.iconAnimation} />
             </div>
           );
@@ -479,7 +483,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
     return (
       <div
         className="w-full h-full relative overflow-hidden rounded-2xl"
-        style={{ backgroundColor: isOn ? '#E5E7EB' : template.styles.backgroundColor }} // On state is always light gray
+        style={{ backgroundColor: isOn ? (template.styles.onBackgroundColor || '#E5E7EB') : template.styles.backgroundColor }}
       >
         {template.elements.map(renderElement)}
       </div>
@@ -522,7 +526,9 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
         return (
           <div className="flex flex-col h-full">
             <div className="flex justify-between items-start flex-shrink-0">
-              <DeviceIcon icon={device.icon ?? device.type} isOn={isOn} iconAnimation={device.iconAnimation} />
+              <div className={isOn ? 'text-blue-500' : 'text-gray-400'}>
+                 <DeviceIcon icon={device.icon ?? device.type} isOn={isOn} iconAnimation={device.iconAnimation} />
+              </div>
               {isOn && device.brightness !== undefined && (
                 <div className={`${styles.brightnessCircle} rounded-full border-2 ${isOn ? 'border-gray-400/50' : 'border-gray-500'} flex items-center justify-center`}>
                   <span className={`${styles.brightnessText} ${isOn ? textOnClasses : textOffClasses}`}>{device.brightness}%</span>
@@ -559,7 +565,9 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
         return (
           <div className="flex flex-col h-full text-left">
             <div className="flex justify-between items-start flex-shrink-0">
-                <DeviceIcon icon={device.icon ?? device.type} isOn={false} iconAnimation={device.iconAnimation} />
+                <div className="text-gray-400">
+                    <DeviceIcon icon={device.icon ?? device.type} isOn={false} iconAnimation={device.iconAnimation} />
+                </div>
 
                 {device.presetModes && device.presetModes.length > 0 && (
                     <div className="relative z-10" ref={presetMenuRef}>
@@ -614,7 +622,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
       default:
         return (
           <div className="flex flex-col h-full">
-            <div className="flex-shrink-0">
+            <div className={`flex-shrink-0 ${isOn ? 'text-blue-500' : 'text-gray-400'}`}>
                <DeviceIcon icon={device.icon ?? device.type} isOn={isOn} iconAnimation={device.iconAnimation} />
             </div>
             <div className="flex-grow text-left overflow-hidden flex flex-col justify-end min-h-0">

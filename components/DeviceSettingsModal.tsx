@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { Device, DeviceCustomization, DeviceType, CardTemplates } from '../types';
 import DeviceIcon, { icons, getIconNameForDeviceType } from './DeviceIcon';
@@ -155,7 +156,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                     const isSelected = icon === iconName;
                     return (
                         <div key={iconType} onClick={() => setIcon(iconName)} className={`p-2 rounded-lg cursor-pointer transition-colors aspect-square flex items-center justify-center ${isSelected ? 'bg-blue-600 ring-2 ring-blue-400' : 'bg-gray-800 hover:bg-gray-700'}`}>
-                           <div className="w-8 h-8">
+                           <div className="w-8 h-8 text-gray-400">
                             <DeviceIcon icon={iconType} isOn={false} />
                            </div>
                         </div>

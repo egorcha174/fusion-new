@@ -1,4 +1,5 @@
 
+
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import Settings from './components/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -109,6 +110,7 @@ const defaultLightTemplate: CardTemplate = {
     deviceType: 'light',
     styles: {
       backgroundColor: 'rgb(55 65 81 / 0.8)', // bg-gray-600/80 for off state
+      onBackgroundColor: 'rgb(229 231 235 / 1)', // bg-gray-200/100
     },
     elements: [
       {
@@ -117,7 +119,9 @@ const defaultLightTemplate: CardTemplate = {
         position: { x: 8, y: 8 },
         size: { width: 20, height: 20 },
         zIndex: 2,
-        styles: {},
+        styles: {
+            onColor: 'rgb(59 130 246 / 1)', // text-blue-500
+        },
       },
       {
         id: 'name',
@@ -157,6 +161,7 @@ const defaultSwitchTemplate: CardTemplate = {
     deviceType: 'switch',
     styles: {
       backgroundColor: 'rgb(55 65 81 / 0.8)', // bg-gray-600/80 for off state
+      onBackgroundColor: 'rgb(229 231 235 / 1)', // bg-gray-200/100
     },
     elements: [
       {
@@ -165,7 +170,9 @@ const defaultSwitchTemplate: CardTemplate = {
         position: { x: 8, y: 8 },
         size: { width: 20, height: 20 },
         zIndex: 2,
-        styles: {},
+        styles: {
+            onColor: 'rgb(59 130 246 / 1)', // text-blue-500
+        },
       },
       {
         id: 'name',

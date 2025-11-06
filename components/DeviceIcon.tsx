@@ -70,7 +70,6 @@ const DeviceIcon: React.FC<DeviceIconProps> = ({ icon, isOn, className = '', ari
     iconName = isOn ? iconData.on : iconData.off;
   }
 
-  const colorClass = isOn ? 'text-blue-500' : 'text-gray-400';
   // Default size for DeviceCard. Can be overridden by passing a className.
   const baseClasses = 'w-[40%] h-[40%] mb-1';
 
@@ -82,7 +81,7 @@ const DeviceIcon: React.FC<DeviceIconProps> = ({ icon, isOn, className = '', ari
     >
       <Icon
         icon={iconName}
-        className={`w-full h-full transition-colors duration-300 ${colorClass} ${animationClass}`}
+        className={`w-full h-full transition-colors duration-300 ${animationClass}`}
       />
     </div>
   );

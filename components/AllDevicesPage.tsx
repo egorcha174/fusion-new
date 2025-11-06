@@ -73,13 +73,14 @@ const AllDevicesPage: React.FC<AllDevicesPageProps> = ({ rooms, customizations, 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {room.devices.map(device => {
                                 const isHidden = customizations[device.id]?.isHidden ?? false;
+                                const isOn = device.status.toLowerCase() === 'включено';
                                 return (
                                     <div key={device.id} className="bg-gray-800/80 p-4 rounded-lg flex items-center justify-between ring-1 ring-white/5">
                                         <div className="flex items-center gap-4 overflow-hidden">
-                                            <div className="w-10 h-10 flex-shrink-0">
+                                            <div className={`w-10 h-10 flex-shrink-0 ${isOn ? 'text-blue-500' : 'text-gray-400'}`}>
                                                 <DeviceIcon
                                                     icon={device.icon ?? device.type}
-                                                    isOn={device.status.toLowerCase() === 'включено'}
+                                                    isOn={isOn}
                                                 />
                                             </div>
                                             <div className="flex-1 overflow-hidden">
