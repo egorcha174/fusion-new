@@ -553,10 +553,14 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                      const isNumericStatus = !isNaN(parseFloat(device.status));
                      if (!device.unit || !isNumericStatus) return null;
                      return (
-                         <div key={element.id} style={style} className="flex items-end">
-                            <p className="text-gray-400 font-medium" style={{ fontSize: '70%' }}>
-                                {device.unit}
-                            </p>
+                         <div key={element.id} style={style}>
+                            <AutoFitText 
+                                text={device.unit} 
+                                className="w-full h-full" 
+                                pClassName="font-medium text-gray-400" 
+                                maxFontSize={100} 
+                                mode="single-line" 
+                            />
                         </div>
                      );
                 case 'chart':
