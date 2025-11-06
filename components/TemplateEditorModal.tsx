@@ -86,6 +86,51 @@ const SortableLayerItem: React.FC<{
   );
 };
 
+// --- Draggable Element Overlay ---
+const DraggableElementOverlay: React.FC<{
+  element: CardElement;
+  isSelected: boolean;
+  isBeingDragged: boolean;
+  onSelect: (id: CardElementId) => void;
+}> = ({ element, isSelected, isBeingDragged, onSelect }) => {
+  const { attributes, listeners, setNodeRef } = useDraggable({
+    id: element.id,
+    data: { type: 'element' },
+  });
+
+  if (!element.visible) {
+    return null;
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      onClick={(e) => { e.stopPropagation(); onSelect(element.id); }}
+      className={`absolute group cursor-move transition-all duration-100 ${isBeingDragged ? 'opacity-50' : ''}`}
+      style={{
+        left: `${element.position.x}%`,
+        top: `${element.position.y}%`,
+        width: `${element.size.width}%`,
+        height: `${element.size.height}%`,
+        zIndex: element.zIndex + 10,
+        outline: isSelected ? '2px solid #3b82f6' : '1px dashed rgba(59, 130, 246, 0.3)',
+        outlineOffset: '2px',
+      }}
+    >
+      {isSelected && (
+        <>
+          <ResizeHandle elementId={element.id} position="top-left" />
+          <ResizeHandle elementId={element.id} position="top-right" />
+          <ResizeHandle elementId={element.id} position="bottom-left" />
+          <ResizeHandle elementId={element.id} position="bottom-right" />
+        </>
+      )}
+    </div>
+  );
+};
+
 
 // --- Main Modal Component ---
 interface TemplateEditorModalProps {
@@ -277,41 +322,18 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
             />
             {/* --- Interactive Overlays --- */}
             {editedTemplate.elements.map(element => {
-              if (!element.visible) return null;
               const isSelected = selectedElementId === element.id;
               const isBeingDragged = activeDragId === element.id;
 
-              const { attributes, listeners, setNodeRef } = useDraggable({
-                id: element.id,
-                data: { type: 'element' }
-              });
-
               return (
-                <div
+                <DraggableElementOverlay
                   key={element.id}
-                  ref={setNodeRef}
-                  {...listeners}
-                  {...attributes}
-                  onClick={(e) => { e.stopPropagation(); setSelectedElementId(element.id); }}
-                  className={`absolute group cursor-move transition-all duration-100 ${isBeingDragged ? 'opacity-50' : ''}`}
-                  style={{
-                    left: `${element.position.x}%`, top: `${element.position.y}%`,
-                    width: `${element.size.width}%`, height: `${element.size.height}%`,
-                    zIndex: element.zIndex + 10, // Ensure overlays are above card content
-                    outline: isSelected ? '2px solid #3b82f6' : '1px dashed rgba(59, 130, 246, 0.3)',
-                    outlineOffset: '2px',
-                  }}
-                >
-                  {isSelected && (
-                    <>
-                      <ResizeHandle elementId={element.id} position="top-left" />
-                      <ResizeHandle elementId={element.id} position="top-right" />
-                      <ResizeHandle elementId={element.id} position="bottom-left" />
-                      <ResizeHandle elementId={element.id} position="bottom-right" />
-                    </>
-                  )}
-                </div>
-              )
+                  element={element}
+                  isSelected={isSelected}
+                  isBeingDragged={isBeingDragged}
+                  onSelect={setSelectedElementId}
+                />
+              );
             })}
           </div>
         </div>
