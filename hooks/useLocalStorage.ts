@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Tab, GridLayoutItem, CardTemplates, CardElement } from '../types';
+import { Tab, GridLayoutItem, CardTemplates, CardElement, CardTemplate } from '../types';
 
 export function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
   const [storedValue, setStoredValue] = useState<T>(() => {
@@ -56,11 +57,28 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, React.Disp
           return tab;
         });
       }
+      
+      // MIGRATION 4: For card templates (from old single-object to new multi-template format)
+      if (key === 'ha-card-templates') {
+        // Check if it's the old format: has a 'sensor' key, but that object lacks an 'id'.
+        if (parsedItem.sensor && !parsedItem.sensor.id) {
+            console.warn('Migrating old sensor template to new multi-template format.');
+            const oldSensorTemplate = parsedItem.sensor;
+            const newId = 'default-sensor';
+            parsedItem = {
+                [newId]: {
+                    ...oldSensorTemplate,
+                    id: newId,
+                    name: 'Стандартный сенсор',
+                }
+            };
+        }
+      }
 
       // MIGRATION 3: For card templates (ensuring structure and properties)
       if (key === 'ha-card-templates') {
         const defaultTemplates = initialValue as CardTemplates;
-        const migratedTemplates = { ...parsedItem };
+        const migratedTemplates: CardTemplates = { ...parsedItem };
 
         Object.keys(defaultTemplates).forEach((templateKey: keyof CardTemplates) => {
           const defaultTemplate = defaultTemplates[templateKey];

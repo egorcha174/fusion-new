@@ -1,12 +1,14 @@
+
 import React, { useState } from 'react';
-import { Device, DeviceCustomization, DeviceType } from '../types';
+import { Device, DeviceCustomization, DeviceType, CardTemplates } from '../types';
 import DeviceIcon, { icons, getIconNameForDeviceType } from './DeviceIcon';
 
 interface DeviceSettingsModalProps {
   device: Device;
   customization: DeviceCustomization;
-  onSave: (deviceId: string, newValues: { name: string; type: DeviceType; icon: string; isHidden: boolean; }) => void;
+  onSave: (deviceId: string, newValues: { name: string; type: DeviceType; icon: string; isHidden: boolean; templateId?: string; }) => void;
   onClose: () => void;
+  templates: CardTemplates;
 }
 
 const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
@@ -14,6 +16,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   customization,
   onSave,
   onClose,
+  templates,
 }) => {
   const getDefaultIcon = () => {
     if (customization.icon) return customization.icon;
@@ -25,6 +28,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   const [type, setType] = useState(customization.type ?? device.type);
   const [icon, setIcon] = useState<string>(getDefaultIcon());
   const [isHidden, setIsHidden] = useState(customization.isHidden ?? false);
+  const [templateId, setTemplateId] = useState(customization.templateId ?? '');
 
   const handleTypeChange = (newType: DeviceType) => {
     setType(newType);
@@ -39,6 +43,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
       type,
       icon,
       isHidden,
+      templateId,
     });
     onClose();
   };
@@ -94,6 +99,25 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                 ))}
             </select>
           </div>
+
+          {device.type === DeviceType.Sensor && (
+            <div>
+              <label htmlFor="deviceTemplate" className="block text-sm font-medium text-gray-300 mb-2">Шаблон</label>
+              <select
+                  id="deviceTemplate"
+                  value={templateId}
+                  onChange={(e) => setTemplateId(e.target.value)}
+                  className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+              >
+                  <option value="">По умолчанию</option>
+                  {Object.values(templates).map(template => (
+                      <option key={template.id} value={template.id}>
+                          {template.name}
+                      </option>
+                  ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Иконка</label>

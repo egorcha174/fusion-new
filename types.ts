@@ -77,6 +77,7 @@ export interface DeviceCustomization {
   type?: DeviceType;
   icon?: string; // Iconify name
   isHidden?: boolean;
+  templateId?: string; // ID of the CardTemplate to use
 }
 
 export type DeviceCustomizations = Record<string, DeviceCustomization>; // Key is device.id (entity_id)
@@ -111,17 +112,16 @@ export interface CardElement {
 }
 
 export interface CardTemplate {
-  deviceType: 'sensor';
+  id: string;
+  name: string;
+  deviceType: 'sensor'; // Kept for now as a hint
   elements: CardElement[];
   styles: {
     backgroundColor: string;
   };
 }
 
-
-export type CardTemplates = {
-  [key in 'sensor']?: CardTemplate;
-};
+export type CardTemplates = Record<string, CardTemplate>;
 
 
 // Types for Home Assistant WebSocket API

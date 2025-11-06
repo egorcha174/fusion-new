@@ -1,6 +1,9 @@
+
 import React, { useRef, useState } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { ClockSettings, ClockSize } from '../types';
+import { ClockSettings, ClockSize, CardTemplates, CardTemplate } from '../types';
+import ConfirmDialog from './ConfirmDialog';
+
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'failed';
 
@@ -13,6 +16,10 @@ interface SettingsProps {
   onClockSettingsChange?: (settings: ClockSettings) => void;
   openWeatherMapKey?: string;
   onOpenWeatherMapKeyChange?: (key: string) => void;
+  templates?: CardTemplates;
+  onEditTemplate?: (template: CardTemplate) => void;
+  onDeleteTemplate?: (templateId: string) => void;
+  onCreateTemplate?: () => void;
 }
 
 // Keys to be backed up
@@ -23,15 +30,17 @@ const LOCAL_STORAGE_KEYS = [
   'ha-active-tab',
   'ha-device-customizations',
   'ha-clock-settings',
-  'ha-card-size',
+  'ha-card-templates',
   'ha-sidebar-width',
   'ha-openweathermap-key',
 ];
 
-const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error, onDisconnect, clockSettings, onClockSettingsChange, openWeatherMapKey, onOpenWeatherMapKeyChange }) => {
+const Settings: React.FC<SettingsProps> = (props) => {
+  const { onConnect, connectionStatus, error, onDisconnect, clockSettings, onClockSettingsChange, openWeatherMapKey, onOpenWeatherMapKeyChange, templates, onEditTemplate, onDeleteTemplate, onCreateTemplate } = props;
   const [url, setUrl] = useLocalStorage('ha-url', '');
   const [token, setToken] = useLocalStorage('ha-token', '');
   const [localError, setLocalError] = useState('');
+  const [deletingTemplate, setDeletingTemplate] = useState<CardTemplate | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleConnect = () => {
@@ -49,7 +58,11 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
       LOCAL_STORAGE_KEYS.forEach(key => {
         const item = localStorage.getItem(key);
         if (item) {
-          settings[key] = JSON.parse(item);
+          try {
+             settings[key] = JSON.parse(item);
+          } catch(e) {
+            console.warn(`Could not parse localStorage item: ${key}`);
+          }
         }
       });
 
@@ -119,8 +132,9 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
 
   const isLoading = connectionStatus === 'connecting';
 
-  if (connectionStatus === 'connected' && onDisconnect && clockSettings && onClockSettingsChange && openWeatherMapKey !== undefined && onOpenWeatherMapKeyChange) {
+  if (connectionStatus === 'connected' && onDisconnect && clockSettings && onClockSettingsChange && openWeatherMapKey !== undefined && onOpenWeatherMapKeyChange && templates && onEditTemplate && onDeleteTemplate && onCreateTemplate) {
     return (
+        <>
         <div className="w-full max-w-md bg-gray-800 p-8 rounded-2xl shadow-lg ring-1 ring-white/10 space-y-8">
             <div>
                 <h1 className="text-3xl font-bold text-center text-gray-100 mb-6">Настройки</h1>
@@ -202,6 +216,30 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                     </p>
                 </div>
             </div>
+            
+            <div className="border-t border-gray-700 pt-6">
+                <h2 className="text-xl font-bold text-gray-100 mb-4">Шаблоны карточек</h2>
+                 <p className="text-sm text-gray-400 mb-4">Создавайте и управляйте шаблонами для сенсорных карточек.</p>
+                 <div className="space-y-2 mb-4">
+                    {Object.values(templates).map(template => (
+                        <div key={template.id} className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg">
+                            <p className="text-sm text-gray-200 font-medium truncate pr-2">{template.name}</p>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                                <button onClick={() => onEditTemplate(template)} className="p-1.5 text-gray-400 hover:text-white rounded-md hover:bg-gray-600 transition-colors" title="Редактировать">
+                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
+                                </button>
+                                <button onClick={() => setDeletingTemplate(template)} className="p-1.5 text-gray-400 hover:text-red-400 rounded-md hover:bg-red-500/20 transition-colors" title="Удалить">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                 </div>
+                 <button onClick={onCreateTemplate} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">
+                    Создать шаблон
+                </button>
+            </div>
+
 
             <div className="border-t border-gray-700 pt-6">
               <h2 className="text-xl font-bold text-gray-100 mb-4">Резервное копирование</h2>
@@ -225,6 +263,24 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
               </div>
             </div>
         </div>
+         <ConfirmDialog
+            isOpen={!!deletingTemplate}
+            title="Удалить шаблон?"
+            message={
+                <>
+                    Вы уверены, что хотите удалить шаблон <strong className="text-white">"{deletingTemplate?.name}"</strong>?
+                    <br />
+                    Это действие нельзя отменить.
+                </>
+            }
+            onConfirm={() => {
+                if (deletingTemplate) onDeleteTemplate(deletingTemplate.id);
+                setDeletingTemplate(null);
+            }}
+            onCancel={() => setDeletingTemplate(null)}
+            confirmText="Удалить"
+        />
+        </>
     );
   }
 

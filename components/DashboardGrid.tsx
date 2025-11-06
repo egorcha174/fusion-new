@@ -13,7 +13,8 @@ import {
 } from '@dnd-kit/core';
 import { snapCenterToCursor } from '@dnd-kit/modifiers';
 import DeviceCard from './DeviceCard';
-import { Tab, Device, DeviceType, GridLayoutItem, CardTemplate } from '../types';
+// Fix: Added CardTemplate to the import list.
+import { Tab, Device, DeviceType, GridLayoutItem, CardTemplates, DeviceCustomizations, CardTemplate } from '../types';
 
 // --- Draggable Item ---
 const DraggableDevice: React.FC<{
@@ -118,15 +119,18 @@ interface DashboardGridProps {
     haUrl: string;
     signPath: (path: string) => Promise<{ path: string }>;
     getCameraStreamUrl: (entityId: string) => Promise<string>;
-    sensorTemplate: CardTemplate;
+    templates: CardTemplates;
+    customizations: DeviceCustomizations;
 }
 
 const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
-    const { tab, allKnownDevices, isEditMode, onDeviceLayoutChange, searchTerm, sensorTemplate } = props;
+    const { tab, allKnownDevices, isEditMode, onDeviceLayoutChange, searchTerm, templates, customizations } = props;
     const viewportRef = useRef<HTMLDivElement>(null);
     const [gridStyle, setGridStyle] = useState<React.CSSProperties>({});
     const [activeId, setActiveId] = useState<string | null>(null);
     const [activeDragItemRect, setActiveDragItemRect] = useState<{ width: number; height: number } | null>(null);
+    
+    const DEFAULT_SENSOR_TEMPLATE_ID = 'default-sensor';
 
     useLayoutEffect(() => {
         const calculateGrid = () => {
@@ -237,6 +241,12 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
     }, [tab.layout, allKnownDevices, searchTerm]);
 
     const activeDevice = activeId ? allKnownDevices.get(activeId) : null;
+    let activeDeviceTemplate: CardTemplate | undefined;
+    if (activeDevice?.type === DeviceType.Sensor) {
+        const templateId = customizations[activeDevice.id]?.templateId || DEFAULT_SENSOR_TEMPLATE_ID;
+        activeDeviceTemplate = templates[templateId];
+    }
+
 
     return (
         <div ref={viewportRef} className="w-full h-full flex items-start justify-start p-4">
@@ -251,12 +261,24 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                         const deviceId = layoutMap.get(`${col},${row}`);
                         const device = deviceId ? allKnownDevices.get(deviceId) : null;
 
+                        let templateToUse: CardTemplate | undefined;
+                        if (device?.type === DeviceType.Sensor) {
+                            const deviceCustomization = customizations[device.id];
+                            const templateId = deviceCustomization?.templateId;
+                            if (templateId && templates[templateId]) {
+                                templateToUse = templates[templateId];
+                            } else {
+                                // Fallback to the default sensor template
+                                templateToUse = templates[DEFAULT_SENSOR_TEMPLATE_ID];
+                            }
+                        }
+
                         return (
                             <div key={device ? `${device.id}-${device.type}` : `${col}-${row}`} className="w-full h-full relative">
                                 {device ? (
                                     <DraggableDevice 
                                       device={device} 
-                                      template={device.type === DeviceType.Sensor ? sensorTemplate : undefined} 
+                                      template={templateToUse} 
                                       {...props} 
                                     />
                                 ) : (
@@ -277,7 +299,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                       >
                         <DeviceCard
                            device={activeDevice}
-                           template={activeDevice.type === DeviceType.Sensor ? sensorTemplate : undefined}
+                           template={activeDeviceTemplate}
                            isEditMode={true}
                            onTemperatureChange={() => {}}
                            onBrightnessChange={() => {}}

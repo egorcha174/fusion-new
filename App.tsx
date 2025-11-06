@@ -29,7 +29,11 @@ const useIsLg = () => {
   return isLg;
 }
 
+const DEFAULT_SENSOR_TEMPLATE_ID = 'default-sensor';
+
 const defaultSensorTemplate: CardTemplate = {
+  id: DEFAULT_SENSOR_TEMPLATE_ID,
+  name: 'Стандартный сенсор',
   deviceType: 'sensor',
   styles: {
     backgroundColor: 'rgb(31 41 55 / 0.8)', // bg-gray-800/80
@@ -110,7 +114,7 @@ const App: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [editingTab, setEditingTab] = useState<Tab | null>(null);
-  const [editingTemplateType, setEditingTemplateType] = useState<DeviceType | null>(null);
+  const [editingTemplate, setEditingTemplate] = useState<CardTemplate | 'new' | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, deviceId: string, tabId: string } | null>(null);
   const [floatingCamera, setFloatingCamera] = useState<Device | null>(null);
@@ -119,7 +123,7 @@ const App: React.FC = () => {
   const [activeTabId, setActiveTabId] = useLocalStorage<string | null>('ha-active-tab', null);
   const [customizations, setCustomizations] = useLocalStorage<DeviceCustomizations>('ha-device-customizations', {});
   const [templates, setTemplates] = useLocalStorage<CardTemplates>('ha-card-templates', {
-    sensor: defaultSensorTemplate,
+    [DEFAULT_SENSOR_TEMPLATE_ID]: defaultSensorTemplate,
   });
   const [clockSettings, setClockSettings] = useLocalStorage<ClockSettings>('ha-clock-settings', {
     format: '24h',
@@ -135,8 +139,6 @@ const App: React.FC = () => {
 
   const brightnessTimeoutRef = useRef<number | null>(null);
   const isLg = useIsLg();
-
-  const sensorTemplate = useMemo(() => templates.sensor || defaultSensorTemplate, [templates]);
 
   // Cleanup for brightness debounce timer on component unmount
   useEffect(() => {
@@ -344,7 +346,7 @@ const App: React.FC = () => {
 
 
   // --- Customization ---
-  const handleSaveCustomization = (deviceId: string, newValues: { name: string; type: DeviceType; icon: string; isHidden: boolean; }) => {
+  const handleSaveCustomization = (deviceId: string, newValues: { name: string; type: DeviceType; icon: string; isHidden: boolean; templateId?: string; }) => {
     const originalDevice = allKnownDevices.get(deviceId);
     if (!originalDevice) return;
     
@@ -367,7 +369,6 @@ const App: React.FC = () => {
         }
 
         // 3. Handle Icon (string)
-        // Only store an icon override if it's different from the default for the *selected type*.
         const defaultIconForNewType = getIconNameForDeviceType(newValues.type, false);
         if (newValues.icon !== defaultIconForNewType) {
             currentCustomization.icon = newValues.icon;
@@ -382,8 +383,14 @@ const App: React.FC = () => {
             delete currentCustomization.isHidden;
         }
 
-        // 5. Finalize
-        // If the customization object is now empty, remove it entirely.
+        // 5. Handle templateId
+        if (newValues.templateId) {
+            currentCustomization.templateId = newValues.templateId;
+        } else {
+            delete currentCustomization.templateId;
+        }
+
+        // 6. Finalize
         if (Object.keys(currentCustomization).length === 0) {
             delete newCustomizations[deviceId];
         } else {
@@ -408,12 +415,53 @@ const App: React.FC = () => {
       type: currentType,
       icon: currentCustomization.icon || defaultIcon,
       isHidden: isHidden,
+      templateId: currentCustomization.templateId,
     });
   };
 
-  const handleSaveSensorTemplate = (newTemplate: CardTemplate) => {
-    setTemplates(prev => ({ ...prev, sensor: newTemplate }));
-    setEditingTemplateType(null);
+  // --- Template Management ---
+  const handleSaveTemplate = (template: CardTemplate) => {
+    setTemplates(prev => ({
+        ...prev,
+        [template.id]: template,
+    }));
+    setEditingTemplate(null);
+  };
+
+  const handleDeleteTemplate = (templateId: string) => {
+    // Prevent deleting the last template
+    if (Object.keys(templates).length <= 1) {
+        alert("Нельзя удалить последний шаблон.");
+        return;
+    }
+
+    setTemplates(prev => {
+        const newTemplates = { ...prev };
+        delete newTemplates[templateId];
+        return newTemplates;
+    });
+
+    // Also remove this templateId from any device that was using it
+    setCustomizations(prev => {
+        const newCustomizations = { ...prev };
+        Object.keys(newCustomizations).forEach(deviceId => {
+            if (newCustomizations[deviceId].templateId === templateId) {
+                delete newCustomizations[deviceId].templateId;
+                 if (Object.keys(newCustomizations[deviceId]).length === 0) {
+                    delete newCustomizations[deviceId];
+                }
+            }
+        });
+        return newCustomizations;
+    });
+  };
+
+  const createNewBlankTemplate = (): CardTemplate => {
+    // Create a new template by deep cloning the default sensor template structure
+    const newTemplate = JSON.parse(JSON.stringify(defaultSensorTemplate));
+    newTemplate.id = nanoid();
+    newTemplate.name = "Новый шаблон";
+    return newTemplate;
   };
 
 
@@ -430,11 +478,33 @@ const App: React.FC = () => {
        </div>
     );
   }
+  
+  const contextMenuDevice = contextMenu ? allKnownDevices.get(contextMenu.deviceId) : null;
+  const isSensor = contextMenuDevice?.type === DeviceType.Sensor;
+  const currentTemplateId = isSensor ? (customizations[contextMenuDevice.id]?.templateId || DEFAULT_SENSOR_TEMPLATE_ID) : null;
+  const currentTemplate = currentTemplateId ? templates[currentTemplateId] : null;
 
   const renderPage = () => {
     switch (currentPage) {
       case 'settings':
-        return <div className="flex justify-center items-start pt-10"><Settings onConnect={connect} connectionStatus={connectionStatus} error={error} onDisconnect={disconnect} clockSettings={clockSettings} onClockSettingsChange={setClockSettings} openWeatherMapKey={openWeatherMapKey} onOpenWeatherMapKeyChange={setOpenWeatherMapKey} /></div>;
+        return (
+          <div className="flex justify-center items-start pt-10">
+            <Settings 
+              onConnect={connect} 
+              connectionStatus={connectionStatus} 
+              error={error} 
+              onDisconnect={disconnect} 
+              clockSettings={clockSettings} 
+              onClockSettingsChange={setClockSettings} 
+              openWeatherMapKey={openWeatherMapKey} 
+              onOpenWeatherMapKeyChange={setOpenWeatherMapKey}
+              templates={templates}
+              onEditTemplate={(template) => setEditingTemplate(template)}
+              onDeleteTemplate={handleDeleteTemplate}
+              onCreateTemplate={() => setEditingTemplate('new')}
+            />
+          </div>
+        );
       case 'all-devices':
         return <AllDevicesPage rooms={filteredRoomsForDevicePage} customizations={customizations} onToggleVisibility={handleToggleVisibility} tabs={tabs} onDeviceAddToTab={handleDeviceAddToTab} />;
       case 'dashboard':
@@ -457,7 +527,8 @@ const App: React.FC = () => {
             haUrl={haUrl}
             signPath={signPath}
             getCameraStreamUrl={getCameraStreamUrl}
-            sensorTemplate={sensorTemplate}
+            templates={templates}
+            customizations={customizations}
           />
         ) : (
           <div className="text-center text-gray-500">Выберите или создайте вкладку</div>
@@ -466,7 +537,6 @@ const App: React.FC = () => {
   };
 
   const otherTabs = tabs.filter(t => t.id !== contextMenu?.tabId);
-  const contextMenuDevice = contextMenu ? allKnownDevices.get(contextMenu.deviceId) : null;
 
   return (
     <div className="flex min-h-screen bg-gray-900 text-gray-200">
@@ -512,7 +582,13 @@ const App: React.FC = () => {
       </div>
       
       {editingDevice && (
-        <DeviceSettingsModal device={editingDevice} customization={customizations[editingDevice.id] || {}} onSave={handleSaveCustomization} onClose={() => setEditingDevice(null)} />
+        <DeviceSettingsModal 
+          device={editingDevice} 
+          customization={customizations[editingDevice.id] || {}} 
+          onSave={handleSaveCustomization} 
+          onClose={() => setEditingDevice(null)}
+          templates={templates}
+        />
       )}
       {editingTab && (
         <TabSettingsModal 
@@ -522,11 +598,11 @@ const App: React.FC = () => {
           onClose={() => setEditingTab(null)}
         />
       )}
-      {editingTemplateType === DeviceType.Sensor && (
+      {editingTemplate && (
         <TemplateEditorModal
-            template={sensorTemplate}
-            onSave={handleSaveSensorTemplate}
-            onClose={() => setEditingTemplateType(null)}
+            templateToEdit={editingTemplate === 'new' ? createNewBlankTemplate() : editingTemplate}
+            onSave={handleSaveTemplate}
+            onClose={() => setEditingTemplate(null)}
         />
       )}
 
@@ -548,10 +624,10 @@ const App: React.FC = () => {
                 Редактировать
             </div>
 
-            {contextMenuDevice?.type === DeviceType.Sensor && (
+            {isSensor && currentTemplate && (
               <div 
                   onClick={() => { 
-                      setEditingTemplateType(DeviceType.Sensor);
+                      setEditingTemplate(currentTemplate);
                       handleCloseContextMenu(); 
                   }} 
                   className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer"

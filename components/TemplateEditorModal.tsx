@@ -148,13 +148,13 @@ const DraggableCanvasElement: React.FC<{
 
 // --- Main Modal Component ---
 interface TemplateEditorModalProps {
-  template: CardTemplate;
+  templateToEdit: CardTemplate;
   onSave: (newTemplate: CardTemplate) => void;
   onClose: () => void;
 }
 
-const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onSave, onClose }) => {
-  const [editedTemplate, setEditedTemplate] = useState<CardTemplate>(template);
+const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdit, onSave, onClose }) => {
+  const [editedTemplate, setEditedTemplate] = useState<CardTemplate>(templateToEdit);
   const [selectedElementIds, setSelectedElementIds] = useState<CardElementId[]>([]);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number } | null>(null);
   
@@ -185,11 +185,21 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
       }));
   };
   
-  const handleStyleChange = (key: 'backgroundColor', value: any) => {
-    setEditedTemplate(prev => ({ ...prev, styles: { ...prev.styles, [key]: value } }));
+  const handleStyleChange = (key: 'backgroundColor' | 'name', value: any) => {
+    if (key === 'name') {
+        setEditedTemplate(prev => ({ ...prev, name: value }));
+    } else {
+        setEditedTemplate(prev => ({ ...prev, styles: { ...prev.styles, [key]: value } }));
+    }
   };
   
-  const handleSave = () => onSave(editedTemplate);
+  const handleSave = () => {
+    if (!editedTemplate.name.trim()) {
+        alert("Имя шаблона не может быть пустым.");
+        return;
+    }
+    onSave(editedTemplate);
+  }
 
   const handleSelectElement = (id: CardElementId, isMultiSelect: boolean) => {
     setContextMenu(null); // Close context menu on any selection change
@@ -503,11 +513,21 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
         {/* Right Side: Controls */}
         <div className="w-1/2 flex flex-col">
           <div className="p-6 border-b border-gray-700">
-            <h2 className="text-xl font-bold text-white">Редактор шаблона (Сенсор)</h2>
-            <p className="text-sm text-gray-400">Изменения применяются ко всем сенсорам.</p>
+            <h2 className="text-xl font-bold text-white">Редактор шаблона</h2>
+            <p className="text-sm text-gray-400">Изменения применяются ко всем сенсорам, использующим этот шаблон.</p>
           </div>
           
           <div className="flex-grow overflow-y-auto p-6 space-y-6">
+             <div>
+                <label htmlFor="templateName" className="block text-sm font-medium text-gray-300 mb-2">Название шаблона</label>
+                <input
+                  id="templateName"
+                  type="text"
+                  value={editedTemplate.name}
+                  onChange={e => handleStyleChange('name', e.target.value)}
+                  className="w-full bg-gray-900 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Слои</label>
               <p className="text-xs text-gray-400 mb-2">Перетащите, чтобы изменить порядок (верхний слой имеет приоритет).</p>
