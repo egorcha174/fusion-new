@@ -1,6 +1,39 @@
-import React, { useState } from 'react';
-import { CardTemplate, Device, DeviceType, CardElementId } from '../types';
+import React, { useState, useRef } from 'react';
+import { CardTemplate, Device, DeviceType, CardElementId, CardElement } from '../types';
 import DeviceCard from './DeviceCard';
+import { DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, useDraggable } from '@dnd-kit/core';
+
+interface DraggableElementProps {
+  element: CardElement;
+  children: React.ReactNode;
+  isEditing: boolean;
+}
+
+const DraggableElement: React.FC<DraggableElementProps> = ({ element, children, isEditing }) => {
+    const { attributes, listeners, setNodeRef, transform } = useDraggable({
+        id: element.id,
+        disabled: !isEditing,
+    });
+    
+    const style: React.CSSProperties = transform ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    } : {};
+    
+    const borderClass = isEditing ? 'border border-dashed border-blue-500/50' : '';
+
+    return (
+        <div 
+            ref={setNodeRef} 
+            style={style} 
+            {...listeners} 
+            {...attributes}
+            className={`absolute ${borderClass}`}
+        >
+            {children}
+        </div>
+    );
+};
+
 
 interface TemplateEditorModalProps {
   template: CardTemplate;
@@ -10,6 +43,9 @@ interface TemplateEditorModalProps {
 
 const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onSave, onClose }) => {
   const [editedTemplate, setEditedTemplate] = useState<CardTemplate>(template);
+  const previewRef = useRef<HTMLDivElement>(null);
+  
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 2 } }));
 
   const sampleDevice: Device = {
     id: 'sensor.sample_temperature',
@@ -24,25 +60,57 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
   const handleElementVisibilityChange = (elementId: CardElementId, isVisible: boolean) => {
     setEditedTemplate(prev => ({
       ...prev,
-      elements: {
-        ...prev.elements,
-        [elementId]: { visible: isVisible },
-      },
+      elements: prev.elements.map(el => el.id === elementId ? { ...el, visible: isVisible } : el),
     }));
   };
   
-  const handleStyleChange = (styleKey: keyof CardTemplate['styles'], value: any) => {
+  const handleStyleChange = (key: 'backgroundColor', value: any) => {
     setEditedTemplate(prev => ({
       ...prev,
       styles: {
         ...prev.styles,
-        [styleKey]: value,
+        [key]: value,
       },
     }));
+  };
+
+  const handleElementStyleChange = (elementId: CardElementId, styleKey: keyof CardElement['styles'], value: any) => {
+      setEditedTemplate(prev => ({
+          ...prev,
+          elements: prev.elements.map(el => 
+              el.id === elementId 
+                  ? { ...el, styles: { ...el.styles, [styleKey]: value } }
+                  : el
+          ),
+      }));
   };
   
   const handleSave = () => {
     onSave(editedTemplate);
+  };
+  
+  const handleDragEnd = (event: DragEndEvent) => {
+      const { active, delta } = event;
+      const previewRect = previewRef.current?.getBoundingClientRect();
+      if (!previewRect) return;
+
+      setEditedTemplate(prev => ({
+          ...prev,
+          elements: prev.elements.map(el => {
+              if (el.id === active.id) {
+                  const newX = el.position.x + (delta.x / previewRect.width) * 100;
+                  const newY = el.position.y + (delta.y / previewRect.height) * 100;
+                  return {
+                      ...el,
+                      position: {
+                          x: Math.max(0, Math.min(100 - el.size.width, newX)),
+                          y: Math.max(0, Math.min(100 - el.size.height, newY)),
+                      }
+                  }
+              }
+              return el;
+          })
+      }));
   };
   
   const elementLabels: Record<CardElementId, string> = {
@@ -51,7 +119,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
       value: 'Значение',
       unit: 'Единица изм.',
       chart: 'График',
-      status: 'Статус' // Not used for sensor, but for completeness
+      status: 'Статус'
   };
 
   const availableElements: CardElementId[] = ['name', 'icon', 'value', 'unit', 'chart'];
@@ -64,13 +132,15 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
       onClick={onClose}
     >
       <div
-        className="bg-gray-800 rounded-2xl shadow-lg w-full max-w-3xl ring-1 ring-white/10 flex"
+        className="bg-gray-800 rounded-2xl shadow-lg w-full max-w-4xl ring-1 ring-white/10 flex"
         onClick={e => e.stopPropagation()}
       >
         {/* Left Side: Preview */}
+        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <div className="w-1/3 bg-gray-900/50 p-8 flex flex-col items-center justify-center rounded-l-2xl">
           <h3 className="text-lg font-bold text-white mb-4">Live Preview</h3>
-          <div className="w-[180px] h-[180px] transition-all duration-300">
+          <p className="text-xs text-gray-400 mb-4 text-center">Перетаскивайте элементы прямо на карточке</p>
+          <div ref={previewRef} className="w-[200px] h-[200px] transition-all duration-300 relative">
             <DeviceCard
               device={sampleDevice}
               template={editedTemplate}
@@ -78,7 +148,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
               onBrightnessChange={() => {}}
               onPresetChange={() => {}}
               onCameraCardClick={() => {}}
-              isEditMode={false}
+              isEditMode={true} // Enable edit styles inside card preview
               onEditDevice={() => {}}
               haUrl=""
               signPath={async () => ({path: ''})}
@@ -86,6 +156,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
             />
           </div>
         </div>
+        </DndContext>
         
         {/* Right Side: Controls */}
         <div className="w-2/3 flex flex-col">
@@ -98,17 +169,22 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
             <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Элементы</label>
                 <div className="grid grid-cols-2 gap-3">
-                    {availableElements.map(elementId => (
-                        <div key={elementId} className="flex items-center justify-between bg-gray-700/50 p-2 rounded-lg">
-                            <label htmlFor={`toggle-${elementId}`} className="text-sm text-gray-200">{elementLabels[elementId]}</label>
-                            <button
-                              onClick={() => handleElementVisibilityChange(elementId, !editedTemplate.elements[elementId]?.visible)}
-                              className={`relative inline-flex items-center h-5 rounded-full w-9 transition-colors ${editedTemplate.elements[elementId]?.visible ? 'bg-blue-600' : 'bg-gray-600'}`}
-                            >
-                              <span className={`inline-block w-3 h-3 transform bg-white rounded-full transition-transform ${editedTemplate.elements[elementId]?.visible ? 'translate-x-5' : 'translate-x-1'}`} />
-                            </button>
-                        </div>
-                    ))}
+                    {availableElements.map(elementId => {
+                        const element = editedTemplate.elements.find(e => e.id === elementId);
+                        if (!element) return null;
+
+                        return (
+                            <div key={elementId} className="flex items-center justify-between bg-gray-700/50 p-2 rounded-lg">
+                                <label htmlFor={`toggle-${elementId}`} className="text-sm text-gray-200">{elementLabels[elementId]}</label>
+                                <button
+                                  onClick={() => handleElementVisibilityChange(elementId, !element.visible)}
+                                  className={`relative inline-flex items-center h-5 rounded-full w-9 transition-colors ${element.visible ? 'bg-blue-600' : 'bg-gray-600'}`}
+                                >
+                                  <span className={`inline-block w-3 h-3 transform bg-white rounded-full transition-transform ${element.visible ? 'translate-x-5' : 'translate-x-1'}`} />
+                                </button>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
             
@@ -118,15 +194,15 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
                     <div className="flex items-center justify-between">
                         <label htmlFor="nameFontSize" className="text-sm text-gray-200">Размер названия</label>
                         <div className="flex items-center gap-2">
-                           <input type="range" id="nameFontSize" min="10" max="24" value={editedTemplate.styles.nameFontSize} onChange={(e) => handleStyleChange('nameFontSize', parseInt(e.target.value))} className="w-32 accent-blue-500" />
-                           <span className="text-xs text-gray-400 w-8 text-right">{editedTemplate.styles.nameFontSize}px</span>
+                           <input type="range" id="nameFontSize" min="10" max="24" value={editedTemplate.elements.find(e=>e.id==='name')?.styles.fontSize || 17} onChange={(e) => handleElementStyleChange('name', 'fontSize', parseInt(e.target.value))} className="w-32 accent-blue-500" />
+                           <span className="text-xs text-gray-400 w-8 text-right">{editedTemplate.elements.find(e=>e.id==='name')?.styles.fontSize}px</span>
                         </div>
                     </div>
                      <div className="flex items-center justify-between">
                         <label htmlFor="valueFontSize" className="text-sm text-gray-200">Размер значения</label>
                         <div className="flex items-center gap-2">
-                           <input type="range" id="valueFontSize" min="20" max="64" value={editedTemplate.styles.valueFontSize} onChange={(e) => handleStyleChange('valueFontSize', parseInt(e.target.value))} className="w-32 accent-blue-500" />
-                           <span className="text-xs text-gray-400 w-8 text-right">{editedTemplate.styles.valueFontSize}px</span>
+                           <input type="range" id="valueFontSize" min="20" max="64" value={editedTemplate.elements.find(e=>e.id==='value')?.styles.fontSize || 48} onChange={(e) => handleElementStyleChange('value', 'fontSize', parseInt(e.target.value))} className="w-32 accent-blue-500" />
+                           <span className="text-xs text-gray-400 w-8 text-right">{editedTemplate.elements.find(e=>e.id==='value')?.styles.fontSize}px</span>
                         </div>
                     </div>
                     <div className="flex items-center justify-between">

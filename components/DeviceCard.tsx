@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-// FIX: Removed unused 'CardSize' import as it is not exported from '../types'.
-import { Device, DeviceType, CardTemplate } from '../types';
+import { Device, DeviceType, CardTemplate, CardElement } from '../types';
 import DeviceIcon from './DeviceIcon';
 import SparklineChart from './SparklineChart';
 import Hls from 'hls.js';
@@ -27,10 +26,8 @@ const AutoFitText: React.FC<{
       const tolerance = 1; // Add a small tolerance to prevent jitter
 
       p.style.fontSize = `${currentSize}px`;
-      // Allow wrapping from the start if in multi-line mode
       p.style.whiteSpace = mode === 'multi-line' ? 'normal' : 'nowrap';
       
-      // Iteratively reduce font size until both width and height fit
       while (
         currentSize > 8 &&
         (p.scrollWidth > container.clientWidth + tolerance || p.scrollHeight > container.clientHeight + tolerance)
@@ -151,14 +148,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
     <div className="relative w-full h-full bg-black flex items-center justify-center group">
       <video ref={videoRef} className="w-full h-full object-contain" muted autoPlay playsInline />
 
-      {/* This overlay captures clicks on the video area and lets them bubble up, while controls sit on top with a higher z-index */}
       <div className="absolute inset-0" />
 
       <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded-md text-white text-xs font-bold tracking-wider fade-in">
         RTC
       </div>
       
-      {/* Controls are placed on a higher z-index to be clickable */}
       <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-auto z-10">
         <div className="flex items-center gap-3">
           <button onClick={togglePlay} className="text-white flex-shrink-0 p-1">
@@ -184,7 +179,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
 };
 
 
-// --- Universal Camera Stream Component ---
 interface CameraStreamContentProps {
   entityId?: string | null;
   haUrl: string;
@@ -310,7 +304,6 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
 };
 
 
-// --- Device Card Component ---
 interface DeviceCardProps {
   device: Device;
   onTemperatureChange: (change: number) => void;
@@ -331,18 +324,14 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
   const presetMenuRef = useRef<HTMLDivElement>(null);
 
-  // FIX: Moved useMemo to the top level of the component to respect the Rules of Hooks.
-  // This prevents the "Rendered fewer hooks than expected" error when device types change.
   const mockHistory = useMemo(() => {
-    if (device.type !== DeviceType.Sensor) return []; // Only calculate for sensors
+    if (device.type !== DeviceType.Sensor) return [];
     const value = parseFloat(device.status) || 20;
     return Array.from({ length: 20 }, (_, i) => 
         value + (Math.sin(i / 3) * (value * 0.05)) + (Math.random() - 0.5) * (value * 0.05)
     );
-  }, [device.type, device.status]); // Depend on type and status
+  }, [device.type, device.status]);
 
-  // --- Adaptive styles based on container size ---
-  // Using a base 'md' size from the old system for fluid scaling reference
    const styles = {
       padding: 'p-[8%]',
       nameText: 'font-semibold leading-tight',
@@ -358,7 +347,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
       brightnessText: 'text-xs font-semibold',
     };
 
-  // --- Translation for presets ---
   const presetTranslations: { [key: string]: string } = {
     'none': 'Нет',
     'away': 'Не дома',
@@ -469,7 +457,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
       case DeviceType.Thermostat:
         return (
           <div className="flex flex-col h-full text-left">
-            {/* Top row */}
             <div className="flex justify-between items-start flex-shrink-0">
                 <DeviceIcon type={device.icon ?? device.type} isOn={false} />
 
@@ -521,65 +508,66 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
           </div>
         );
       case DeviceType.Sensor: {
-        if (!template) return null; // Should not happen if called correctly
-        const { elements, styles: templateStyles } = template;
-        const isNumericStatus = !isNaN(parseFloat(device.status));
+        if (!template) return null;
+        
+        const renderElement = (element: CardElement) => {
+            if (!element.visible) return null;
+
+            const style: React.CSSProperties = {
+                position: 'absolute',
+                left: `${element.position.x}%`,
+                top: `${element.position.y}%`,
+                width: `${element.size.width}%`,
+                height: `${element.size.height}%`,
+                zIndex: element.zIndex,
+            };
+
+            switch(element.id) {
+                case 'name':
+                    return (
+                        <div key={element.id} style={style}>
+                            <AutoFitText text={device.name} className="w-full h-full" pClassName="font-medium text-gray-300 leading-tight" maxFontSize={element.styles.fontSize} mode="multi-line" />
+                        </div>
+                    );
+                case 'icon':
+                    return (
+                        <div key={element.id} style={style} className="text-gray-300">
+                           <DeviceIcon type={device.icon ?? device.type} isOn={false} className="!w-full !h-full" />
+                        </div>
+                    );
+                case 'value':
+                    return (
+                         <div key={element.id} style={style} className="flex items-center">
+                            <AutoFitText text={device.status} className="w-full h-full" pClassName="font-semibold text-gray-100" maxFontSize={element.styles.fontSize} mode="single-line" />
+                        </div>
+                    );
+                case 'unit':
+                     const isNumericStatus = !isNaN(parseFloat(device.status));
+                     if (!device.unit || !isNumericStatus) return null;
+                     return (
+                         <div key={element.id} style={style} className="flex items-end">
+                            <p className="text-gray-400 font-medium" style={{ fontSize: '70%' }}>
+                                {device.unit}
+                            </p>
+                        </div>
+                     );
+                case 'chart':
+                     return (
+                         <div key={element.id} style={style}>
+                            <SparklineChart data={device.history || mockHistory} strokeColor="#E5E7EB" />
+                         </div>
+                     );
+                default:
+                    return null;
+            }
+        };
 
         return (
           <div
-            className="grid h-full overflow-hidden rounded-2xl"
-            style={{
-              gridTemplateRows: 'auto 1fr auto',
-              padding: '10px 13px 14px 13px',
-              backgroundColor: templateStyles.backgroundColor,
-            }}
+            className="w-full h-full relative overflow-hidden rounded-2xl"
+            style={{ backgroundColor: template.styles.backgroundColor }}
           >
-            {/* Top row: Name and Icon */}
-            <div className="flex justify-between items-start min-h-0" style={{minHeight: '40px'}}>
-              {elements.name?.visible && (
-                <div className="flex-grow overflow-hidden pr-2 h-full min-h-0">
-                  <AutoFitText
-                    text={device.name}
-                    className="w-full h-full"
-                    pClassName="font-medium text-gray-300 leading-tight"
-                    maxFontSize={templateStyles.nameFontSize}
-                    mode="multi-line"
-                  />
-                </div>
-              )}
-              {elements.icon?.visible && (
-                <div className="flex-shrink-0 w-6 h-6 text-gray-300">
-                  <DeviceIcon type={device.icon ?? device.type} isOn={false} className="!w-full !h-full" />
-                </div>
-              )}
-            </div>
-
-            {/* Middle section: Value */}
-            <div className="flex items-center min-h-0">
-               {elements.value?.visible && (
-                 <div className="flex items-baseline" style={{ lineHeight: 1 }}>
-                    <AutoFitText
-                      text={device.status}
-                      className=""
-                      pClassName="font-semibold text-gray-100"
-                      maxFontSize={templateStyles.valueFontSize}
-                      mode="single-line"
-                    />
-                    {elements.unit?.visible && device.unit && isNumericStatus && (
-                      <p className="text-gray-400 ml-1 flex-shrink-0" style={{ fontSize: '50%', fontWeight: 400 }}>
-                        {device.unit}
-                      </p>
-                    )}
-                 </div>
-               )}
-            </div>
-
-            {/* Bottom section: Sparkline Chart */}
-            <div className="flex-shrink-0 w-full h-6 min-h-0">
-              {elements.chart?.visible && (
-                <SparklineChart data={device.history || mockHistory} strokeColor="#E5E7EB" />
-              )}
-            </div>
+            {template.elements.map(renderElement)}
           </div>
         );
       }
@@ -611,7 +599,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
     const onStateClasses = "bg-gray-200 text-gray-900";
     
     let offStateClasses = "bg-gray-800/80 hover:bg-gray-700/80";
-    if (device.type === DeviceType.Sensor && template) {
+    if (device.type === DeviceType.Sensor) {
       offStateClasses = ""; // Background is now controlled by template
     }
     
@@ -635,7 +623,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
 
   return (
     <div className={getCardClasses()}>
-       {/* The edit and remove buttons are removed from here and are now in the context menu */}
        {renderContent()}
     </div>
   );

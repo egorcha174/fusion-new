@@ -29,18 +29,59 @@ const useIsLg = () => {
 
 const defaultSensorTemplate: CardTemplate = {
   deviceType: 'sensor',
-  elements: {
-    name: { visible: true },
-    icon: { visible: true },
-    value: { visible: true },
-    unit: { visible: true },
-    chart: { visible: true },
-  },
   styles: {
     backgroundColor: 'rgb(31 41 55 / 0.8)', // bg-gray-800/80
-    nameFontSize: 17,
-    valueFontSize: 48,
   },
+  elements: [
+    {
+      id: 'name',
+      visible: true,
+      position: { x: 8, y: 7 },
+      size: { width: 65, height: 22 },
+      zIndex: 2,
+      styles: { fontSize: 17 },
+    },
+    {
+      id: 'icon',
+      visible: true,
+      position: { x: 80, y: 7 },
+      size: { width: 15, height: 15 },
+      zIndex: 2,
+      styles: {},
+    },
+    {
+      id: 'value',
+      visible: true,
+      position: { x: 8, y: 35 },
+      size: { width: 70, height: 40 },
+      zIndex: 2,
+      styles: { fontSize: 48 },
+    },
+    {
+      id: 'unit',
+      visible: true,
+      position: { x: 70, y: 40 },
+      size: { width: 25, height: 25 },
+      zIndex: 2,
+      styles: {},
+    },
+    {
+      id: 'chart',
+      visible: true,
+      position: { x: 0, y: 82 },
+      size: { width: 100, height: 18 },
+      zIndex: 1,
+      styles: {},
+    },
+    {
+      id: 'status', // Not displayed for sensor, but keep for type completeness
+      visible: false,
+      position: { x: 0, y: 0},
+      size: { width: 0, height: 0 },
+      zIndex: 0,
+      styles: {}
+    }
+  ],
 };
 
 

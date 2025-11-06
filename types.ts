@@ -97,17 +97,26 @@ export interface CameraSettings {
 // --- Card Template System ---
 export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status';
 
-export interface CardTemplate {
-  deviceType: 'sensor';
-  elements: {
-    [key in CardElementId]?: { visible: boolean };
-  };
+export interface CardElement {
+  id: CardElementId;
+  visible: boolean;
+  position: { x: number; y: number }; // in %
+  size: { width: number; height: number }; // in %
+  zIndex: number;
   styles: {
-    backgroundColor: string;
-    nameFontSize: number;
-    valueFontSize: number;
+    fontSize?: number; // in px
+    // other styles can be added here
   };
 }
+
+export interface CardTemplate {
+  deviceType: 'sensor';
+  elements: CardElement[];
+  styles: {
+    backgroundColor: string;
+  };
+}
+
 
 export type CardTemplates = {
   [key in 'sensor']?: CardTemplate;
