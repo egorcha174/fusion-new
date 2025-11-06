@@ -396,6 +396,11 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
   
   const defaultBackgroundColor = 'rgb(31 41 55 / 0.8)';
   
+  const handleAlignmentAction = (e: React.MouseEvent, action: string) => {
+    e.stopPropagation();
+    handleAlignment(action);
+  };
+  
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-gray-800 rounded-2xl shadow-lg w-full max-w-6xl h-[80vh] ring-1 ring-white/10 flex" onClick={e => e.stopPropagation()}>
@@ -493,16 +498,16 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
           isOpen={!!contextMenu}
           onClose={() => setContextMenu(null)}
         >
-          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={() => handleAlignment('align-left')}><span>⬅️</span><span>Выровнять по левому краю</span></div>
-          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={() => handleAlignment('align-right')}><span>➡️</span><span>Выровнять по правому краю</span></div>
-          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={() => handleAlignment('align-top')}><span>⬆️</span><span>Выровнять по верхнему краю</span></div>
-          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={() => handleAlignment('align-bottom')}><span>⬇️</span><span>Выровнять по нижнему краю</span></div>
+          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'align-left')}><span>⬅️</span><span>Выровнять по левому краю</span></div>
+          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'align-right')}><span>➡️</span><span>Выровнять по правому краю</span></div>
+          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'align-top')}><span>⬆️</span><span>Выровнять по верхнему краю</span></div>
+          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'align-bottom')}><span>⬇️</span><span>Выровнять по нижнему краю</span></div>
           <div className="h-px bg-gray-600/50 my-1" />
-          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={() => handleAlignment('align-center-vertical')}><span>↕️</span><span>Выровнять по центру (верт)</span></div>
-          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={() => handleAlignment('align-center-horizontal')}><span>↔️</span><span>Выровнять по центру (гориз)</span></div>
+          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'align-center-vertical')}><span>↕️</span><span>Выровнять по центру (верт)</span></div>
+          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'align-center-horizontal')}><span>↔️</span><span>Выровнять по центру (гориз)</span></div>
           <div className="h-px bg-gray-600/50 my-1" />
-          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={() => handleAlignment('distribute-horizontal')}><span>📏</span><span>Распределить по горизонтали</span></div>
-          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={() => handleAlignment('distribute-vertical')}><span>📏</span><span>Распределить по вертикали</span></div>
+          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'distribute-horizontal')}><span>📏</span><span>Распределить по горизонтали</span></div>
+          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'distribute-vertical')}><span>📏</span><span>Распределить по вертикали</span></div>
         </ContextMenu>
       )}
     </div>
