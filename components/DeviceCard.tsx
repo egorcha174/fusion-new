@@ -24,32 +24,33 @@ const AutoFitText: React.FC<{
 
     const fitText = () => {
       let currentSize = maxFontSize;
-      const tolerance = 1;
+      const tolerance = 1; // Add a small tolerance to prevent jitter
 
-      // --- Pass 1: Horizontal Fit (try to keep on one line) ---
-      p.style.whiteSpace = 'nowrap';
       p.style.fontSize = `${currentSize}px`;
-
-      while (currentSize > 8 && p.scrollWidth > container.clientWidth + tolerance) {
+      // Allow wrapping from the start if in multi-line mode
+      p.style.whiteSpace = mode === 'multi-line' ? 'normal' : 'nowrap';
+      
+      // Iteratively reduce font size until both width and height fit
+      while (
+        currentSize > 8 &&
+        (p.scrollWidth > container.clientWidth + tolerance || p.scrollHeight > container.clientHeight + tolerance)
+      ) {
         currentSize -= 1;
         p.style.fontSize = `${currentSize}px`;
-      }
-      
-      // --- Pass 2: Vertical Fit (allow wrapping if needed) ---
-      if (mode === 'multi-line') {
-        p.style.whiteSpace = 'normal';
-        while (currentSize > 8 && p.scrollHeight > container.clientHeight + tolerance) {
-          currentSize -= 1;
-          p.style.fontSize = `${currentSize}px`;
-        }
       }
     };
 
     const resizeObserver = new ResizeObserver(fitText);
-    resizeObserver.observe(container);
-    fitText();
+    if (container) {
+        resizeObserver.observe(container);
+    }
+    fitText(); // Initial fit
 
-    return () => resizeObserver.disconnect();
+    return () => {
+        if(container) {
+            resizeObserver.unobserve(container);
+        }
+    };
   }, [text, maxFontSize, mode]);
 
   return (
@@ -529,11 +530,11 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
             }}
           >
             {/* Top row: Name and Icon */}
-            <div className="flex justify-between items-start min-h-0">
-              <div className="flex-grow overflow-hidden pr-2">
+            <div className="flex justify-between items-start" style={{ minHeight: '40px' }}>
+              <div className="flex-grow overflow-hidden pr-2 h-full">
                 <AutoFitText
                   text={device.name}
-                  className="w-full"
+                  className="w-full h-full"
                   pClassName="font-medium text-gray-300 leading-tight"
                   maxFontSize={17}
                   mode="multi-line"
