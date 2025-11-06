@@ -9,7 +9,6 @@ import {
   useSensors,
   DragEndEvent,
   useDraggable,
-  UniqueIdentifier,
 } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -52,7 +51,10 @@ const SortableLayerItem: React.FC<{
   isSelected: boolean;
   onSelect: () => void;
 }> = ({ element, isSelected, onSelect }) => {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: element.id, data: { type: 'layer' }});
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ 
+    id: `layer-${element.id}`, // Unique ID for sorting
+    data: { type: 'layer' }
+  });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -91,8 +93,8 @@ const DraggableCanvasElement: React.FC<{
   onSelect: (id: CardElementId) => void;
 }> = ({ element, isSelected, onSelect }) => {
   const { attributes, listeners, setNodeRef, isDragging, transform } = useDraggable({
-    id: element.id,
-    data: { type: 'element' },
+    id: `element-${element.id}`, // Unique ID for dragging
+    data: { type: 'element', elementId: element.id },
     disabled: !element.visible,
   });
   
@@ -186,44 +188,63 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over, delta } = event;
     const type = active.data.current?.type;
+    
+    // --- Handle Layer Sorting ---
+    if (type === 'layer' && over) {
+        const activeId = active.id;
+        const overId = over.id;
+        if (activeId !== overId) {
+            setEditedTemplate(prev => {
+                const oldIndex = prev.elements.findIndex(e => `layer-${e.id}` === activeId);
+                const newIndex = prev.elements.findIndex(e => `layer-${e.id}` === overId);
+                if (oldIndex === -1 || newIndex === -1) return prev;
+                
+                const reorderedElements = arrayMove(prev.elements, oldIndex, newIndex);
+                
+                const updatedZIndexes = reorderedElements.map((el, index) => ({
+                    ...el,
+                    zIndex: reorderedElements.length - index
+                }));
+                return { ...prev, elements: updatedZIndexes };
+            });
+        }
+        return; // Stop processing after sorting
+    }
+    
+    const previewRect = previewRef.current?.getBoundingClientRect();
+    if (!previewRect) return;
 
-    setEditedTemplate(prev => {
-        const previewRect = previewRef.current?.getBoundingClientRect();
-        if (!previewRect) return prev;
-
-        // --- Handle Element Drag ---
-        if (type === 'element') {
-            const elementId = active.id as CardElementId;
+    // --- Handle Element Drag ---
+    if (type === 'element') {
+        const elementId = active.data.current?.elementId as CardElementId;
+        setEditedTemplate(prev => {
             const elementIndex = prev.elements.findIndex(el => el.id === elementId);
             if (elementIndex === -1) return prev;
             
             const element = prev.elements[elementIndex];
-            
             const startXPixels = (element.position.x / 100) * previewRect.width;
             const startYPixels = (element.position.y / 100) * previewRect.height;
-            
             const newPixelX = startXPixels + delta.x;
             const newPixelY = startYPixels + delta.y;
-            
             const snappedX = Math.round(newPixelX / SNAP_GRID_SIZE) * SNAP_GRID_SIZE;
             const snappedY = Math.round(newPixelY / SNAP_GRID_SIZE) * SNAP_GRID_SIZE;
-
             let newXPercent = (snappedX / previewRect.width) * 100;
             let newYPercent = (snappedY / previewRect.height) * 100;
             
-            // Clamp position
             newXPercent = Math.max(0, Math.min(100 - element.size.width, newXPercent));
             newYPercent = Math.max(0, Math.min(100 - element.size.height, newYPercent));
             
             const newElements = [...prev.elements];
             newElements[elementIndex] = { ...element, position: { x: newXPercent, y: newYPercent }};
             return { ...prev, elements: newElements };
-        }
-        
-        // --- Handle Element Resize ---
-        if (type === 'resize') {
-            const elementId = active.data.current?.elementId as CardElementId;
-            const handle = active.data.current?.handle;
+        });
+    }
+    
+    // --- Handle Element Resize ---
+    if (type === 'resize') {
+        const elementId = active.data.current?.elementId as CardElementId;
+        const handle = active.data.current?.handle as string;
+        setEditedTemplate(prev => {
             const elementIndex = prev.elements.findIndex(el => el.id === elementId);
             if (elementIndex === -1) return prev;
 
@@ -260,7 +281,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
                 y: (newYPixels / previewRect.height) * 100,
             };
             
-            // Clamp size and position
             newPosition.x = Math.max(0, Math.min(100 - newSize.width, newPosition.x));
             newPosition.y = Math.max(0, Math.min(100 - newSize.height, newPosition.y));
             newSize.width = Math.min(100 - newPosition.x, newSize.width);
@@ -269,24 +289,8 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
             const newElements = [...prev.elements];
             newElements[elementIndex] = { ...element, position: newPosition, size: newSize };
             return { ...prev, elements: newElements };
-        }
-        
-        // --- Handle Layer Sorting ---
-        if (type === 'layer' && over && active.id !== over.id) {
-            const oldIndex = prev.elements.findIndex(e => e.id === active.id);
-            const newIndex = prev.elements.findIndex(e => e.id === over.id);
-            const reorderedElements = arrayMove(prev.elements, oldIndex, newIndex);
-            
-            // Re-assign zIndex based on new order (top of list = higher zIndex)
-            const updatedZIndexes = reorderedElements.map((el, index) => ({
-                ...el,
-                zIndex: reorderedElements.length - index
-            }));
-            return { ...prev, elements: updatedZIndexes };
-        }
-
-        return prev;
-    });
+        });
+    }
   };
   
   const defaultBackgroundColor = 'rgb(31 41 55 / 0.8)';
@@ -336,7 +340,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
               <label className="block text-sm font-medium text-gray-300 mb-2">Слои</label>
               <p className="text-xs text-gray-400 mb-2">Перетащите, чтобы изменить порядок (верхний слой имеет приоритет).</p>
               <div className="space-y-2">
-                <SortableContext items={editedTemplate.elements.map(e => e.id)}>
+                <SortableContext items={editedTemplate.elements.map(e => `layer-${e.id}`)}>
                    {editedTemplate.elements.map(el => (
                       <SortableLayerItem key={el.id} element={el} isSelected={selectedElementId === el.id} onSelect={() => setSelectedElementId(el.id)} />
                    ))}
