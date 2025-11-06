@@ -124,6 +124,7 @@ const DraggableCanvasElement: React.FC<{
 
   return (
     <div
+      id={`element-${element.id}`}
       ref={setNodeRef}
       {...listeners}
       {...attributes}
@@ -201,9 +202,30 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
-    if (selectedElementIds.length < 2) return;
     e.preventDefault();
-    setContextMenu({ x: e.clientX, y: e.clientY });
+    const targetElementDiv = (e.target as HTMLElement).closest('[id^="element-"]');
+    const clickedElementId = targetElementDiv?.id.replace('element-', '') as CardElementId | undefined;
+
+    // If the user right-clicks an element that is NOT currently selected,
+    // and they are NOT holding ctrl/meta, make it the SOLE selection.
+    // This makes single-element context menus more intuitive.
+    if (clickedElementId && !selectedElementIds.includes(clickedElementId) && !e.ctrlKey && !e.metaKey) {
+        setSelectedElementIds([clickedElementId]);
+         // Show menu immediately after selection
+        setContextMenu({ x: e.clientX, y: e.clientY });
+        return;
+    }
+    
+    // If the click was not on an element, or on an already selected one, proceed.
+    // Show menu only if there is a selection and the click was on an element.
+    if (selectedElementIds.length > 0 && targetElementDiv) {
+      e.stopPropagation();
+      setContextMenu({ x: e.clientX, y: e.clientY });
+    } else {
+      // Click was on canvas background
+      setContextMenu(null);
+      setSelectedElementIds([]);
+    }
   };
   
   const handleAlignment = (action: string) => {
@@ -284,6 +306,43 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
     });
     setContextMenu(null);
   };
+  
+  const handleSingleElementAlignment = (action: string) => {
+    if (selectedElementIds.length !== 1) return;
+    const elementId = selectedElementIds[0];
+
+    setEditedTemplate(prev => {
+        const newElements = prev.elements.map(el => ({ ...el, position: { ...el.position }, size: { ...el.size } }));
+        const elementIndex = newElements.findIndex(el => el.id === elementId);
+        if (elementIndex === -1) return prev;
+
+        const element = newElements[elementIndex];
+        const { size } = element;
+
+        switch (action) {
+            case 'align-single-left':
+                element.position.x = 0;
+                break;
+            case 'align-single-right':
+                element.position.x = 100 - size.width;
+                break;
+            case 'align-single-top':
+                element.position.y = 0;
+                break;
+            case 'align-single-bottom':
+                element.position.y = 100 - size.height;
+                break;
+            case 'align-single-center-horizontal': // Horizontal centering
+                element.position.x = (100 - size.width) / 2;
+                break;
+            case 'align-single-center-vertical': // Vertical centering
+                element.position.y = (100 - size.height) / 2;
+                break;
+        }
+        return { ...prev, elements: newElements };
+    });
+    setContextMenu(null);
+};
 
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -401,6 +460,11 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
     handleAlignment(action);
   };
   
+  const handleSingleElementAlignmentAction = (e: React.MouseEvent, action: string) => {
+    e.stopPropagation();
+    handleSingleElementAlignment(action);
+  };
+  
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-gray-800 rounded-2xl shadow-lg w-full max-w-6xl h-[80vh] ring-1 ring-white/10 flex" onClick={e => e.stopPropagation()}>
@@ -498,16 +562,30 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ template, onS
           isOpen={!!contextMenu}
           onClose={() => setContextMenu(null)}
         >
-          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'align-left')}><span>⬅️</span><span>Выровнять по левому краю</span></div>
-          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'align-right')}><span>➡️</span><span>Выровнять по правому краю</span></div>
-          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'align-top')}><span>⬆️</span><span>Выровнять по верхнему краю</span></div>
-          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'align-bottom')}><span>⬇️</span><span>Выровнять по нижнему краю</span></div>
-          <div className="h-px bg-gray-600/50 my-1" />
-          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'align-center-vertical')}><span>↕️</span><span>Выровнять по центру (верт)</span></div>
-          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'align-center-horizontal')}><span>↔️</span><span>Выровнять по центру (гориз)</span></div>
-          <div className="h-px bg-gray-600/50 my-1" />
-          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'distribute-horizontal')}><span>📏</span><span>Распределить по горизонтали</span></div>
-          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'distribute-vertical')}><span>📏</span><span>Распределить по вертикали</span></div>
+          {selectedElementIds.length > 1 ? (
+            <>
+              <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'align-left')}><span>⬅️</span><span>Выровнять по левому краю</span></div>
+              <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'align-right')}><span>➡️</span><span>Выровнять по правому краю</span></div>
+              <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'align-top')}><span>⬆️</span><span>Выровнять по верхнему краю</span></div>
+              <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'align-bottom')}><span>⬇️</span><span>Выровнять по нижнему краю</span></div>
+              <div className="h-px bg-gray-600/50 my-1" />
+              <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'align-center-vertical')}><span>↕️</span><span>Выровнять по центру (верт)</span></div>
+              <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'align-center-horizontal')}><span>↔️</span><span>Выровнять по центру (гориз)</span></div>
+              <div className="h-px bg-gray-600/50 my-1" />
+              <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'distribute-horizontal')}><span>📏</span><span>Распределить по горизонтали</span></div>
+              <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleAlignmentAction(e, 'distribute-vertical')}><span>📏</span><span>Распределить по вертикали</span></div>
+            </>
+          ) : selectedElementIds.length === 1 ? (
+             <>
+                <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleSingleElementAlignmentAction(e, 'align-single-left')}><span>⬅️</span><span>По левому краю</span></div>
+                <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleSingleElementAlignmentAction(e, 'align-single-right')}><span>➡️</span><span>По правому краю</span></div>
+                <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleSingleElementAlignmentAction(e, 'align-single-top')}><span>⬆️</span><span>По верхнему краю</span></div>
+                <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleSingleElementAlignmentAction(e, 'align-single-bottom')}><span>⬇️</span><span>По нижнему краю</span></div>
+                <div className="h-px bg-gray-600/50 my-1" />
+                <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleSingleElementAlignmentAction(e, 'align-single-center-horizontal')}><span>↔️</span><span>По центру (горизонталь)</span></div>
+                <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer flex items-center gap-2" onClick={(e) => handleSingleElementAlignmentAction(e, 'align-single-center-vertical')}><span>↕️</span><span>По центру (вертикаль)</span></div>
+             </>
+          ) : null}
         </ContextMenu>
       )}
     </div>
