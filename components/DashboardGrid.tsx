@@ -236,7 +236,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                  <DragOverlay dropAnimation={null}>
                     {activeDevice && activeDragItemRect ? (
                       <div 
-                        className="opacity-80 backdrop-blur-sm scale-105 shadow-2xl rounded-2xl"
+                        className="opacity-80 backdrop-blur-sm shadow-2xl rounded-2xl"
                         style={{
                             width: activeDragItemRect.width,
                             height: activeDragItemRect.height,
