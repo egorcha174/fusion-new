@@ -5,6 +5,49 @@ import SparklineChart from './SparklineChart';
 import Hls from 'hls.js';
 import { constructHaUrl } from '../utils/url';
 
+// --- Auto-fitting Text Component ---
+const AutoFitText: React.FC<{
+  text: string;
+  baseFontSize: number;
+  className: string;
+  containerRef: React.RefObject<HTMLDivElement>;
+}> = ({ text, baseFontSize, className, containerRef }) => {
+  const pRef = React.useRef<HTMLParagraphElement>(null);
+
+  React.useLayoutEffect(() => {
+    const p = pRef.current;
+    const container = containerRef.current;
+    if (!p || !container) return;
+
+    const fitText = () => {
+      // Reset to base size for accurate measurement
+      p.style.fontSize = `${baseFontSize}px`;
+      let currentSize = baseFontSize;
+      
+      // Reduce font size until the container no longer overflows
+      // A small tolerance is added to prevent shrinking for minor pixel overflows
+      while (container.scrollHeight > container.clientHeight + 1 && currentSize > 9) {
+        currentSize -= 1;
+        p.style.fontSize = `${currentSize}px`;
+      }
+    };
+
+    // Observe the container, not the text element itself
+    const resizeObserver = new ResizeObserver(fitText);
+    resizeObserver.observe(container);
+    fitText(); // Initial fit
+
+    return () => resizeObserver.disconnect();
+  }, [text, baseFontSize, containerRef]);
+
+  return (
+    <p ref={pRef} className={className} style={{ wordBreak: 'normal', overflowWrap: 'break-word' }}>
+      {text}
+    </p>
+  );
+};
+
+
 // --- Video Player Component ---
 interface VideoPlayerProps {
   src: string;
@@ -272,6 +315,11 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
   const isOn = device.status.toLowerCase() === 'включено';
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
   const presetMenuRef = useRef<HTMLDivElement>(null);
+  const textContainerRef = useRef<HTMLDivElement>(null);
+
+  const sizeMap: Record<CardSize, number> = {
+    'xs': 12, 'sm': 14, 'md': 16, 'lg': 18, 'xl': 20
+  };
   
   const cardStyles = {
     xs: {
@@ -430,9 +478,14 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                 </div>
               )}
             </div>
-             <div className="flex-grow"></div>
-            <div className="text-left">
-              <p className={`${styles.nameText} break-words`}>{device.name}</p>
+            <div className="flex-grow"></div>
+            <div ref={textContainerRef} className="text-left overflow-hidden">
+                <AutoFitText
+                    text={device.name}
+                    baseFontSize={sizeMap[cardSize]}
+                    className={styles.nameText}
+                    containerRef={textContainerRef}
+                />
               <p className={`${styles.statusText} ${isOn ? textOnClasses : textOffClasses} transition-colors`}>{device.status}</p>
                {isOn && (
                 <div className="mt-2" onClick={(e) => e.stopPropagation()}>
@@ -488,7 +541,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
 
             {/* Bottom part */}
             <div className="flex-shrink-0">
-              <p className={`${styles.nameText} break-words`}>{device.name}</p>
+              <p className={`${styles.nameText}`}>{device.name}</p>
               <p className={`${styles.thermostatTempText} text-white`}>{device.temperature}{device.unit}</p>
               <div className="flex items-center justify-between mt-1">
                 <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(-0.5); }} className={`${styles.thermostatButton} rounded-full bg-black/20 text-white flex items-center justify-center font-light text-2xl leading-none pb-1`}>-</button>
@@ -512,7 +565,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
           <div className="flex flex-col h-full text-left">
             <div>
               <DeviceIcon type={device.icon ?? device.type} isOn={false} cardSize={cardSize} />
-              <p className={`${styles.nameText} mt-2 break-words`}>{device.name}</p>
+              <p className={`${styles.nameText} mt-2`}>{device.name}</p>
             </div>
              <div className="flex-grow flex items-center w-full my-1 min-h-0">
               <SparklineChart data={device.history || mockHistory} />
@@ -529,8 +582,13 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
             <div className="flex-shrink-0">
                <DeviceIcon type={device.icon ?? device.type} isOn={isOn} cardSize={cardSize} />
             </div>
-            <div className="text-left">
-              <p className={`${styles.nameText} break-words`}>{device.name}</p>
+            <div ref={textContainerRef} className="text-left overflow-hidden">
+                <AutoFitText
+                    text={device.name}
+                    baseFontSize={sizeMap[cardSize]}
+                    className={styles.nameText}
+                    containerRef={textContainerRef}
+                />
               <p className={`${styles.statusText} ${isOn ? textOnClasses : textOffClasses} transition-colors`}>{device.status}</p>
             </div>
           </div>
