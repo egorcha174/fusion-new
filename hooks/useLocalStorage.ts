@@ -63,10 +63,14 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, React.Disp
       if (key === 'ha-card-templates' && parsedItem?.sensor?.elements && !Array.isArray(parsedItem.sensor.elements)) {
         console.log("Migrating old sensor template elements from object to array...");
         const elementsObject = parsedItem.sensor.elements as Record<string, any>;
-        const elementsArray = Object.entries(elementsObject).map(([id, elementData]) => ({
-            id: id,
-            ...elementData
-        }));
+        const elementsArray = Object.entries(elementsObject).map(([id, elementData]) => {
+            // Ensure elementData is an object before spreading
+            const data = (typeof elementData === 'object' && elementData !== null) ? elementData : {};
+            return {
+              id: id,
+              ...data
+            };
+        });
         parsedItem.sensor.elements = elementsArray;
       }
       // --- END MIGRATION LOGIC ---
