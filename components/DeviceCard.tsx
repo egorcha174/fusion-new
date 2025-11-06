@@ -521,44 +521,42 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
       case DeviceType.Sensor: {
         const isNumericStatus = !isNaN(parseFloat(device.status));
         return (
-          <div className="flex flex-col h-full text-left">
+          <div className="flex flex-col h-full text-left justify-between" style={{padding: '10px 13px 14px 13px'}}>
             {/* Top row: Name and Icon */}
-            <div className="flex justify-between items-start flex-shrink-0">
-              <div className="flex-grow overflow-hidden pr-2 min-h-[2.5rem] flex items-center">
+            <div className="flex justify-between items-start">
+              <div className="flex-grow overflow-hidden pr-2">
                 <AutoFitText
                   text={device.name}
-                  className="w-full h-full"
-                  pClassName={`${styles.nameText} text-white`}
-                  maxFontSize={18}
+                  className="w-full"
+                  pClassName="font-medium text-gray-300 leading-tight"
+                  maxFontSize={17}
                   mode="multi-line"
                 />
               </div>
-              <div className="flex-shrink-0 w-7 h-7">
+              <div className="flex-shrink-0 w-6 h-6 text-gray-300">
                 <DeviceIcon type={device.icon ?? device.type} isOn={false} className="!w-full !h-full" />
               </div>
             </div>
 
             {/* Middle section: Value */}
-            <div className="flex-grow flex items-center justify-center overflow-hidden min-h-0 text-white">
-              <div className="flex items-baseline" style={{ lineHeight: 1 }}>
-                <AutoFitText
-                  text={device.status}
-                  className="w-full"
-                  pClassName="font-light"
-                  maxFontSize={72}
-                  mode="single-line"
-                />
-                {device.unit && isNumericStatus && (
-                  <p className="text-gray-400 ml-1 flex-shrink-0 text-3xl font-light">
-                    {device.unit}
-                  </p>
-                )}
-              </div>
+            <div className="flex items-baseline" style={{ lineHeight: 1 }}>
+              <AutoFitText
+                text={device.status}
+                className="flex-grow w-full"
+                pClassName="font-semibold text-gray-100"
+                maxFontSize={60}
+                mode="single-line"
+              />
+              {device.unit && isNumericStatus && (
+                <p className="text-gray-400 ml-1 flex-shrink-0" style={{ fontSize: '50%', fontWeight: 400 }}>
+                  {device.unit}
+                </p>
+              )}
             </div>
 
             {/* Bottom section: Sparkline Chart */}
-            <div className="flex-shrink-0 w-full h-1/4 max-h-10 -mb-2">
-              <SparklineChart data={device.history || mockHistory} />
+            <div className="flex-shrink-0 w-full h-1/4 max-h-8">
+              <SparklineChart data={device.history || mockHistory} strokeColor="#E5E7EB" />
             </div>
           </div>
         );
@@ -595,7 +593,10 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
 
     if (isCamera) {
       finalClasses += `p-0 overflow-hidden ${offStateClasses}`;
-    } else if (device.type === DeviceType.Sensor || device.type === DeviceType.Thermostat) {
+    } else if (device.type === DeviceType.Sensor) {
+        // Sensor card now has its own padding
+        finalClasses += ` ${offStateClasses}`;
+    } else if (device.type === DeviceType.Thermostat) {
         finalClasses += `${styles.padding} ${offStateClasses}`;
     } else {
         finalClasses += `${styles.padding} ${isOn ? onStateClasses : offStateClasses}`;
