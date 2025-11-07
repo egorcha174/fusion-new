@@ -45,6 +45,10 @@ export interface Device {
   condition?: string; // For weather, the raw state like 'partlycloudy'
   presetMode?: string; // For Thermostat
   presetModes?: string[]; // For Thermostat
+  hvacModes?: string[];
+  hvacAction?: string;
+  minTemp?: number;
+  maxTemp?: number;
   history?: number[]; // For sensor sparklines
   haDomain?: string;
   haDeviceClass?: string;
@@ -102,7 +106,7 @@ export interface CameraSettings {
 }
 
 // --- Card Template System ---
-export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status' | 'slider';
+export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status' | 'slider' | 'temperature' | 'target-temperature' | 'hvac-modes';
 
 export interface CardElement {
   id: CardElementId;
@@ -123,7 +127,7 @@ export interface CardElement {
 export interface CardTemplate {
   id: string;
   name: string;
-  deviceType: 'sensor' | 'light' | 'switch';
+  deviceType: 'sensor' | 'light' | 'switch' | 'climate';
   elements: CardElement[];
   styles: {
     backgroundColor: string;
@@ -150,6 +154,10 @@ export interface HassEntity {
     forecast?: any;
     preset_mode?: string;
     preset_modes?: string[];
+    hvac_modes?: string[];
+    hvac_action?: string;
+    min_temp?: number;
+    max_temp?: number;
     [key: string]: any;
   };
   context: {

@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import DashboardGrid from './DashboardGrid';
 import { Tab, Device, GridLayoutItem, CardTemplates, DeviceCustomizations } from '../types';
@@ -9,8 +10,9 @@ interface TabContentProps {
   searchTerm: string;
   onDeviceLayoutChange: (tabId: string, newLayout: GridLayoutItem[]) => void;
   onDeviceToggle: (deviceId: string) => void;
-  onTemperatureChange: (deviceId: string, change: number) => void;
+  onTemperatureChange: (deviceId: string, temperature: number, isDelta?: boolean) => void;
   onBrightnessChange: (deviceId: string, brightness: number) => void;
+  onHvacModeChange: (deviceId: string, mode: string) => void;
   onPresetChange: (deviceId: string, preset: string) => void;
   onCameraCardClick: (device: Device) => void;
   isEditMode: boolean;

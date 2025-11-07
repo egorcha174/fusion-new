@@ -1,4 +1,5 @@
 
+
 import React, { useRef, useState } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ClockSettings, ClockSize, CardTemplates, CardTemplate } from '../types';
@@ -19,7 +20,7 @@ interface SettingsProps {
   templates?: CardTemplates;
   onEditTemplate?: (template: CardTemplate) => void;
   onDeleteTemplate?: (templateId: string) => void;
-  onCreateTemplate?: (type: 'sensor' | 'light' | 'switch') => void;
+  onCreateTemplate?: (type: 'sensor' | 'light' | 'switch' | 'climate') => void;
 }
 
 // Keys to be backed up
@@ -255,6 +256,7 @@ const Settings: React.FC<SettingsProps> = (props) => {
                             <button onClick={() => { onCreateTemplate('sensor'); setIsCreateMenuOpen(false); }} className="block w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-600">Для сенсора</button>
                             <button onClick={() => { onCreateTemplate('light'); setIsCreateMenuOpen(false); }} className="block w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-600">Для светильника</button>
                             <button onClick={() => { onCreateTemplate('switch'); setIsCreateMenuOpen(false); }} className="block w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-600">Для переключателя</button>
+                            <button onClick={() => { onCreateTemplate('climate'); setIsCreateMenuOpen(false); }} className="block w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-600">Для климата</button>
                         </div>
                     )}
                  </div>

@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import Settings from './components/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -34,6 +35,7 @@ const useIsLg = () => {
 const DEFAULT_SENSOR_TEMPLATE_ID = 'default-sensor';
 const DEFAULT_LIGHT_TEMPLATE_ID = 'default-light';
 const DEFAULT_SWITCH_TEMPLATE_ID = 'default-switch';
+const DEFAULT_CLIMATE_TEMPLATE_ID = 'default-climate';
 
 
 const defaultSensorTemplate: CardTemplate = {
@@ -86,22 +88,11 @@ const defaultSensorTemplate: CardTemplate = {
       zIndex: 1,
       styles: {},
     },
-    {
-      id: 'status',
-      visible: false,
-      position: { x: 0, y: 0},
-      size: { width: 0, height: 0 },
-      zIndex: 0,
-      styles: {}
-    },
-    {
-      id: 'slider',
-      visible: false,
-      position: { x: 0, y: 0},
-      size: { width: 0, height: 0 },
-      zIndex: 0,
-      styles: {}
-    }
+    { id: 'status', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+    { id: 'slider', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+    { id: 'temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+    { id: 'target-temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+    { id: 'hvac-modes', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
   ],
 };
 
@@ -149,10 +140,12 @@ const defaultLightTemplate: CardTemplate = {
         styles: {},
       },
       // Hidden elements for type completeness
-      // FIX: Corrected size properties from w/h to width/height to match the CardElement type.
       { id: 'value', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
       { id: 'unit', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
       { id: 'chart', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
+      { id: 'temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+      { id: 'target-temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+      { id: 'hvac-modes', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
     ],
 };
 
@@ -196,7 +189,67 @@ const defaultSwitchTemplate: CardTemplate = {
       { id: 'value', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
       { id: 'unit', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
       { id: 'chart', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
+      { id: 'temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+      { id: 'target-temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+      { id: 'hvac-modes', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
     ],
+};
+
+const defaultClimateTemplate: CardTemplate = {
+  id: DEFAULT_CLIMATE_TEMPLATE_ID,
+  name: 'Стандартный климат',
+  deviceType: 'climate',
+  styles: {
+    backgroundColor: 'rgba(30, 30, 30, 0.5)', // A dark, blurred background look
+  },
+  elements: [
+    {
+      id: 'temperature',
+      visible: true,
+      position: { x: 8, y: 15 },
+      size: { width: 40, height: 15 },
+      zIndex: 2,
+      styles: { fontSize: 32 },
+    },
+    {
+      id: 'name',
+      visible: true,
+      position: { x: 8, y: 32 },
+      size: { width: 40, height: 10 },
+      zIndex: 2,
+      styles: { fontSize: 18 },
+    },
+    {
+      id: 'status',
+      visible: true,
+      position: { x: 8, y: 44 },
+      size: { width: 40, height: 8 },
+      zIndex: 2,
+      styles: { fontSize: 12 },
+    },
+    {
+      id: 'target-temperature', // This will render the dial
+      visible: true,
+      position: { x: 25, y: 5 },
+      size: { width: 90, height: 90 },
+      zIndex: 1,
+      styles: {},
+    },
+    {
+      id: 'hvac-modes',
+      visible: true,
+      position: { x: 80, y: 25 },
+      size: { width: 15, height: 50 },
+      zIndex: 2,
+      styles: {},
+    },
+    // Hidden elements for type completeness
+    { id: 'icon', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
+    { id: 'value', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
+    { id: 'unit', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
+    { id: 'chart', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
+    { id: 'slider', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
+  ],
 };
 
 
@@ -233,6 +286,7 @@ const App: React.FC = () => {
     [DEFAULT_SENSOR_TEMPLATE_ID]: defaultSensorTemplate,
     [DEFAULT_LIGHT_TEMPLATE_ID]: defaultLightTemplate,
     [DEFAULT_SWITCH_TEMPLATE_ID]: defaultSwitchTemplate,
+    [DEFAULT_CLIMATE_TEMPLATE_ID]: defaultClimateTemplate,
   });
   const [clockSettings, setClockSettings] = useLocalStorage<ClockSettings>('ha-clock-settings', {
     format: '24h',
@@ -468,11 +522,21 @@ const App: React.FC = () => {
     callService(domain, service, { entity_id: entity.entity_id });
   };
   
-  const handleTemperatureChange = (deviceId: string, change: number) => {
+  const handleTemperatureChange = (deviceId: string, temperature: number, isDelta: boolean = false) => {
       const entity = entities[deviceId];
-      if (!entity || entity.attributes.temperature === undefined) return;
-      const newTemp = (entity.attributes.temperature || 0) + change;
+      if (!entity) return;
+      
+      const newTemp = isDelta 
+        ? (entity.attributes.temperature || 0) + temperature 
+        : temperature;
+      
       callService('climate', 'set_temperature', { entity_id: entity.entity_id, temperature: newTemp });
+  };
+
+  const handleHvacModeChange = (deviceId: string, mode: string) => {
+    const entity = entities[deviceId];
+    if (!entity) return;
+    callService('climate', 'set_hvac_mode', { entity_id: entity.entity_id, hvac_mode: mode });
   };
 
   const handleBrightnessChange = useCallback((deviceId: string, brightness: number) => {
@@ -618,7 +682,7 @@ const App: React.FC = () => {
     });
   };
 
-  const createNewBlankTemplate = (deviceType: 'sensor' | 'light' | 'switch'): CardTemplate => {
+  const createNewBlankTemplate = (deviceType: 'sensor' | 'light' | 'switch' | 'climate'): CardTemplate => {
     let baseTemplate: CardTemplate;
     let typeName: string;
 
@@ -634,6 +698,10 @@ const App: React.FC = () => {
         case 'switch':
             baseTemplate = defaultSwitchTemplate;
             typeName = 'переключатель';
+            break;
+        case 'climate':
+            baseTemplate = defaultClimateTemplate;
+            typeName = 'климат';
             break;
     }
 
@@ -660,7 +728,7 @@ const App: React.FC = () => {
   }
   
   const contextMenuDevice = contextMenu ? allKnownDevices.get(contextMenu.deviceId) : null;
-  const isTemplateable = contextMenuDevice?.type === DeviceType.Sensor || contextMenuDevice?.type === DeviceType.DimmableLight || contextMenuDevice?.type === DeviceType.Light || contextMenuDevice?.type === DeviceType.Switch;
+  const isTemplateable = contextMenuDevice?.type === DeviceType.Sensor || contextMenuDevice?.type === DeviceType.DimmableLight || contextMenuDevice?.type === DeviceType.Light || contextMenuDevice?.type === DeviceType.Switch || contextMenuDevice?.type === DeviceType.Thermostat;
 
   const getTemplateForDevice = (device: Device | null) => {
     if (!device) return null;
@@ -670,6 +738,7 @@ const App: React.FC = () => {
         if (device.type === DeviceType.Sensor) templateId = DEFAULT_SENSOR_TEMPLATE_ID;
         if (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight) templateId = DEFAULT_LIGHT_TEMPLATE_ID;
         if (device.type === DeviceType.Switch) templateId = DEFAULT_SWITCH_TEMPLATE_ID;
+        if (device.type === DeviceType.Thermostat) templateId = DEFAULT_CLIMATE_TEMPLATE_ID;
     }
     return templateId ? templates[templateId] : null;
   };
@@ -711,6 +780,7 @@ const App: React.FC = () => {
             onDeviceToggle={handleDeviceToggle}
             onTemperatureChange={handleTemperatureChange}
             onBrightnessChange={handleBrightnessChange}
+            onHvacModeChange={handleHvacModeChange}
             onPresetChange={handlePresetChange}
             onCameraCardClick={handleCameraCardClick}
             isEditMode={isEditMode}

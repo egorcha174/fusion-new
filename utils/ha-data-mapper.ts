@@ -60,6 +60,22 @@ const getStatusText = (entity: HassEntity): string => {
     const domain = entity.entity_id.split('.')[0];
     const attributes = entity.attributes || {};
 
+    if (domain === 'climate') {
+        const hvacAction = attributes.hvac_action;
+        const currentTemp = attributes.current_temperature;
+        const targetTemp = attributes.temperature;
+        if (hvacAction && hvacAction !== 'off' && hvacAction !== 'idle') {
+            const actionText = {
+                'cooling': `Охлаждение до ${targetTemp}°`,
+                'heating': `Нагрев до ${targetTemp}°`,
+                'fan': 'Вентилятор',
+                'drying': 'Осушение',
+            }[hvacAction] || hvacAction;
+            return `Текущая ${currentTemp}° · ${actionText}`;
+        }
+        return `Текущая ${currentTemp}° · ${entity.state}`;
+    }
+
     if (domain === 'weather') {
         const stateMap: Record<string, string> = {
             'clear-night': 'Ясно',
@@ -119,6 +135,10 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
     device.targetTemperature = attributes.temperature;
     device.presetMode = attributes.preset_mode;
     device.presetModes = attributes.preset_modes;
+    device.hvacModes = attributes.hvac_modes;
+    device.hvacAction = attributes.hvac_action;
+    device.minTemp = attributes.min_temp;
+    device.maxTemp = attributes.max_temp;
   }
   
   if (device.type === DeviceType.Weather) {

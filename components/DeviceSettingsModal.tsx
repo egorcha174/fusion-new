@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { Device, DeviceCustomization, DeviceType, CardTemplates } from '../types';
 import DeviceIcon, { icons, getIconNameForDeviceType } from './DeviceIcon';
@@ -59,12 +60,14 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
     
   const availableIcons = Object.keys(icons).map(Number) as DeviceType[];
   
-  const isTemplateable = device.type === DeviceType.Sensor || device.type === DeviceType.Light || device.type === DeviceType.DimmableLight || device.type === DeviceType.Switch;
+  const isTemplateable = device.type === DeviceType.Sensor || device.type === DeviceType.Light || device.type === DeviceType.DimmableLight || device.type === DeviceType.Switch || device.type === DeviceType.Thermostat;
   const templateType = (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight)
     ? 'light'
     : (device.type === DeviceType.Switch)
       ? 'switch'
-      : 'sensor';
+      : (device.type === DeviceType.Thermostat)
+        ? 'climate'
+        : 'sensor';
 
   const animationOptions = [
     { value: 'none', name: 'Нет' },

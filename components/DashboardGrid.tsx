@@ -1,5 +1,6 @@
 
 
+
 import React, { useRef, useState, useLayoutEffect, useMemo } from 'react';
 import {
   DndContext,
@@ -20,6 +21,7 @@ import { Tab, Device, DeviceType, GridLayoutItem, CardTemplates, DeviceCustomiza
 const DEFAULT_SENSOR_TEMPLATE_ID = 'default-sensor';
 const DEFAULT_LIGHT_TEMPLATE_ID = 'default-light';
 const DEFAULT_SWITCH_TEMPLATE_ID = 'default-switch';
+const DEFAULT_CLIMATE_TEMPLATE_ID = 'default-climate';
 
 // --- Draggable Item ---
 const DraggableDevice: React.FC<{
@@ -69,8 +71,9 @@ const DraggableDevice: React.FC<{
       <DeviceCard
         device={device}
         template={template}
-        onTemperatureChange={(change) => cardProps.onTemperatureChange(device.id, change)}
+        onTemperatureChange={(temp, isDelta) => cardProps.onTemperatureChange(device.id, temp, isDelta)}
         onBrightnessChange={(brightness) => cardProps.onBrightnessChange(device.id, brightness)}
+        onHvacModeChange={(mode) => cardProps.onHvacModeChange(device.id, mode)}
         onPresetChange={(preset) => cardProps.onPresetChange(device.id, preset)}
         onCameraCardClick={cardProps.onCameraCardClick}
         isEditMode={isEditMode}
@@ -115,8 +118,9 @@ interface DashboardGridProps {
     isEditMode: boolean;
     onDeviceLayoutChange: (tabId: string, newLayout: GridLayoutItem[]) => void;
     onDeviceToggle: (deviceId: string) => void;
-    onTemperatureChange: (deviceId: string, change: number) => void;
+    onTemperatureChange: (deviceId: string, temperature: number, isDelta?: boolean) => void;
     onBrightnessChange: (deviceId: string, brightness: number) => void;
+    onHvacModeChange: (deviceId: string, mode: string) => void;
     onPresetChange: (deviceId: string, preset: string) => void;
     onCameraCardClick: (device: Device) => void;
     onEditDevice: (device: Device) => void;
@@ -279,6 +283,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
             activeDeviceTemplate = templates[DEFAULT_LIGHT_TEMPLATE_ID];
         } else if (activeDevice.type === DeviceType.Switch) {
             activeDeviceTemplate = templates[DEFAULT_SWITCH_TEMPLATE_ID];
+        } else if (activeDevice.type === DeviceType.Thermostat) {
+            activeDeviceTemplate = templates[DEFAULT_CLIMATE_TEMPLATE_ID];
         }
     }
 
@@ -328,6 +334,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                             templateToUse = templates[DEFAULT_LIGHT_TEMPLATE_ID];
                         } else if (device.type === DeviceType.Switch) {
                             templateToUse = templates[DEFAULT_SWITCH_TEMPLATE_ID];
+                        } else if (device.type === DeviceType.Thermostat) {
+                            templateToUse = templates[DEFAULT_CLIMATE_TEMPLATE_ID];
                         }
 
                         return (
@@ -363,6 +371,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                            isEditMode={true}
                            onTemperatureChange={() => {}}
                            onBrightnessChange={() => {}}
+                           onHvacModeChange={() => {}}
                            onPresetChange={() => {}}
                            onCameraCardClick={() => {}}
                            onEditDevice={() => {}}

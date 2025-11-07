@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useRef, useMemo } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement } from '../types';
 import DeviceCard from './DeviceCard';
@@ -69,7 +70,10 @@ const SortableLayerItem: React.FC<{
       unit: 'Единица изм.',
       chart: 'График',
       status: 'Статус',
-      slider: 'Слайдер'
+      slider: 'Слайдер',
+      temperature: 'Текущая темп.',
+      'target-temperature': 'Термостат (кольцо)',
+      'hvac-modes': 'Режимы работы'
   };
 
   return (
@@ -175,6 +179,21 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   );
 
   const sampleDevice: Device = useMemo(() => {
+    if (templateToEdit.deviceType === 'climate') {
+      return {
+        id: 'climate.living_room',
+        name: 'Гостиная',
+        status: 'Охлаждение до 22°',
+        type: DeviceType.Thermostat,
+        temperature: 24,
+        targetTemperature: 22,
+        minTemp: 16,
+        maxTemp: 30,
+        hvacModes: ['off', 'cool', 'heat', 'auto'],
+        hvacAction: 'cooling',
+        haDomain: 'climate',
+      };
+    }
     if (templateToEdit.deviceType === 'light') {
       return {
         id: 'light.sample_dimmable',
@@ -510,7 +529,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
     handleSingleElementAlignment(action);
   };
   
-  const isTextElement = selectedElement && ['name', 'status', 'value', 'unit'].includes(selectedElement.id);
+  const isTextElement = selectedElement && ['name', 'status', 'value', 'unit', 'temperature'].includes(selectedElement.id);
   
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -530,7 +549,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
             <DeviceCard
               device={sampleDevice}
               template={editedTemplate}
-              onTemperatureChange={()=>{}} onBrightnessChange={()=>{}} onPresetChange={()=>{}} onCameraCardClick={()=>{}}
+              onTemperatureChange={()=>{}} onBrightnessChange={()=>{}} onHvacModeChange={()=>{}} onPresetChange={()=>{}} onCameraCardClick={()=>{}}
               isEditMode={false} onEditDevice={()=>{}} haUrl="" signPath={async()=>({path:''})} getCameraStreamUrl={async()=>''}
             />
             {/* --- Interactive Overlays --- */}
