@@ -244,13 +244,20 @@ const defaultClimateTemplate: CardTemplate = {
       zIndex: 2,
       styles: {},
     },
+    {
+      id: 'linked-entity',
+      visible: false,
+      position: { x: 8, y: 8 },
+      size: { width: 10, height: 10 },
+      zIndex: 2,
+      styles: { linkedEntityId: '' },
+    },
     // Hidden elements for type completeness
     { id: 'icon', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
     { id: 'value', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
     { id: 'unit', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
     { id: 'chart', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
     { id: 'slider', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
-    { id: 'linked-entity', visible: false, position: {x:0, y:0}, size: {width:10, height:10}, zIndex: 2, styles: { linkedEntityId: '' } },
   ],
 };
 

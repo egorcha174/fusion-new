@@ -183,6 +183,18 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   );
 
   const sampleDevice: Device = useMemo(() => {
+    const baseBoiler = {
+        id: 'switch.boiler',
+        name: 'Бойлер',
+        status: 'Включено',
+        type: DeviceType.Switch,
+        state: 'on',
+        haDomain: 'switch',
+    };
+    
+    const allKnownDevices = new Map<string, Device>();
+    allKnownDevices.set(baseBoiler.id, baseBoiler);
+
     if (templateToEdit.deviceType === 'climate') {
       return {
         id: 'climate.living_room',
@@ -234,6 +246,21 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
       haDomain: 'sensor',
     };
   }, [templateToEdit.deviceType]);
+  
+  const sampleAllKnownDevices = useMemo(() => {
+    const deviceMap = new Map<string, Device>();
+    const boilerDevice: Device = {
+        id: 'switch.boiler',
+        name: 'Бойлер',
+        status: 'Включено',
+        type: DeviceType.Switch,
+        state: 'on',
+        haDomain: 'switch',
+    };
+    deviceMap.set(boilerDevice.id, boilerDevice);
+    deviceMap.set(sampleDevice.id, sampleDevice);
+    return deviceMap;
+  }, [sampleDevice]);
 
 
   const selectedElementId = selectedElementIds.length === 1 ? selectedElementIds[0] : null;
@@ -572,7 +599,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
             />
             <DeviceCard
               device={sampleDevice}
-              allKnownDevices={new Map()}
+              allKnownDevices={sampleAllKnownDevices}
               template={editedTemplate}
               onTemperatureChange={()=>{}} onBrightnessChange={()=>{}} onHvacModeChange={()=>{}} onPresetChange={()=>{}} onCameraCardClick={()=>{}}
               isEditMode={false} onEditDevice={()=>{}} haUrl="" signPath={async()=>({path:''})} getCameraStreamUrl={async()=>''}

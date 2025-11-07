@@ -30,9 +30,10 @@ const DraggableDevice: React.FC<{
   isEditMode: boolean;
   onDeviceToggle: (id: string) => void;
   template?: CardTemplate;
+  allKnownDevices: Map<string, Device>;
   // Pass all other props down to DeviceCard
   [key: string]: any;
-}> = ({ device, isEditMode, onDeviceToggle, template, ...cardProps }) => {
+}> = ({ device, isEditMode, onDeviceToggle, template, allKnownDevices, ...cardProps }) => {
   const { attributes, listeners, setNodeRef: setDraggableNodeRef, isDragging } = useDraggable({
     id: device.id,
     disabled: !isEditMode,
@@ -72,7 +73,7 @@ const DraggableDevice: React.FC<{
       <DeviceCard
         device={device}
         template={template}
-        allKnownDevices={cardProps.allKnownDevices}
+        allKnownDevices={allKnownDevices}
         onTemperatureChange={(temp, isDelta) => cardProps.onTemperatureChange(device.id, temp, isDelta)}
         onBrightnessChange={(brightness) => cardProps.onBrightnessChange(device.id, brightness)}
         onHvacModeChange={(mode) => cardProps.onHvacModeChange(device.id, mode)}
@@ -354,7 +355,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                             >
                                 <DraggableDevice 
                                   device={device} 
-                                  template={templateToUse} 
+                                  template={templateToUse}
+                                  allKnownDevices={allKnownDevices}
                                   {...props} 
                                   openMenuDeviceId={openMenuDeviceId}
                                   setOpenMenuDeviceId={setOpenMenuDeviceId}
