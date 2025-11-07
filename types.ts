@@ -1,9 +1,5 @@
 
 
-
-
-
-
 export enum DeviceType {
   Light,
   Lamp,
@@ -110,7 +106,7 @@ export interface CameraSettings {
 }
 
 // --- Card Template System ---
-export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status' | 'slider' | 'temperature' | 'target-temperature' | 'hvac-modes' | 'button-plus' | 'button-minus';
+export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status' | 'slider' | 'temperature' | 'target-temperature' | 'hvac-modes';
 
 export interface CardElement {
   id: CardElementId;
@@ -153,7 +149,6 @@ export interface HassEntity {
     brightness?: number; // 0-255
     temperature?: number;
     current_temperature?: number;
-    current_humidity?: number;
     device_id?: string;
     // Allow forecast to be `any` to support various unpredictable structures from HA integrations.
     forecast?: any;

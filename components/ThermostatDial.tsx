@@ -1,23 +1,26 @@
 
-
-
-
-import React, { useRef, useCallback, useMemo } from 'react';
+import React, { useRef, useCallback } from 'react';
 
 // --- Helper Functions ---
 const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
-  const angleInRadians = ((angleInDegrees - 180) * Math.PI) / 180.0;
+  const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
   return {
     x: centerX + radius * Math.cos(angleInRadians),
     y: centerY + radius * Math.sin(angleInRadians),
   };
 };
 
+const describeArc = (x: number, y: number, radius: number, startAngle: number, endAngle: number) => {
+  const start = polarToCartesian(x, y, radius, endAngle);
+  const end = polarToCartesian(x, y, radius, startAngle);
+  const largeArcFlag = endAngle - startAngle <= 180 ? '0' : '1';
+  return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
+};
+
 const valueToAngle = (value: number, min: number, max: number, startAngle: number, endAngle: number) => {
   const range = max - min;
   if (range === 0) return startAngle;
-  const clampedValue = Math.max(min, Math.min(max, value));
-  const valueRatio = (clampedValue - min) / range;
+  const valueRatio = (value - min) / range;
   return valueRatio * (endAngle - startAngle) + startAngle;
 };
 
@@ -29,18 +32,17 @@ interface ThermostatDialProps {
   current: number; // Current temperature
   onChange: (value: number) => void;
   hvacAction: string;
-  hvacMode: string;
 }
 
-const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, onChange, hvacAction, hvacMode }) => {
+const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, current, onChange, hvacAction }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   
-  const SIZE = 250;
+  const SIZE = 200;
+  const STROKE_WIDTH = 20;
+  const RADIUS = SIZE / 2 - STROKE_WIDTH / 2;
   const CENTER = SIZE / 2;
-  const RADIUS = 110;
-  const START_ANGLE = 30;
-  const END_ANGLE = 330;
-  const STROKE_WIDTH = 30;
+  const START_ANGLE = 135;
+  const END_ANGLE = 405;
 
   const handlePointerMove = useCallback((e: PointerEvent) => {
     if (!svgRef.current) return;
@@ -49,22 +51,25 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, onChan
     const y = e.clientY - rect.top;
 
     const angleRad = Math.atan2(y - CENTER, x - CENTER);
-    let angleDeg = (angleRad * 180) / Math.PI + 180;
-    
-    if (angleDeg < START_ANGLE - 10 && angleDeg > 180) return;
-    if (angleDeg > END_ANGLE + 10 && angleDeg < 180) return;
+    let angleDeg = (angleRad * 180) / Math.PI + 90;
+    if (angleDeg < 0) angleDeg += 360;
 
-    angleDeg = Math.max(START_ANGLE, Math.min(END_ANGLE, angleDeg));
+    // Clamp angle to the allowed range
+    if (angleDeg < START_ANGLE && angleDeg > END_ANGLE - 360) {
+      const distToStart = Math.abs(angleDeg - START_ANGLE);
+      const distToEnd = Math.abs(angleDeg - (END_ANGLE - 360));
+      angleDeg = distToStart < distToEnd ? START_ANGLE : END_ANGLE;
+    }
     
     const range = max - min;
     const angleRange = END_ANGLE - START_ANGLE;
     const valueRatio = (angleDeg - START_ANGLE) / angleRange;
-    const newValue = Math.round((valueRatio * range + min) * 2) / 2;
+    const newValue = Math.round((valueRatio * range + min) * 2) / 2; // Round to nearest 0.5
     
-    if (newValue >= min && newValue <= max && newValue !== value) {
+    if (newValue >= min && newValue <= max) {
       onChange(newValue);
     }
-  }, [CENTER, START_ANGLE, END_ANGLE, min, max, onChange, value]);
+  }, [CENTER, START_ANGLE, END_ANGLE, min, max, onChange]);
 
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
@@ -79,46 +84,26 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, onChan
 
     window.addEventListener('pointermove', handlePointerMove);
     window.addEventListener('pointerup', handlePointerUp);
-    handlePointerMove(e.nativeEvent);
-  }, [handlePointerMove]);
-  
-  const { path, handlePosition, gradientColors } = useMemo(() => {
-    const valueAngle = valueToAngle(value, min, max, START_ANGLE, END_ANGLE);
-    const startPoint = polarToCartesian(CENTER, CENTER, RADIUS, END_ANGLE);
-    const endPoint = polarToCartesian(CENTER, CENTER, RADIUS, START_ANGLE);
-    const largeArcFlag = END_ANGLE - START_ANGLE <= 180 ? '0' : '1';
-
-    const pathD = `M ${startPoint.x} ${startPoint.y} A ${RADIUS} ${RADIUS} 0 ${largeArcFlag} 0 ${endPoint.x} ${endPoint.y}`;
     
-    const handlePos = polarToCartesian(CENTER, CENTER, RADIUS, valueAngle);
+    // Trigger first move immediately
+     handlePointerMove(e.nativeEvent);
+  }, [handlePointerMove]);
 
-    let gradColors;
-    if (hvacAction === 'cooling' || hvacMode === 'cool') {
-        gradColors = { start: '#25CBFF', end: '#589CFE' };
-    } else if (hvacAction === 'heating' || hvacMode === 'heat') {
-        gradColors = { start: '#FF9533', end: '#FFC93F' };
-    } else {
-        gradColors = { start: '#787A84', end: '#BFC1C8' };
-    }
-
-    return { path: pathD, handlePosition: handlePos, gradientColors: gradColors };
-  }, [value, min, max, hvacAction, hvacMode]);
 
   const valueAngle = valueToAngle(value, min, max, START_ANGLE, END_ANGLE);
+  const handlePosition = polarToCartesian(CENTER, CENTER, RADIUS, valueAngle);
 
-  const getHvacLabel = () => {
-    const modeMap: {[key: string]: string} = {
-        cool: 'Охлаждение до',
-        heat: 'Нагрев до',
-        fan_only: 'Вентилятор',
-        off: 'Выключено'
+  const getLabelAndColor = () => {
+    switch (hvacAction) {
+      case 'cooling': return { label: 'ОХЛАЖДЕНИЕ', color: '#2563eb' };
+      case 'heating': return { label: 'НАГРЕВ', color: '#f97316' };
+      default: return { label: 'ЦЕЛЬ', color: '#9ca3af' };
     }
-    return modeMap[hvacMode] || hvacMode.toUpperCase();
-  }
-
+  };
+  const { label: centerLabel, color: activeColor } = getLabelAndColor();
 
   return (
-    <div className="w-full h-full flex items-center justify-center relative">
+    <div className="relative w-full h-full flex items-center justify-center">
       <svg
         ref={svgRef}
         viewBox={`0 0 ${SIZE} ${SIZE}`}
@@ -127,50 +112,43 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, onChan
         style={{ touchAction: 'none' }}
       >
         <defs>
-          <linearGradient id="activeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={gradientColors.start} />
-            <stop offset="100%" stopColor={gradientColors.end} />
+          <linearGradient id="thermoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#3b82f6" /> 
+            <stop offset="50%" stopColor="#a855f7" /> 
+            <stop offset="100%" stopColor="#f97316" />
           </linearGradient>
-          <mask id="arcMask">
-            <path
-              d={path}
-              fill="none"
-              stroke="white"
-              strokeWidth={STROKE_WIDTH}
-              strokeLinecap="round"
-            />
-          </mask>
         </defs>
 
-        {/* Background Track */}
+        {/* Background Arc */}
         <path
-          d={path}
+          d={describeArc(CENTER, CENTER, RADIUS, START_ANGLE, END_ANGLE)}
           fill="none"
-          stroke="#39393E"
+          stroke="#4b5563" // gray-600
+          strokeWidth={STROKE_WIDTH}
+          strokeLinecap="round"
+        />
+        
+        {/* Value Arc */}
+        <path
+          d={describeArc(CENTER, CENTER, RADIUS, START_ANGLE, valueAngle)}
+          fill="none"
+          stroke="url(#thermoGradient)"
           strokeWidth={STROKE_WIDTH}
           strokeLinecap="round"
         />
 
-        {/* Active Track */}
-        <path
-          d={path}
-          fill="none"
-          stroke="url(#activeGradient)"
-          strokeWidth={STROKE_WIDTH}
-          strokeLinecap="round"
-          strokeDasharray={2 * Math.PI * RADIUS * ((END_ANGLE - START_ANGLE) / 360)}
-          strokeDashoffset={2 * Math.PI * RADIUS * ((END_ANGLE - START_ANGLE) / 360) * (1 - (valueAngle - START_ANGLE) / (END_ANGLE - START_ANGLE))}
-        />
-        
         {/* Handle */}
-        <g transform={`translate(${handlePosition.x}, ${handlePosition.y})`}>
-          <circle r={STROKE_WIDTH / 2} fill="white" className="cursor-pointer" />
-          <circle r={STROKE_WIDTH / 2 - 3} fill="white" stroke="#E5E5E5" strokeWidth="1" className="cursor-pointer" />
-        </g>
+        <circle
+          cx={handlePosition.x}
+          cy={handlePosition.y}
+          r={STROKE_WIDTH / 2 + 2}
+          fill="#ffffff"
+          className="cursor-pointer"
+        />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-white">
-          <p className="text-gray-400 font-medium text-lg tracking-wide">{getHvacLabel()}</p>
-          <p className="font-bold text-7xl">{Math.round(value)}</p>
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <p className="text-xs font-bold" style={{ color: activeColor }}>{centerLabel}</p>
+          <p className="text-6xl font-light text-white -my-1">{Math.round(value)}</p>
       </div>
     </div>
   );

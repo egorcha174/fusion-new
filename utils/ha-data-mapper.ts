@@ -1,8 +1,4 @@
 
-
-
-
-
 import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization, WeatherForecast } from '../types';
 
 const getDeviceType = (entity: HassEntity): DeviceType => {
@@ -63,6 +59,22 @@ const getStatusText = (entity: HassEntity): string => {
     
     const domain = entity.entity_id.split('.')[0];
     const attributes = entity.attributes || {};
+
+    if (domain === 'climate') {
+        const hvacAction = attributes.hvac_action;
+        const currentTemp = attributes.current_temperature;
+        const targetTemp = attributes.temperature;
+        if (hvacAction && hvacAction !== 'off' && hvacAction !== 'idle') {
+            const actionText = {
+                'cooling': `Охлаждение до ${targetTemp}°`,
+                'heating': `Нагрев до ${targetTemp}°`,
+                'fan': 'Вентилятор',
+                'drying': 'Осушение',
+            }[hvacAction] || hvacAction;
+            return `Текущая ${currentTemp}° · ${actionText}`;
+        }
+        return `Текущая ${currentTemp}° · ${entity.state}`;
+    }
 
     if (domain === 'weather') {
         const stateMap: Record<string, string> = {

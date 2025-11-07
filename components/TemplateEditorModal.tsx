@@ -1,8 +1,6 @@
 
 
 
-
-
 import React, { useState, useRef, useMemo } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement } from '../types';
 import DeviceCard from './DeviceCard';
@@ -75,9 +73,7 @@ const SortableLayerItem: React.FC<{
       slider: 'Слайдер',
       temperature: 'Текущая темп.',
       'target-temperature': 'Термостат (кольцо)',
-      'hvac-modes': 'Режимы работы',
-      'button-plus': 'Кнопка "+"',
-      'button-minus': 'Кнопка "-"'
+      'hvac-modes': 'Режимы работы'
   };
 
   return (

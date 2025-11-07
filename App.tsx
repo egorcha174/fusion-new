@@ -2,8 +2,6 @@
 
 
 
-
-
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import Settings from './components/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -95,8 +93,6 @@ const defaultSensorTemplate: CardTemplate = {
     { id: 'temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
     { id: 'target-temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
     { id: 'hvac-modes', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-    { id: 'button-plus', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-    { id: 'button-minus', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
   ],
 };
 
@@ -150,8 +146,6 @@ const defaultLightTemplate: CardTemplate = {
       { id: 'temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
       { id: 'target-temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
       { id: 'hvac-modes', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-      { id: 'button-plus', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-      { id: 'button-minus', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
     ],
 };
 
@@ -198,8 +192,6 @@ const defaultSwitchTemplate: CardTemplate = {
       { id: 'temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
       { id: 'target-temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
       { id: 'hvac-modes', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-      { id: 'button-plus', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-      { id: 'button-minus', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
     ],
 };
 
@@ -208,36 +200,55 @@ const defaultClimateTemplate: CardTemplate = {
   name: 'Стандартный климат',
   deviceType: 'climate',
   styles: {
-    backgroundColor: 'rgb(55 65 81 / 0.8)', // bg-gray-600/80
-    onBackgroundColor: 'rgb(229 231 235 / 1)', // bg-gray-200
+    backgroundColor: 'rgba(30, 30, 30, 0.5)', // A dark, blurred background look
   },
   elements: [
     {
-      id: 'icon', visible: true, position: { x: 8, y: 8 }, size: { width: 20, height: 20 }, zIndex: 2,
-      styles: { onColor: 'rgb(234 88 12)' }, // text-orange-500
-    },
-    { id: 'name', visible: true, position: { x: 8, y: 35 }, size: { width: 84, height: 22 }, zIndex: 2, styles: {} },
-    { id: 'status', visible: true, position: { x: 8, y: 58 }, size: { width: 84, height: 12 }, zIndex: 2, styles: {} },
-    {
-      id: 'target-temperature', visible: true, position: { x: 35, y: 7 }, size: { width: 30, height: 20 }, zIndex: 2,
-      styles: { fontSize: 24, textAlign: 'center' },
+      id: 'temperature',
+      visible: true,
+      position: { x: 8, y: 15 },
+      size: { width: 40, height: 15 },
+      zIndex: 2,
+      styles: { fontSize: 32 },
     },
     {
-      id: 'temperature', visible: true, position: { x: 65, y: 12 }, size: { width: 25, height: 15 }, zIndex: 2,
-      styles: { fontSize: 16, textAlign: 'right' },
+      id: 'name',
+      visible: true,
+      position: { x: 8, y: 32 },
+      size: { width: 40, height: 10 },
+      zIndex: 2,
+      styles: { fontSize: 18 },
     },
     {
-      id: 'button-minus', visible: true, position: { x: 8, y: 78 }, size: { width: 25, height: 14 }, zIndex: 2, styles: {},
+      id: 'status',
+      visible: true,
+      position: { x: 8, y: 44 },
+      size: { width: 40, height: 8 },
+      zIndex: 2,
+      styles: { fontSize: 12 },
     },
     {
-      id: 'button-plus', visible: true, position: { x: 67, y: 78 }, size: { width: 25, height: 14 }, zIndex: 2, styles: {},
+      id: 'target-temperature', // This will render the dial
+      visible: true,
+      position: { x: 25, y: 5 },
+      size: { width: 90, height: 90 },
+      zIndex: 1,
+      styles: {},
+    },
+    {
+      id: 'hvac-modes',
+      visible: true,
+      position: { x: 80, y: 25 },
+      size: { width: 15, height: 50 },
+      zIndex: 2,
+      styles: {},
     },
     // Hidden elements for type completeness
-    { id: 'hvac-modes', visible: false, position: { x: 0, y: 0 }, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-    { id: 'value', visible: false, position: { x: 0, y: 0 }, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-    { id: 'unit', visible: false, position: { x: 0, y: 0 }, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-    { id: 'chart', visible: false, position: { x: 0, y: 0 }, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-    { id: 'slider', visible: false, position: { x: 0, y: 0 }, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+    { id: 'icon', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
+    { id: 'value', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
+    { id: 'unit', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
+    { id: 'chart', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
+    { id: 'slider', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
   ],
 };
 
@@ -924,9 +935,8 @@ const App: React.FC = () => {
                 </div>
                 <div className="absolute left-full top-[-5px] z-10 hidden group-hover/menu:block bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-white/10 p-1 min-w-[120px]">
                     {[
-                        {w: 1, h: 1}, {w: 2, h: 1}, {w: 1, h: 2},
+                        {w: 1, h: 1}, 
                         {w: 2, h: 2}, 
-                        {w: 3, h: 2}, {w: 2, h: 3},
                         {w: 3, h: 3}
                     ].map(size => (
                         <div 

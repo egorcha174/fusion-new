@@ -2,19 +2,13 @@
 
 
 
-
-
-
-
-
-
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement } from '../types';
 import DeviceIcon from './DeviceIcon';
 import SparklineChart from './SparklineChart';
+import ThermostatDial from './ThermostatDial';
 import Hls from 'hls.js';
 import { constructHaUrl } from '../utils/url';
-import { Icon } from '@iconify/react';
 
 // --- Auto-fitting Text Component (New and Improved) ---
 const AutoFitText: React.FC<{
@@ -26,8 +20,7 @@ const AutoFitText: React.FC<{
   maxLines?: number;
   fontSize?: number;
   textAlign?: 'left' | 'center' | 'right';
-  textColor?: string;
-}> = ({ text, className, pClassName, maxFontSize = 48, mode = 'multi-line', maxLines = 2, fontSize, textAlign, textColor }) => {
+}> = ({ text, className, pClassName, maxFontSize = 48, mode = 'multi-line', maxLines = 2, fontSize, textAlign }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const pRef = React.useRef<HTMLParagraphElement>(null);
 
@@ -91,7 +84,7 @@ const AutoFitText: React.FC<{
 
   return (
     <div ref={containerRef} className={`${className} flex items-center ${textAlignClass}`}>
-      <p ref={pRef} className={pClassName} style={{ lineHeight: 1.15, wordBreak: 'break-word', color: textColor, ...multiLineStyles }}>
+      <p ref={pRef} className={pClassName} style={{ lineHeight: 1.15, wordBreak: 'break-word', ...multiLineStyles }}>
         {text}
       </p>
     </div>
@@ -361,6 +354,9 @@ interface DeviceCardProps {
 
 const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, onBrightnessChange, onHvacModeChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onRemoveFromTab, haUrl, signPath, getCameraStreamUrl, template }) => {
   const isOn = device.status.toLowerCase() === 'включено';
+  const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
+  const presetMenuRef = useRef<HTMLDivElement>(null);
+
   const mockHistory = useMemo(() => {
     if (device.type !== DeviceType.Sensor) return [];
     const value = parseFloat(device.status) || 20;
@@ -368,6 +364,57 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
         value + (Math.sin(i / 3) * (value * 0.05)) + (Math.random() - 0.5) * (value * 0.05)
     );
   }, [device.type, device.status]);
+
+   const styles = {
+      padding: 'p-[8%]',
+      nameText: 'font-semibold leading-tight',
+      statusText: 'text-sm',
+      sensorStatusText: 'font-bold',
+      sensorUnitText: 'font-medium',
+      thermostatTempText: 'font-bold text-lg',
+      thermostatTargetText: 'text-sm font-medium',
+      thermostatButton: 'w-8 h-8 text-lg font-semibold',
+      thermostatPresetButton: 'w-8 h-8',
+      thermostatPresetIcon: 'h-5 w-5',
+      brightnessCircle: 'w-10 h-10',
+      brightnessText: 'text-xs font-semibold',
+    };
+
+  const presetTranslations: { [key: string]: string } = {
+    'none': 'Нет',
+    'away': 'Не дома',
+    'comfort': 'Комфорт',
+    'eco': 'Эко',
+    'home': 'Дома',
+    'sleep': 'Сон',
+    'activity': 'Активность',
+    'boost': 'Усиленный',
+  };
+
+  const translatePreset = (preset: string | undefined): string => {
+      if (!preset) return presetTranslations['none'];
+      const lowerPreset = preset.toLowerCase();
+      return presetTranslations[lowerPreset] || preset.charAt(0).toUpperCase() + preset.slice(1);
+  };
+
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        if (presetMenuRef.current && !presetMenuRef.current.contains(event.target as Node)) {
+            setIsPresetMenuOpen(false);
+        }
+    };
+    if (isPresetMenuOpen) {
+        document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isPresetMenuOpen]);
+
+  
+  const textOnClasses = "text-gray-800";
+  const textOffClasses = "text-gray-400";
   
   const isCamera = device.type === DeviceType.Camera;
   const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && device.type !== DeviceType.Sensor && !isCamera;
@@ -390,49 +437,27 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
         case 'name':
           return (
             <div key={element.id} style={style}>
-              <AutoFitText text={device.name} className="w-full h-full" pClassName={`font-bold ${isOn ? 'text-gray-900' : 'text-gray-200'}`} maxFontSize={100} mode="multi-line" maxLines={2} fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} textColor={isOn ? (template.styles.onBackgroundColor ? '#000' : '#FFF') : '#FFF'} />
+              <AutoFitText text={device.name} className="w-full h-full" pClassName={`font-medium ${isOn ? 'text-gray-900' : 'text-gray-300'} leading-tight`} maxFontSize={100} mode="multi-line" maxLines={2} fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
             </div>
           );
         case 'icon':
-          const hvacAction = device.hvacAction ?? 'idle';
-          let iconToShow = device.icon ?? device.type;
-          if (template?.deviceType === 'climate' && (hvacAction === 'heating' || hvacAction === 'cooling')) {
-            iconToShow = hvacAction === 'heating' ? 'mdi:radiator' : 'mdi:snowflake';
-          }
-          const iconIsOn = isOn || hvacAction === 'heating' || hvacAction === 'cooling';
-          const iconColor = iconIsOn
+          const iconColor = isOn
               ? (element.styles.onColor || 'rgb(59 130 246)') // default blue
               : (element.styles.offColor || 'rgb(156 163 175)'); // default gray-400
           return (
             <div key={element.id} style={{ ...style, color: iconColor }}>
-              <DeviceIcon icon={iconToShow} isOn={iconIsOn} className="!w-full !h-full" iconAnimation={device.iconAnimation} />
+              <DeviceIcon icon={device.icon ?? device.type} isOn={isOn} className="!w-full !h-full" iconAnimation={device.iconAnimation} />
             </div>
           );
-        case 'status': {
-          let statusColor: string | undefined = isOn ? 'rgb(31 41 55)' : 'rgb(107 114 128)';
-          let statusText = device.status;
-  
-          if (template?.deviceType === 'climate') {
-              statusColor = '#a0aec0'; // gray-400
-          }
-            return (
-              <div key={element.id} style={style}>
-                <AutoFitText 
-                  text={statusText}
-                  className="w-full h-full" 
-                  pClassName={`font-medium`} 
-                  textColor={statusColor}
-                  maxFontSize={100} 
-                  mode="single-line" 
-                  fontSize={element.styles.fontSize} 
-                  textAlign={element.styles.textAlign} />
-              </div>
-            );
-        }
+        case 'status':
+          return (
+            <div key={element.id} style={style}>
+              <AutoFitText text={device.status} className="w-full h-full" pClassName={`text-sm ${isOn ? 'text-gray-800' : 'text-gray-400'}`} maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
+            </div>
+          );
         case 'value': {
           const { decimalPlaces } = element.styles;
           let valueText = device.status;
-
           const numericStatus = parseFloat(device.status);
           if (!isNaN(numericStatus) && typeof decimalPlaces === 'number' && decimalPlaces >= 0) {
             valueText = numericStatus.toFixed(decimalPlaces);
@@ -476,52 +501,37 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
         case 'temperature':
            return (
              <div key={element.id} style={style} className="pointer-events-none">
-               <AutoFitText text={`${device.temperature?.toFixed(1) ?? ''}${device.unit ?? ''}`} className="w-full h-full" pClassName="font-semibold text-gray-400" maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
+               <AutoFitText text={`${device.temperature?.toFixed(0) ?? ''}°`} className="w-full h-full" pClassName="font-bold text-gray-100" maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
              </div>
            );
         case 'target-temperature':
-           return (
-             <div key={element.id} style={style} className="pointer-events-none flex items-center justify-center">
-               <AutoFitText text={`${device.targetTemperature?.toFixed(0) ?? ''}°`} className="w-full h-full" pClassName={`font-bold ${isOn ? 'text-gray-900' : 'text-gray-100'}`} maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
-             </div>
-           );
+          return (
+            <div key={element.id} style={style} onClick={e => e.stopPropagation()}>
+              <ThermostatDial 
+                min={device.minTemp ?? 10}
+                max={device.maxTemp ?? 35}
+                value={device.targetTemperature ?? 21}
+                current={device.temperature ?? 21}
+                onChange={value => onTemperatureChange(value)}
+                hvacAction={device.hvacAction ?? 'idle'}
+              />
+            </div>
+          );
         case 'hvac-modes':
           const hvacModeTranslations: { [key: string]: string } = {
-            'off': 'Выкл', 'cool': 'Охлаждение', 'heat': 'Нагрев', 'auto': 'Авто', 'fan_only': 'Вент.', 'dry': 'Осуш.'
+            'off': 'Выкл', 'cool': 'Холод', 'heat': 'Нагрев', 'auto': 'Авто', 'fan_only': 'Вент.', 'dry': 'Осуш.'
           };
-          const currentMode = (device.hvacModes || []).find(mode => device.status.toLowerCase() === mode) || 'off';
-
           return (
-            <div key={element.id} style={style} className="flex flex-col justify-around items-center text-lg font-medium text-gray-400" onClick={e => e.stopPropagation()}>
+            <div key={element.id} style={style} className="flex flex-col justify-around items-center text-sm font-medium text-gray-400" onClick={e => e.stopPropagation()}>
               {(device.hvacModes || []).map(mode => (
                 <button 
                   key={mode} 
                   onClick={() => onHvacModeChange(mode)}
-                  className={`transition-colors duration-200 ${currentMode === mode ? 'text-white font-bold' : 'hover:text-white'}`}
+                  className={`transition-colors duration-200 ${device.status.toLowerCase().includes(mode) ? 'text-white' : 'hover:text-white'}`}
                 >
                   {hvacModeTranslations[mode] || mode}
                 </button>
               ))}
-            </div>
-          );
-        case 'button-minus':
-          return (
-            <div key={element.id} style={style} onClick={(e) => { e.stopPropagation(); onTemperatureChange(-0.5, true); }}>
-              <div className="w-full h-full rounded-full bg-gray-600/50 flex items-center justify-center text-gray-300 hover:bg-gray-500/50 cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
-                </svg>
-              </div>
-            </div>
-          );
-        case 'button-plus':
-          return (
-            <div key={element.id} style={style} onClick={(e) => { e.stopPropagation(); onTemperatureChange(0.5, true); }}>
-              <div className="w-full h-full rounded-full bg-gray-600/50 flex items-center justify-center text-gray-300 hover:bg-gray-500/50 cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-              </div>
             </div>
           );
         default:
@@ -532,7 +542,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
     return (
       <div
         className="w-full h-full relative overflow-hidden rounded-2xl"
-        style={{ backgroundColor: template.styles.backgroundColor }}
+        style={{ backgroundColor: isOn ? (template.styles.onBackgroundColor || '#E5E7EB') : template.styles.backgroundColor }}
       >
         {template.elements.map(renderElement)}
       </div>
@@ -572,20 +582,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
             </div>
         )
       case DeviceType.DimmableLight:
-      // Fallthrough for other simple devices
-      case DeviceType.Light:
-      case DeviceType.Switch:
-      case DeviceType.Fan:
-      case DeviceType.Outlet:
-        const styles = {
-            padding: 'p-[8%]',
-            nameText: 'font-semibold leading-tight',
-            statusText: 'text-sm',
-            brightnessCircle: 'w-10 h-10',
-            brightnessText: 'text-xs font-semibold',
-        };
-        const textOnClasses = "text-gray-800";
-        const textOffClasses = "text-gray-400";
         return (
           <div className="flex flex-col h-full">
             <div className="flex justify-between items-start flex-shrink-0">
@@ -609,7 +605,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                     />
                 </div>
               <p className={`${styles.statusText} ${isOn ? textOnClasses : textOffClasses} transition-colors flex-shrink-0`}>{device.status}</p>
-               {isOn && device.brightness !== undefined && (
+               {isOn && (
                 <div className="mt-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                     <input
                         type="range"
@@ -624,62 +620,81 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
             </div>
           </div>
         );
-      case DeviceType.Sensor: {
-        return <div>Датчик должен отображаться по шаблону.</div>
-      }
-      case DeviceType.Thermostat: {
-        const isHeating = device.hvacAction === 'heating';
-        const isCooling = device.hvacAction === 'cooling';
-        const isActive = isHeating || isCooling;
-        const onColorClass = isHeating ? 'text-orange-500' : 'text-blue-500';
-
+      case DeviceType.Thermostat:
         return (
           <div className="flex flex-col h-full text-left">
-            <div className={`flex-shrink-0 ${isActive ? onColorClass : 'text-gray-400'}`}>
-              <DeviceIcon icon={device.icon ?? device.type} isOn={isActive} iconAnimation={device.iconAnimation} />
+            <div className="flex justify-between items-start flex-shrink-0">
+                <div className="text-gray-400">
+                    <DeviceIcon icon={device.icon ?? device.type} isOn={false} iconAnimation={device.iconAnimation} />
+                </div>
+
+                {device.presetModes && device.presetModes.length > 0 && (
+                    <div className="relative z-10" ref={presetMenuRef}>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); setIsPresetMenuOpen(prev => !prev); }}
+                            className={`${styles.thermostatPresetButton} rounded-full bg-black/20 text-white flex items-center justify-center hover:bg-black/40`}
+                            aria-label="Открыть предустановки"
+                        >
+                           <svg xmlns="http://www.w3.org/2000/svg" className={styles.thermostatPresetIcon} viewBox="0 0 20 20" fill="currentColor">
+                             <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                           </svg>
+                        </button>
+                        {isPresetMenuOpen && (
+                            <div className="absolute top-full right-0 mt-1 w-40 bg-gray-700 rounded-md shadow-lg z-20 ring-1 ring-black ring-opacity-5 p-1 max-h-48 overflow-y-auto fade-in">
+                                {device.presetModes.map(preset => (
+                                    <button
+                                        key={preset}
+                                        onClick={() => { onPresetChange(preset); setIsPresetMenuOpen(false); }}
+                                        className="block w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-600 rounded-md"
+                                    >
+                                        {translatePreset(preset)}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
-            <div className="flex-grow overflow-hidden flex flex-col justify-end min-h-0">
-              <AutoFitText
-                text={device.name}
-                className="w-full h-full"
-                pClassName="font-semibold"
-                maxFontSize={18}
-                mode="multi-line"
-              />
-              <p className={`text-sm ${isActive ? "text-gray-800" : "text-gray-400"} transition-colors flex-shrink-0`}>{device.status}</p>
-            </div>
-            <div className="flex items-center justify-between mt-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => onTemperatureChange(-0.5, true)} className={`p-2 rounded-full ${isActive ? 'bg-gray-400/30' : 'bg-gray-700'} hover:bg-gray-500/40`}>
-                <Icon icon="mdi:minus" className="h-5 w-5" />
-              </button>
-              <div className="text-center">
-                <p className="text-2xl font-bold">{device.targetTemperature}°</p>
-                <p className={`text-xs ${isActive ? "text-gray-600" : "text-gray-500"}`}>Текущая: {device.temperature}°</p>
-              </div>
-              <button onClick={() => onTemperatureChange(0.5, true)} className={`p-2 rounded-full ${isActive ? 'bg-gray-400/30' : 'bg-gray-700'} hover:bg-gray-500/40`}>
-                <Icon icon="mdi:plus" className="h-5 w-5" />
-              </button>
+            
+            <div className="flex-grow flex flex-col justify-end overflow-hidden min-h-0">
+                 <div className="flex-grow flex items-end min-h-0">
+                    <AutoFitText
+                        text={device.name}
+                        className="w-full h-full"
+                        pClassName={styles.nameText}
+                        maxFontSize={18}
+                        mode="multi-line"
+                    />
+                </div>
+                <p className={`${styles.thermostatTempText} text-white flex-shrink-0`}>{device.temperature}{device.unit}</p>
+                <div className="flex items-center justify-between mt-1 flex-shrink-0">
+                    <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(-0.5, true); }} className={`${styles.thermostatButton} rounded-full bg-black/20 text-white flex items-center justify-center font-light text-2xl leading-none pb-1`}>-</button>
+                    <span className={`${styles.thermostatTargetText} text-gray-300`}>Цель: {device.targetTemperature}{device.unit}</span>
+                    <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(0.5, true); }} className={`${styles.thermostatButton} rounded-full bg-black/20 text-white flex items-center justify-center font-light text-2xl leading-none pb-1`}>+</button>
+                </div>
             </div>
           </div>
         );
+      case DeviceType.Sensor: {
+        return <div>Sensor should be rendered by template.</div>
       }
       default:
-         return (
-          <div className="flex flex-col h-full text-left p-[8%]">
+        return (
+          <div className="flex flex-col h-full">
             <div className={`flex-shrink-0 ${isOn ? 'text-blue-500' : 'text-gray-400'}`}>
                <DeviceIcon icon={device.icon ?? device.type} isOn={isOn} iconAnimation={device.iconAnimation} />
             </div>
-            <div className="flex-grow overflow-hidden flex flex-col justify-end min-h-0">
+            <div className="flex-grow text-left overflow-hidden flex flex-col justify-end min-h-0">
               <div className="flex-grow flex items-end min-h-0">
                 <AutoFitText
                     text={device.name}
                     className="w-full h-full"
-                    pClassName="font-semibold"
+                    pClassName={styles.nameText}
                     maxFontSize={18}
                     mode="multi-line"
                 />
               </div>
-              <p className={`text-sm ${isOn ? "text-gray-800" : "text-gray-400"} transition-colors flex-shrink-0`}>{device.status}</p>
+              <p className={`${styles.statusText} ${isOn ? textOnClasses : textOffClasses} transition-colors flex-shrink-0`}>{device.status}</p>
             </div>
           </div>
         );
@@ -690,10 +705,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
     const baseClasses = "w-full h-full rounded-2xl flex flex-col transition-all duration-200 ease-in-out select-none relative";
     
     if (template) {
-        if ((isTogglable || isCamera) && !isEditMode) {
-             return `${baseClasses} cursor-pointer`;
-        }
-        return baseClasses; 
+        return baseClasses; // Background is controlled by template
     }
       
     const onStateClasses = "bg-gray-200 text-gray-900";
@@ -703,8 +715,10 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
 
     if (isCamera) {
       finalClasses += `p-0 overflow-hidden ${offStateClasses}`;
+    } else if (device.type === DeviceType.Thermostat) {
+        finalClasses += `${styles.padding} ${offStateClasses}`;
     } else {
-        finalClasses += `p-[8%] ${isOn ? onStateClasses : offStateClasses}`;
+        finalClasses += `${styles.padding} ${isOn ? onStateClasses : offStateClasses}`;
     }
   
     if ((isTogglable || isCamera) && !isEditMode) {
