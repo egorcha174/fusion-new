@@ -1,4 +1,5 @@
 
+
 export enum DeviceType {
   Light,
   Lamp,
@@ -144,6 +145,8 @@ export interface DeviceSlot {
     inactiveColor: string;
     glowIntensity: number; // 0-1
     animationType: 'pulse' | 'rotate' | 'none';
+    showValue?: boolean;
+    decimalPlaces?: number;
   };
   interactive: boolean;
 }

@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement, DeviceCustomizations } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -754,6 +755,16 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                     ? `drop-shadow(0 0 ${visualStyle.glowIntensity * 8}px ${color})`
                     : 'none'
             };
+            
+            let valueText: string | null = null;
+            if (visualStyle.showValue) {
+                const numericStatus = parseFloat(entity.status);
+                if (!isNaN(numericStatus)) {
+                    valueText = (typeof visualStyle.decimalPlaces === 'number' && visualStyle.decimalPlaces >= 0)
+                        ? numericStatus.toFixed(visualStyle.decimalPlaces)
+                        : entity.status;
+                }
+            }
 
             return (
                 <div
@@ -768,12 +779,23 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                     }}
                     onClick={slot.interactive ? (e) => handleIndicatorClick(e, entity.id) : undefined}
                 >
+                  {valueText ? (
+                    <div className="w-full h-full flex items-center justify-center gap-1 p-0.5 overflow-hidden bg-black/20 rounded-full">
+                        <div style={{ color }} className="flex-shrink-0 w-[45%] h-[45%]">
+                            <DeviceIcon icon={iconToUse} isOn={isEntityOn} className="!w-full !h-full !m-0" />
+                        </div>
+                        <div className="flex-grow min-w-0 h-full text-white">
+                             <AutoFitText text={valueText} className="w-full h-full" pClassName="font-semibold" maxFontSize={slot.iconSize * 0.45} mode="single-line" textAlign="center" />
+                        </div>
+                    </div>
+                  ) : (
                     <div className={animationClass} style={{ width: '100%', height: '100%' }}>
                         <DeviceIcon icon={iconToUse} isOn={isEntityOn} className="!w-full !h-full !m-0" />
                         <div style={iconStyle} className="absolute inset-0">
                             <DeviceIcon icon={iconToUse} isOn={isEntityOn} className="!w-full !h-full !m-0" />
                         </div>
                     </div>
+                  )}
                 </div>
             );
         })}

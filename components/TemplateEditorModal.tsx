@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot } from '../types';
 import DeviceCard from './DeviceCard';
@@ -242,6 +243,15 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
           setSelectedSlotId(null);
       }
   }, [selectedSlotId]);
+  
+  const handleSlotUpdate = useCallback((slotId: string, updates: Partial<DeviceSlot>) => {
+    setEditedTemplate(prev => {
+        return {
+            ...prev,
+            deviceSlots: prev.deviceSlots?.map(s => s.id === slotId ? { ...s, ...updates } : s)
+        }
+    });
+  }, []);
 
   // --- Keyboard Shortcuts ---
   useEffect(() => {
@@ -333,6 +343,8 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
         inactiveColor: '#6b7280', // gray-500
         glowIntensity: 0.7,
         animationType: 'none',
+        showValue: false,
+        decimalPlaces: 1,
       },
       interactive: true,
     };
@@ -592,10 +604,29 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                {selectedSlot && (
                 <>
                   <Section title="Положение и размер" defaultOpen={true}>
-                    <LabeledInput label="Размер иконки"><input type="range" min="20" max="48" value={selectedSlot.iconSize} onChange={e => setEditedTemplate(p => ({...p, deviceSlots: p.deviceSlots?.map(s => s.id === selectedSlot.id ? {...s, iconSize: parseInt(e.target.value, 10)} : s)}))} className="w-full accent-blue-500" /></LabeledInput>
+                    <LabeledInput label="Размер иконки"><input type="range" min="20" max="48" value={selectedSlot.iconSize} onChange={e => handleSlotUpdate(selectedSlot.id, { iconSize: parseInt(e.target.value, 10) })} className="w-full accent-blue-500" /></LabeledInput>
+                  </Section>
+                  <Section title="Отображение">
+                    <LabeledInput label="Показывать значение">
+                        <button 
+                            onClick={() => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, showValue: !selectedSlot.visualStyle.showValue }})}
+                            className={`relative inline-flex items-center h-5 rounded-full w-9 transition-colors ${selectedSlot.visualStyle.showValue ? 'bg-blue-600' : 'bg-gray-600'}`}
+                        >
+                            <span className={`inline-block w-3 h-3 transform bg-white rounded-full transition-transform ${selectedSlot.visualStyle.showValue ? 'translate-x-5' : 'translate-x-1'}`} />
+                        </button>
+                    </LabeledInput>
+                    {selectedSlot.visualStyle.showValue && (
+                        <LabeledInput label="Знаков после ," suffix=",">
+                            <NumberInput
+                                value={selectedSlot.visualStyle.decimalPlaces}
+                                onChange={v => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, decimalPlaces: v } })}
+                                min={0} max={5} placeholder="Авто"
+                            />
+                        </LabeledInput>
+                    )}
                   </Section>
                   <Section title="Поведение">
-                    <LabeledInput label="Интерактивный"><button onClick={() => setEditedTemplate(p => ({...p, deviceSlots: p.deviceSlots?.map(s => s.id === selectedSlot.id ? {...s, interactive: !s.interactive} : s)}))} className={`relative inline-flex items-center h-5 rounded-full w-9 transition-colors ${selectedSlot.interactive ? 'bg-blue-600' : 'bg-gray-600'}`}><span className={`inline-block w-3 h-3 transform bg-white rounded-full transition-transform ${selectedSlot.interactive ? 'translate-x-5' : 'translate-x-1'}`} /></button></LabeledInput>
+                    <LabeledInput label="Интерактивный"><button onClick={() => handleSlotUpdate(selectedSlot.id, { interactive: !selectedSlot.interactive })} className={`relative inline-flex items-center h-5 rounded-full w-9 transition-colors ${selectedSlot.interactive ? 'bg-blue-600' : 'bg-gray-600'}`}><span className={`inline-block w-3 h-3 transform bg-white rounded-full transition-transform ${selectedSlot.interactive ? 'translate-x-5' : 'translate-x-1'}`} /></button></LabeledInput>
                   </Section>
                    <div className="pt-4 border-t border-gray-700/80">
                       <button
