@@ -186,7 +186,7 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
         <defs>
           <mask id="thermoValueMask">
              <path
-                d={describeArc(CENTER, CENTER, RADIUS, START_ANGLE, valueAngle)}
+                d={describeArc(CENTER, CENTER, RADIUS, START_ANGLE, END_ANGLE)}
                 fill="none"
                 stroke="white"
                 strokeWidth={STROKE_WIDTH}
