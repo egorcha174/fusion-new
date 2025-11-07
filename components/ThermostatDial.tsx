@@ -124,15 +124,27 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
         inputRef.current?.select();
     }
   }, [isEditing]);
+  
+  const submitNewValue = () => {
+    const newTemp = parseFloat(inputValue);
+    if (!isNaN(newTemp) && newTemp >= min && newTemp <= max) {
+        onChange(newTemp);
+    }
+    setIsEditing(false);
+  };
 
   const handleManualTempSubmit = (e: React.FormEvent) => {
       e.preventDefault();
-      const newTemp = parseFloat(inputValue);
-      if (!isNaN(newTemp) && newTemp >= min && newTemp <= max) {
-          onChange(newTemp);
-      }
-      setIsEditing(false);
+      submitNewValue();
   };
+  
+  const adjustTemp = (delta: number) => {
+    const currentTemp = parseFloat(inputValue) || value;
+    let newTemp = currentTemp + delta;
+    newTemp = Math.max(min, Math.min(max, newTemp)); // clamp value
+    setInputValue(newTemp.toFixed(1));
+  };
+
 
   const handlePointerMove = useCallback((e: PointerEvent) => {
     if (!svgRef.current) return;
@@ -261,12 +273,12 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
         className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer rounded-full"
         onClick={(e) => {
             e.stopPropagation();
-            setInputValue(value.toFixed(1));
+            setInputValue(value.toFixed(1).replace('.', ','));
             setIsEditing(true);
         }}
       >
           <p className="text-xs font-bold" style={{ color: activeColor }}>{centerLabel}</p>
-          <p className="text-6xl font-light text-white -my-1">{value.toFixed(1)}</p>
+          <p className="text-6xl font-light text-white -my-1">{value.toFixed(1).replace('.', ',')}</p>
       </div>
       
        {isEditing && (
@@ -274,28 +286,52 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
             className="absolute inset-0 bg-gray-900/70 backdrop-blur-sm rounded-full flex items-center justify-center z-20 fade-in"
             onClick={(e) => e.stopPropagation()}
         >
-            <form onSubmit={handleManualTempSubmit}>
-                <input
-                    ref={inputRef}
-                    type="number"
-                    step="0.1"
-                    min={min}
-                    max={max}
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onBlur={() => setIsEditing(false)}
-                    className="bg-transparent text-white text-6xl font-light w-48 text-center outline-none p-0 m-0"
-                    style={{MozAppearance: 'textfield'}} // Hide spinners in Firefox
-                />
-                <style>{`
-                  input[type=number]::-webkit-inner-spin-button,
-                  input[type=number]::-webkit-outer-spin-button {
-                    -webkit-appearance: none;
-                    margin: 0;
-                  }
-                `}</style>
-                <button type="submit" className="hidden">Установить</button>
-            </form>
+            <div className="flex items-center justify-center">
+                <form onSubmit={handleManualTempSubmit}>
+                    <input
+                        ref={inputRef}
+                        type="number"
+                        step="0.1"
+                        min={min}
+                        max={max}
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        onBlur={submitNewValue}
+                        className="bg-transparent text-white text-6xl font-light w-44 text-center outline-none p-0 m-0"
+                        style={{MozAppearance: 'textfield'}} // Hide spinners in Firefox
+                    />
+                    <style>{`
+                      input[type=number]::-webkit-inner-spin-button,
+                      input[type=number]::-webkit-outer-spin-button {
+                        -webkit-appearance: none;
+                        margin: 0;
+                      }
+                    `}</style>
+                    <button type="submit" className="hidden">Установить</button>
+                </form>
+                 <div className="flex flex-col -ml-2">
+                    <button 
+                        type="button" 
+                        onMouseDown={e => e.preventDefault()}
+                        onClick={() => adjustTemp(0.1)}
+                        className="text-gray-500 hover:text-red-400 transition-colors"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                        </svg>
+                    </button>
+                    <button 
+                        type="button" 
+                        onMouseDown={e => e.preventDefault()}
+                        onClick={() => adjustTemp(-0.1)}
+                        className="text-gray-500 hover:text-red-400 transition-colors"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
         </div>
       )}
     </div>
