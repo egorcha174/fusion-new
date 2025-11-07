@@ -66,7 +66,7 @@ const GradientArc: React.FC<{
     startAngle: number;
     endAngle: number;
     steps?: number;
-}> = ({ center, radius, strokeWidth, startAngle, endAngle, steps = 100 }) => {
+}> = ({ center, radius, strokeWidth, startAngle, endAngle, steps = 300 }) => {
     const angleRange = endAngle - startAngle;
     const angleStep = angleRange / steps;
     
@@ -74,7 +74,8 @@ const GradientArc: React.FC<{
         <g>
             {Array.from({ length: steps }).map((_, i) => {
                 const currentAngleStart = startAngle + i * angleStep;
-                const currentAngleEnd = startAngle + (i + 1) * angleStep;
+                // Add a small overlap to ensure no gaps from anti-aliasing
+                const currentAngleEnd = startAngle + (i + 1) * angleStep + 0.5;
                 const colorRatio = (i + 0.5) / steps;
                 const color = interpolateColor(colorRatio, GRADIENT_COLORS);
                 
