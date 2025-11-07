@@ -1,5 +1,5 @@
 
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState, useLayoutEffect } from 'react';
 
 // --- Helper Functions ---
 const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
@@ -20,7 +20,9 @@ const describeArc = (x: number, y: number, radius: number, startAngle: number, e
 const valueToAngle = (value: number, min: number, max: number, startAngle: number, endAngle: number) => {
   const range = max - min;
   if (range === 0) return startAngle;
-  const valueRatio = (value - min) / range;
+  // Clamp value to be within min/max
+  const clampedValue = Math.max(min, Math.min(value, max));
+  const valueRatio = (clampedValue - min) / range;
   return valueRatio * (endAngle - startAngle) + startAngle;
 };
 
@@ -36,14 +38,21 @@ interface ThermostatDialProps {
 
 const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, current, onChange, hvacAction }) => {
   const svgRef = useRef<SVGSVGElement>(null);
-  
+  const gradientPathRef = useRef<SVGPathElement>(null);
+  const [pathLength, setPathLength] = useState(0);
+
   const SIZE = 200;
   const STROKE_WIDTH = 20;
   const RADIUS = SIZE / 2 - STROKE_WIDTH / 2;
   const CENTER = SIZE / 2;
   const START_ANGLE = 135;
   const END_ANGLE = 405;
-  const MID_ANGLE = 270; // Top of the arc
+
+  useLayoutEffect(() => {
+    if (gradientPathRef.current) {
+      setPathLength(gradientPathRef.current.getTotalLength());
+    }
+  }, []);
 
   const handlePointerMove = useCallback((e: PointerEvent) => {
     if (!svgRef.current) return;
@@ -55,17 +64,25 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
     let angleDeg = (angleRad * 180) / Math.PI + 90;
     if (angleDeg < 0) angleDeg += 360;
 
-    // Clamp angle to the allowed range
     if (angleDeg < START_ANGLE && angleDeg > END_ANGLE - 360) {
-      const distToStart = Math.abs(angleDeg - START_ANGLE);
-      const distToEnd = Math.abs(angleDeg - (END_ANGLE - 360));
-      angleDeg = distToStart < distToEnd ? START_ANGLE : END_ANGLE;
+      const midPoint = (START_ANGLE + (END_ANGLE - 360)) / 2;
+      if (angleDeg > midPoint) {
+        angleDeg = START_ANGLE;
+      } else {
+        angleDeg = END_ANGLE;
+      }
     }
     
+    // Clamp to the visual range
+    angleDeg = Math.max(START_ANGLE, Math.min(angleDeg, END_ANGLE));
+
     const range = max - min;
     const angleRange = END_ANGLE - START_ANGLE;
     const valueRatio = (angleDeg - START_ANGLE) / angleRange;
-    const newValue = Math.round((valueRatio * range + min) * 2) / 2; // Round to nearest 0.5
+    let newValue = valueRatio * range + min;
+    
+    // Round to nearest 0.5
+    newValue = Math.round(newValue * 2) / 2; 
     
     if (newValue >= min && newValue <= max) {
       onChange(newValue);
@@ -74,11 +91,12 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
 
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (e.button !== 0) return;
     e.preventDefault();
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 
     const handlePointerUp = () => {
-      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
     };
@@ -86,13 +104,17 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
     window.addEventListener('pointermove', handlePointerMove);
     window.addEventListener('pointerup', handlePointerUp);
     
-    // Trigger first move immediately
-     handlePointerMove(e.nativeEvent);
+    handlePointerMove(e.nativeEvent);
   }, [handlePointerMove]);
-
 
   const valueAngle = valueToAngle(value, min, max, START_ANGLE, END_ANGLE);
   const handlePosition = polarToCartesian(CENTER, CENTER, RADIUS, valueAngle);
+  
+  const angleRange = END_ANGLE - START_ANGLE;
+  const valueRatio = (valueAngle - START_ANGLE) / angleRange;
+  const visibleLength = pathLength * valueRatio;
+  const strokeDashoffset = pathLength > 0 ? pathLength - visibleLength : undefined;
+
 
   const getLabelAndColor = () => {
     switch (hvacAction) {
@@ -102,6 +124,8 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
     }
   };
   const { label: centerLabel, color: activeColor } = getLabelAndColor();
+  
+  const fullArcPath = describeArc(CENTER, CENTER, RADIUS, START_ANGLE, END_ANGLE);
 
   return (
     <div className="relative w-full h-full flex items-center justify-center">
@@ -113,55 +137,36 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
         style={{ touchAction: 'none' }}
       >
         <defs>
-          <linearGradient id="thermoGradientCold" x1="0" y1="1" x2="0" y2="0">
+          <linearGradient id="thermoGradient" gradientTransform={`rotate(${START_ANGLE - 45}, ${CENTER}, ${CENTER})`}>
             <stop offset="0%" stopColor="#4169E1" />
-            <stop offset="50%" stopColor="#8B5CF6" />
-            <stop offset="100%" stopColor="#EC4899" />
-          </linearGradient>
-
-          <linearGradient id="thermoGradientHot" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#EC4899" />
-            <stop offset="50%" stopColor="#F97316" />
+            <stop offset="25%" stopColor="#8B5CF6" />
+            <stop offset="50%" stopColor="#EC4899" />
+            <stop offset="75%" stopColor="#F97316" />
             <stop offset="100%" stopColor="#EF4444" />
           </linearGradient>
-
-          <mask id="thermoValueMask">
-             <path
-                d={describeArc(CENTER, CENTER, RADIUS, START_ANGLE, valueAngle)}
-                fill="none"
-                stroke="white"
-                strokeWidth={STROKE_WIDTH}
-                strokeLinecap="round"
-             />
-          </mask>
         </defs>
 
         {/* Background Arc */}
         <path
-          d={describeArc(CENTER, CENTER, RADIUS, START_ANGLE, END_ANGLE)}
+          d={fullArcPath}
           fill="none"
           stroke="#4b5563" // gray-600
           strokeWidth={STROKE_WIDTH}
           strokeLinecap="round"
         />
         
-        {/* Full Gradient Track (to be masked) */}
-        <g mask="url(#thermoValueMask)">
-            <path
-              d={describeArc(CENTER, CENTER, RADIUS, START_ANGLE, MID_ANGLE)}
-              fill="none"
-              stroke="url(#thermoGradientCold)"
-              strokeWidth={STROKE_WIDTH}
-              strokeLinecap="butt"
-            />
-            <path
-              d={describeArc(CENTER, CENTER, RADIUS, MID_ANGLE, END_ANGLE)}
-              fill="none"
-              stroke="url(#thermoGradientHot)"
-              strokeWidth={STROKE_WIDTH}
-              strokeLinecap="butt"
-            />
-        </g>
+        {/* Value Arc (drawn with dash offset) */}
+        <path
+          ref={gradientPathRef}
+          d={fullArcPath}
+          fill="none"
+          stroke="url(#thermoGradient)"
+          strokeWidth={STROKE_WIDTH}
+          strokeLinecap="round"
+          strokeDasharray={pathLength}
+          strokeDashoffset={strokeDashoffset}
+          style={{ transition: 'stroke-dashoffset 0.1s linear' }}
+        />
         
         {/* Handle */}
         <circle
