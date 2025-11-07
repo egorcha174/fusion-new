@@ -1,13 +1,16 @@
 
 
+
+
 import React, { useState, useMemo } from 'react';
-import { Device, DeviceCustomization, DeviceType, CardTemplates, DeviceBinding, CardTemplate } from '../types';
+import { Device, DeviceCustomization, DeviceType, CardTemplates, DeviceBinding, CardTemplate, ThresholdRule } from '../types';
 import DeviceIcon, { icons, getIconNameForDeviceType } from './DeviceIcon';
+import { Icon } from '@iconify/react';
 
 interface DeviceSettingsModalProps {
   device: Device;
   customization: DeviceCustomization;
-  onSave: (deviceId: string, newValues: { name: string; type: DeviceType; icon: string; isHidden: boolean; templateId?: string; iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow'; deviceBindings?: DeviceBinding[] }) => void;
+  onSave: (deviceId: string, newValues: { name: string; type: DeviceType; icon: string; isHidden: boolean; templateId?: string; iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow'; deviceBindings?: DeviceBinding[], thresholds?: ThresholdRule[] }) => void;
   onClose: () => void;
   templates: CardTemplates;
   allKnownDevices: Map<string, Device>;
@@ -34,6 +37,8 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   const [templateId, setTemplateId] = useState(customization.templateId ?? '');
   const [iconAnimation, setIconAnimation] = useState(customization.iconAnimation ?? 'none');
   const [bindings, setBindings] = useState<DeviceBinding[]>(customization.deviceBindings ?? []);
+  const [thresholds, setThresholds] = useState<ThresholdRule[]>(customization.thresholds ?? []);
+
 
   const handleTypeChange = (newType: DeviceType) => {
     setType(newType);
@@ -50,6 +55,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
       templateId,
       iconAnimation,
       deviceBindings: bindings,
+      thresholds: thresholds,
     });
     onClose();
   };
@@ -75,6 +81,41 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
     });
   };
 
+  const handleAddThreshold = () => {
+    const newRule: ThresholdRule = {
+      value: 0,
+      comparison: 'above',
+      style: {},
+    };
+    setThresholds(prev => [...prev, newRule]);
+  };
+
+  const handleUpdateThreshold = (index: number, field: keyof ThresholdRule | 'style', value: any) => {
+    setThresholds(prev => {
+      const newThresholds = [...prev];
+      if (field === 'style') {
+        newThresholds[index] = { ...newThresholds[index], style: value };
+      } else {
+        newThresholds[index] = { ...newThresholds[index], [field]: value };
+      }
+      return newThresholds;
+    });
+  };
+  
+  const handleClearThresholdColor = (index: number, colorType: 'backgroundColor' | 'valueColor') => {
+     setThresholds(prev => {
+      const newThresholds = [...prev];
+      const newStyle = { ...newThresholds[index].style };
+      delete newStyle[colorType];
+      newThresholds[index] = { ...newThresholds[index], style: newStyle };
+      return newThresholds;
+    });
+  }
+
+  const handleDeleteThreshold = (index: number) => {
+    setThresholds(prev => prev.filter((_, i) => i !== index));
+  };
+
   const availableTypes = Object.keys(DeviceType)
     .filter(key => !isNaN(Number(key)))
     .map(key => ({
@@ -85,6 +126,8 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   const availableIcons = Object.keys(icons).map(Number) as DeviceType[];
   
   const isTemplateable = device.type === DeviceType.Sensor || device.type === DeviceType.Light || device.type === DeviceType.DimmableLight || device.type === DeviceType.Switch || device.type === DeviceType.Thermostat;
+  const isSensor = type === DeviceType.Sensor;
+  
   const templateType = (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight)
     ? 'light'
     : (device.type === DeviceType.Switch)
@@ -168,6 +211,53 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                       </option>
                   ))}
               </select>
+            </div>
+          )}
+           {isSensor && (
+            <div className="space-y-4 pt-4 border-t border-gray-700">
+                <h3 className="text-base font-semibold text-white">Пороги значений</h3>
+                 <p className="text-xs text-gray-400 -mt-2">Изменяйте цвет фона или значения в зависимости от состояния сенсора.</p>
+                <div className="space-y-2">
+                {(thresholds).map((rule, index) => (
+                    <div key={index} className="bg-gray-700/50 p-3 rounded-lg space-y-3">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-gray-200">Правило #{index + 1}</span>
+                            <button onClick={() => handleDeleteThreshold(index)} className="p-1 text-gray-500 hover:text-red-400 rounded-md transition-colors">
+                                <Icon icon="mdi:trash-can-outline" className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            <select value={rule.comparison} onChange={(e) => handleUpdateThreshold(index, 'comparison', e.target.value as 'above' | 'below')} className="w-full bg-gray-900/50 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none">
+                                <option value="above">Больше чем</option>
+                                <option value="below">Меньше чем</option>
+                            </select>
+                            <input type="number" value={rule.value} onChange={e => handleUpdateThreshold(index, 'value', parseFloat(e.target.value) ?? 0)} className="w-full bg-gray-900/50 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                        </div>
+                        <div className="grid grid-cols-2 items-center gap-4">
+                            <label className="text-xs text-gray-400 truncate">Цвет фона</label>
+                             <div className="flex items-center gap-2">
+                                <input type="color" value={rule.style.backgroundColor || '#ffffff'} onChange={e => handleUpdateThreshold(index, 'style', { ...rule.style, backgroundColor: e.target.value })} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/>
+                                <button onClick={() => handleClearThresholdColor(index, 'backgroundColor')} title="Сбросить" className="p-1 text-gray-500 hover:text-white rounded-md transition-colors">
+                                    <Icon icon="mdi:close" className="w-4 h-4" />
+                                </button>
+                             </div>
+                        </div>
+                        <div className="grid grid-cols-2 items-center gap-4">
+                            <label className="text-xs text-gray-400 truncate">Цвет значения</label>
+                              <div className="flex items-center gap-2">
+                                <input type="color" value={rule.style.valueColor || '#ffffff'} onChange={e => handleUpdateThreshold(index, 'style', { ...rule.style, valueColor: e.target.value })} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/>
+                                 <button onClick={() => handleClearThresholdColor(index, 'valueColor')} title="Сбросить" className="p-1 text-gray-500 hover:text-white rounded-md transition-colors">
+                                    <Icon icon="mdi:close" className="w-4 h-4" />
+                                </button>
+                              </div>
+                        </div>
+                    </div>
+                ))}
+                </div>
+                <button onClick={handleAddThreshold} className="mt-2 w-full flex items-center justify-center gap-2 text-sm text-gray-300 hover:text-white bg-gray-700 hover:bg-gray-600/80 rounded-md py-2 transition-colors">
+                    <Icon icon="mdi:plus" className="w-5 h-5"/>
+                    Добавить правило
+                </button>
             </div>
           )}
 

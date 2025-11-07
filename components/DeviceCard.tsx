@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement, DeviceCustomizations } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -439,14 +440,15 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
     let dynamicBackgroundColor = isOn ? (template.styles.onBackgroundColor || '#E5E7EB') : template.styles.backgroundColor;
     let dynamicValueColor: string | undefined = undefined;
 
-    if (device.type === DeviceType.Sensor && template.styles.thresholds && template.styles.thresholds.length > 0) {
+    const deviceCustomization = customizations[device.id];
+    if (device.type === DeviceType.Sensor && deviceCustomization?.thresholds && deviceCustomization.thresholds.length > 0) {
         const numericValue = parseFloat(device.status);
         if (!isNaN(numericValue)) {
-            const applicableAboveRule = template.styles.thresholds
+            const applicableAboveRule = deviceCustomization.thresholds
                 .filter(r => r.comparison === 'above' && numericValue > r.value)
                 .sort((a, b) => b.value - a.value)[0]; // Get the one with highest value
 
-            const applicableBelowRule = template.styles.thresholds
+            const applicableBelowRule = deviceCustomization.thresholds
                 .filter(r => r.comparison === 'below' && numericValue < r.value)
                 .sort((a, b) => a.value - b.value)[0]; // Get the one with lowest value
 

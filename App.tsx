@@ -1,12 +1,13 @@
 
 
 
+
 import React, { useMemo, useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
-import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CameraSettings, GridLayoutItem, CardTemplates, CardTemplate, DeviceBinding } from './types';
+import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CameraSettings, GridLayoutItem, CardTemplates, CardTemplate, DeviceBinding, ThresholdRule } from './types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from './components/DeviceIcon';
 
@@ -560,7 +561,7 @@ const App: React.FC = () => {
 
 
   // --- Customization ---
-  const handleSaveCustomization = useCallback((deviceId: string, newValues: { name: string; type: DeviceType; icon: string; isHidden: boolean; templateId?: string; iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow'; deviceBindings?: DeviceBinding[] }) => {
+  const handleSaveCustomization = useCallback((deviceId: string, newValues: { name: string; type: DeviceType; icon: string; isHidden: boolean; templateId?: string; iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow'; deviceBindings?: DeviceBinding[]; thresholds?: ThresholdRule[] }) => {
     const originalDevice = allKnownDevices.get(deviceId);
     if (!originalDevice) return;
     
@@ -604,6 +605,11 @@ const App: React.FC = () => {
         } else {
             delete currentCustomization.deviceBindings;
         }
+        if (newValues.thresholds && newValues.thresholds.length > 0) {
+            currentCustomization.thresholds = newValues.thresholds;
+        } else {
+            delete currentCustomization.thresholds;
+        }
 
 
         if (Object.keys(currentCustomization).length === 0) {
@@ -633,6 +639,7 @@ const App: React.FC = () => {
       templateId: currentCustomization.templateId,
       iconAnimation: currentCustomization.iconAnimation,
       deviceBindings: currentCustomization.deviceBindings,
+      thresholds: currentCustomization.thresholds,
     });
   }, [customizations, allKnownDevices, handleSaveCustomization]);
 

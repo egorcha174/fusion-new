@@ -1,5 +1,6 @@
 
 
+
 export enum DeviceType {
   Light,
   Lamp,
@@ -96,6 +97,7 @@ export interface DeviceCustomization {
   templateId?: string; // ID of the CardTemplate to use
   iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow';
   deviceBindings?: DeviceBinding[];
+  thresholds?: ThresholdRule[];
 }
 
 export type DeviceCustomizations = Record<string, DeviceCustomization>; // Key is device.id (entity_id)
@@ -175,7 +177,6 @@ export interface CardTemplate {
   styles: {
     backgroundColor: string;
     onBackgroundColor?: string;
-    thresholds?: ThresholdRule[];
   };
   width?: number;
   height?: number;
