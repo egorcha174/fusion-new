@@ -1,7 +1,3 @@
-
-
-
-
 export enum DeviceType {
   Light,
   Lamp,
@@ -109,7 +105,7 @@ export interface CameraSettings {
 }
 
 // --- Card Template System ---
-export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status' | 'slider' | 'temperature' | 'target-temperature' | 'hvac-modes' | 'preset-modes';
+export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status' | 'slider' | 'temperature' | 'target-temperature' | 'hvac-modes';
 
 export interface CardElement {
   id: CardElementId;

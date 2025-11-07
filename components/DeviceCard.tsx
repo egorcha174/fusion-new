@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -522,17 +514,17 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
             </div>
           );
         case 'hvac-modes': {
+            const isPresetMode = device.presetModes && device.presetModes.length > 0;
+
             const containerRef = useRef<HTMLDivElement>(null);
             const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
-
-            const getNode = (key: string) => itemRefs.current.get(key);
-
             const [pillStyle, setPillStyle] = useState<React.CSSProperties>({ opacity: 0 });
 
-            const activeMode = device.state;
+            const modes = isPresetMode ? device.presetModes! : (device.hvacModes || []);
+            const activeMode = isPresetMode ? device.presetMode : device.state;
 
             useLayoutEffect(() => {
-                const activeItemEl = getNode(activeMode || '');
+                const activeItemEl = itemRefs.current.get(activeMode || '');
                 const containerEl = containerRef.current;
 
                 if (activeItemEl && containerEl) {
@@ -547,10 +539,27 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                 } else {
                     setPillStyle(prev => ({ ...prev, opacity: 0 }));
                 }
-            }, [activeMode, device.hvacModes, element.size]);
+            }, [activeMode, modes, element.size]);
+
+            if (modes.length === 0) return null;
 
             const hvacModeTranslations: { [key: string]: string } = {
                 'off': 'Выкл', 'cool': 'Холод', 'heat': 'Нагрев', 'auto': 'Авто', 'fan_only': 'Вент.', 'dry': 'Осуш.'
+            };
+
+            const handleClick = (mode: string) => {
+                if (isPresetMode) {
+                    onPresetChange(mode);
+                } else {
+                    onHvacModeChange(mode);
+                }
+            };
+
+            const getLabel = (mode: string) => {
+                if (isPresetMode) {
+                    return translatePreset(mode);
+                }
+                return hvacModeTranslations[mode] || mode;
             };
 
             return (
@@ -563,70 +572,17 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                             className="absolute left-1 right-1 bg-white/20 rounded-md transition-all duration-300 ease-in-out"
                             style={pillStyle}
                         />
-                        {(device.hvacModes || []).map((mode) => (
-                            <button
-                                key={mode}
-                                ref={node => {
-                                    if (node) {
-                                        itemRefs.current.set(mode, node);
-                                    } else {
-                                        itemRefs.current.delete(mode);
-                                    }
-                                }}
-                                onClick={() => onHvacModeChange(mode)}
-                                className={`relative z-10 w-full text-center text-xs font-bold transition-colors duration-200 py-1 rounded-md ${activeMode === mode ? 'text-white' : 'text-gray-300 hover:text-white'}`}
-                            >
-                                {hvacModeTranslations[mode] || mode}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            );
-        }
-        case 'preset-modes': {
-            const containerRef = useRef<HTMLDivElement>(null);
-            const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
-            const getNode = (key: string) => itemRefs.current.get(key);
-            const [pillStyle, setPillStyle] = useState<React.CSSProperties>({ opacity: 0 });
-            const activeMode = device.presetMode;
-
-            useLayoutEffect(() => {
-                const activeItemEl = getNode(activeMode || '');
-                const containerEl = containerRef.current;
-                if (activeItemEl && containerEl) {
-                    const containerRect = containerEl.getBoundingClientRect();
-                    const itemRect = activeItemEl.getBoundingClientRect();
-                    setPillStyle({
-                        top: `${itemRect.top - containerRect.top}px`,
-                        height: `${itemRect.height}px`,
-                        opacity: 1,
-                    });
-                } else {
-                    setPillStyle(prev => ({ ...prev, opacity: 0 }));
-                }
-            }, [activeMode, device.presetModes, element.size]);
-
-            return (
-                <div key={element.id} style={style} onClick={e => e.stopPropagation()}>
-                    <div
-                        ref={containerRef}
-                        className="relative w-full h-full flex flex-col justify-around items-stretch bg-black/20 rounded-lg p-1"
-                    >
-                        <div
-                            className="absolute left-1 right-1 bg-white/20 rounded-md transition-all duration-300 ease-in-out"
-                            style={pillStyle}
-                        />
-                        {(device.presetModes || []).map((mode) => (
+                        {modes.map((mode) => (
                             <button
                                 key={mode}
                                 ref={node => {
                                     if (node) itemRefs.current.set(mode, node);
                                     else itemRefs.current.delete(mode);
                                 }}
-                                onClick={() => onPresetChange(mode)}
+                                onClick={() => handleClick(mode)}
                                 className={`relative z-10 w-full text-center text-xs font-bold transition-colors duration-200 py-1 rounded-md ${activeMode === mode ? 'text-white' : 'text-gray-300 hover:text-white'}`}
                             >
-                                {translatePreset(mode)}
+                                {getLabel(mode)}
                             </button>
                         ))}
                     </div>
