@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -798,7 +799,30 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, onTemp
           </div>
         );
       case DeviceType.Sensor: {
-        return <div>Sensor should be rendered by template.</div>
+        // Minimal fallback UI in case a template is missing.
+        const isNumericStatus = !isNaN(parseFloat(device.status));
+        return (
+          <div className="flex flex-col h-full text-left">
+            <div className={`flex-shrink-0 text-gray-400`}>
+              <DeviceIcon icon={device.icon ?? device.type} isOn={false} iconAnimation={device.iconAnimation} />
+            </div>
+            <div className="flex-grow flex flex-col justify-end overflow-hidden min-h-0">
+               <div className="flex-grow flex items-end min-h-0">
+                <AutoFitText
+                    text={device.name}
+                    className="w-full h-full"
+                    pClassName={styles.nameText}
+                    maxFontSize={18}
+                    mode="multi-line"
+                />
+              </div>
+              <div className="flex items-baseline">
+                <p className={`${styles.sensorStatusText} text-white`}>{device.status}</p>
+                {isNumericStatus && device.unit && <p className={`ml-1 text-gray-400 ${styles.sensorUnitText}`}>{device.unit}</p>}
+              </div>
+            </div>
+          </div>
+        );
       }
       default:
         return (
@@ -837,7 +861,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, onTemp
 
     if (isCamera) {
       finalClasses += `p-0 ${offStateClasses}`;
-    } else if (device.type === DeviceType.Thermostat) {
+    } else if (device.type === DeviceType.Thermostat || device.type === DeviceType.Sensor) {
         finalClasses += `${styles.padding} ${offStateClasses}`;
     } else {
         finalClasses += `${styles.padding} ${isOn ? onStateClasses : offStateClasses}`;
