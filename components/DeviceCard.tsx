@@ -5,6 +5,7 @@ import SparklineChart from './SparklineChart';
 import ThermostatDial from './ThermostatDial';
 import Hls from 'hls.js';
 import { constructHaUrl } from '../utils/url';
+import { Icon } from '@iconify/react';
 
 // --- Auto-fitting Text Component (New and Improved) ---
 const AutoFitText: React.FC<{
@@ -514,115 +515,95 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
             </div>
           );
         case 'hvac-modes': {
+            const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+            const dropdownRef = useRef<HTMLDivElement>(null);
+        
+            useEffect(() => {
+                const handleClickOutside = (event: MouseEvent) => {
+                    if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                        setIsDropdownOpen(false);
+                    }
+                };
+                if (isDropdownOpen) {
+                    document.addEventListener('mousedown', handleClickOutside);
+                }
+                return () => {
+                    document.removeEventListener('mousedown', handleClickOutside);
+                };
+            }, [isDropdownOpen]);
+        
             const isPresetMode = device.presetModes && device.presetModes.length > 0;
-
-            const scrollContainerRef = useRef<HTMLDivElement>(null);
-            const listRef = useRef<HTMLDivElement>(null);
-            const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
-            const [pillStyle, setPillStyle] = useState<React.CSSProperties>({ opacity: 0 });
-            const [showTopFade, setShowTopFade] = useState(false);
-            const [showBottomFade, setShowBottomFade] = useState(false);
-
             const modes = isPresetMode ? device.presetModes! : (device.hvacModes || []);
             const activeMode = isPresetMode ? device.presetMode : device.state;
-
-            const updateFades = useCallback(() => {
-                const el = scrollContainerRef.current;
-                if (!el) return;
-                const isScrollable = el.scrollHeight > el.clientHeight;
-                const scrollBuffer = 1; // Add a buffer for floating point inaccuracies
-                setShowTopFade(isScrollable && el.scrollTop > scrollBuffer);
-                setShowBottomFade(isScrollable && el.scrollTop < el.scrollHeight - el.clientHeight - scrollBuffer);
-            }, []);
-            
-            useLayoutEffect(() => {
-                const activeItemEl = itemRefs.current.get(activeMode || '');
-                const containerEl = scrollContainerRef.current;
-                if (activeItemEl && containerEl) {
-                    setPillStyle({
-                        top: `${activeItemEl.offsetTop}px`,
-                        height: `${activeItemEl.offsetHeight}px`,
-                        opacity: 1,
-                    });
-                    
-                    const isVisible = activeItemEl.offsetTop >= containerEl.scrollTop &&
-                                      (activeItemEl.offsetTop + activeItemEl.offsetHeight) <= (containerEl.scrollTop + containerEl.clientHeight);
-                    if (!isVisible) {
-                        activeItemEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                } else {
-                    setPillStyle(prev => ({ ...prev, opacity: 0 }));
-                }
-            }, [activeMode, modes]);
-
-            useEffect(() => {
-                const scrollEl = scrollContainerRef.current;
-                if (!scrollEl) return;
-                updateFades(); // Initial check
-                scrollEl.addEventListener('scroll', updateFades, { passive: true });
-                const resizeObserver = new ResizeObserver(updateFades);
-                if (listRef.current) resizeObserver.observe(listRef.current);
-                return () => {
-                    scrollEl.removeEventListener('scroll', updateFades);
-                    resizeObserver.disconnect();
-                };
-            }, [modes, updateFades]);
-
-
             if (modes.length === 0) return null;
-
-            const hvacModeTranslations: { [key: string]: string } = {
-                'off': 'Выкл', 'cool': 'Холод', 'heat': 'Нагрев', 'auto': 'Авто', 'fan_only': 'Вент.', 'dry': 'Осуш.'
+        
+            const hvacModeConfig: { [key: string]: { icon: string, label: string } } = {
+                'off': { icon: 'mdi:power-off', label: 'Выкл' },
+                'cool': { icon: 'mdi:snowflake', label: 'Холод' },
+                'heat': { icon: 'mdi:fire', label: 'Нагрев' },
+                'auto': { icon: 'mdi:autorenew', label: 'Авто' },
+                'fan_only': { icon: 'mdi:fan', label: 'Вент.' },
+                'dry': { icon: 'mdi:water-percent', label: 'Осуш.' },
+                'heat_cool': { icon: 'mdi:thermostat-auto', label: 'Авто' }
             };
-
+        
+            const presetModeConfig: { [key: string]: { icon: string, label: string } } = {
+                'none': { icon: 'mdi:cancel', label: translatePreset('none') },
+                'away': { icon: 'mdi:airplane-takeoff', label: translatePreset('away') },
+                'comfort': { icon: 'mdi:sofa-outline', label: translatePreset('comfort') },
+                'eco': { icon: 'mdi:leaf', label: translatePreset('eco') },
+                'home': { icon: 'mdi:home-variant-outline', label: translatePreset('home') },
+                'sleep': { icon: 'mdi:power-sleep', label: translatePreset('sleep') },
+                'activity': { icon: 'mdi:run', label: translatePreset('activity') },
+                'boost': { icon: 'mdi:rocket-launch-outline', label: translatePreset('boost') },
+            };
+        
+            const getConfig = (mode: string) => {
+                if (isPresetMode) {
+                    return presetModeConfig[mode.toLowerCase()] || { icon: 'mdi:circle-medium', label: translatePreset(mode) };
+                }
+                return hvacModeConfig[mode.toLowerCase()] || { icon: 'mdi:circle-medium', label: mode };
+            };
+        
             const handleClick = (mode: string) => {
                 if (isPresetMode) {
                     onPresetChange(mode);
                 } else {
                     onHvacModeChange(mode);
                 }
+                setIsDropdownOpen(false);
             };
-
-            const getLabel = (mode: string) => {
-                if (isPresetMode) {
-                    return translatePreset(mode);
-                }
-                return hvacModeTranslations[mode] || mode;
-            };
-
+        
+            const activeConfig = getConfig(activeMode?.toLowerCase() || (isPresetMode ? 'none' : 'off'));
+        
             return (
-                <div key={element.id} style={style} onClick={e => e.stopPropagation()}>
-                    <div
-                        className="relative w-full h-full overflow-hidden"
-                    >
-                        <div className={`absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-black/20 to-transparent z-20 pointer-events-none transition-opacity ${showTopFade ? 'opacity-100' : 'opacity-0'}`} />
-                        
-                        <div
-                            ref={scrollContainerRef}
-                            className="relative w-full h-full overflow-y-auto no-scrollbar"
+                <div key={element.id} style={style} onClick={e => e.stopPropagation()} ref={dropdownRef}>
+                    <div className="relative w-full h-full flex items-center justify-center">
+                        <button
+                            onClick={() => setIsDropdownOpen(prev => !prev)}
+                            className="w-full h-full flex flex-col items-center justify-center bg-white/10 hover:bg-white/20 rounded-lg transition-colors p-1"
                         >
-                            <div
-                                className="absolute left-0 right-0 bg-white/20 rounded-md transition-all duration-300 ease-in-out"
-                                style={pillStyle}
-                            />
-                            <div ref={listRef} className="relative z-10 flex flex-col items-stretch space-y-1">
-                                {modes.map((mode) => (
-                                    <button
-                                        key={mode}
-                                        ref={node => {
-                                            if (node) itemRefs.current.set(mode, node);
-                                            else itemRefs.current.delete(mode);
-                                        }}
-                                        onClick={() => handleClick(mode)}
-                                        className={`w-full text-center text-xs font-bold transition-colors duration-200 py-1 rounded-md flex-shrink-0 ${activeMode === mode ? 'text-white' : 'text-gray-300 hover:text-white'}`}
-                                    >
-                                        {getLabel(mode)}
-                                    </button>
-                                ))}
+                            <Icon icon={activeConfig.icon} className="w-auto h-1/2 max-h-[60%] text-white" />
+                            <span className="text-[10px] font-bold text-white mt-1 leading-tight text-center">{activeConfig.label}</span>
+                        </button>
+        
+                        {isDropdownOpen && (
+                            <div className="absolute bottom-full right-0 mb-2 min-w-full w-max bg-gray-800/80 backdrop-blur-md rounded-lg shadow-lg ring-1 ring-white/10 p-1 z-20">
+                                {modes.map(mode => {
+                                    const config = getConfig(mode);
+                                    return (
+                                        <button
+                                            key={mode}
+                                            onClick={() => handleClick(mode)}
+                                            className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left rounded-md transition-colors ${activeMode?.toLowerCase() === mode.toLowerCase() ? 'bg-blue-600/50 text-white' : 'text-gray-200 hover:bg-white/10'}`}
+                                        >
+                                            <Icon icon={config.icon} className="w-5 h-5 flex-shrink-0" />
+                                            <span>{config.label}</span>
+                                        </button>
+                                    );
+                                })}
                             </div>
-                        </div>
-
-                        <div className={`absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-black/20 to-transparent z-20 pointer-events-none transition-opacity ${showBottomFade ? 'opacity-100' : 'opacity-0'}`} />
+                        )}
                     </div>
                 </div>
             );
@@ -634,7 +615,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
     
     return (
       <div
-        className="w-full h-full relative overflow-hidden rounded-2xl"
+        className="w-full h-full relative rounded-2xl"
         style={{ backgroundColor: isOn ? (template.styles.onBackgroundColor || '#E5E7EB') : template.styles.backgroundColor }}
       >
         {template.elements.map(renderElement)}
