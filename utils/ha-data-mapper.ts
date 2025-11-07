@@ -62,18 +62,34 @@ const getStatusText = (entity: HassEntity): string => {
 
     if (domain === 'climate') {
         const hvacAction = attributes.hvac_action;
-        const currentTemp = attributes.current_temperature;
-        const targetTemp = attributes.temperature;
-        if (hvacAction && hvacAction !== 'off' && hvacAction !== 'idle') {
-            const actionText = {
-                'cooling': `Охлаждение до ${targetTemp}°`,
-                'heating': `Нагрев до ${targetTemp}°`,
-                'fan': 'Вентилятор',
-                'drying': 'Осушение',
-            }[hvacAction] || hvacAction;
-            return `Текущая ${currentTemp}° · ${actionText}`;
+        const state = entity.state;
+
+        const stateTranslations: Record<string, string> = {
+            'cool': 'Охлаждение',
+            'heat': 'Нагрев',
+            'fan_only': 'Вентилятор',
+            'dry': 'Осушение',
+            'auto': 'Авто',
+            'heat_cool': 'Авто',
+            'off': 'Выключено',
+        };
+
+        const actionTranslations: Record<string, string> = {
+            'cooling': 'Охлаждение',
+            'heating': 'Нагрев',
+            'fan': 'Вентилятор',
+            'drying': 'Осушение',
+            // 'idle' is not translated here, so we fall back to state
+            'off': 'Выключено',
+        };
+
+        // If actively doing something (and not just off), use the action.
+        if (hvacAction && hvacAction !== 'idle' && hvacAction !== 'off') {
+            return actionTranslations[hvacAction] || hvacAction;
         }
-        return `Текущая ${currentTemp}° · ${entity.state}`;
+
+        // Otherwise, use the general state/mode. This covers 'off', 'idle', and cases where hvacAction is missing.
+        return stateTranslations[state] || state.charAt(0).toUpperCase() + state.slice(1);
     }
 
     if (domain === 'weather') {
