@@ -148,6 +148,7 @@ export interface DeviceSlot {
     showValue?: boolean;
     decimalPlaces?: number;
     unit?: string;
+    fontSize?: number;
   };
   interactive: boolean;
 }

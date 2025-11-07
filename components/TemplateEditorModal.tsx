@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot } from '../types';
 import DeviceCard from './DeviceCard';
@@ -104,8 +106,8 @@ const DraggableIndicatorSlot: React.FC<{ slot: DeviceSlot, isSelected: boolean, 
         position: 'absolute',
         left: `${slot.position.x}%`,
         top: `${slot.position.y}%`,
-        width: `${slot.iconSize}px`,
-        height: `${slot.iconSize}px`,
+        width: slot.visualStyle.showValue ? '60px' : `${slot.iconSize}px`,
+        height: slot.visualStyle.showValue ? '30px' : `${slot.iconSize}px`,
         zIndex: 50,
         transform: 'translate(-50%, -50%)',
     };
@@ -121,11 +123,17 @@ const DraggableIndicatorSlot: React.FC<{ slot: DeviceSlot, isSelected: boolean, 
             {...attributes}
             onClick={(e) => { e.stopPropagation(); onSelect(); }}
             style={style}
-            className={`flex items-center justify-center rounded-full cursor-move transition-all duration-100 ${isSelected ? 'ring-2 ring-offset-2 ring-offset-gray-900 ring-blue-500' : ''}`}
+            className={`flex items-center justify-center cursor-move transition-all duration-100 ${isSelected ? 'ring-2 ring-offset-2 ring-offset-gray-900 ring-blue-500' : ''} ${slot.visualStyle.showValue ? 'rounded-md' : 'rounded-full'}`}
         >
-            <div className="w-full h-full bg-white/20 border-2 border-dashed border-white/50 rounded-full flex items-center justify-center">
-                <span className="text-white/50 text-xs font-bold">+</span>
-            </div>
+            {slot.visualStyle.showValue ? (
+                <div className="w-full h-full bg-white/10 border-2 border-dashed border-white/50 rounded-md flex items-center justify-center p-1">
+                    <span className="text-white/50 text-[10px] font-mono select-none">12.3°</span>
+                </div>
+            ) : (
+                <div className="w-full h-full bg-white/20 border-2 border-dashed border-white/50 rounded-full flex items-center justify-center">
+                    <span className="text-white/50 text-xs font-bold">+</span>
+                </div>
+            )}
         </div>
     );
 };
@@ -604,7 +612,11 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                {selectedSlot && (
                 <>
                   <Section title="Положение и размер" defaultOpen={true}>
-                    <LabeledInput label="Размер иконки"><input type="range" min="20" max="48" value={selectedSlot.iconSize} onChange={e => handleSlotUpdate(selectedSlot.id, { iconSize: parseInt(e.target.value, 10) })} className="w-full accent-blue-500" /></LabeledInput>
+                    {!selectedSlot.visualStyle.showValue && (
+                        <LabeledInput label="Размер иконки">
+                            <input type="range" min="20" max="48" value={selectedSlot.iconSize} onChange={e => handleSlotUpdate(selectedSlot.id, { iconSize: parseInt(e.target.value, 10) })} className="w-full accent-blue-500" />
+                        </LabeledInput>
+                    )}
                   </Section>
                   <Section title="Отображение">
                     <LabeledInput label="Показывать значение">
@@ -617,6 +629,13 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                     </LabeledInput>
                     {selectedSlot.visualStyle.showValue && (
                         <>
+                            <LabeledInput label="Размер шрифта" suffix="px">
+                                <NumberInput
+                                    value={selectedSlot.visualStyle.fontSize}
+                                    onChange={v => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, fontSize: v } })}
+                                    min={8} max={100} placeholder="Авто"
+                                />
+                            </LabeledInput>
                             <LabeledInput label="Знаков после ," suffix=",">
                                 <NumberInput
                                     value={selectedSlot.visualStyle.decimalPlaces}

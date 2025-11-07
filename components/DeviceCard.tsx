@@ -775,7 +775,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                         left: `${slot.position.x}%`,
                         top: `${slot.position.y}%`,
                         width: visualStyle.showValue && valueText ? 'auto' : `${slot.iconSize}px`,
-                        height: `${slot.iconSize}px`,
+                        height: visualStyle.showValue && valueText ? 'auto' : `${slot.iconSize}px`,
                     }}
                     onClick={slot.interactive ? (e) => handleIndicatorClick(e, entity.id) : undefined}
                 >
@@ -783,14 +783,14 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                     <div className="flex items-baseline text-white whitespace-nowrap" style={{ color }}>
                       <span
                         className="font-semibold leading-none"
-                        style={{ fontSize: `${slot.iconSize * 0.8}px` }}
+                        style={{ fontSize: visualStyle.fontSize ? `${visualStyle.fontSize}px` : `${slot.iconSize * 0.8}px` }}
                       >
                         {valueText}
                       </span>
                       {visualStyle.unit && (
                         <span
                           className="font-medium text-gray-400 leading-none ml-1"
-                          style={{ fontSize: `${slot.iconSize * 0.5}px` }}
+                          style={{ fontSize: visualStyle.fontSize ? `${visualStyle.fontSize * 0.6}px` : `${slot.iconSize * 0.5}px` }}
                         >
                           {visualStyle.unit}
                         </span>
