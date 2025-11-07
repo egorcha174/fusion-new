@@ -157,9 +157,11 @@ interface TemplateEditorModalProps {
   templateToEdit: CardTemplate;
   onSave: (newTemplate: CardTemplate) => void;
   onClose: () => void;
+  // Fix: Add allKnownDevices to props
+  allKnownDevices: Map<string, Device>;
 }
 
-const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdit, onSave, onClose }) => {
+const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdit, onSave, onClose, allKnownDevices }) => {
   const [editedTemplate, setEditedTemplate] = useState<CardTemplate>({
     ...templateToEdit,
     width: templateToEdit.width || 1,

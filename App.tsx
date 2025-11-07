@@ -4,7 +4,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
-import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CameraSettings, GridLayoutItem, CardTemplates, CardTemplate } from './types';
+import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CameraSettings, GridLayoutItem, CardTemplates, CardTemplate, DeviceBinding } from './types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from './components/DeviceIcon';
 
@@ -555,7 +555,7 @@ const App: React.FC = () => {
 
 
   // --- Customization ---
-  const handleSaveCustomization = useCallback((deviceId: string, newValues: { name: string; type: DeviceType; icon: string; isHidden: boolean; templateId?: string; iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow'; }) => {
+  const handleSaveCustomization = useCallback((deviceId: string, newValues: { name: string; type: DeviceType; icon: string; isHidden: boolean; templateId?: string; iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow'; deviceBindings?: DeviceBinding[] }) => {
     const originalDevice = allKnownDevices.get(deviceId);
     if (!originalDevice) return;
     
@@ -594,6 +594,12 @@ const App: React.FC = () => {
         } else {
             delete currentCustomization.iconAnimation;
         }
+        if (newValues.deviceBindings && newValues.deviceBindings.length > 0) {
+            currentCustomization.deviceBindings = newValues.deviceBindings;
+        } else {
+            delete currentCustomization.deviceBindings;
+        }
+
 
         if (Object.keys(currentCustomization).length === 0) {
             delete newCustomizations[deviceId];
@@ -621,6 +627,7 @@ const App: React.FC = () => {
       isHidden: isHidden,
       templateId: currentCustomization.templateId,
       iconAnimation: currentCustomization.iconAnimation,
+      deviceBindings: currentCustomization.deviceBindings,
     });
   }, [customizations, allKnownDevices, handleSaveCustomization]);
 
@@ -834,6 +841,7 @@ const App: React.FC = () => {
             onSave={handleSaveCustomization} 
             onClose={() => setEditingDevice(null)}
             templates={templates}
+            allKnownDevices={allKnownDevices}
           />
         )}
         {editingTab && (
@@ -849,6 +857,7 @@ const App: React.FC = () => {
               templateToEdit={editingTemplate === 'new' ? createNewBlankTemplate('sensor') : editingTemplate}
               onSave={handleSaveTemplate}
               onClose={() => setEditingTemplate(null)}
+              allKnownDevices={allKnownDevices}
           />
         )}
 

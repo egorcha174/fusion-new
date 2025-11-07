@@ -1,3 +1,4 @@
+
 export enum DeviceType {
   Light,
   Lamp,
@@ -79,6 +80,13 @@ export interface Tab {
 }
 
 // Types for user customizations
+export interface DeviceBinding {
+  slotId: string;
+  entityId: string;
+  icon?: string;
+  enabled: boolean;
+}
+
 export interface DeviceCustomization {
   name?: string;
   type?: DeviceType;
@@ -86,6 +94,7 @@ export interface DeviceCustomization {
   isHidden?: boolean;
   templateId?: string; // ID of the CardTemplate to use
   iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow';
+  deviceBindings?: DeviceBinding[];
 }
 
 export type DeviceCustomizations = Record<string, DeviceCustomization>; // Key is device.id (entity_id)
@@ -124,6 +133,20 @@ export interface CardElement {
   };
 }
 
+export interface DeviceSlot {
+  id: string;
+  position: { x: number; y: number }; // %
+  iconSize: number; // px
+  visualStyle: {
+    type: 'color' | 'glow' | 'animation' | 'color_glow' | 'color_animation';
+    activeColor: string;
+    inactiveColor: string;
+    glowIntensity: number; // 0-1
+    animationType: 'pulse' | 'rotate' | 'none';
+  };
+  interactive: boolean;
+}
+
 export interface CardTemplate {
   id: string;
   name: string;
@@ -135,6 +158,7 @@ export interface CardTemplate {
   };
   width?: number;
   height?: number;
+  deviceSlots?: DeviceSlot[];
 }
 
 export type CardTemplates = Record<string, CardTemplate>;

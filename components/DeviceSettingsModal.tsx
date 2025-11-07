@@ -1,15 +1,19 @@
 
 
 import React, { useState } from 'react';
-import { Device, DeviceCustomization, DeviceType, CardTemplates } from '../types';
+// Fix: Add DeviceBinding to imports
+import { Device, DeviceCustomization, DeviceType, CardTemplates, DeviceBinding } from '../types';
 import DeviceIcon, { icons, getIconNameForDeviceType } from './DeviceIcon';
 
 interface DeviceSettingsModalProps {
   device: Device;
   customization: DeviceCustomization;
-  onSave: (deviceId: string, newValues: { name: string; type: DeviceType; icon: string; isHidden: boolean; templateId?: string; iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow'; }) => void;
+  // Fix: Update onSave to include deviceBindings
+  onSave: (deviceId: string, newValues: { name: string; type: DeviceType; icon: string; isHidden: boolean; templateId?: string; iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow'; deviceBindings?: DeviceBinding[] }) => void;
   onClose: () => void;
   templates: CardTemplates;
+  // Fix: Add allKnownDevices prop
+  allKnownDevices: Map<string, Device>;
 }
 
 const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
@@ -18,6 +22,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   onSave,
   onClose,
   templates,
+  allKnownDevices,
 }) => {
   const getDefaultIcon = () => {
     if (customization.icon) return customization.icon;
@@ -47,6 +52,8 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
       isHidden,
       templateId,
       iconAnimation,
+      // Fix: Pass through deviceBindings
+      deviceBindings: customization.deviceBindings,
     });
     onClose();
   };
