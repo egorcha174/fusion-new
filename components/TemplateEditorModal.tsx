@@ -3,6 +3,8 @@
 
 
 
+
+
 import React, { useState, useRef, useMemo } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement } from '../types';
 import DeviceCard from './DeviceCard';
@@ -75,7 +77,8 @@ const SortableLayerItem: React.FC<{
       slider: 'Слайдер',
       temperature: 'Текущая темп.',
       'target-temperature': 'Термостат (кольцо)',
-      'hvac-modes': 'Режимы работы'
+      'hvac-modes': 'Режимы работы',
+      'preset-modes': 'Предустановки',
   };
 
   return (
@@ -197,6 +200,8 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
         maxTemp: 30,
         hvacModes: ['off', 'cool', 'heat', 'auto'],
         hvacAction: 'cooling',
+        presetMode: 'comfort',
+        presetModes: ['none', 'away', 'comfort', 'eco', 'sleep'],
         state: 'cool',
         haDomain: 'climate',
       };
