@@ -397,4 +397,4 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
     );
 };
 
-export default DashboardGrid;
+export default React.memo(DashboardGrid);

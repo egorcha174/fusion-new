@@ -207,4 +207,4 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   );
 };
 
-export default DeviceSettingsModal;
+export default React.memo(DeviceSettingsModal);

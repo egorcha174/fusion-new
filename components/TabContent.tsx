@@ -40,4 +40,4 @@ const TabContent: React.FC<TabContentProps> = (props) => {
   return <DashboardGrid {...props} />;
 };
 
-export default TabContent;
+export default React.memo(TabContent);

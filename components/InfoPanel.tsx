@@ -219,4 +219,4 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, sidebarWidth, setS
     );
 };
 
-export default InfoPanel;
+export default React.memo(InfoPanel);

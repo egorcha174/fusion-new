@@ -67,4 +67,4 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, isOpen, onClose, childr
   );
 };
 
-export default ContextMenu;
+export default React.memo(ContextMenu);

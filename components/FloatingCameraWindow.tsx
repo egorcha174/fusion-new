@@ -157,4 +157,4 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({
   );
 };
 
-export default FloatingCameraWindow;
+export default React.memo(FloatingCameraWindow);

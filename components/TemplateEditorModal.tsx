@@ -865,4 +865,4 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   );
 };
 
-export default TemplateEditorModal;
+export default React.memo(TemplateEditorModal);

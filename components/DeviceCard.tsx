@@ -1,6 +1,5 @@
 
 
-
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -880,4 +879,4 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, onTemp
   );
 };
 
-export default DeviceCard;
+export default React.memo(DeviceCard);

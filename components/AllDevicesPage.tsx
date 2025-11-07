@@ -119,4 +119,4 @@ const AllDevicesPage: React.FC<AllDevicesPageProps> = ({ rooms, customizations, 
     );
 };
 
-export default AllDevicesPage;
+export default React.memo(AllDevicesPage);

@@ -136,4 +136,4 @@ const TabSettingsModal: React.FC<TabSettingsModalProps> = ({ tab, onSave, onDele
     );
 };
 
-export default TabSettingsModal;
+export default React.memo(TabSettingsModal);

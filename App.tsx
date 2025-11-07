@@ -1,25 +1,25 @@
 
-
-
-
-import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
-import Settings from './components/Settings';
+import React, { useMemo, useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
-import InfoPanel from './components/InfoPanel';
-import DashboardHeader from './components/DashboardHeader';
-import AllDevicesPage from './components/AllDevicesPage';
-import TabContent from './components/TabContent';
-import DeviceSettingsModal from './components/DeviceSettingsModal';
-import TabSettingsModal from './components/TabSettingsModal';
-import ContextMenu from './components/ContextMenu';
-import FloatingCameraWindow from './components/FloatingCameraWindow';
-import TemplateEditorModal from './components/TemplateEditorModal';
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
 import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CameraSettings, GridLayoutItem, CardTemplates, CardTemplate } from './types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from './components/DeviceIcon';
+
+// Lazy load components for code splitting and better performance
+const Settings = lazy(() => import('./components/Settings'));
+const InfoPanel = lazy(() => import('./components/InfoPanel'));
+const DashboardHeader = lazy(() => import('./components/DashboardHeader'));
+const AllDevicesPage = lazy(() => import('./components/AllDevicesPage'));
+const TabContent = lazy(() => import('./components/TabContent'));
+const DeviceSettingsModal = lazy(() => import('./components/DeviceSettingsModal'));
+const TabSettingsModal = lazy(() => import('./components/TabSettingsModal'));
+const ContextMenu = lazy(() => import('./components/ContextMenu'));
+const FloatingCameraWindow = lazy(() => import('./components/FloatingCameraWindow'));
+const TemplateEditorModal = lazy(() => import('./components/TemplateEditorModal'));
+
 
 // Hook to check for large screens to conditionally apply margin
 const useIsLg = () => {
@@ -360,46 +360,50 @@ const App: React.FC = () => {
 
 
   // --- Context Menu Handlers ---
-  const handleDeviceContextMenu = (event: React.MouseEvent, deviceId: string, tabId: string) => {
+  const handleDeviceContextMenu = useCallback((event: React.MouseEvent, deviceId: string, tabId: string) => {
     event.preventDefault();
     setContextMenu({ x: event.clientX, y: event.clientY, deviceId, tabId });
-  };
+  }, []);
   
-  const handleCloseContextMenu = () => {
+  const handleCloseContextMenu = useCallback(() => {
     setContextMenu(null);
-  };
+  }, []);
 
 
   // --- Tab Management Handlers ---
-  const handleAddTab = () => {
-    const newTabName = `Вкладка ${tabs.length + 1}`;
-    const newTab: Tab = { id: nanoid(), name: newTabName, layout: [], gridSettings: { cols: 8, rows: 5 } };
-    setTabs([...tabs, newTab]);
-    setActiveTabId(newTab.id);
-  };
+  const handleAddTab = useCallback(() => {
+    setTabs(prevTabs => {
+        const newTabName = `Вкладка ${prevTabs.length + 1}`;
+        const newTab: Tab = { id: nanoid(), name: newTabName, layout: [], gridSettings: { cols: 8, rows: 5 } };
+        setActiveTabId(newTab.id);
+        return [...prevTabs, newTab];
+    });
+  }, [setTabs, setActiveTabId]);
 
-    const handleUpdateTabSettings = (tabId: string, settings: { name: string; gridSettings: { cols: number, rows: number } }) => {
-        setTabs(tabs.map(tab => (tab.id === tabId) ? { ...tab, ...settings } : tab));
-        setEditingTab(null);
-    };
+  const handleUpdateTabSettings = useCallback((tabId: string, settings: { name: string; gridSettings: { cols: number, rows: number } }) => {
+      setTabs(prevTabs => prevTabs.map(tab => (tab.id === tabId) ? { ...tab, ...settings } : tab));
+      setEditingTab(null);
+  }, [setTabs]);
 
-  const handleDeleteTab = (tabId: string) => {
-    const newTabs = tabs.filter(t => t.id !== tabId);
-    setTabs(newTabs);
-    if (activeTabId === tabId) {
-      setActiveTabId(newTabs.length > 0 ? newTabs[0].id : null);
-    }
+  const handleDeleteTab = useCallback((tabId: string) => {
+    setTabs(prevTabs => {
+        const newTabs = prevTabs.filter(t => t.id !== tabId);
+        if (activeTabId === tabId) {
+            setActiveTabId(newTabs.length > 0 ? newTabs[0].id : null);
+        }
+        return newTabs;
+    });
     setEditingTab(null);
-  };
+  }, [activeTabId, setTabs, setActiveTabId]);
 
-  const handleTabOrderChange = (newTabs: Tab[]) => {
+  const handleTabOrderChange = useCallback((newTabs: Tab[]) => {
     setTabs(newTabs);
-  };
+  }, [setTabs]);
 
 
   // --- Device Management on Tabs ---
-  const handleDeviceAddToTab = (deviceId: string, tabId: string) => {
-    setTabs(tabs.map(tab => {
+  const handleDeviceAddToTab = useCallback((deviceId: string, tabId: string) => {
+    setTabs(prevTabs => prevTabs.map(tab => {
         if (tab.id === tabId && !tab.layout.some(item => item.deviceId === deviceId)) {
             // Find the first empty cell
             const { cols, rows } = tab.gridSettings;
@@ -429,10 +433,10 @@ const App: React.FC = () => {
         }
         return tab;
     }));
-  };
+  }, [setTabs]);
 
-  const handleDeviceRemoveFromTab = (deviceId: string, tabId: string) => {
-     setTabs(tabs.map(tab => {
+  const handleDeviceRemoveFromTab = useCallback((deviceId: string, tabId: string) => {
+     setTabs(prevTabs => prevTabs.map(tab => {
         if (tab.id === tabId) {
             return { 
                 ...tab, 
@@ -441,25 +445,25 @@ const App: React.FC = () => {
         }
         return tab;
      }));
-  };
+  }, [setTabs]);
   
-  const handleDeviceMoveToTab = (deviceId: string, fromTabId: string, toTabId: string) => {
+  const handleDeviceMoveToTab = useCallback((deviceId: string, fromTabId: string, toTabId: string) => {
     if (fromTabId === toTabId) return;
     handleDeviceAddToTab(deviceId, toTabId);
     handleDeviceRemoveFromTab(deviceId, fromTabId);
-};
+  }, [handleDeviceAddToTab, handleDeviceRemoveFromTab]);
 
-  const handleDeviceLayoutChangeOnTab = (tabId: string, newLayout: GridLayoutItem[]) => {
-      setTabs(tabs.map(tab => {
+  const handleDeviceLayoutChangeOnTab = useCallback((tabId: string, newLayout: GridLayoutItem[]) => {
+      setTabs(prevTabs => prevTabs.map(tab => {
           if (tab.id === tabId) {
               return { ...tab, layout: newLayout };
           }
           return tab;
       }));
-  };
+  }, [setTabs]);
   
-  const handleDeviceResizeOnTab = (tabId: string, deviceId: string, newWidth: number, newHeight: number) => {
-    setTabs(tabs => tabs.map(tab => {
+  const handleDeviceResizeOnTab = useCallback((tabId: string, deviceId: string, newWidth: number, newHeight: number) => {
+    setTabs(prevTabs => prevTabs.map(tab => {
       if (tab.id !== tabId) return tab;
 
       const currentLayout = tab.layout;
@@ -471,7 +475,6 @@ const App: React.FC = () => {
       // Boundary check
       if (col + newWidth > tab.gridSettings.cols || row + newHeight > tab.gridSettings.rows) {
           console.warn('Cannot resize: Exceeds grid boundaries.');
-          // You might want to show a user-facing error here
           return tab;
       }
 
@@ -486,7 +489,6 @@ const App: React.FC = () => {
           });
           if (conflictingItem) {
             console.warn(`Cannot resize: Conflict with device ${conflictingItem.deviceId}`);
-            // You might want to show a user-facing error here
             return tab; // Abort resize
           }
         }
@@ -499,20 +501,20 @@ const App: React.FC = () => {
 
       return { ...tab, layout: newLayout };
     }));
-  };
+  }, [setTabs]);
 
 
 
   // --- Core Device Interaction ---
-  const handleDeviceToggle = (deviceId: string) => {
+  const handleDeviceToggle = useCallback((deviceId: string) => {
     const entity = entities[deviceId];
     if (!entity) return;
     const service = entity.state === 'on' ? 'turn_off' : 'turn_on';
     const [domain] = entity.entity_id.split('.');
     callService(domain, service, { entity_id: entity.entity_id });
-  };
+  }, [entities, callService]);
   
-  const handleTemperatureChange = (deviceId: string, temperature: number, isDelta: boolean = false) => {
+  const handleTemperatureChange = useCallback((deviceId: string, temperature: number, isDelta: boolean = false) => {
       const entity = entities[deviceId];
       if (!entity) return;
       
@@ -521,13 +523,13 @@ const App: React.FC = () => {
         : temperature;
       
       callService('climate', 'set_temperature', { entity_id: entity.entity_id, temperature: newTemp });
-  };
+  }, [entities, callService]);
 
-  const handleHvacModeChange = (deviceId: string, mode: string) => {
+  const handleHvacModeChange = useCallback((deviceId: string, mode: string) => {
     const entity = entities[deviceId];
     if (!entity) return;
     callService('climate', 'set_hvac_mode', { entity_id: entity.entity_id, hvac_mode: mode });
-  };
+  }, [entities, callService]);
 
   const handleBrightnessChange = useCallback((deviceId: string, brightness: number) => {
     if (brightnessTimeoutRef.current) {
@@ -543,17 +545,17 @@ const App: React.FC = () => {
     }, 200); // 200ms debounce
   }, [entities, callService]);
 
-  const handlePresetChange = (deviceId: string, preset: string) => {
+  const handlePresetChange = useCallback((deviceId: string, preset: string) => {
     callService('climate', 'set_preset_mode', { entity_id: deviceId, preset_mode: preset });
-  };
+  }, [callService]);
 
-  const handleCameraCardClick = (device: Device) => {
+  const handleCameraCardClick = useCallback((device: Device) => {
     setFloatingCamera(device);
-  };
+  }, []);
 
 
   // --- Customization ---
-  const handleSaveCustomization = (deviceId: string, newValues: { name: string; type: DeviceType; icon: string; isHidden: boolean; templateId?: string; iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow'; }) => {
+  const handleSaveCustomization = useCallback((deviceId: string, newValues: { name: string; type: DeviceType; icon: string; isHidden: boolean; templateId?: string; iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow'; }) => {
     const originalDevice = allKnownDevices.get(deviceId);
     if (!originalDevice) return;
     
@@ -561,51 +563,38 @@ const App: React.FC = () => {
         const newCustomizations = { ...prev };
         const currentCustomization: Partial<DeviceCustomization> = { ...newCustomizations[deviceId] };
 
-        // 1. Handle Name
         if (newValues.name && newValues.name !== originalDevice.name) {
             currentCustomization.name = newValues.name;
         } else {
             delete currentCustomization.name;
         }
-
-        // 2. Handle Type
         if (newValues.type !== originalDevice.type) {
             currentCustomization.type = newValues.type;
         } else {
             delete currentCustomization.type;
         }
-
-        // 3. Handle Icon (string)
         const defaultIconForNewType = getIconNameForDeviceType(newValues.type, false);
         if (newValues.icon !== defaultIconForNewType) {
             currentCustomization.icon = newValues.icon;
         } else {
             delete currentCustomization.icon;
         }
-
-        // 4. Handle isHidden
         if (newValues.isHidden) {
             currentCustomization.isHidden = true;
         } else {
             delete currentCustomization.isHidden;
         }
-
-        // 5. Handle templateId
         if (newValues.templateId) {
             currentCustomization.templateId = newValues.templateId;
         } else {
             delete currentCustomization.templateId;
         }
-        
-        // 6. Handle iconAnimation
         if (newValues.iconAnimation && newValues.iconAnimation !== 'none') {
             currentCustomization.iconAnimation = newValues.iconAnimation;
         } else {
             delete currentCustomization.iconAnimation;
         }
 
-
-        // 7. Finalize
         if (Object.keys(currentCustomization).length === 0) {
             delete newCustomizations[deviceId];
         } else {
@@ -615,9 +604,9 @@ const App: React.FC = () => {
         return newCustomizations;
     });
     setEditingDevice(null);
-  };
+  }, [allKnownDevices, setCustomizations]);
   
-   const handleToggleVisibility = (deviceId: string, isHidden: boolean) => {
+   const handleToggleVisibility = useCallback((deviceId: string, isHidden: boolean) => {
     const currentCustomization = customizations[deviceId] || {};
     const originalDevice = allKnownDevices.get(deviceId);
     if (!originalDevice) return;
@@ -633,19 +622,18 @@ const App: React.FC = () => {
       templateId: currentCustomization.templateId,
       iconAnimation: currentCustomization.iconAnimation,
     });
-  };
+  }, [customizations, allKnownDevices, handleSaveCustomization]);
 
   // --- Template Management ---
-  const handleSaveTemplate = (template: CardTemplate) => {
+  const handleSaveTemplate = useCallback((template: CardTemplate) => {
     setTemplates(prev => ({
         ...prev,
         [template.id]: template,
     }));
     setEditingTemplate(null);
-  };
+  }, [setTemplates]);
 
-  const handleDeleteTemplate = (templateId: string) => {
-    // Prevent deleting the last template
+  const handleDeleteTemplate = useCallback((templateId: string) => {
     if (Object.keys(templates).length <= 1) {
         alert("Нельзя удалить последний шаблон.");
         return;
@@ -657,7 +645,6 @@ const App: React.FC = () => {
         return newTemplates;
     });
 
-    // Also remove this templateId from any device that was using it
     setCustomizations(prev => {
         const newCustomizations = { ...prev };
         Object.keys(newCustomizations).forEach(deviceId => {
@@ -670,9 +657,9 @@ const App: React.FC = () => {
         });
         return newCustomizations;
     });
-  };
+  }, [templates, setTemplates, setCustomizations]);
 
-  const createNewBlankTemplate = (deviceType: 'sensor' | 'light' | 'switch' | 'climate'): CardTemplate => {
+  const createNewBlankTemplate = useCallback((deviceType: 'sensor' | 'light' | 'switch' | 'climate'): CardTemplate => {
     let baseTemplate: CardTemplate;
     let typeName: string;
 
@@ -700,13 +687,13 @@ const App: React.FC = () => {
     newTemplate.name = `Новый ${typeName}`;
     newTemplate.deviceType = deviceType;
     return newTemplate;
-  };
+  }, []);
 
 
   // --- RENDER LOGIC ---
 
   if (connectionStatus !== 'connected') {
-    return <Settings onConnect={connect} connectionStatus={connectionStatus} error={error} />;
+    return <Suspense fallback={<div />}><Settings onConnect={connect} connectionStatus={connectionStatus} error={error} /></Suspense>;
   }
   
   if (isLoading) {
@@ -792,180 +779,188 @@ const App: React.FC = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-900 text-gray-200">
-      <InfoPanel 
-        clockSettings={clockSettings} 
-        sidebarWidth={sidebarWidth} 
-        setSidebarWidth={setSidebarWidth}
-        cameras={allCameras}
-        cameraSettings={cameraSettings}
-        onCameraSettingsChange={setCameraSettings}
-        onCameraWidgetClick={handleCameraCardClick}
-        haUrl={haUrl}
-        signPath={signPath}
-        getCameraStreamUrl={getCameraStreamUrl}
-        openWeatherMapKey={openWeatherMapKey}
-        getConfig={getConfig}
-      />
-      <div className="flex flex-col flex-1" style={{ marginLeft: isLg ? `${sidebarWidth}px` : '0px' }}>
-        <DashboardHeader
-            tabs={tabs}
-            activeTabId={activeTabId}
-            onTabChange={(tabId) => {
-              setActiveTabId(tabId);
-              setCurrentPage('dashboard');
-            }}
-            onTabOrderChange={handleTabOrderChange}
-            isEditMode={isEditMode}
-            onToggleEditMode={() => setIsEditMode(!isEditMode)}
-            onNavigate={(page) => setCurrentPage(page)}
-            onAddTab={handleAddTab}
-            onEditTab={setEditingTab}
-            currentPage={currentPage}
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-        />
-        <main className="flex-1 overflow-y-auto">
-          <div className="container mx-auto h-full">
-            <div key={currentPage + (activeTab?.id || '')} className="fade-in h-full">
-              {renderPage()}
-            </div>
-          </div>
-        </main>
-      </div>
-      
-      {editingDevice && (
-        <DeviceSettingsModal 
-          device={editingDevice} 
-          customization={customizations[editingDevice.id] || {}} 
-          onSave={handleSaveCustomization} 
-          onClose={() => setEditingDevice(null)}
-          templates={templates}
-        />
-      )}
-      {editingTab && (
-        <TabSettingsModal 
-          tab={editingTab} 
-          onSave={handleUpdateTabSettings} 
-          onDelete={handleDeleteTab} 
-          onClose={() => setEditingTab(null)}
-        />
-      )}
-      {editingTemplate && (
-        <TemplateEditorModal
-            templateToEdit={editingTemplate === 'new' ? createNewBlankTemplate('sensor') : editingTemplate}
-            onSave={handleSaveTemplate}
-            onClose={() => setEditingTemplate(null)}
-        />
-      )}
-
-      {contextMenu && (
-        <ContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          isOpen={!!contextMenu}
-          onClose={handleCloseContextMenu}
-        >
-            <div 
-              onClick={() => { 
-                const deviceToEdit = allKnownDevices.get(contextMenu.deviceId);
-                if (deviceToEdit) setEditingDevice(deviceToEdit);
-                handleCloseContextMenu(); 
-              }} 
-              className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer"
-            >
-                Редактировать
-            </div>
-
-            {isTemplateable && currentTemplate && (
-              <div 
-                  onClick={() => { 
-                      setEditingTemplate(currentTemplate);
-                      handleCloseContextMenu(); 
-                  }} 
-                  className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer"
-              >
-                  Редактировать шаблон
-              </div>
-            )}
-
-
-            {otherTabs.length > 0 && <div className="h-px bg-gray-600/50 my-1" />}
-
-            {otherTabs.length > 0 && (
-                <>
-                    <div className="relative group/menu">
-                        <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-default flex justify-between items-center">
-                            Копировать в... <span className="text-xs ml-4">▶</span>
-                        </div>
-                        <div className="absolute left-full top-[-5px] z-10 hidden group-hover/menu:block bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-white/10 p-1 min-w-[150px]">
-                            {otherTabs.map(tab => (
-                                <div key={tab.id} onClick={() => { handleDeviceAddToTab(contextMenu.deviceId, tab.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer">{tab.name}</div>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="relative group/menu">
-                        <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-default flex justify-between items-center">
-                            Переместить в... <span className="text-xs ml-4">▶</span>
-                        </div>
-                        <div className="absolute left-full top-[-5px] z-10 hidden group-hover/menu:block bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-white/10 p-1 min-w-[150px]">
-                             {otherTabs.map(tab => (
-                                <div key={tab.id} onClick={() => { handleDeviceMoveToTab(contextMenu.deviceId, contextMenu.tabId, tab.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer">{tab.name}</div>
-                            ))}
-                        </div>
-                    </div>
-                </>
-            )}
-
-            <div className="h-px bg-gray-600/50 my-1" />
-            
-            <div className="relative group/menu">
-                <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-default flex justify-between items-center">
-                    Размер <span className="text-xs ml-4">▶</span>
-                </div>
-                <div className="absolute left-full top-[-5px] z-10 hidden group-hover/menu:block bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-white/10 p-1 min-w-[120px]">
-                    {[
-                        {w: 1, h: 1}, 
-                        {w: 2, h: 2}, 
-                        {w: 3, h: 3},
-                        {w: 2, h: 3},
-                        {w: 3, h: 2}
-                    ].map(size => (
-                        <div 
-                            key={`${size.w}x${size.h}`} 
-                            onClick={() => { 
-                                handleDeviceResizeOnTab(contextMenu.tabId, contextMenu.deviceId, size.w, size.h); 
-                                handleCloseContextMenu(); 
-                            }} 
-                            className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer"
-                        >
-                            {`${size.w} x ${size.h}`}
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            <div className="h-px bg-gray-600/50 my-1" />
-
-             <div 
-                onClick={() => { handleDeviceRemoveFromTab(contextMenu.deviceId, contextMenu.tabId); handleCloseContextMenu(); }} 
-                className="px-3 py-1.5 rounded-md text-red-400 hover:bg-red-500/20 hover:text-red-300 cursor-pointer"
-            >
-                Удалить с вкладки
-            </div>
-
-        </ContextMenu>
-      )}
-
-      {floatingCamera && haUrl && (
-        <FloatingCameraWindow
-          device={floatingCamera}
-          onClose={() => setFloatingCamera(null)}
+      <Suspense fallback={<div className="bg-gray-900" style={{ width: `${sidebarWidth}px` }} />}>
+        <InfoPanel 
+          clockSettings={clockSettings} 
+          sidebarWidth={sidebarWidth} 
+          setSidebarWidth={setSidebarWidth}
+          cameras={allCameras}
+          cameraSettings={cameraSettings}
+          onCameraSettingsChange={setCameraSettings}
+          onCameraWidgetClick={handleCameraCardClick}
           haUrl={haUrl}
           signPath={signPath}
           getCameraStreamUrl={getCameraStreamUrl}
+          openWeatherMapKey={openWeatherMapKey}
+          getConfig={getConfig}
         />
-      )}
+      </Suspense>
+      <div className="flex flex-col flex-1" style={{ marginLeft: isLg ? `${sidebarWidth}px` : '0px' }}>
+        <Suspense fallback={<div className="h-[73px] bg-gray-900 border-b border-gray-700/50" />}>
+            <DashboardHeader
+                tabs={tabs}
+                activeTabId={activeTabId}
+                onTabChange={(tabId) => {
+                  setActiveTabId(tabId);
+                  setCurrentPage('dashboard');
+                }}
+                onTabOrderChange={handleTabOrderChange}
+                isEditMode={isEditMode}
+                onToggleEditMode={() => setIsEditMode(!isEditMode)}
+                onNavigate={(page) => setCurrentPage(page)}
+                onAddTab={handleAddTab}
+                onEditTab={setEditingTab}
+                currentPage={currentPage}
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+            />
+        </Suspense>
+        <main className="flex-1 overflow-y-auto">
+          <Suspense fallback={<div className="flex h-full w-full items-center justify-center"><LoadingSpinner /></div>}>
+            <div className="container mx-auto h-full">
+              <div key={currentPage + (activeTab?.id || '')} className="fade-in h-full">
+                {renderPage()}
+              </div>
+            </div>
+          </Suspense>
+        </main>
+      </div>
+      
+      <Suspense fallback={null}>
+        {editingDevice && (
+          <DeviceSettingsModal 
+            device={editingDevice} 
+            customization={customizations[editingDevice.id] || {}} 
+            onSave={handleSaveCustomization} 
+            onClose={() => setEditingDevice(null)}
+            templates={templates}
+          />
+        )}
+        {editingTab && (
+          <TabSettingsModal 
+            tab={editingTab} 
+            onSave={handleUpdateTabSettings} 
+            onDelete={handleDeleteTab} 
+            onClose={() => setEditingTab(null)}
+          />
+        )}
+        {editingTemplate && (
+          <TemplateEditorModal
+              templateToEdit={editingTemplate === 'new' ? createNewBlankTemplate('sensor') : editingTemplate}
+              onSave={handleSaveTemplate}
+              onClose={() => setEditingTemplate(null)}
+          />
+        )}
+
+        {contextMenu && (
+          <ContextMenu
+            x={contextMenu.x}
+            y={contextMenu.y}
+            isOpen={!!contextMenu}
+            onClose={handleCloseContextMenu}
+          >
+              <div 
+                onClick={() => { 
+                  const deviceToEdit = allKnownDevices.get(contextMenu.deviceId);
+                  if (deviceToEdit) setEditingDevice(deviceToEdit);
+                  handleCloseContextMenu(); 
+                }} 
+                className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer"
+              >
+                  Редактировать
+              </div>
+
+              {isTemplateable && currentTemplate && (
+                <div 
+                    onClick={() => { 
+                        setEditingTemplate(currentTemplate);
+                        handleCloseContextMenu(); 
+                    }} 
+                    className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer"
+                >
+                    Редактировать шаблон
+                </div>
+              )}
+
+
+              {otherTabs.length > 0 && <div className="h-px bg-gray-600/50 my-1" />}
+
+              {otherTabs.length > 0 && (
+                  <>
+                      <div className="relative group/menu">
+                          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-default flex justify-between items-center">
+                              Копировать в... <span className="text-xs ml-4">▶</span>
+                          </div>
+                          <div className="absolute left-full top-[-5px] z-10 hidden group-hover/menu:block bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-white/10 p-1 min-w-[150px]">
+                              {otherTabs.map(tab => (
+                                  <div key={tab.id} onClick={() => { handleDeviceAddToTab(contextMenu.deviceId, tab.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer">{tab.name}</div>
+                              ))}
+                          </div>
+                      </div>
+
+                      <div className="relative group/menu">
+                          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-default flex justify-between items-center">
+                              Переместить в... <span className="text-xs ml-4">▶</span>
+                          </div>
+                          <div className="absolute left-full top-[-5px] z-10 hidden group-hover/menu:block bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-white/10 p-1 min-w-[150px]">
+                               {otherTabs.map(tab => (
+                                  <div key={tab.id} onClick={() => { handleDeviceMoveToTab(contextMenu.deviceId, contextMenu.tabId, tab.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer">{tab.name}</div>
+                              ))}
+                          </div>
+                      </div>
+                  </>
+              )}
+
+              <div className="h-px bg-gray-600/50 my-1" />
+              
+              <div className="relative group/menu">
+                  <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-default flex justify-between items-center">
+                      Размер <span className="text-xs ml-4">▶</span>
+                  </div>
+                  <div className="absolute left-full top-[-5px] z-10 hidden group-hover/menu:block bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-white/10 p-1 min-w-[120px]">
+                      {[
+                          {w: 1, h: 1}, 
+                          {w: 2, h: 2}, 
+                          {w: 3, h: 3},
+                          {w: 2, h: 3},
+                          {w: 3, h: 2}
+                      ].map(size => (
+                          <div 
+                              key={`${size.w}x${size.h}`} 
+                              onClick={() => { 
+                                  handleDeviceResizeOnTab(contextMenu.tabId, contextMenu.deviceId, size.w, size.h); 
+                                  handleCloseContextMenu(); 
+                              }} 
+                              className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer"
+                          >
+                              {`${size.w} x ${size.h}`}
+                          </div>
+                      ))}
+                  </div>
+              </div>
+
+              <div className="h-px bg-gray-600/50 my-1" />
+
+               <div 
+                  onClick={() => { handleDeviceRemoveFromTab(contextMenu.deviceId, contextMenu.tabId); handleCloseContextMenu(); }} 
+                  className="px-3 py-1.5 rounded-md text-red-400 hover:bg-red-500/20 hover:text-red-300 cursor-pointer"
+              >
+                  Удалить с вкладки
+              </div>
+
+          </ContextMenu>
+        )}
+
+        {floatingCamera && haUrl && (
+          <FloatingCameraWindow
+            device={floatingCamera}
+            onClose={() => setFloatingCamera(null)}
+            haUrl={haUrl}
+            signPath={signPath}
+            getCameraStreamUrl={getCameraStreamUrl}
+          />
+        )}
+      </Suspense>
 
     </div>
   );
