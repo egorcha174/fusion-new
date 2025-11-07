@@ -132,6 +132,8 @@ export interface CardElement {
     textAlign?: 'left' | 'center' | 'right';
     linkedEntityId?: string;
     showValue?: boolean;
+    chartTimeRange?: number;
+    chartTimeRangeUnit?: 'minutes' | 'hours' | 'days';
   };
 }
 

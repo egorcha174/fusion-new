@@ -1,5 +1,6 @@
 
 
+
 import React, { useMemo, useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import useHomeAssistant from './hooks/useHomeAssistant';
@@ -87,7 +88,10 @@ const defaultSensorTemplate: CardTemplate = {
       position: { x: 0, y: 82 },
       size: { width: 100, height: 18 },
       zIndex: 1,
-      styles: {},
+      styles: {
+        chartTimeRange: 24,
+        chartTimeRangeUnit: 'hours',
+      },
     },
     { 
       id: 'status', 

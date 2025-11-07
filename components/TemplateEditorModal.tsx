@@ -590,6 +590,28 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                         <LabeledInput label="Цвет (Выкл.)"><input type="color" value={selectedElement.styles.offColor || '#9CA3AF'} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, offColor: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
                     </Section>
                  )}
+                 {selectedElement.id === 'chart' && (
+                    <Section title="Настройки графика">
+                        <LabeledInput label="Период">
+                           <NumberInput 
+                               value={selectedElement.styles.chartTimeRange}
+                               onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === selectedElement.id ? {...e, styles: {...e.styles, chartTimeRange: v}} : e)}))} 
+                               min={1}
+                           />
+                        </LabeledInput>
+                         <LabeledInput label="Единица">
+                            <select 
+                                value={selectedElement.styles.chartTimeRangeUnit || 'hours'}
+                                onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, chartTimeRangeUnit: e.target.value as any}} : el)}))}
+                                className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
+                            >
+                                <option value="minutes">Минуты</option>
+                                <option value="hours">Часы</option>
+                                <option value="days">Дни</option>
+                            </select>
+                         </LabeledInput>
+                    </Section>
+                 )}
                  {selectedElement.id === 'linked-entity' && (
                      <Section title="Связанное устройство">
                          <LabeledInput label="ID устройства"><input type="text" placeholder="e.g. sensor.temperature" value={selectedElement.styles.linkedEntityId ?? ''} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, linkedEntityId: e.target.value}} : el)}))} className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"/></LabeledInput>
