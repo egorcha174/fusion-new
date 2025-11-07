@@ -581,21 +581,21 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                     <div className="relative w-full h-full flex items-center justify-center">
                         <button
                             onClick={() => setIsDropdownOpen(prev => !prev)}
-                            className="w-full h-full flex flex-col items-center justify-center bg-white/10 hover:bg-white/20 rounded-lg transition-colors p-1"
+                            className="w-full h-full flex flex-col items-center justify-center bg-white/10 hover:bg-white/20 rounded-xl transition-all p-1"
                         >
-                            <Icon icon={activeConfig.icon} className="w-auto h-1/2 max-h-[60%] text-white" />
-                            <span className="text-[10px] font-bold text-white mt-1 leading-tight text-center">{activeConfig.label}</span>
+                            <Icon icon={activeConfig.icon} className="w-auto h-[55%] text-white" />
+                            <span className="text-[10px] font-bold text-white mt-auto leading-tight text-center">{activeConfig.label}</span>
                         </button>
         
                         {isDropdownOpen && (
-                            <div className="absolute bottom-full right-0 mb-2 min-w-full w-max bg-gray-800/80 backdrop-blur-md rounded-lg shadow-lg ring-1 ring-white/10 p-1 z-20">
+                            <div className="absolute top-full right-0 mt-2 min-w-[150px] w-max bg-gray-800/80 backdrop-blur-lg rounded-xl shadow-lg ring-1 ring-white/10 p-1 z-20 fade-in">
                                 {modes.map(mode => {
                                     const config = getConfig(mode);
                                     return (
                                         <button
                                             key={mode}
                                             onClick={() => handleClick(mode)}
-                                            className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left rounded-md transition-colors ${activeMode?.toLowerCase() === mode.toLowerCase() ? 'bg-blue-600/50 text-white' : 'text-gray-200 hover:bg-white/10'}`}
+                                            className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left rounded-lg transition-colors ${activeMode?.toLowerCase() === mode.toLowerCase() ? 'bg-blue-600/60 text-white' : 'text-gray-200 hover:bg-white/10'}`}
                                         >
                                             <Icon icon={config.icon} className="w-5 h-5 flex-shrink-0" />
                                             <span>{config.label}</span>
@@ -788,7 +788,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
     let finalClasses = `${baseClasses} `;
 
     if (isCamera) {
-      finalClasses += `p-0 overflow-hidden ${offStateClasses}`;
+      finalClasses += `p-0 ${offStateClasses}`;
     } else if (device.type === DeviceType.Thermostat) {
         finalClasses += `${styles.padding} ${offStateClasses}`;
     } else {
