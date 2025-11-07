@@ -24,6 +24,76 @@ const valueToAngle = (value: number, min: number, max: number, startAngle: numbe
   return valueRatio * (endAngle - startAngle) + startAngle;
 };
 
+
+// --- Gradient Generation Helpers (NEW) ---
+const GRADIENT_COLORS = ["#4169E1", "#8B5CF6", "#EC4899", "#F97316", "#EF4444"];
+
+const hexToRgb = (hex: string) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+};
+
+const rgbToHex = (r: number, g: number, b: number) => {
+  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+};
+
+const interpolateColor = (ratio: number, colors: string[]) => {
+    const numSegments = colors.length - 1;
+    const segment = Math.min(Math.floor(ratio * numSegments), numSegments - 1);
+    const segmentRatio = (ratio * numSegments) % 1;
+
+    const startColor = hexToRgb(colors[segment]);
+    const endColor = hexToRgb(colors[segment + 1]);
+
+    if (!startColor || !endColor) return '#ffffff';
+
+    const r = Math.round(startColor.r + segmentRatio * (endColor.r - startColor.r));
+    const g = Math.round(startColor.g + segmentRatio * (endColor.g - startColor.g));
+    const b = Math.round(startColor.b + segmentRatio * (endColor.b - startColor.b));
+
+    return rgbToHex(r, g, b);
+};
+
+// --- Gradient Arc Component (NEW) ---
+const GradientArc: React.FC<{
+    center: number;
+    radius: number;
+    strokeWidth: number;
+    startAngle: number;
+    endAngle: number;
+    steps?: number;
+}> = ({ center, radius, strokeWidth, startAngle, endAngle, steps = 100 }) => {
+    const angleRange = endAngle - startAngle;
+    const angleStep = angleRange / steps;
+    
+    return (
+        <g>
+            {Array.from({ length: steps }).map((_, i) => {
+                const currentAngleStart = startAngle + i * angleStep;
+                const currentAngleEnd = startAngle + (i + 1) * angleStep;
+                const colorRatio = (i + 0.5) / steps;
+                const color = interpolateColor(colorRatio, GRADIENT_COLORS);
+                
+                return (
+                    <path
+                        key={i}
+                        d={describeArc(center, center, radius, currentAngleStart, currentAngleEnd)}
+                        fill="none"
+                        stroke={color}
+                        strokeWidth={strokeWidth}
+                        strokeLinecap="butt"
+                    />
+                );
+            })}
+        </g>
+    );
+};
+
+
 // --- Component Props ---
 interface ThermostatDialProps {
   min: number;
@@ -43,7 +113,6 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
   const CENTER = SIZE / 2;
   const START_ANGLE = 135;
   const END_ANGLE = 405;
-  const MID_ANGLE = 270; // Top of the arc
 
   const handlePointerMove = useCallback((e: PointerEvent) => {
     if (!svgRef.current) return;
@@ -65,7 +134,8 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
     const range = max - min;
     const angleRange = END_ANGLE - START_ANGLE;
     const valueRatio = (angleDeg - START_ANGLE) / angleRange;
-    const newValue = Math.round((valueRatio * range + min) * 2) / 2; // Round to nearest 0.5
+    const rawNewValue = valueRatio * range + min;
+    const newValue = Math.round(rawNewValue * 10) / 10; // Round to nearest 0.1
     
     if (newValue >= min && newValue <= max) {
       onChange(newValue);
@@ -113,18 +183,6 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
         style={{ touchAction: 'none' }}
       >
         <defs>
-          <linearGradient id="thermoGradientCold" x1="0" y1="1" x2="0" y2="0">
-            <stop offset="0%" stopColor="#4169E1" />
-            <stop offset="50%" stopColor="#8B5CF6" />
-            <stop offset="100%" stopColor="#EC4899" />
-          </linearGradient>
-
-          <linearGradient id="thermoGradientHot" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#EC4899" />
-            <stop offset="50%" stopColor="#F97316" />
-            <stop offset="100%" stopColor="#EF4444" />
-          </linearGradient>
-
           <mask id="thermoValueMask">
              <path
                 d={describeArc(CENTER, CENTER, RADIUS, START_ANGLE, valueAngle)}
@@ -147,19 +205,12 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
         
         {/* Full Gradient Track (to be masked) */}
         <g mask="url(#thermoValueMask)">
-            <path
-              d={describeArc(CENTER, CENTER, RADIUS, START_ANGLE, MID_ANGLE)}
-              fill="none"
-              stroke="url(#thermoGradientCold)"
-              strokeWidth={STROKE_WIDTH}
-              strokeLinecap="butt"
-            />
-            <path
-              d={describeArc(CENTER, CENTER, RADIUS, MID_ANGLE, END_ANGLE)}
-              fill="none"
-              stroke="url(#thermoGradientHot)"
-              strokeWidth={STROKE_WIDTH}
-              strokeLinecap="butt"
+            <GradientArc
+                center={CENTER}
+                radius={RADIUS}
+                strokeWidth={STROKE_WIDTH}
+                startAngle={START_ANGLE}
+                endAngle={END_ANGLE}
             />
         </g>
         
