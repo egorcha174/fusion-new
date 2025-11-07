@@ -1,5 +1,6 @@
 
 
+
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import Settings from './components/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -373,7 +374,7 @@ const App: React.FC = () => {
             }
             
             if (emptyCell) {
-                const newLayoutItem = { deviceId, col: emptyCell.col, row: emptyCell.row };
+                const newLayoutItem: GridLayoutItem = { deviceId, col: emptyCell.col, row: emptyCell.row, width: 1, height: 1 };
                 return { 
                     ...tab, 
                     layout: [...tab.layout, newLayoutItem]
@@ -412,6 +413,50 @@ const App: React.FC = () => {
           return tab;
       }));
   };
+  
+  const handleDeviceResizeOnTab = (tabId: string, deviceId: string, newWidth: number, newHeight: number) => {
+    setTabs(tabs => tabs.map(tab => {
+      if (tab.id !== tabId) return tab;
+
+      const currentLayout = tab.layout;
+      const deviceItem = currentLayout.find(item => item.deviceId === deviceId);
+      if (!deviceItem) return tab;
+
+      const { col, row } = deviceItem;
+
+      // Boundary check
+      if (col + newWidth > tab.gridSettings.cols || row + newHeight > tab.gridSettings.rows) {
+          console.warn('Cannot resize: Exceeds grid boundaries.');
+          // You might want to show a user-facing error here
+          return tab;
+      }
+
+      // Collision check
+      for (let r = row; r < row + newHeight; r++) {
+        for (let c = col; c < col + newWidth; c++) {
+          const conflictingItem = currentLayout.find(item => {
+            if (item.deviceId === deviceId) return false; // Don't check against self
+            const itemWidth = item.width || 1;
+            const itemHeight = item.height || 1;
+            return c >= item.col && c < item.col + itemWidth && r >= item.row && r < item.row + itemHeight;
+          });
+          if (conflictingItem) {
+            console.warn(`Cannot resize: Conflict with device ${conflictingItem.deviceId}`);
+            // You might want to show a user-facing error here
+            return tab; // Abort resize
+          }
+        }
+      }
+
+      // If no collision and within boundaries, update layout
+      const newLayout = currentLayout.map(item =>
+        item.deviceId === deviceId ? { ...item, width: newWidth, height: newHeight } : item
+      );
+
+      return { ...tab, layout: newLayout };
+    }));
+  };
+
 
 
   // --- Core Device Interaction ---
@@ -811,6 +856,32 @@ const App: React.FC = () => {
                     </div>
                 </>
             )}
+
+            <div className="h-px bg-gray-600/50 my-1" />
+            
+            <div className="relative group/menu">
+                <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-default flex justify-between items-center">
+                    Размер <span className="text-xs ml-4">▶</span>
+                </div>
+                <div className="absolute left-full top-[-5px] z-10 hidden group-hover/menu:block bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-white/10 p-1 min-w-[120px]">
+                    {[
+                        {w: 1, h: 1}, 
+                        {w: 2, h: 2}, 
+                        {w: 3, h: 3}
+                    ].map(size => (
+                        <div 
+                            key={`${size.w}x${size.h}`} 
+                            onClick={() => { 
+                                handleDeviceResizeOnTab(contextMenu.tabId, contextMenu.deviceId, size.w, size.h); 
+                                handleCloseContextMenu(); 
+                            }} 
+                            className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer"
+                        >
+                            {`${size.w} x ${size.h}`}
+                        </div>
+                    ))}
+                </div>
+            </div>
 
             <div className="h-px bg-gray-600/50 my-1" />
 

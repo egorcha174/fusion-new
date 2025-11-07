@@ -1,4 +1,5 @@
 
+
 import React, { useRef, useState, useLayoutEffect, useMemo } from 'react';
 import {
   DndContext,
@@ -14,8 +15,11 @@ import {
 } from '@dnd-kit/core';
 import { snapCenterToCursor } from '@dnd-kit/modifiers';
 import DeviceCard from './DeviceCard';
-// Fix: Added CardTemplate to the import list.
 import { Tab, Device, DeviceType, GridLayoutItem, CardTemplates, DeviceCustomizations, CardTemplate } from '../types';
+
+const DEFAULT_SENSOR_TEMPLATE_ID = 'default-sensor';
+const DEFAULT_LIGHT_TEMPLATE_ID = 'default-light';
+const DEFAULT_SWITCH_TEMPLATE_ID = 'default-switch';
 
 // --- Draggable Item ---
 const DraggableDevice: React.FC<{
@@ -130,10 +134,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
     const [gridStyle, setGridStyle] = useState<React.CSSProperties>({});
     const [activeId, setActiveId] = useState<string | null>(null);
     const [activeDragItemRect, setActiveDragItemRect] = useState<{ width: number; height: number } | null>(null);
-    
-    const DEFAULT_SENSOR_TEMPLATE_ID = 'default-sensor';
-    const DEFAULT_LIGHT_TEMPLATE_ID = 'default-light';
-
 
     useLayoutEffect(() => {
         const calculateGrid = () => {
@@ -178,70 +178,94 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
           return;
       }
 
-      const draggedDeviceId = active.id as string;
       const currentLayout = tab.layout;
+      const draggedDeviceId = active.id as string;
+      const draggedItemIndex = currentLayout.findIndex(item => item.deviceId === draggedDeviceId);
+      if (draggedItemIndex === -1) return;
+
+      const draggedItem = currentLayout[draggedItemIndex];
+      const draggedWidth = draggedItem.width || 1;
+      const draggedHeight = draggedItem.height || 1;
 
       let targetCol: number;
       let targetRow: number;
+      let overDeviceId: string | null = null;
 
-      // Determine target coordinates from the `over` object
       if (over.data.current?.type === 'cell') {
-          // Case 1: Dropped onto an empty cell
           targetCol = over.data.current.col;
           targetRow = over.data.current.row;
-      } else {
-          // Case 2: Dropped onto another device
-          // The `over.id` is the deviceId of the target device
-          const overItem = currentLayout.find(item => item.deviceId === over.id);
-          if (!overItem) return; // Target device not found in layout, something is wrong
+      } else { // Dropped on another device
+          overDeviceId = over.id as string;
+          const overItem = currentLayout.find(item => item.deviceId === overDeviceId);
+          if (!overItem) return;
           targetCol = overItem.col;
           targetRow = overItem.row;
       }
       
-      // Find the indices of the dragged item and the item at the target location
-      const draggedItemIndex = currentLayout.findIndex(item => item.deviceId === draggedDeviceId);
-      const targetItemIndex = currentLayout.findIndex(item => item.col === targetCol && item.row === targetRow);
-      
-      if (draggedItemIndex === -1) return; // Should not happen
-      
-      const newLayout = [...currentLayout];
-      const draggedItem = newLayout[draggedItemIndex];
-      
-      if (targetItemIndex !== -1) {
-        // --- SWAP ---
-        // The target cell is occupied, so swap items.
-        const targetItem = newLayout[targetItemIndex];
-        
-        // The target item gets the dragged item's original coordinates
-        newLayout[targetItemIndex] = { ...targetItem, col: draggedItem.col, row: draggedItem.row };
-        // The dragged item gets the target's coordinates
-        newLayout[draggedItemIndex] = { ...draggedItem, col: targetCol, row: targetRow };
-
-      } else {
-        // --- MOVE ---
-        // The target cell is empty, just move the dragged item.
-        newLayout[draggedItemIndex] = { ...draggedItem, col: targetCol, row: targetRow };
+      // Boundary check
+      if (targetCol + draggedWidth > tab.gridSettings.cols || targetRow + draggedHeight > tab.gridSettings.rows) {
+          return; // Prevents moving item out of bounds
       }
-      
-      onDeviceLayoutChange(tab.id, newLayout);
+
+      // Find all items that conflict with the new position
+      const conflictingItems = currentLayout.filter(item => {
+          if (item.deviceId === draggedDeviceId) return false; // Don't check against self
+
+          const itemWidth = item.width || 1;
+          const itemHeight = item.height || 1;
+
+          // Check for rectangle intersection
+          return (
+              targetCol < item.col + itemWidth &&
+              targetCol + draggedWidth > item.col &&
+              targetRow < item.row + itemHeight &&
+              targetRow + draggedHeight > item.row
+          );
+      });
+
+      let newLayout = [...currentLayout];
+
+      if (conflictingItems.length === 1) {
+          // Potential SWAP
+          const targetItem = conflictingItems[0];
+          const targetWidth = targetItem.width || 1;
+          const targetHeight = targetItem.height || 1;
+
+          // Only swap if sizes are identical
+          if (draggedWidth === targetWidth && draggedHeight === targetHeight) {
+              const targetItemIndex = newLayout.findIndex(item => item.deviceId === targetItem.deviceId);
+              
+              // Swap positions
+              newLayout[draggedItemIndex] = { ...draggedItem, col: targetItem.col, row: targetItem.row };
+              newLayout[targetItemIndex] = { ...targetItem, col: draggedItem.col, row: draggedItem.row };
+              
+              onDeviceLayoutChange(tab.id, newLayout);
+          }
+          // If sizes are different, do nothing (cancel drag)
+          return;
+
+      } else if (conflictingItems.length === 0) {
+          // MOVE to empty space
+          newLayout[draggedItemIndex] = { ...draggedItem, col: targetCol, row: targetRow };
+          onDeviceLayoutChange(tab.id, newLayout);
+      } 
+      // If more than one conflict, do nothing (cancel drag)
     };
-
-    const layoutMap = useMemo(() => {
-        const map = new Map<string, string>(); // "col,row" -> deviceId
+    
+    const occupiedCells = useMemo(() => {
+        const cells = new Set<string>();
+        if (!tab.layout) return cells;
         tab.layout.forEach(item => {
-            const device = allKnownDevices.get(item.deviceId);
-            if (!device) return;
-
-            if (searchTerm) {
-                const lowercasedFilter = searchTerm.toLowerCase();
-                if (!device.name.toLowerCase().includes(lowercasedFilter) && !device.id.toLowerCase().includes(lowercasedFilter)) {
-                    return; // Skip if it doesn't match search
+            const width = item.width || 1;
+            const height = item.height || 1;
+            for (let r = 0; r < height; r++) {
+                for (let c = 0; c < width; c++) {
+                    cells.add(`${item.col + c},${item.row + r}`);
                 }
             }
-            map.set(`${item.col},${item.row}`, item.deviceId);
         });
-        return map;
-    }, [tab.layout, allKnownDevices, searchTerm]);
+        return cells;
+    }, [tab.layout]);
 
     const activeDevice = activeId ? allKnownDevices.get(activeId) : null;
     let activeDeviceTemplate: CardTemplate | undefined;
@@ -253,6 +277,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
             activeDeviceTemplate = templates[DEFAULT_SENSOR_TEMPLATE_ID];
         } else if (activeDevice.type === DeviceType.Light || activeDevice.type === DeviceType.DimmableLight) {
             activeDeviceTemplate = templates[DEFAULT_LIGHT_TEMPLATE_ID];
+        } else if (activeDevice.type === DeviceType.Switch) {
+            activeDeviceTemplate = templates[DEFAULT_SWITCH_TEMPLATE_ID];
         }
     }
 
@@ -264,36 +290,60 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                     className="grid relative"
                     style={gridStyle}
                 >
-                    {Array.from({ length: tab.gridSettings.cols * tab.gridSettings.rows }).map((_, index) => {
+                    {isEditMode && Array.from({ length: tab.gridSettings.cols * tab.gridSettings.rows }).map((_, index) => {
                         const col = index % tab.gridSettings.cols;
                         const row = Math.floor(index / tab.gridSettings.cols);
-                        const deviceId = layoutMap.get(`${col},${row}`);
-                        const device = deviceId ? allKnownDevices.get(deviceId) : null;
+                        if (!occupiedCells.has(`${col},${row}`)) {
+                            return (
+                                <div key={`cell-${col}-${row}`} style={{ gridColumn: col + 1, gridRow: row + 1 }}>
+                                    <DroppableCell col={col} row={row} isEditMode={isEditMode} />
+                                </div>
+                            );
+                        }
+                        return null;
+                    })}
+
+                    {tab.layout.map(item => {
+                        const device = allKnownDevices.get(item.deviceId);
+                        if (!device) return null;
+
+                        if (searchTerm) {
+                            const lowercasedFilter = searchTerm.toLowerCase();
+                            if (!device.name.toLowerCase().includes(lowercasedFilter) && !device.id.toLowerCase().includes(lowercasedFilter)) {
+                                return null;
+                            }
+                        }
+                        
+                        const width = item.width || 1;
+                        const height = item.height || 1;
 
                         let templateToUse: CardTemplate | undefined;
-                        if (device) {
-                            const deviceCustomization = customizations[device.id];
-                            const templateId = deviceCustomization?.templateId;
-                            if (templateId && templates[templateId]) {
-                                templateToUse = templates[templateId];
-                            } else if (device.type === DeviceType.Sensor) {
-                                templateToUse = templates[DEFAULT_SENSOR_TEMPLATE_ID];
-                            } else if (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight) {
-                                templateToUse = templates[DEFAULT_LIGHT_TEMPLATE_ID];
-                            }
+                        const deviceCustomization = customizations[device.id];
+                        const templateId = deviceCustomization?.templateId;
+                        if (templateId && templates[templateId]) {
+                            templateToUse = templates[templateId];
+                        } else if (device.type === DeviceType.Sensor) {
+                            templateToUse = templates[DEFAULT_SENSOR_TEMPLATE_ID];
+                        } else if (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight) {
+                            templateToUse = templates[DEFAULT_LIGHT_TEMPLATE_ID];
+                        } else if (device.type === DeviceType.Switch) {
+                            templateToUse = templates[DEFAULT_SWITCH_TEMPLATE_ID];
                         }
 
                         return (
-                            <div key={device ? `${device.id}-${device.type}` : `${col}-${row}`} className="w-full h-full relative">
-                                {device ? (
-                                    <DraggableDevice 
-                                      device={device} 
-                                      template={templateToUse} 
-                                      {...props} 
-                                    />
-                                ) : (
-                                    <DroppableCell col={col} row={row} isEditMode={isEditMode} />
-                                )}
+                            <div
+                                key={item.deviceId}
+                                style={{
+                                    gridColumn: `${item.col + 1} / span ${width}`,
+                                    gridRow: `${item.row + 1} / span ${height}`,
+                                    zIndex: activeId === item.deviceId ? 0 : 1, // Keep non-dragging items visible
+                                }}
+                            >
+                                <DraggableDevice 
+                                  device={device} 
+                                  template={templateToUse} 
+                                  {...props} 
+                                />
                             </div>
                         );
                     })}

@@ -60,6 +60,8 @@ export interface GridLayoutItem {
   deviceId: string;
   col: number;
   row: number;
+  width?: number;
+  height?: number;
 }
 
 // Represents a user-created tab on the dashboard
