@@ -43,6 +43,7 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
   const CENTER = SIZE / 2;
   const START_ANGLE = 135;
   const END_ANGLE = 405;
+  const MID_ANGLE = 270; // Top of the arc
 
   const handlePointerMove = useCallback((e: PointerEvent) => {
     if (!svgRef.current) return;
@@ -112,11 +113,15 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
         style={{ touchAction: 'none' }}
       >
         <defs>
-          <linearGradient id="fullThermoGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <linearGradient id="thermoGradientCold" x1="0" y1="1" x2="0" y2="0">
             <stop offset="0%" stopColor="#4169E1" />
-            <stop offset="25%" stopColor="#8B5CF6" />
-            <stop offset="50%" stopColor="#EC4899" />
-            <stop offset="75%" stopColor="#F97316" />
+            <stop offset="50%" stopColor="#8B5CF6" />
+            <stop offset="100%" stopColor="#EC4899" />
+          </linearGradient>
+
+          <linearGradient id="thermoGradientHot" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#EC4899" />
+            <stop offset="50%" stopColor="#F97316" />
             <stop offset="100%" stopColor="#EF4444" />
           </linearGradient>
 
@@ -143,11 +148,18 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
         {/* Full Gradient Track (to be masked) */}
         <g mask="url(#thermoValueMask)">
             <path
-                d={describeArc(CENTER, CENTER, RADIUS, START_ANGLE, END_ANGLE)}
-                fill="none"
-                stroke="url(#fullThermoGradient)"
-                strokeWidth={STROKE_WIDTH}
-                strokeLinecap="round"
+              d={describeArc(CENTER, CENTER, RADIUS, START_ANGLE, MID_ANGLE)}
+              fill="none"
+              stroke="url(#thermoGradientCold)"
+              strokeWidth={STROKE_WIDTH}
+              strokeLinecap="butt"
+            />
+            <path
+              d={describeArc(CENTER, CENTER, RADIUS, MID_ANGLE, END_ANGLE)}
+              fill="none"
+              stroke="url(#thermoGradientHot)"
+              strokeWidth={STROKE_WIDTH}
+              strokeLinecap="butt"
             />
         </g>
         
