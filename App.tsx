@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import Settings from './components/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -87,11 +88,14 @@ const defaultSensorTemplate: CardTemplate = {
       zIndex: 1,
       styles: {},
     },
-    { id: 'status', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-    { id: 'slider', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-    { id: 'temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-    { id: 'target-temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-    { id: 'hvac-modes', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+    { 
+      id: 'status', 
+      visible: false, 
+      position: { x: 0, y: 0}, 
+      size: { width: 0, height: 0 }, 
+      zIndex: 0, 
+      styles: {} 
+    },
   ],
 };
 
@@ -138,13 +142,6 @@ const defaultLightTemplate: CardTemplate = {
         zIndex: 2,
         styles: {},
       },
-      // Hidden elements for type completeness
-      { id: 'value', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
-      { id: 'unit', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
-      { id: 'chart', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
-      { id: 'temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-      { id: 'target-temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-      { id: 'hvac-modes', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
     ],
 };
 
@@ -183,14 +180,6 @@ const defaultSwitchTemplate: CardTemplate = {
         zIndex: 2,
         styles: {},
       },
-      // Hidden elements for type completeness
-      { id: 'slider', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
-      { id: 'value', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
-      { id: 'unit', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
-      { id: 'chart', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
-      { id: 'temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-      { id: 'target-temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-      { id: 'hvac-modes', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
     ],
 };
 
@@ -250,12 +239,6 @@ const defaultClimateTemplate: CardTemplate = {
       zIndex: 2,
       styles: { linkedEntityId: '' },
     },
-    // Hidden elements for type completeness
-    { id: 'icon', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
-    { id: 'value', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
-    { id: 'unit', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
-    { id: 'chart', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
-    { id: 'slider', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
   ],
 };
 
