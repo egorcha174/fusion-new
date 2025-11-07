@@ -347,9 +347,11 @@ interface DeviceCardProps {
   signPath: (path: string) => Promise<{ path: string }>;
   getCameraStreamUrl: (entityId: string) => Promise<string>;
   template?: CardTemplate;
+  openMenuDeviceId?: string | null;
+  setOpenMenuDeviceId?: (id: string | null) => void;
 }
 
-const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, onBrightnessChange, onHvacModeChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onRemoveFromTab, haUrl, signPath, getCameraStreamUrl, template }) => {
+const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, onBrightnessChange, onHvacModeChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onRemoveFromTab, haUrl, signPath, getCameraStreamUrl, template, openMenuDeviceId, setOpenMenuDeviceId }) => {
   const isOn = device.status.toLowerCase() === 'включено';
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
   const presetMenuRef = useRef<HTMLDivElement>(null);
@@ -515,13 +517,13 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
             </div>
           );
         case 'hvac-modes': {
-            const [isDropdownOpen, setIsDropdownOpen] = useState(false);
             const dropdownRef = useRef<HTMLDivElement>(null);
+            const isDropdownOpen = openMenuDeviceId === device.id;
         
             useEffect(() => {
                 const handleClickOutside = (event: MouseEvent) => {
                     if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                        setIsDropdownOpen(false);
+                        setOpenMenuDeviceId?.(null);
                     }
                 };
                 if (isDropdownOpen) {
@@ -530,7 +532,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                 return () => {
                     document.removeEventListener('mousedown', handleClickOutside);
                 };
-            }, [isDropdownOpen]);
+            }, [isDropdownOpen, setOpenMenuDeviceId]);
         
             const isPresetMode = device.presetModes && device.presetModes.length > 0;
             const modes = isPresetMode ? device.presetModes! : (device.hvacModes || []);
@@ -565,13 +567,18 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                 return hvacModeConfig[mode.toLowerCase()] || { icon: 'mdi:circle-medium', label: mode };
             };
         
-            const handleClick = (mode: string) => {
+            const handleModeClick = (mode: string) => {
                 if (isPresetMode) {
                     onPresetChange(mode);
                 } else {
                     onHvacModeChange(mode);
                 }
-                setIsDropdownOpen(false);
+                setOpenMenuDeviceId?.(null);
+            };
+            
+            const handleButtonClick = (e: React.MouseEvent) => {
+                e.stopPropagation();
+                setOpenMenuDeviceId?.(isDropdownOpen ? null : device.id);
             };
         
             const activeConfig = getConfig(activeMode?.toLowerCase() || (isPresetMode ? 'none' : 'off'));
@@ -580,7 +587,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                 <div key={element.id} style={style} onClick={e => e.stopPropagation()} ref={dropdownRef}>
                     <div className="relative w-full h-full flex items-center justify-center">
                         <button
-                            onClick={() => setIsDropdownOpen(prev => !prev)}
+                            onClick={handleButtonClick}
                             className="w-full h-full flex flex-col items-center justify-center bg-white/10 hover:bg-white/20 rounded-xl transition-all p-1"
                         >
                             <Icon icon={activeConfig.icon} className="w-auto h-[55%] text-white" />
@@ -594,7 +601,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                                     return (
                                         <button
                                             key={mode}
-                                            onClick={() => handleClick(mode)}
+                                            onClick={() => handleModeClick(mode)}
                                             className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left rounded-lg transition-colors ${activeMode?.toLowerCase() === mode.toLowerCase() ? 'bg-blue-600/60 text-white' : 'text-gray-200 hover:bg-white/10'}`}
                                         >
                                             <Icon icon={config.icon} className="w-5 h-5 flex-shrink-0" />

@@ -81,6 +81,8 @@ const DraggableDevice: React.FC<{
         haUrl={cardProps.haUrl}
         signPath={cardProps.signPath}
         getCameraStreamUrl={cardProps.getCameraStreamUrl}
+        openMenuDeviceId={cardProps.openMenuDeviceId}
+        setOpenMenuDeviceId={cardProps.setOpenMenuDeviceId}
       />
     </div>
   );
@@ -138,6 +140,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
     const [gridStyle, setGridStyle] = useState<React.CSSProperties>({});
     const [activeId, setActiveId] = useState<string | null>(null);
     const [activeDragItemRect, setActiveDragItemRect] = useState<{ width: number; height: number } | null>(null);
+    const [openMenuDeviceId, setOpenMenuDeviceId] = useState<string | null>(null);
 
     useLayoutEffect(() => {
         const calculateGrid = () => {
@@ -344,13 +347,15 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                                 style={{
                                     gridColumn: `${item.col + 1} / span ${width}`,
                                     gridRow: `${item.row + 1} / span ${height}`,
-                                    zIndex: activeId === item.deviceId ? 0 : 1, // Keep non-dragging items visible
+                                    zIndex: openMenuDeviceId === item.deviceId ? 40 : (activeId === item.deviceId ? 0 : 1),
                                 }}
                             >
                                 <DraggableDevice 
                                   device={device} 
                                   template={templateToUse} 
                                   {...props} 
+                                  openMenuDeviceId={openMenuDeviceId}
+                                  setOpenMenuDeviceId={setOpenMenuDeviceId}
                                 />
                             </div>
                         );
