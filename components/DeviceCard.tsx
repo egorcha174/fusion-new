@@ -593,9 +593,9 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
             return (
                 <div key={element.id} style={style} onClick={e => e.stopPropagation()}>
                     <div
-                        className="relative w-full h-full bg-black/20 rounded-lg p-1 overflow-hidden"
+                        className="relative w-full h-full overflow-hidden"
                     >
-                        <div className={`absolute top-1 left-1 right-1 h-4 bg-gradient-to-b from-black/20 to-transparent z-20 pointer-events-none transition-opacity ${showTopFade ? 'opacity-100' : 'opacity-0'}`} />
+                        <div className={`absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-black/20 to-transparent z-20 pointer-events-none transition-opacity ${showTopFade ? 'opacity-100' : 'opacity-0'}`} />
                         
                         <div
                             ref={scrollContainerRef}
@@ -622,7 +622,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                             </div>
                         </div>
 
-                        <div className={`absolute bottom-1 left-1 right-1 h-4 bg-gradient-to-t from-black/20 to-transparent z-20 pointer-events-none transition-opacity ${showBottomFade ? 'opacity-100' : 'opacity-0'}`} />
+                        <div className={`absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-black/20 to-transparent z-20 pointer-events-none transition-opacity ${showBottomFade ? 'opacity-100' : 'opacity-0'}`} />
                     </div>
                 </div>
             );
