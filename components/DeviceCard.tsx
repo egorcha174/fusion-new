@@ -681,6 +681,15 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         className="w-full h-full relative rounded-2xl"
         style={{ backgroundColor: isOn ? (template.styles.onBackgroundColor || '#E5E7EB') : template.styles.backgroundColor }}
       >
+        {isPreview && 
+            <div 
+                className="absolute inset-0 bg-center" 
+                style={{ 
+                    backgroundImage: `linear-gradient(rgba(100,116,139,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(100,116,139,0.2) 1px, transparent 1px)`, 
+                    backgroundSize: `10px 10px`
+                }} 
+            />
+        }
         {template.elements.map(renderElement)}
         {/* Device Indicators */}
         {template.deviceSlots && deviceBindings && deviceBindings.map(binding => {
