@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import Settings from './components/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -205,7 +206,7 @@ const defaultClimateTemplate: CardTemplate = {
       position: { x: 8, y: 15 },
       size: { width: 40, height: 15 },
       zIndex: 2,
-      styles: { fontSize: 32 },
+      styles: { fontSize: 32, decimalPlaces: 0 },
     },
     {
       id: 'name',

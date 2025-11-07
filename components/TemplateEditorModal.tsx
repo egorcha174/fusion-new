@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useMemo } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement } from '../types';
 import DeviceCard from './DeviceCard';
@@ -691,7 +692,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                             </div>
                         </div>
                     )}
-                    {selectedElement.id === 'value' && (
+                    {['value', 'temperature'].includes(selectedElement.id) && (
                       <div className="flex items-center justify-between">
                         <label htmlFor="decimalPlaces" className="text-sm text-gray-200">Знаков после запятой</label>
                         <input

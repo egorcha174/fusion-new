@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -497,12 +498,22 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
               </div>
            );
         }
-        case 'temperature':
+        case 'temperature': {
+           const { decimalPlaces } = element.styles;
+           let tempText = '';
+           if (typeof device.temperature === 'number') {
+             if (typeof decimalPlaces === 'number' && decimalPlaces >= 0) {
+               tempText = device.temperature.toFixed(decimalPlaces);
+             } else {
+               tempText = device.temperature.toFixed(0);
+             }
+           }
            return (
              <div key={element.id} style={style} className="pointer-events-none">
-               <AutoFitText text={`${device.temperature?.toFixed(0) ?? ''}°`} className="w-full h-full" pClassName="font-bold text-gray-100" maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
+               <AutoFitText text={`${tempText}°`} className="w-full h-full" pClassName="font-bold text-gray-100" maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
              </div>
            );
+        }
         case 'target-temperature':
           return (
             <div key={element.id} style={style} onClick={e => e.stopPropagation()}>
