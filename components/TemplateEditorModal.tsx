@@ -5,7 +5,7 @@
 
 
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
-import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot } from '../types';
+import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot, ThresholdRule } from '../types';
 import DeviceCard from './DeviceCard';
 import { DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, useDraggable } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove } from '@dnd-kit/sortable';
@@ -170,7 +170,7 @@ const NumberInput: React.FC<{ value: number | undefined, onChange: (val?: number
         max={max}
         placeholder={placeholder}
         value={value ?? ''}
-        onChange={(e) => onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
+        onChange={(e) => onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
         className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
     />
 );
@@ -260,6 +260,54 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
         }
     });
   }, []);
+
+  const handleAddThreshold = () => {
+    const newRule: ThresholdRule = {
+      value: 0,
+      comparison: 'above',
+      style: {},
+    };
+    setEditedTemplate(prev => ({
+      ...prev,
+      styles: {
+        ...prev.styles,
+        thresholds: [...(prev.styles.thresholds || []), newRule],
+      },
+    }));
+  };
+
+  const handleUpdateThreshold = (index: number, field: keyof ThresholdRule | 'style', value: any) => {
+    setEditedTemplate(prev => {
+      const newThresholds = [...(prev.styles.thresholds || [])];
+      if (field === 'style') {
+        newThresholds[index] = { ...newThresholds[index], style: value };
+      } else {
+        newThresholds[index] = { ...newThresholds[index], [field]: value };
+      }
+      return { ...prev, styles: { ...prev.styles, thresholds: newThresholds } };
+    });
+  };
+  
+  const handleClearThresholdColor = (index: number, colorType: 'backgroundColor' | 'valueColor') => {
+     setEditedTemplate(prev => {
+      const newThresholds = [...(prev.styles.thresholds || [])];
+      const newStyle = { ...newThresholds[index].style };
+      delete newStyle[colorType];
+      newThresholds[index] = { ...newThresholds[index], style: newStyle };
+      return { ...prev, styles: { ...prev.styles, thresholds: newThresholds } };
+    });
+  }
+
+  const handleDeleteThreshold = (index: number) => {
+    setEditedTemplate(prev => ({
+      ...prev,
+      styles: {
+        ...prev.styles,
+        thresholds: (prev.styles.thresholds || []).filter((_, i) => i !== index),
+      },
+    }));
+  };
+
 
   // --- Keyboard Shortcuts ---
   useEffect(() => {
@@ -558,6 +606,49 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                     <LabeledInput label="Цвет (Выкл.)"><input type="color" value={editedTemplate.styles.backgroundColor} onChange={e => setEditedTemplate(p => ({...p, styles: {...p.styles, backgroundColor: e.target.value}}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
                     <LabeledInput label="Цвет (Вкл.)"><input type="color" value={editedTemplate.styles.onBackgroundColor || ''} onChange={e => setEditedTemplate(p => ({...p, styles: {...p.styles, onBackgroundColor: e.target.value}}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
                 </Section>
+                {editedTemplate.deviceType === 'sensor' && (
+                    <Section title="Пороги значений">
+                        <div className="space-y-2">
+                        {(editedTemplate.styles.thresholds || []).map((rule, index) => (
+                            <div key={index} className="bg-gray-900/50 p-3 rounded-lg space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs font-semibold text-gray-200">Правило #{index + 1}</span>
+                                    <button onClick={() => handleDeleteThreshold(index)} className="p-1 text-gray-500 hover:text-red-400 rounded-md transition-colors">
+                                        <Icon icon="mdi:trash-can-outline" className="w-4 h-4" />
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <select value={rule.comparison} onChange={(e) => handleUpdateThreshold(index, 'comparison', e.target.value as 'above' | 'below')} className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none">
+                                        <option value="above">Больше чем</option>
+                                        <option value="below">Меньше чем</option>
+                                    </select>
+                                    <NumberInput value={rule.value} onChange={v => handleUpdateThreshold(index, 'value', v ?? 0)} />
+                                </div>
+                                 <LabeledInput label="Цвет фона">
+                                     <div className="flex items-center gap-2">
+                                        <input type="color" value={rule.style.backgroundColor || '#ffffff'} onChange={e => handleUpdateThreshold(index, 'style', { ...rule.style, backgroundColor: e.target.value })} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/>
+                                        <button onClick={() => handleClearThresholdColor(index, 'backgroundColor')} title="Сбросить" className="p-1 text-gray-500 hover:text-white rounded-md transition-colors">
+                                            <Icon icon="mdi:close" className="w-4 h-4" />
+                                        </button>
+                                     </div>
+                                </LabeledInput>
+                                <LabeledInput label="Цвет значения">
+                                      <div className="flex items-center gap-2">
+                                        <input type="color" value={rule.style.valueColor || '#ffffff'} onChange={e => handleUpdateThreshold(index, 'style', { ...rule.style, valueColor: e.target.value })} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/>
+                                         <button onClick={() => handleClearThresholdColor(index, 'valueColor')} title="Сбросить" className="p-1 text-gray-500 hover:text-white rounded-md transition-colors">
+                                            <Icon icon="mdi:close" className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                </LabeledInput>
+                            </div>
+                        ))}
+                        </div>
+                        <button onClick={handleAddThreshold} className="mt-2 w-full flex items-center justify-center gap-2 text-sm text-gray-300 hover:text-white bg-gray-700 hover:bg-gray-600/80 rounded-md py-2 transition-colors">
+                            <Icon icon="mdi:plus" className="w-5 h-5"/>
+                            Добавить правило
+                        </button>
+                    </Section>
+                )}
               </>)}
               { selectedElement && (<>
                 <Section title="Положение и размер">

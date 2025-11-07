@@ -114,6 +114,7 @@ export interface CameraSettings {
   selectedEntityId: string | null;
 }
 
+
 // --- Card Template System ---
 export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status' | 'slider' | 'temperature' | 'target-temperature' | 'hvac-modes' | 'linked-entity';
 
@@ -155,6 +156,17 @@ export interface DeviceSlot {
   interactive: boolean;
 }
 
+export interface ThresholdStyle {
+  backgroundColor?: string;
+  valueColor?: string;
+}
+
+export interface ThresholdRule {
+  value: number;
+  comparison: 'above' | 'below';
+  style: ThresholdStyle;
+}
+
 export interface CardTemplate {
   id: string;
   name: string;
@@ -163,6 +175,7 @@ export interface CardTemplate {
   styles: {
     backgroundColor: string;
     onBackgroundColor?: string;
+    thresholds?: ThresholdRule[];
   };
   width?: number;
   height?: number;

@@ -1,7 +1,6 @@
 
 
 
-
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement, DeviceCustomizations } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -21,7 +20,8 @@ const AutoFitText: React.FC<{
   maxLines?: number;
   fontSize?: number;
   textAlign?: 'left' | 'center' | 'right';
-}> = ({ text, className, pClassName, maxFontSize = 48, mode = 'multi-line', maxLines = 2, fontSize, textAlign }) => {
+  pStyle?: React.CSSProperties;
+}> = ({ text, className, pClassName, maxFontSize = 48, mode = 'multi-line', maxLines = 2, fontSize, textAlign, pStyle }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const pRef = React.useRef<HTMLParagraphElement>(null);
 
@@ -85,7 +85,7 @@ const AutoFitText: React.FC<{
 
   return (
     <div ref={containerRef} className={`${className} flex items-center ${textAlignClass}`}>
-      <p ref={pRef} className={pClassName} style={{ lineHeight: 1.15, wordBreak: 'break-word', ...multiLineStyles }}>
+      <p ref={pRef} className={pClassName} style={{ lineHeight: 1.15, wordBreak: 'break-word', ...multiLineStyles, ...pStyle }}>
         {text}
       </p>
     </div>
@@ -436,6 +436,34 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
 
   // --- Universal Template Renderer ---
   if (template) {
+    let dynamicBackgroundColor = isOn ? (template.styles.onBackgroundColor || '#E5E7EB') : template.styles.backgroundColor;
+    let dynamicValueColor: string | undefined = undefined;
+
+    if (device.type === DeviceType.Sensor && template.styles.thresholds && template.styles.thresholds.length > 0) {
+        const numericValue = parseFloat(device.status);
+        if (!isNaN(numericValue)) {
+            const applicableAboveRule = template.styles.thresholds
+                .filter(r => r.comparison === 'above' && numericValue > r.value)
+                .sort((a, b) => b.value - a.value)[0]; // Get the one with highest value
+
+            const applicableBelowRule = template.styles.thresholds
+                .filter(r => r.comparison === 'below' && numericValue < r.value)
+                .sort((a, b) => a.value - b.value)[0]; // Get the one with lowest value
+
+            const ruleToApply = applicableAboveRule || applicableBelowRule;
+
+            if (ruleToApply) {
+                if (ruleToApply.style.backgroundColor) {
+                    dynamicBackgroundColor = ruleToApply.style.backgroundColor;
+                }
+                if (ruleToApply.style.valueColor) {
+                    dynamicValueColor = ruleToApply.style.valueColor;
+                }
+            }
+        }
+    }
+
+
     const renderElement = (element: CardElement) => {
       if (!element.visible) return null;
 
@@ -477,9 +505,10 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
           if (!isNaN(numericStatus) && typeof decimalPlaces === 'number' && decimalPlaces >= 0) {
             valueText = numericStatus.toFixed(decimalPlaces);
           }
+           const pStyle: React.CSSProperties = dynamicValueColor ? { color: dynamicValueColor } : {};
           return (
             <div key={element.id} style={style} className="flex items-center">
-              <AutoFitText text={valueText} className="w-full h-full" pClassName="font-semibold text-gray-100" maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
+              <AutoFitText text={valueText} className="w-full h-full" pClassName="font-semibold text-gray-100" maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} pStyle={pStyle} />
             </div>
           );
         }
@@ -711,7 +740,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
     return (
       <div
         className="w-full h-full relative rounded-2xl"
-        style={{ backgroundColor: isOn ? (template.styles.onBackgroundColor || '#E5E7EB') : template.styles.backgroundColor }}
+        style={{ backgroundColor: dynamicBackgroundColor }}
       >
         {isPreview && 
             <div 
