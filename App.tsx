@@ -1,4 +1,5 @@
 
+
 import React, { useMemo, useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import useHomeAssistant from './hooks/useHomeAssistant';
@@ -237,7 +238,7 @@ const defaultClimateTemplate: CardTemplate = {
       position: { x: 8, y: 8 },
       size: { width: 10, height: 10 },
       zIndex: 2,
-      styles: { linkedEntityId: '' },
+      styles: { linkedEntityId: '', showValue: false },
     },
   ],
 };

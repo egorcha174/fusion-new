@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement, DeviceCustomizations } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -644,30 +645,60 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
             );
         }
         case 'linked-entity': {
-            const entityId = element.styles.linkedEntityId;
-            if (!entityId) return null;
+            const { linkedEntityId, showValue, decimalPlaces, onColor, offColor, fontSize, textAlign } = element.styles;
+            if (!linkedEntityId) return null;
             
-            const linkedDevice = allKnownDevices.get(entityId);
+            const linkedDevice = allKnownDevices.get(linkedEntityId);
             
             if (!linkedDevice) {
                 return (
-                    <div key={element.id} style={style} className="flex items-center justify-center" title={`Связанное устройство не найдено: ${entityId}`}>
+                    <div key={element.id} style={style} className="flex items-center justify-center" title={`Связанное устройство не найдено: ${linkedEntityId}`}>
                         <Icon icon="mdi:alert-circle-outline" className="w-full h-full text-yellow-500/80" />
                     </div>
                 );
             }
             
             const isLinkedOn = linkedDevice.state === 'on';
-            const iconColor = isLinkedOn ? (element.styles.onColor || 'rgb(59 130 246)') : (element.styles.offColor || 'rgb(156 163 175)');
+            const iconColor = isLinkedOn ? (onColor || 'rgb(59 130 246)') : (offColor || 'rgb(156 163 175)');
+
+            let valueText: string | null = null;
+            if (showValue) {
+                const numericStatus = parseFloat(linkedDevice.status);
+                if (!isNaN(numericStatus)) {
+                    valueText = (typeof decimalPlaces === 'number' && decimalPlaces >= 0)
+                        ? numericStatus.toFixed(decimalPlaces)
+                        : linkedDevice.status;
+                }
+            }
             
+            const hasIcon = true;
+            const hasValue = !!valueText;
+        
             return (
-                <div key={element.id} style={{ ...style, color: iconColor }}>
-                    <DeviceIcon
-                        icon={linkedDevice.icon ?? linkedDevice.type}
-                        isOn={isLinkedOn}
-                        className="!w-full !h-full"
-                        iconAnimation={linkedDevice.iconAnimation}
-                    />
+                <div key={element.id} style={style} className="w-full h-full flex items-center justify-center gap-1 p-1 overflow-hidden">
+                    {hasIcon && (
+                        <div style={{ color: iconColor }} className={`flex-shrink-0 ${hasValue ? 'w-[40%]' : 'w-full h-full'}`}>
+                            <DeviceIcon
+                                icon={linkedDevice.icon ?? linkedDevice.type}
+                                isOn={isLinkedOn}
+                                className="!w-full !h-full"
+                                iconAnimation={linkedDevice.iconAnimation}
+                            />
+                        </div>
+                    )}
+                    {hasValue && (
+                        <div className="flex-grow h-full min-w-0">
+                            <AutoFitText
+                                text={valueText}
+                                className="w-full h-full"
+                                pClassName={`font-semibold ${isOn ? 'text-gray-900' : 'text-gray-100'}`}
+                                maxFontSize={100}
+                                mode="single-line"
+                                fontSize={fontSize}
+                                textAlign={textAlign || 'center'}
+                            />
+                        </div>
+                    )}
                 </div>
             );
         }

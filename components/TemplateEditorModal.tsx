@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot } from '../types';
 import DeviceCard from './DeviceCard';
@@ -571,7 +572,20 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                  )}
                  {selectedElement.id === 'linked-entity' && (
                      <Section title="Связанное устройство">
-                         <LabeledInput label="ID устройства"><input type="text" placeholder="e.g. switch.boiler" value={selectedElement.styles.linkedEntityId ?? ''} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, linkedEntityId: e.target.value}} : el)}))} className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"/></LabeledInput>
+                         <LabeledInput label="ID устройства"><input type="text" placeholder="e.g. sensor.temperature" value={selectedElement.styles.linkedEntityId ?? ''} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, linkedEntityId: e.target.value}} : el)}))} className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"/></LabeledInput>
+                         <LabeledInput label="Показывать значение">
+                            <button 
+                                onClick={() => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, showValue: !el.styles.showValue}} : el)}))}
+                                className={`relative inline-flex items-center h-5 rounded-full w-9 transition-colors ${selectedElement.styles.showValue ? 'bg-blue-600' : 'bg-gray-600'}`}
+                            >
+                                <span className={`inline-block w-3 h-3 transform bg-white rounded-full transition-transform ${selectedElement.styles.showValue ? 'translate-x-5' : 'translate-x-1'}`} />
+                            </button>
+                        </LabeledInput>
+                        {selectedElement.styles.showValue && (
+                            <LabeledInput label="Знаков после ,">
+                                <NumberInput value={selectedElement.styles.decimalPlaces} onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === selectedElement.id ? {...e, styles: {...e.styles, decimalPlaces: v}} : e)}))} min={0} max={5} />
+                            </LabeledInput>
+                        )}
                      </Section>
                  )}
               </>)}

@@ -130,6 +130,7 @@ export interface CardElement {
     fontSize?: number;
     textAlign?: 'left' | 'center' | 'right';
     linkedEntityId?: string;
+    showValue?: boolean;
   };
 }
 
