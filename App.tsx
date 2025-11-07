@@ -206,71 +206,57 @@ const defaultClimateTemplate: CardTemplate = {
   name: 'Стандартный климат',
   deviceType: 'climate',
   styles: {
-    backgroundColor: 'rgb(39 39 42)', // zinc-800
+    backgroundColor: 'rgb(23 23 23 / 0.5)', // bg-neutral-900/50
   },
   elements: [
-    {
-      id: 'target-temperature', // This will render the dial
+    { // Center dial
+      id: 'target-temperature',
       visible: true,
-      position: { x: 0, y: 0 },
-      size: { width: 100, height: 100 },
+      position: { x: 25, y: 0 },
+      size: { width: 50, height: 100 },
       zIndex: 1,
       styles: {},
     },
-    {
-      id: 'status', // "Heating"
+    { // "76°" (large)
+      id: 'temperature',
       visible: true,
-      position: { x: 25, y: 22 },
-      size: { width: 50, height: 10 },
+      position: { x: 2, y: 20 },
+      size: { width: 23, height: 15 },
       zIndex: 2,
-      styles: { textAlign: 'center', fontSize: 18, onColor: '#f97316' }, // Orange color for heating
+      styles: { textAlign: 'left', fontSize: 40 },
     },
-    {
-      id: 'value', // "33.5"
+    { // "Living Room"
+      id: 'name',
       visible: true,
-      position: { x: 15, y: 30 },
-      size: { width: 70, height: 35 },
+      position: { x: 2, y: 35 },
+      size: { width: 23, height: 12 },
       zIndex: 2,
-      styles: { textAlign: 'center' },
+      styles: { textAlign: 'left', fontSize: 22 },
     },
-    {
-      id: 'icon', // The "SSS" radiator icon
+    { // "Current 76° · Humidity 54%"
+      id: 'status',
       visible: true,
-      position: { x: 45, y: 64 },
-      size: { width: 10, height: 10 },
+      position: { x: 2, y: 48 },
+      size: { width: 23, height: 10 },
       zIndex: 2,
-      styles: { onColor: '#f97316' },
+      styles: { textAlign: 'left', fontSize: 14 },
     },
-    {
-      id: 'temperature', // "22.4 C"
+    { // Right-side modes
+      id: 'hvac-modes',
       visible: true,
-      position: { x: 25, y: 75 },
-      size: { width: 50, height: 10 },
+      position: { x: 77, y: 20 },
+      size: { width: 21, height: 60 },
       zIndex: 2,
-      styles: { textAlign: 'center', fontSize: 16 },
-    },
-    {
-      id: 'button-minus',
-      visible: true,
-      position: { x: 28, y: 85 },
-      size: { width: 20, height: 20 },
-      zIndex: 2,
-      styles: {},
-    },
-    {
-      id: 'button-plus',
-      visible: true,
-      position: { x: 52, y: 85 },
-      size: { width: 20, height: 20 },
-      zIndex: 2,
-      styles: {},
+      styles: { fontSize: 18 },
     },
     // Hidden elements for type completeness
-    { id: 'unit', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} }, // Handled by 'value' and 'temperature'
-    { id: 'name', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
-    { id: 'chart', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
-    { id: 'slider', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
-    { id: 'hvac-modes', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
+    { id: 'value', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+    { id: 'unit', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+    { id: 'chart', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+    { id: 'slider', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+    { id: 'icon', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+    { id: 'button-plus', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+    { id: 'button-minus', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
   ],
 };
 
@@ -957,8 +943,9 @@ const App: React.FC = () => {
                 </div>
                 <div className="absolute left-full top-[-5px] z-10 hidden group-hover/menu:block bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-white/10 p-1 min-w-[120px]">
                     {[
-                        {w: 1, h: 1}, 
+                        {w: 1, h: 1}, {w: 2, h: 1}, {w: 1, h: 2},
                         {w: 2, h: 2}, 
+                        {w: 3, h: 2}, {w: 2, h: 3},
                         {w: 3, h: 3}
                     ].map(size => (
                         <div 

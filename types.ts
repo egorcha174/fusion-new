@@ -1,5 +1,8 @@
 
 
+
+
+
 export enum DeviceType {
   Light,
   Lamp,
@@ -35,11 +38,14 @@ export interface Device {
   name: string;
   status: string; // 'På', 'Okänt', 'Heating', etc.
   type: DeviceType;
+  // FIX: Add the missing 'state' property to hold the raw state from Home Assistant.
+  state?: string; // The raw state from Home Assistant (e.g., 'on', 'off', 'cool')
   icon?: string; // Custom icon override (Iconify name)
   iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow';
   brightness?: number; // For DimmableLight
   temperature?: number; // For Thermostat current temp or weather temp
   targetTemperature?: number; // For Thermostat target temp
+  humidity?: number; // For Thermostat current humidity
   unit?: string; // For sensors, thermostats, weather
   forecast?: WeatherForecast[]; // For weather devices
   condition?: string; // For weather, the raw state like 'partlycloudy'
@@ -149,6 +155,7 @@ export interface HassEntity {
     brightness?: number; // 0-255
     temperature?: number;
     current_temperature?: number;
+    current_humidity?: number;
     device_id?: string;
     // Allow forecast to be `any` to support various unpredictable structures from HA integrations.
     forecast?: any;

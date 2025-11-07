@@ -1,10 +1,12 @@
 
 
+
+
 import React, { useRef, useCallback, useMemo } from 'react';
 
 // --- Helper Functions ---
 const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
-  const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
+  const angleInRadians = ((angleInDegrees - 180) * Math.PI) / 180.0;
   return {
     x: centerX + radius * Math.cos(angleInRadians),
     y: centerY + radius * Math.sin(angleInRadians),
@@ -14,7 +16,6 @@ const polarToCartesian = (centerX: number, centerY: number, radius: number, angl
 const valueToAngle = (value: number, min: number, max: number, startAngle: number, endAngle: number) => {
   const range = max - min;
   if (range === 0) return startAngle;
-  // Clamp value to min/max
   const clampedValue = Math.max(min, Math.min(max, value));
   const valueRatio = (clampedValue - min) / range;
   return valueRatio * (endAngle - startAngle) + startAngle;
@@ -28,16 +29,18 @@ interface ThermostatDialProps {
   current: number; // Current temperature
   onChange: (value: number) => void;
   hvacAction: string;
+  hvacMode: string;
 }
 
-const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, current, onChange, hvacAction }) => {
+const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, onChange, hvacAction, hvacMode }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   
-  const SIZE = 200;
+  const SIZE = 250;
   const CENTER = SIZE / 2;
-  const RADIUS = 80;
-  const START_ANGLE = 135;
-  const END_ANGLE = 405;
+  const RADIUS = 110;
+  const START_ANGLE = 30;
+  const END_ANGLE = 330;
+  const STROKE_WIDTH = 30;
 
   const handlePointerMove = useCallback((e: PointerEvent) => {
     if (!svgRef.current) return;
@@ -46,26 +49,22 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
     const y = e.clientY - rect.top;
 
     const angleRad = Math.atan2(y - CENTER, x - CENTER);
-    let angleDeg = (angleRad * 180) / Math.PI + 90;
-    if (angleDeg < 0) angleDeg += 360;
+    let angleDeg = (angleRad * 180) / Math.PI + 180;
     
-    // Handle wrap around for angles > 360
-    if(angleDeg < START_ANGLE && x < CENTER) {
-        angleDeg += 360;
-    }
+    if (angleDeg < START_ANGLE - 10 && angleDeg > 180) return;
+    if (angleDeg > END_ANGLE + 10 && angleDeg < 180) return;
 
-    // Clamp angle to the allowed range
     angleDeg = Math.max(START_ANGLE, Math.min(END_ANGLE, angleDeg));
     
     const range = max - min;
     const angleRange = END_ANGLE - START_ANGLE;
     const valueRatio = (angleDeg - START_ANGLE) / angleRange;
-    const newValue = Math.round((valueRatio * range + min) * 2) / 2; // Round to nearest 0.5
+    const newValue = Math.round((valueRatio * range + min) * 2) / 2;
     
-    if (newValue >= min && newValue <= max) {
+    if (newValue >= min && newValue <= max && newValue !== value) {
       onChange(newValue);
     }
-  }, [CENTER, START_ANGLE, END_ANGLE, min, max, onChange]);
+  }, [CENTER, START_ANGLE, END_ANGLE, min, max, onChange, value]);
 
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
@@ -80,83 +79,46 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
 
     window.addEventListener('pointermove', handlePointerMove);
     window.addEventListener('pointerup', handlePointerUp);
-    
-    // Trigger first move immediately
-     handlePointerMove(e.nativeEvent);
+    handlePointerMove(e.nativeEvent);
   }, [handlePointerMove]);
+  
+  const { path, handlePosition, gradientColors } = useMemo(() => {
+    const valueAngle = valueToAngle(value, min, max, START_ANGLE, END_ANGLE);
+    const startPoint = polarToCartesian(CENTER, CENTER, RADIUS, END_ANGLE);
+    const endPoint = polarToCartesian(CENTER, CENTER, RADIUS, START_ANGLE);
+    const largeArcFlag = END_ANGLE - START_ANGLE <= 180 ? '0' : '1';
 
-  // Generate Ticks
-  const ticks = useMemo(() => {
-    const tickArray: React.ReactNode[] = [];
-    const tempRange = max - min;
-    if (tempRange <= 0) return [];
-    const angleRange = END_ANGLE - START_ANGLE;
+    const pathD = `M ${startPoint.x} ${startPoint.y} A ${RADIUS} ${RADIUS} 0 ${largeArcFlag} 0 ${endPoint.x} ${endPoint.y}`;
+    
+    const handlePos = polarToCartesian(CENTER, CENTER, RADIUS, valueAngle);
 
-    const lerpColor = (a: number[], b: number[], amount: number) => {
-        const boundedAmount = Math.max(0, Math.min(1, amount));
-        const c = a.map((component, i) => component + boundedAmount * (b[i] - component));
-        return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
-    };
-
-    const blue = [0, 191, 255]; 
-    const purple = [138, 43, 226]; 
-    const pink = [255, 20, 147]; 
-
-    for (let i = min; i <= max; i++) {
-        const isMajor = i % 5 === 0;
-        const angle = START_ANGLE + ((i - min) / tempRange) * angleRange;
-        const start = polarToCartesian(CENTER, CENTER, RADIUS, angle);
-        const end = polarToCartesian(CENTER, CENTER, RADIUS - (isMajor ? 8 : 4), angle);
-        
-        const tempRatio = (i - min) / tempRange;
-        let color = '';
-        if (tempRatio < 0.5) {
-            color = lerpColor(blue, purple, tempRatio * 2);
-        } else {
-            color = lerpColor(purple, pink, (tempRatio - 0.5) * 2);
-        }
-
-        tickArray.push(
-            <line key={`tick-${i}`} x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke={color} strokeWidth={isMajor ? 1.5 : 1} />
-        );
-
-        if(isMajor) {
-            const textPos = polarToCartesian(CENTER, CENTER, RADIUS - 18, angle);
-            tickArray.push(
-                <text key={`text-${i}`} x={textPos.x} y={textPos.y} fill="#9ca3af" fontSize="10" textAnchor="middle" dominantBaseline="middle">
-                    {i}
-                </text>
-            );
-        }
+    let gradColors;
+    if (hvacAction === 'cooling' || hvacMode === 'cool') {
+        gradColors = { start: '#25CBFF', end: '#589CFE' };
+    } else if (hvacAction === 'heating' || hvacMode === 'heat') {
+        gradColors = { start: '#FF9533', end: '#FFC93F' };
+    } else {
+        gradColors = { start: '#787A84', end: '#BFC1C8' };
     }
-    return tickArray;
-  }, [min, max, RADIUS, CENTER, START_ANGLE, END_ANGLE]);
 
+    return { path: pathD, handlePosition: handlePos, gradientColors: gradColors };
+  }, [value, min, max, hvacAction, hvacMode]);
 
   const valueAngle = valueToAngle(value, min, max, START_ANGLE, END_ANGLE);
-  const currentAngle = valueToAngle(current, min, max, START_ANGLE, END_ANGLE);
-  
-  const handlePosition = polarToCartesian(CENTER, CENTER, RADIUS, valueAngle);
-  const currentPosition = polarToCartesian(CENTER, CENTER, RADIUS, currentAngle);
 
-  // Active arc path
-  const describeActiveArc = (start: number, end: number) => {
-    const startA = valueToAngle(start, min, max, START_ANGLE, END_ANGLE);
-    const endA = valueToAngle(end, min, max, START_ANGLE, END_ANGLE);
-    
-    const [s, e] = startA < endA ? [startA, endA] : [endA, startA];
+  const getHvacLabel = () => {
+    const modeMap: {[key: string]: string} = {
+        cool: 'Охлаждение до',
+        heat: 'Нагрев до',
+        fan_only: 'Вентилятор',
+        off: 'Выключено'
+    }
+    return modeMap[hvacMode] || hvacMode.toUpperCase();
+  }
 
-    const startPoint = polarToCartesian(CENTER, CENTER, RADIUS, e);
-    const endPoint = polarToCartesian(CENTER, CENTER, RADIUS, s);
-    const largeArcFlag = e - s <= 180 ? '0' : '1';
-    
-    return `M ${startPoint.x} ${startPoint.y} A ${RADIUS} ${RADIUS} 0 ${largeArcFlag} 0 ${endPoint.x} ${endPoint.y}`;
-  };
-  
-  const activeArcPath = describeActiveArc(current, value);
 
   return (
-    <div className="w-full h-full flex items-center justify-center">
+    <div className="w-full h-full flex items-center justify-center relative">
       <svg
         ref={svgRef}
         viewBox={`0 0 ${SIZE} ${SIZE}`}
@@ -164,34 +126,52 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
         onPointerDown={handlePointerDown}
         style={{ touchAction: 'none' }}
       >
-        {/* Ticks */}
-        <g>{ticks}</g>
-        
-        {/* Active Arc */}
+        <defs>
+          <linearGradient id="activeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={gradientColors.start} />
+            <stop offset="100%" stopColor={gradientColors.end} />
+          </linearGradient>
+          <mask id="arcMask">
+            <path
+              d={path}
+              fill="none"
+              stroke="white"
+              strokeWidth={STROKE_WIDTH}
+              strokeLinecap="round"
+            />
+          </mask>
+        </defs>
+
+        {/* Background Track */}
         <path
-          d={activeArcPath}
+          d={path}
           fill="none"
-          stroke="#f97316" // Orange
-          strokeWidth={18}
+          stroke="#39393E"
+          strokeWidth={STROKE_WIDTH}
           strokeLinecap="round"
         />
 
-        {/* Current Temp Handle */}
-        <circle
-          cx={currentPosition.x}
-          cy={currentPosition.y}
-          r={6}
-          fill="#ffffff"
-          stroke="#333"
-          strokeWidth="1"
+        {/* Active Track */}
+        <path
+          d={path}
+          fill="none"
+          stroke="url(#activeGradient)"
+          strokeWidth={STROKE_WIDTH}
+          strokeLinecap="round"
+          strokeDasharray={2 * Math.PI * RADIUS * ((END_ANGLE - START_ANGLE) / 360)}
+          strokeDashoffset={2 * Math.PI * RADIUS * ((END_ANGLE - START_ANGLE) / 360) * (1 - (valueAngle - START_ANGLE) / (END_ANGLE - START_ANGLE))}
         />
-
-        {/* Target Temp Handle */}
+        
+        {/* Handle */}
         <g transform={`translate(${handlePosition.x}, ${handlePosition.y})`}>
-            <circle r={12} fill="#f97316" className="cursor-pointer" />
-            <circle r={8} fill="#fbbf24" className="cursor-pointer" />
+          <circle r={STROKE_WIDTH / 2} fill="white" className="cursor-pointer" />
+          <circle r={STROKE_WIDTH / 2 - 3} fill="white" stroke="#E5E5E5" strokeWidth="1" className="cursor-pointer" />
         </g>
       </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-white">
+          <p className="text-gray-400 font-medium text-lg tracking-wide">{getHvacLabel()}</p>
+          <p className="font-bold text-7xl">{Math.round(value)}</p>
+      </div>
     </div>
   );
 };

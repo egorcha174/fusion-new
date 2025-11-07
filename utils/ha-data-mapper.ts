@@ -1,4 +1,6 @@
 
+
+
 import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization, WeatherForecast } from '../types';
 
 const getDeviceType = (entity: HassEntity): DeviceType => {
@@ -61,19 +63,16 @@ const getStatusText = (entity: HassEntity): string => {
     const attributes = entity.attributes || {};
 
     if (domain === 'climate') {
-        const hvacAction = attributes.hvac_action;
         const currentTemp = attributes.current_temperature;
-        const targetTemp = attributes.temperature;
-        if (hvacAction && hvacAction !== 'off' && hvacAction !== 'idle') {
-            const actionText = {
-                'cooling': `Охлаждение до ${targetTemp}°`,
-                'heating': `Нагрев до ${targetTemp}°`,
-                'fan': 'Вентилятор',
-                'drying': 'Осушение',
-            }[hvacAction] || hvacAction;
-            return `Текущая ${currentTemp}° · ${actionText}`;
+        const humidity = attributes.current_humidity;
+        let statusParts = [];
+        if (typeof currentTemp === 'number') {
+            statusParts.push(`Текущая ${currentTemp}°`);
         }
-        return `Текущая ${currentTemp}° · ${entity.state}`;
+        if (typeof humidity === 'number') {
+            statusParts.push(`Влажность ${humidity}%`);
+        }
+        return statusParts.join(' · ');
     }
 
     if (domain === 'weather') {
@@ -124,6 +123,7 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
     unit: attributes.unit_of_measurement,
     haDomain: entity.entity_id.split('.')[0],
     haDeviceClass: attributes.device_class,
+    state: entity.state,
   };
 
   if (device.type === DeviceType.DimmableLight && attributes.brightness) {
@@ -132,6 +132,7 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
   
   if (device.type === DeviceType.Thermostat) {
     device.temperature = attributes.current_temperature;
+    device.humidity = attributes.current_humidity;
     device.targetTemperature = attributes.temperature;
     device.presetMode = attributes.preset_mode;
     device.presetModes = attributes.preset_modes;
