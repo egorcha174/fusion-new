@@ -163,6 +163,17 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   const previewRef = useRef<HTMLDivElement>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
+  const defaultBackgroundColor = 'rgb(31 41 55 / 0.8)';
+  const defaultOnBackgroundColor = '#E5E7EB';
+  const defaultIconOnColor = '#3B82F6';
+  const defaultIconOffColor = '#9CA3AF';
+  
+  const ResetIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 20 20" stroke="currentColor" strokeWidth="1.5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12.5 3.33a6.67 6.67 0 1 0 1.87 10.15M12.5 3.33a6.67 6.67 0 0 0-4.83 2.17M12.5 3.33v3.34h-3.34" />
+    </svg>
+  );
+
   const sampleDevice: Device = useMemo(() => {
     if (templateToEdit.deviceType === 'light') {
       return {
@@ -489,8 +500,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
     }
   };
   
-  const defaultBackgroundColor = 'rgb(31 41 55 / 0.8)';
-  
   const handleAlignmentAction = (e: React.MouseEvent, action: string) => {
     e.stopPropagation();
     handleAlignment(action);
@@ -596,19 +605,37 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                       </div>
                     )}
                     {selectedElement.id === 'icon' && (
-                        <div className="flex items-center justify-between pt-2 border-t border-gray-700">
-                            <label htmlFor="iconOnColor" className="text-sm text-gray-200">Цвет иконки (вкл.)</label>
-                            <input
-                                type="color"
-                                id="iconOnColor"
-                                value={selectedElement.styles.onColor || '#3B82F6'}
-                                onChange={(e) => {
-                                    handleElementUpdate(selectedElement.id, {
-                                        styles: { ...selectedElement.styles, onColor: e.target.value }
-                                    });
-                                }}
-                                className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"
-                            />
+                        <div className="pt-2 border-t border-gray-700 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <label htmlFor="iconOnColor" className="text-sm text-gray-200">Цвет иконки (вкл.)</label>
+                                <div className="flex items-center gap-2">
+                                    <button onClick={() => handleElementUpdate(selectedElement.id, { styles: { ...selectedElement.styles, onColor: defaultIconOnColor }})} title="Сбросить цвет" className="p-1.5 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white transition-colors">
+                                        <ResetIcon />
+                                    </button>
+                                    <input
+                                        type="color"
+                                        id="iconOnColor"
+                                        value={selectedElement.styles.onColor || defaultIconOnColor}
+                                        onChange={(e) => handleElementUpdate(selectedElement.id, { styles: { ...selectedElement.styles, onColor: e.target.value }})}
+                                        className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <label htmlFor="iconOffColor" className="text-sm text-gray-200">Цвет иконки (выкл.)</label>
+                                <div className="flex items-center gap-2">
+                                    <button onClick={() => handleElementUpdate(selectedElement.id, { styles: { ...selectedElement.styles, offColor: defaultIconOffColor }})} title="Сбросить цвет" className="p-1.5 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white transition-colors">
+                                        <ResetIcon />
+                                    </button>
+                                    <input
+                                        type="color"
+                                        id="iconOffColor"
+                                        value={selectedElement.styles.offColor || defaultIconOffColor}
+                                        onChange={(e) => handleElementUpdate(selectedElement.id, { styles: { ...selectedElement.styles, offColor: e.target.value }})}
+                                        className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"
+                                    />
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -620,14 +647,19 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                     <label htmlFor="bgColor" className="text-sm text-gray-200">Цвет фона (выкл.)</label>
                     <div className="flex items-center gap-2">
                         <button onClick={() => handleStyleChange('backgroundColor', defaultBackgroundColor)} title="Сбросить цвет" className="p-1.5 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a5.002 5.002 0 008.057 4.918 1 1 0 011.885.666A7.002 7.002 0 012.199 14.101V17a1 1 0 01-2 0v-5a1 1 0 011-1h5a1 1 0 010 2H4.008z" clipRule="evenodd" /></svg>
+                            <ResetIcon />
                         </button>
                         <input type="color" id="bgColor" value={editedTemplate.styles.backgroundColor} onChange={(e) => handleStyleChange('backgroundColor', e.target.value)} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent" />
                     </div>
                 </div>
                  <div className="flex items-center justify-between">
                     <label htmlFor="onBgColor" className="text-sm text-gray-200">Цвет фона (вкл.)</label>
-                    <input type="color" id="onBgColor" value={editedTemplate.styles.onBackgroundColor || '#E5E7EB'} onChange={(e) => handleStyleChange('onBackgroundColor', e.target.value)} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent" />
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => handleStyleChange('onBackgroundColor', defaultOnBackgroundColor)} title="Сбросить цвет" className="p-1.5 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white transition-colors">
+                           <ResetIcon />
+                        </button>
+                        <input type="color" id="onBgColor" value={editedTemplate.styles.onBackgroundColor || defaultOnBackgroundColor} onChange={(e) => handleStyleChange('onBackgroundColor', e.target.value)} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent" />
+                    </div>
                  </div>
             </div>
 

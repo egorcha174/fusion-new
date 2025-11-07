@@ -420,7 +420,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
         case 'icon':
           const iconColor = isOn
               ? (element.styles.onColor || 'rgb(59 130 246)') // default blue
-              : 'rgb(156 163 175)'; // default gray-400
+              : (element.styles.offColor || 'rgb(156 163 175)'); // default gray-400
           return (
             <div key={element.id} style={{ ...style, color: iconColor }}>
               <DeviceIcon icon={device.icon ?? device.type} isOn={isOn} className="!w-full !h-full" iconAnimation={device.iconAnimation} />

@@ -112,6 +112,7 @@ export interface CardElement {
     // other styles can be added here
     decimalPlaces?: number;
     onColor?: string;
+    offColor?: string;
   };
 }
 
