@@ -346,6 +346,7 @@ interface DeviceCardProps {
   onPresetChange: (preset: string) => void;
   onCameraCardClick: (device: Device) => void;
   isEditMode: boolean;
+  isPreview?: boolean;
   onEditDevice: (device: Device) => void;
   onRemoveFromTab?: () => void;
   haUrl: string;
@@ -356,7 +357,7 @@ interface DeviceCardProps {
   setOpenMenuDeviceId?: (id: string | null) => void;
 }
 
-const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, customizations, onDeviceToggle, onTemperatureChange, onBrightnessChange, onHvacModeChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onRemoveFromTab, haUrl, signPath, getCameraStreamUrl, template, openMenuDeviceId, setOpenMenuDeviceId }) => {
+const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, customizations, onDeviceToggle, onTemperatureChange, onBrightnessChange, onHvacModeChange, onPresetChange, onCameraCardClick, isEditMode, isPreview = false, onEditDevice, onRemoveFromTab, haUrl, signPath, getCameraStreamUrl, template, openMenuDeviceId, setOpenMenuDeviceId }) => {
   const isOn = device.status.toLowerCase() === 'включено' || device.state === 'on';
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
   const presetMenuRef = useRef<HTMLDivElement>(null);
@@ -402,6 +403,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
   };
 
   const handleIndicatorClick = (e: React.MouseEvent, entityId: string) => {
+    if (isPreview) return;
     e.stopPropagation();
     onDeviceToggle(entityId);
   };
@@ -497,13 +499,14 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         case 'slider': {
            if (!isOn || device.brightness === undefined) return null;
            return (
-              <div key={element.id} style={style} onClick={(e) => e.stopPropagation()}>
+              <div key={element.id} style={style} onClick={(e) => { if (!isPreview) e.stopPropagation(); }}>
                 <input
                   type="range"
                   min="1"
                   max="100"
                   value={device.brightness}
-                  onInput={(e) => onBrightnessChange(parseInt(e.currentTarget.value))}
+                  onInput={(e) => { if (!isPreview) onBrightnessChange(parseInt(e.currentTarget.value)); }}
+                  disabled={isPreview}
                   className="w-full h-full bg-gray-700/50 rounded-lg appearance-none cursor-pointer accent-blue-500"
                 />
               </div>
@@ -527,13 +530,13 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         }
         case 'target-temperature':
           return (
-            <div key={element.id} style={style} onClick={e => e.stopPropagation()}>
+            <div key={element.id} style={style} onClick={e => { if (!isPreview) e.stopPropagation(); }}>
               <ThermostatDial 
                 min={device.minTemp ?? 10}
                 max={device.maxTemp ?? 35}
                 value={device.targetTemperature ?? 21}
                 current={device.temperature ?? 21}
-                onChange={value => onTemperatureChange(value)}
+                onChange={value => { if (!isPreview) onTemperatureChange(value); }}
                 hvacAction={device.hvacAction ?? 'idle'}
               />
             </div>
@@ -590,6 +593,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
             };
         
             const handleModeClick = (mode: string) => {
+                if (isPreview) return;
                 if (isPresetMode) {
                     onPresetChange(mode);
                 } else {
@@ -599,6 +603,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
             };
             
             const handleButtonClick = (e: React.MouseEvent) => {
+                if (isPreview) return;
                 e.stopPropagation();
                 setOpenMenuDeviceId?.(isDropdownOpen ? null : device.id);
             };
@@ -606,17 +611,18 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
             const activeConfig = getConfig(activeMode?.toLowerCase() || (isPresetMode ? 'none' : 'off'));
         
             return (
-                <div key={element.id} style={style} onClick={e => e.stopPropagation()} ref={dropdownRef}>
+                <div key={element.id} style={style} onClick={e => { if (!isPreview) e.stopPropagation(); }} ref={dropdownRef}>
                     <div className="relative w-full h-full flex items-center justify-center">
                         <button
                             onClick={handleButtonClick}
+                            disabled={isPreview}
                             className="w-full h-full flex flex-col items-center justify-center bg-white/10 hover:bg-white/20 rounded-xl transition-all p-1"
                         >
                             <Icon icon={activeConfig.icon} className="w-auto h-[55%] text-white" />
                             <span className="text-[10px] font-bold text-white mt-auto leading-tight text-center">{activeConfig.label}</span>
                         </button>
         
-                        {isDropdownOpen && (
+                        {isDropdownOpen && !isPreview && (
                             <div className="absolute top-full right-0 mt-2 min-w-[150px] w-max bg-gray-800/80 backdrop-blur-lg rounded-xl shadow-lg ring-1 ring-white/10 p-1 z-20 fade-in">
                                 {modes.map(mode => {
                                     const config = getConfig(mode);
@@ -713,7 +719,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                 <div
                     key={binding.slotId}
                     title={entity.name}
-                    className={`absolute flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${slot.interactive ? 'cursor-pointer' : 'cursor-default'}`}
+                    className={`absolute flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${slot.interactive && !isPreview ? 'cursor-pointer' : 'cursor-default'}`}
                     style={{
                         left: `${slot.position.x}%`,
                         top: `${slot.position.y}%`,
@@ -746,7 +752,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
             <div 
               className="w-full h-full bg-black group relative"
               onClick={(e) => { 
-                  if (isEditMode) return;
+                  if (isEditMode || isPreview) return;
                   e.stopPropagation(); 
                   onCameraCardClick(device); 
               }}
@@ -758,7 +764,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                     getCameraStreamUrl={getCameraStreamUrl}
                     altText={device.name}
                 />
-                {!isEditMode && (
+                {!isEditMode && !isPreview && (
                   <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5zM5 5a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V11a1 1 0 10-2 0v6H5V7h6a1 1 0 000-2H5z" />
@@ -792,13 +798,14 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                 </div>
               <p className={`${styles.statusText} ${isOn ? textOnClasses : textOffClasses} transition-colors flex-shrink-0`}>{device.status}</p>
                {isOn && (
-                <div className="mt-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                <div className="mt-2 flex-shrink-0" onClick={(e) => { if (!isPreview) e.stopPropagation(); }}>
                     <input
                         type="range"
                         min="1"
                         max="100"
                         value={device.brightness}
-                        onInput={(e) => onBrightnessChange(parseInt(e.currentTarget.value))}
+                        onInput={(e) => { if (!isPreview) onBrightnessChange(parseInt(e.currentTarget.value)); }}
+                        disabled={isPreview}
                         className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
                     />
                 </div>
@@ -817,7 +824,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                 {device.presetModes && device.presetModes.length > 0 && (
                     <div className="relative z-10" ref={presetMenuRef}>
                         <button
-                            onClick={(e) => { e.stopPropagation(); setIsPresetMenuOpen(prev => !prev); }}
+                            onClick={(e) => { if (!isPreview) { e.stopPropagation(); setIsPresetMenuOpen(prev => !prev); } }}
+                            disabled={isPreview}
                             className={`${styles.thermostatPresetButton} rounded-full bg-black/20 text-white flex items-center justify-center hover:bg-black/40`}
                             aria-label="Открыть предустановки"
                         >
@@ -825,7 +833,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                            </svg>
                         </button>
-                        {isPresetMenuOpen && (
+                        {isPresetMenuOpen && !isPreview && (
                             <div className="absolute top-full right-0 mt-1 w-40 bg-gray-700 rounded-md shadow-lg z-20 ring-1 ring-black ring-opacity-5 p-1 max-h-48 overflow-y-auto fade-in">
                                 {device.presetModes.map(preset => (
                                     <button
@@ -854,9 +862,9 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                 </div>
                 <p className={`${styles.thermostatTempText} text-white flex-shrink-0`}>{device.temperature}{device.unit}</p>
                 <div className="flex items-center justify-between mt-1 flex-shrink-0">
-                    <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(-0.5, true); }} className={`${styles.thermostatButton} rounded-full bg-black/20 text-white flex items-center justify-center font-light text-2xl leading-none pb-1`}>-</button>
+                    <button onClick={(e) => { if (!isPreview) { e.stopPropagation(); onTemperatureChange(-0.5, true); } }} disabled={isPreview} className={`${styles.thermostatButton} rounded-full bg-black/20 text-white flex items-center justify-center font-light text-2xl leading-none pb-1`}>-</button>
                     <span className={`${styles.thermostatTargetText} text-gray-300`}>Цель: {device.targetTemperature?.toFixed(1)}{device.unit}</span>
-                    <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(0.5, true); }} className={`${styles.thermostatButton} rounded-full bg-black/20 text-white flex items-center justify-center font-light text-2xl leading-none pb-1`}>+</button>
+                    <button onClick={(e) => { if (!isPreview) { e.stopPropagation(); onTemperatureChange(0.5, true); } }} disabled={isPreview} className={`${styles.thermostatButton} rounded-full bg-black/20 text-white flex items-center justify-center font-light text-2xl leading-none pb-1`}>+</button>
                 </div>
             </div>
           </div>
@@ -930,7 +938,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         finalClasses += `${styles.padding} ${isOn ? onStateClasses : offStateClasses}`;
     }
   
-    if ((isTogglable || isCamera) && !isEditMode) {
+    if ((isTogglable || isCamera) && !isEditMode && !isPreview) {
         finalClasses += ' cursor-pointer';
     }
     return finalClasses;
