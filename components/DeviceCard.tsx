@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -9,6 +11,7 @@ import SparklineChart from './SparklineChart';
 import ThermostatDial from './ThermostatDial';
 import Hls from 'hls.js';
 import { constructHaUrl } from '../utils/url';
+import { Icon } from '@iconify/react';
 
 // --- Auto-fitting Text Component (New and Improved) ---
 const AutoFitText: React.FC<{
@@ -20,7 +23,8 @@ const AutoFitText: React.FC<{
   maxLines?: number;
   fontSize?: number;
   textAlign?: 'left' | 'center' | 'right';
-}> = ({ text, className, pClassName, maxFontSize = 48, mode = 'multi-line', maxLines = 2, fontSize, textAlign }) => {
+  textColor?: string;
+}> = ({ text, className, pClassName, maxFontSize = 48, mode = 'multi-line', maxLines = 2, fontSize, textAlign, textColor }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const pRef = React.useRef<HTMLParagraphElement>(null);
 
@@ -84,7 +88,7 @@ const AutoFitText: React.FC<{
 
   return (
     <div ref={containerRef} className={`${className} flex items-center ${textAlignClass}`}>
-      <p ref={pRef} className={pClassName} style={{ lineHeight: 1.15, wordBreak: 'break-word', ...multiLineStyles }}>
+      <p ref={pRef} className={pClassName} style={{ lineHeight: 1.15, wordBreak: 'break-word', color: textColor, ...multiLineStyles }}>
         {text}
       </p>
     </div>
@@ -441,23 +445,73 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
             </div>
           );
         case 'icon':
-          const iconColor = isOn
+          const hvacAction = device.hvacAction ?? 'idle';
+          let iconToShow = device.icon ?? device.type;
+          if (template?.deviceType === 'climate' && (hvacAction === 'heating' || hvacAction === 'cooling')) {
+            iconToShow = hvacAction === 'heating' ? 'mdi:radiator' : 'mdi:snowflake';
+          }
+          const iconIsOn = isOn || hvacAction === 'heating' || hvacAction === 'cooling';
+          const iconColor = iconIsOn
               ? (element.styles.onColor || 'rgb(59 130 246)') // default blue
               : (element.styles.offColor || 'rgb(156 163 175)'); // default gray-400
           return (
             <div key={element.id} style={{ ...style, color: iconColor }}>
-              <DeviceIcon icon={device.icon ?? device.type} isOn={isOn} className="!w-full !h-full" iconAnimation={device.iconAnimation} />
+              <DeviceIcon icon={iconToShow} isOn={iconIsOn} className="!w-full !h-full" iconAnimation={device.iconAnimation} />
             </div>
           );
-        case 'status':
-          return (
-            <div key={element.id} style={style}>
-              <AutoFitText text={device.status} className="w-full h-full" pClassName={`text-sm ${isOn ? 'text-gray-800' : 'text-gray-400'}`} maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
-            </div>
-          );
+        case 'status': {
+          let statusColor: string | undefined = isOn ? 'rgb(31 41 55)' : 'rgb(107 114 128)';
+          let statusText = device.status;
+  
+          if (template?.deviceType === 'climate') {
+              const hvacAction = device.hvacAction ?? 'idle';
+              if (hvacAction === 'heating') {
+                  statusText = 'Heating';
+                  statusColor = element.styles.onColor;
+              } else if (hvacAction === 'cooling') {
+                  statusText = 'Cooling';
+                  statusColor = '#2563eb'; // blue
+              } else {
+                  // Fix: Property 'state' does not exist on type 'Device'.
+                  // The raw state is not on the Device object.
+                  // It's part of the 'status' string for idle climate devices.
+                  // e.g., "Текущая 22.5° · off"
+                  const stateFromStatus = device.status.split('·').pop()?.trim() || device.status;
+                  statusText = stateFromStatus.toUpperCase();
+                  statusColor = '#9ca3af'; // gray
+              }
+          }
+            return (
+              <div key={element.id} style={style}>
+                <AutoFitText 
+                  text={statusText}
+                  className="w-full h-full" 
+                  pClassName={`font-medium`} 
+                  textColor={statusColor}
+                  maxFontSize={100} 
+                  mode="single-line" 
+                  fontSize={element.styles.fontSize} 
+                  textAlign={element.styles.textAlign} />
+              </div>
+            );
+        }
         case 'value': {
           const { decimalPlaces } = element.styles;
           let valueText = device.status;
+
+          if (template?.deviceType === 'climate' && device.targetTemperature !== undefined) {
+             const tempParts = device.targetTemperature.toFixed(1).split('.');
+             return (
+                <div key={element.id} style={style} className="flex items-center justify-center text-white pointer-events-none">
+                    <span className="text-7xl font-light">{tempParts[0]}</span>
+                    <div className="flex flex-col items-start font-light -ml-1">
+                       <span className="text-3xl">.{tempParts[1]}</span>
+                       <span className="text-3xl -mt-2">°C</span>
+                    </div>
+                </div>
+             );
+          }
+
           const numericStatus = parseFloat(device.status);
           if (!isNaN(numericStatus) && typeof decimalPlaces === 'number' && decimalPlaces >= 0) {
             valueText = numericStatus.toFixed(decimalPlaces);
@@ -499,6 +553,16 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
            );
         }
         case 'temperature':
+           if (template?.deviceType === 'climate' && device.temperature !== undefined) {
+            return (
+              <div key={element.id} style={style}>
+                <div className="w-full h-full flex items-center justify-center gap-1 text-orange-400">
+                    <Icon icon="mdi:thermometer" className="w-5 h-5" />
+                    <AutoFitText text={`${device.temperature}°C`} className="w-auto h-full" pClassName="font-medium" maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} />
+                </div>
+              </div>
+            );
+          }
            return (
              <div key={element.id} style={style} className="pointer-events-none">
                <AutoFitText text={`${device.temperature?.toFixed(0) ?? ''}°`} className="w-full h-full" pClassName="font-bold text-gray-100" maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
@@ -532,6 +596,26 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                   {hvacModeTranslations[mode] || mode}
                 </button>
               ))}
+            </div>
+          );
+        case 'button-minus':
+          return (
+            <div key={element.id} style={style} onClick={(e) => { e.stopPropagation(); onTemperatureChange(-0.5, true); }}>
+              <div className="w-full h-full rounded-full bg-gray-600/50 flex items-center justify-center text-gray-300 hover:bg-gray-500/50 cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
+                </svg>
+              </div>
+            </div>
+          );
+        case 'button-plus':
+          return (
+            <div key={element.id} style={style} onClick={(e) => { e.stopPropagation(); onTemperatureChange(0.5, true); }}>
+              <div className="w-full h-full rounded-full bg-gray-600/50 flex items-center justify-center text-gray-300 hover:bg-gray-500/50 cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
             </div>
           );
         default:

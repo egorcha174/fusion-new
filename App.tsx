@@ -93,6 +93,8 @@ const defaultSensorTemplate: CardTemplate = {
     { id: 'temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
     { id: 'target-temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
     { id: 'hvac-modes', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+    { id: 'button-plus', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+    { id: 'button-minus', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
   ],
 };
 
@@ -146,6 +148,8 @@ const defaultLightTemplate: CardTemplate = {
       { id: 'temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
       { id: 'target-temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
       { id: 'hvac-modes', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+      { id: 'button-plus', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+      { id: 'button-minus', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
     ],
 };
 
@@ -192,6 +196,8 @@ const defaultSwitchTemplate: CardTemplate = {
       { id: 'temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
       { id: 'target-temperature', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
       { id: 'hvac-modes', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+      { id: 'button-plus', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+      { id: 'button-minus', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
     ],
 };
 
@@ -200,55 +206,71 @@ const defaultClimateTemplate: CardTemplate = {
   name: 'Стандартный климат',
   deviceType: 'climate',
   styles: {
-    backgroundColor: 'rgba(30, 30, 30, 0.5)', // A dark, blurred background look
+    backgroundColor: 'rgb(39 39 42)', // zinc-800
   },
   elements: [
     {
-      id: 'temperature',
-      visible: true,
-      position: { x: 8, y: 15 },
-      size: { width: 40, height: 15 },
-      zIndex: 2,
-      styles: { fontSize: 32 },
-    },
-    {
-      id: 'name',
-      visible: true,
-      position: { x: 8, y: 32 },
-      size: { width: 40, height: 10 },
-      zIndex: 2,
-      styles: { fontSize: 18 },
-    },
-    {
-      id: 'status',
-      visible: true,
-      position: { x: 8, y: 44 },
-      size: { width: 40, height: 8 },
-      zIndex: 2,
-      styles: { fontSize: 12 },
-    },
-    {
       id: 'target-temperature', // This will render the dial
       visible: true,
-      position: { x: 25, y: 5 },
-      size: { width: 90, height: 90 },
+      position: { x: 0, y: 0 },
+      size: { width: 100, height: 100 },
       zIndex: 1,
       styles: {},
     },
     {
-      id: 'hvac-modes',
+      id: 'status', // "Heating"
       visible: true,
-      position: { x: 80, y: 25 },
-      size: { width: 15, height: 50 },
+      position: { x: 25, y: 22 },
+      size: { width: 50, height: 10 },
+      zIndex: 2,
+      styles: { textAlign: 'center', fontSize: 18, onColor: '#f97316' }, // Orange color for heating
+    },
+    {
+      id: 'value', // "33.5"
+      visible: true,
+      position: { x: 15, y: 30 },
+      size: { width: 70, height: 35 },
+      zIndex: 2,
+      styles: { textAlign: 'center' },
+    },
+    {
+      id: 'icon', // The "SSS" radiator icon
+      visible: true,
+      position: { x: 45, y: 64 },
+      size: { width: 10, height: 10 },
+      zIndex: 2,
+      styles: { onColor: '#f97316' },
+    },
+    {
+      id: 'temperature', // "22.4 C"
+      visible: true,
+      position: { x: 25, y: 75 },
+      size: { width: 50, height: 10 },
+      zIndex: 2,
+      styles: { textAlign: 'center', fontSize: 16 },
+    },
+    {
+      id: 'button-minus',
+      visible: true,
+      position: { x: 28, y: 85 },
+      size: { width: 20, height: 20 },
+      zIndex: 2,
+      styles: {},
+    },
+    {
+      id: 'button-plus',
+      visible: true,
+      position: { x: 52, y: 85 },
+      size: { width: 20, height: 20 },
       zIndex: 2,
       styles: {},
     },
     // Hidden elements for type completeness
-    { id: 'icon', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
-    { id: 'value', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
-    { id: 'unit', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
+    { id: 'unit', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} }, // Handled by 'value' and 'temperature'
+    { id: 'name', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
     { id: 'chart', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
     { id: 'slider', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
+    { id: 'hvac-modes', visible: false, position: {x:0, y:0}, size: {width:0, height:0}, zIndex: 0, styles: {} },
   ],
 };
 

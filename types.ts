@@ -106,7 +106,7 @@ export interface CameraSettings {
 }
 
 // --- Card Template System ---
-export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status' | 'slider' | 'temperature' | 'target-temperature' | 'hvac-modes';
+export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status' | 'slider' | 'temperature' | 'target-temperature' | 'hvac-modes' | 'button-plus' | 'button-minus';
 
 export interface CardElement {
   id: CardElementId;
