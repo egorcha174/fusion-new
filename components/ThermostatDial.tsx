@@ -123,7 +123,6 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
         // Ensure input value is up-to-date with the prop when editing starts
         setInputValue(value.toFixed(1).replace('.', ','));
         inputRef.current?.focus();
-        inputRef.current?.select();
     }
   }, [isEditing, value]);
   
