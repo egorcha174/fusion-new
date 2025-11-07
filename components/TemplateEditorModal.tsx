@@ -179,6 +179,38 @@ const ELEMENT_LABELS: Record<CardElementId, string> = {
   'hvac-modes': 'Режимы климата', 'linked-entity': 'Связанное устройство'
 };
 
+// --- Sortable Layer Item Component ---
+interface SortableLayerItemProps {
+    element: CardElement;
+    isSelected: boolean;
+    onSelect: (e: React.MouseEvent) => void;
+    onToggleVisibility: (e: React.MouseEvent) => void;
+}
+
+const SortableLayerItem: React.FC<SortableLayerItemProps> = React.memo(({ element, isSelected, onSelect, onToggleVisibility }) => {
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: `layer-${element.id}` });
+    const style = { transform: CSS.Transform.toString(transform), transition };
+    
+    return (
+        <div 
+            ref={setNodeRef} 
+            style={style} 
+            onClick={onSelect} 
+            className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors ${isSelected ? 'bg-blue-600/50' : 'bg-gray-700/50 hover:bg-gray-700'}`}
+        >
+            <div className="flex items-center gap-2 overflow-hidden">
+                <div {...attributes} {...listeners} className="cursor-grab touch-none text-gray-400 hover:text-white">
+                    <Icon icon="mdi:drag-horizontal-variant" className="w-5 h-5"/>
+                </div>
+                <span className="text-sm truncate">{ELEMENT_LABELS[element.id]}</span>
+            </div>
+            <button onClick={onToggleVisibility}>
+                <Icon icon={element.visible ? 'mdi:eye' : 'mdi:eye-off'} className={`w-5 h-5 ${element.visible ? 'text-gray-300' : 'text-gray-500'}`}/>
+            </button>
+        </div>
+    );
+});
+
 const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdit, onSave, onClose, allKnownDevices }) => {
   const [editedTemplate, setEditedTemplate] = useState<CardTemplate>({
     ...templateToEdit,
@@ -404,24 +436,24 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
             <div className="flex-grow p-2 space-y-1.5 overflow-y-auto no-scrollbar">
               <DndContext sensors={sensors} onDragEnd={handleLayerSortEnd}>
                   <SortableContext items={editedTemplate.elements.map(e => `layer-${e.id}`)}>
-                    {editedTemplate.elements.map(el => {
-                        const SortableItem = ({element}: {element: CardElement}) => {
-                            const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: `layer-${element.id}` });
-                            const style = { transform: CSS.Transform.toString(transform), transition };
-                            return (
-                                <div ref={setNodeRef} style={style} onClick={() => handleSelect('element', element.id)} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors ${selectedElementIds.includes(element.id) ? 'bg-blue-600/50' : 'bg-gray-700/50 hover:bg-gray-700'}`}>
-                                    <div className="flex items-center gap-2 overflow-hidden">
-                                        <div {...attributes} {...listeners} className="cursor-grab touch-none text-gray-400 hover:text-white"><Icon icon="mdi:drag-horizontal-variant" className="w-5 h-5"/></div>
-                                        <span className="text-sm truncate">{ELEMENT_LABELS[element.id]}</span>
-                                    </div>
-                                    <button onClick={(e) => { e.stopPropagation(); setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === element.id ? {...e, visible: !e.visible} : e)}))}}>
-                                        <Icon icon={element.visible ? 'mdi:eye' : 'mdi:eye-off'} className={`w-5 h-5 ${element.visible ? 'text-gray-300' : 'text-gray-500'}`}/>
-                                    </button>
-                                </div>
-                            )
-                        }
-                        return <SortableItem key={el.id} element={el} />
-                    })}
+                    {editedTemplate.elements.map(el => (
+                       <SortableLayerItem
+                            key={el.id}
+                            element={el}
+                            isSelected={selectedElementIds.includes(el.id)}
+                            onSelect={(e) => {
+                                e.stopPropagation();
+                                handleSelect('element', el.id, e.ctrlKey || e.metaKey);
+                            }}
+                            onToggleVisibility={(e) => {
+                                e.stopPropagation();
+                                setEditedTemplate(p => ({
+                                    ...p,
+                                    elements: p.elements.map(e => (e.id === el.id ? { ...e, visible: !e.visible } : e)),
+                                }));
+                            }}
+                        />
+                    ))}
                   </SortableContext>
               </DndContext>
               
