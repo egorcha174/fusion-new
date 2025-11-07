@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useRef, useState, useLayoutEffect, useMemo } from 'react';
 import {
   DndContext,
@@ -71,6 +72,7 @@ const DraggableDevice: React.FC<{
       <DeviceCard
         device={device}
         template={template}
+        allKnownDevices={cardProps.allKnownDevices}
         onTemperatureChange={(temp, isDelta) => cardProps.onTemperatureChange(device.id, temp, isDelta)}
         onBrightnessChange={(brightness) => cardProps.onBrightnessChange(device.id, brightness)}
         onHvacModeChange={(mode) => cardProps.onHvacModeChange(device.id, mode)}
@@ -374,6 +376,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                            device={activeDevice}
                            template={activeDeviceTemplate}
                            isEditMode={true}
+                           allKnownDevices={allKnownDevices}
                            onTemperatureChange={() => {}}
                            onBrightnessChange={() => {}}
                            onHvacModeChange={() => {}}

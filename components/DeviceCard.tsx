@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -336,6 +337,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
 
 interface DeviceCardProps {
   device: Device;
+  allKnownDevices: Map<string, Device>;
   onTemperatureChange: (temperature: number, isDelta?: boolean) => void;
   onBrightnessChange: (brightness: number) => void;
   onHvacModeChange: (mode: string) => void;
@@ -352,7 +354,7 @@ interface DeviceCardProps {
   setOpenMenuDeviceId?: (id: string | null) => void;
 }
 
-const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, onBrightnessChange, onHvacModeChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onRemoveFromTab, haUrl, signPath, getCameraStreamUrl, template, openMenuDeviceId, setOpenMenuDeviceId }) => {
+const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, onTemperatureChange, onBrightnessChange, onHvacModeChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onRemoveFromTab, haUrl, signPath, getCameraStreamUrl, template, openMenuDeviceId, setOpenMenuDeviceId }) => {
   const isOn = device.status.toLowerCase() === 'включено';
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
   const presetMenuRef = useRef<HTMLDivElement>(null);
@@ -623,6 +625,34 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                             </div>
                         )}
                     </div>
+                </div>
+            );
+        }
+        case 'linked-entity': {
+            const entityId = element.styles.linkedEntityId;
+            if (!entityId) return null;
+            
+            const linkedDevice = allKnownDevices.get(entityId);
+            
+            if (!linkedDevice) {
+                return (
+                    <div key={element.id} style={style} className="flex items-center justify-center" title={`Связанное устройство не найдено: ${entityId}`}>
+                        <Icon icon="mdi:alert-circle-outline" className="w-full h-full text-yellow-500/80" />
+                    </div>
+                );
+            }
+            
+            const isLinkedOn = linkedDevice.state === 'on';
+            const iconColor = isLinkedOn ? (element.styles.onColor || 'rgb(59 130 246)') : (element.styles.offColor || 'rgb(156 163 175)');
+            
+            return (
+                <div key={element.id} style={{ ...style, color: iconColor }}>
+                    <DeviceIcon
+                        icon={linkedDevice.icon ?? linkedDevice.type}
+                        isOn={isLinkedOn}
+                        className="!w-full !h-full"
+                        iconAnimation={linkedDevice.iconAnimation}
+                    />
                 </div>
             );
         }

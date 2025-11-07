@@ -105,7 +105,7 @@ export interface CameraSettings {
 }
 
 // --- Card Template System ---
-export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status' | 'slider' | 'temperature' | 'target-temperature' | 'hvac-modes';
+export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status' | 'slider' | 'temperature' | 'target-temperature' | 'hvac-modes' | 'linked-entity';
 
 export interface CardElement {
   id: CardElementId;
@@ -120,6 +120,7 @@ export interface CardElement {
     offColor?: string;
     fontSize?: number;
     textAlign?: 'left' | 'center' | 'right';
+    linkedEntityId?: string;
   };
 }
 

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useMemo } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement } from '../types';
 import DeviceCard from './DeviceCard';
@@ -72,6 +73,7 @@ const SortableLayerItem: React.FC<{
       temperature: 'Текущая темп.',
       'target-temperature': 'Термостат (кольцо)',
       'hvac-modes': 'Режимы климата',
+      'linked-entity': 'Связанное устройство'
   };
 
   return (
@@ -570,6 +572,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
             />
             <DeviceCard
               device={sampleDevice}
+              allKnownDevices={new Map()}
               template={editedTemplate}
               onTemperatureChange={()=>{}} onBrightnessChange={()=>{}} onHvacModeChange={()=>{}} onPresetChange={()=>{}} onCameraCardClick={()=>{}}
               isEditMode={false} onEditDevice={()=>{}} haUrl="" signPath={async()=>({path:''})} getCameraStreamUrl={async()=>''}
@@ -653,6 +656,23 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                             <span className={`inline-block w-3 h-3 transform bg-white rounded-full transition-transform ${selectedElement.visible ? 'translate-x-5' : 'translate-x-1'}`} />
                         </button>
                     </div>
+                    {selectedElement.id === 'linked-entity' && (
+                       <div className="pt-4 border-t border-gray-700">
+                          <label htmlFor="linkedEntityId" className="block text-sm font-medium text-gray-300 mb-2">ID Связанного устройства</label>
+                           <input
+                                id="linkedEntityId"
+                                type="text"
+                                placeholder="например, switch.boiler"
+                                value={selectedElement.styles.linkedEntityId ?? ''}
+                                onChange={(e) => {
+                                    handleElementUpdate(selectedElement.id, {
+                                        styles: { ...selectedElement.styles, linkedEntityId: e.target.value }
+                                    });
+                                }}
+                                className="w-full bg-gray-900 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           />
+                       </div>
+                    )}
                     {isTextElement && (
                         <div className="pt-4 border-t border-gray-700 space-y-4">
                             <div className="flex items-center justify-between">
