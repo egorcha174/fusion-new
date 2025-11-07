@@ -147,6 +147,7 @@ export interface DeviceSlot {
     animationType: 'pulse' | 'rotate' | 'none';
     showValue?: boolean;
     decimalPlaces?: number;
+    unit?: string;
   };
   interactive: boolean;
 }

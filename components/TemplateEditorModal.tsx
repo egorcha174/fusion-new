@@ -616,13 +616,24 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                         </button>
                     </LabeledInput>
                     {selectedSlot.visualStyle.showValue && (
-                        <LabeledInput label="Знаков после ," suffix=",">
-                            <NumberInput
-                                value={selectedSlot.visualStyle.decimalPlaces}
-                                onChange={v => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, decimalPlaces: v } })}
-                                min={0} max={5} placeholder="Авто"
-                            />
-                        </LabeledInput>
+                        <>
+                            <LabeledInput label="Знаков после ," suffix=",">
+                                <NumberInput
+                                    value={selectedSlot.visualStyle.decimalPlaces}
+                                    onChange={v => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, decimalPlaces: v } })}
+                                    min={0} max={5} placeholder="Авто"
+                                />
+                            </LabeledInput>
+                            <LabeledInput label="Единица изм.">
+                                <input
+                                    type="text"
+                                    value={selectedSlot.visualStyle.unit || ''}
+                                    onChange={e => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, unit: e.target.value }})}
+                                    placeholder="°C, %..."
+                                    className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                />
+                            </LabeledInput>
+                        </>
                     )}
                   </Section>
                   <Section title="Поведение">

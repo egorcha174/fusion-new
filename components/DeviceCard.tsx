@@ -774,19 +774,27 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                     style={{
                         left: `${slot.position.x}%`,
                         top: `${slot.position.y}%`,
-                        width: `${slot.iconSize}px`,
+                        width: visualStyle.showValue && valueText ? 'auto' : `${slot.iconSize}px`,
                         height: `${slot.iconSize}px`,
                     }}
                     onClick={slot.interactive ? (e) => handleIndicatorClick(e, entity.id) : undefined}
                 >
-                  {valueText ? (
-                    <div className="w-full h-full flex items-center justify-center gap-1 p-0.5 overflow-hidden bg-black/20 rounded-full">
-                        <div style={{ color }} className="flex-shrink-0 w-[45%] h-[45%]">
-                            <DeviceIcon icon={iconToUse} isOn={isEntityOn} className="!w-full !h-full !m-0" />
-                        </div>
-                        <div className="flex-grow min-w-0 h-full text-white">
-                             <AutoFitText text={valueText} className="w-full h-full" pClassName="font-semibold" maxFontSize={slot.iconSize * 0.45} mode="single-line" textAlign="center" />
-                        </div>
+                  {visualStyle.showValue && valueText ? (
+                    <div className="flex items-baseline text-white whitespace-nowrap" style={{ color }}>
+                      <span
+                        className="font-semibold leading-none"
+                        style={{ fontSize: `${slot.iconSize * 0.8}px` }}
+                      >
+                        {valueText}
+                      </span>
+                      {visualStyle.unit && (
+                        <span
+                          className="font-medium text-gray-400 leading-none ml-1"
+                          style={{ fontSize: `${slot.iconSize * 0.5}px` }}
+                        >
+                          {visualStyle.unit}
+                        </span>
+                      )}
                     </div>
                   ) : (
                     <div className={animationClass} style={{ width: '100%', height: '100%' }}>
