@@ -1,6 +1,8 @@
 
 
 
+
+
 import React, { useState, useRef, useMemo } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement } from '../types';
 import DeviceCard from './DeviceCard';
@@ -195,6 +197,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
         maxTemp: 30,
         hvacModes: ['off', 'cool', 'heat', 'auto'],
         hvacAction: 'cooling',
+        state: 'cool',
         haDomain: 'climate',
       };
     }
@@ -205,6 +208,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
         status: 'Включено',
         type: DeviceType.DimmableLight,
         brightness: 80,
+        state: 'on',
         haDomain: 'light',
       };
     }
@@ -214,6 +218,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
             name: 'Розетка на кухне',
             status: 'Включено',
             type: DeviceType.Switch,
+            state: 'on',
             haDomain: 'switch',
         };
     }
@@ -225,6 +230,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
       type: DeviceType.Sensor,
       unit: '°C',
       history: Array.from({ length: 20 }, (_, i) => 25 + Math.sin(i / 3) + (Math.random() - 0.5)),
+      state: '25.9',
       haDomain: 'sensor',
     };
   }, [templateToEdit.deviceType]);

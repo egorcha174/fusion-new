@@ -1,5 +1,6 @@
 
 
+
 export enum DeviceType {
   Light,
   Lamp,
@@ -52,6 +53,7 @@ export interface Device {
   history?: number[]; // For sensor sparklines
   haDomain?: string;
   haDeviceClass?: string;
+  state?: string; // Raw state from HA
 }
 
 export interface Room {

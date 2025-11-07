@@ -2,7 +2,9 @@
 
 
 
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+
+
+import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement } from '../types';
 import DeviceIcon from './DeviceIcon';
 import SparklineChart from './SparklineChart';
@@ -517,23 +519,68 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
               />
             </div>
           );
-        case 'hvac-modes':
-          const hvacModeTranslations: { [key: string]: string } = {
-            'off': 'Выкл', 'cool': 'Холод', 'heat': 'Нагрев', 'auto': 'Авто', 'fan_only': 'Вент.', 'dry': 'Осуш.'
-          };
-          return (
-            <div key={element.id} style={style} className="flex flex-col justify-around items-center text-sm font-medium text-gray-400" onClick={e => e.stopPropagation()}>
-              {(device.hvacModes || []).map(mode => (
-                <button 
-                  key={mode} 
-                  onClick={() => onHvacModeChange(mode)}
-                  className={`transition-colors duration-200 ${device.status.toLowerCase().includes(mode) ? 'text-white' : 'hover:text-white'}`}
-                >
-                  {hvacModeTranslations[mode] || mode}
-                </button>
-              ))}
-            </div>
-          );
+        case 'hvac-modes': {
+            const containerRef = useRef<HTMLDivElement>(null);
+            const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+
+            const getNode = (key: string) => itemRefs.current.get(key);
+
+            const [pillStyle, setPillStyle] = useState<React.CSSProperties>({ opacity: 0 });
+
+            const activeMode = device.state;
+
+            useLayoutEffect(() => {
+                const activeItemEl = getNode(activeMode || '');
+                const containerEl = containerRef.current;
+
+                if (activeItemEl && containerEl) {
+                    const containerRect = containerEl.getBoundingClientRect();
+                    const itemRect = activeItemEl.getBoundingClientRect();
+                    
+                    setPillStyle({
+                        top: `${itemRect.top - containerRect.top}px`,
+                        height: `${itemRect.height}px`,
+                        opacity: 1,
+                    });
+                } else {
+                    setPillStyle(prev => ({ ...prev, opacity: 0 }));
+                }
+            }, [activeMode, device.hvacModes, element.size]);
+
+            const hvacModeTranslations: { [key: string]: string } = {
+                'off': 'Выкл', 'cool': 'Холод', 'heat': 'Нагрев', 'auto': 'Авто', 'fan_only': 'Вент.', 'dry': 'Осуш.'
+            };
+
+            return (
+                <div key={element.id} style={style} onClick={e => e.stopPropagation()}>
+                    <div
+                        ref={containerRef}
+                        className="relative w-full h-full flex flex-col justify-around items-stretch bg-black/20 rounded-lg p-1"
+                    >
+                        <div
+                            className="absolute left-1 right-1 bg-white/20 rounded-md transition-all duration-300 ease-in-out"
+                            style={pillStyle}
+                        />
+                        {(device.hvacModes || []).map((mode) => (
+                            <button
+                                key={mode}
+                                ref={node => {
+                                    if (node) {
+                                        itemRefs.current.set(mode, node);
+                                    } else {
+                                        itemRefs.current.delete(mode);
+                                    }
+                                }}
+                                onClick={() => onHvacModeChange(mode)}
+                                className={`relative z-10 w-full text-center text-xs font-bold transition-colors duration-200 py-1 rounded-md ${activeMode === mode ? 'text-white' : 'text-gray-300 hover:text-white'}`}
+                            >
+                                {hvacModeTranslations[mode] || mode}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
         default:
           return null;
       }

@@ -1,4 +1,6 @@
 
+
+
 import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization, WeatherForecast } from '../types';
 
 const getDeviceType = (entity: HassEntity): DeviceType => {
@@ -140,6 +142,7 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
     unit: attributes.unit_of_measurement,
     haDomain: entity.entity_id.split('.')[0],
     haDeviceClass: attributes.device_class,
+    state: entity.state,
   };
 
   if (device.type === DeviceType.DimmableLight && attributes.brightness) {
