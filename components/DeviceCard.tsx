@@ -1,7 +1,7 @@
 
 
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
-import { Device, DeviceType, CardTemplate, CardElement } from '../types';
+import { Device, DeviceType, CardTemplate, CardElement, DeviceCustomizations } from '../types';
 import DeviceIcon from './DeviceIcon';
 import SparklineChart from './SparklineChart';
 import ThermostatDial from './ThermostatDial';
@@ -338,6 +338,8 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
 interface DeviceCardProps {
   device: Device;
   allKnownDevices: Map<string, Device>;
+  customizations: DeviceCustomizations;
+  onDeviceToggle: (deviceId: string) => void;
   onTemperatureChange: (temperature: number, isDelta?: boolean) => void;
   onBrightnessChange: (brightness: number) => void;
   onHvacModeChange: (mode: string) => void;
@@ -354,7 +356,7 @@ interface DeviceCardProps {
   setOpenMenuDeviceId?: (id: string | null) => void;
 }
 
-const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, onTemperatureChange, onBrightnessChange, onHvacModeChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onRemoveFromTab, haUrl, signPath, getCameraStreamUrl, template, openMenuDeviceId, setOpenMenuDeviceId }) => {
+const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, customizations, onDeviceToggle, onTemperatureChange, onBrightnessChange, onHvacModeChange, onPresetChange, onCameraCardClick, isEditMode, onEditDevice, onRemoveFromTab, haUrl, signPath, getCameraStreamUrl, template, openMenuDeviceId, setOpenMenuDeviceId }) => {
   const isOn = device.status.toLowerCase() === 'включено' || device.state === 'on';
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
   const presetMenuRef = useRef<HTMLDivElement>(null);
@@ -399,6 +401,11 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, onTemp
       return presetTranslations[lowerPreset] || preset.charAt(0).toUpperCase() + preset.slice(1);
   };
 
+  const handleIndicatorClick = (e: React.MouseEvent, entityId: string) => {
+    e.stopPropagation();
+    onDeviceToggle(entityId);
+  };
+
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -420,6 +427,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, onTemp
   
   const isCamera = device.type === DeviceType.Camera;
   const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && device.type !== DeviceType.Sensor && !isCamera;
+
+  const deviceBindings = customizations[device.id]?.deviceBindings;
 
   // --- Universal Template Renderer ---
   if (template) {
@@ -667,6 +676,61 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, onTemp
         style={{ backgroundColor: isOn ? (template.styles.onBackgroundColor || '#E5E7EB') : template.styles.backgroundColor }}
       >
         {template.elements.map(renderElement)}
+        {/* Device Indicators */}
+        {template.deviceSlots && deviceBindings && deviceBindings.map(binding => {
+            if (!binding.enabled) return null;
+            const slot = template.deviceSlots?.find(s => s.id === binding.slotId);
+            const entity = allKnownDevices.get(binding.entityId);
+
+            if (!slot || !entity) return null;
+
+            const isEntityOn = entity.state === 'on';
+            const isEntityUnavailable = entity.state === 'unavailable';
+
+            let iconToUse = binding.icon || entity.icon || entity.type;
+            if (isEntityUnavailable) {
+                iconToUse = 'mdi:power-plug-off-outline';
+            }
+
+            const { visualStyle } = slot;
+            const color = isEntityOn ? visualStyle.activeColor : visualStyle.inactiveColor;
+            
+            let animationClass = '';
+            if (isEntityOn && (visualStyle.type.includes('animation'))) {
+                if (visualStyle.animationType === 'pulse') animationClass = 'animate-pulse-scale';
+                if (visualStyle.animationType === 'rotate') animationClass = 'animate-spin';
+            }
+
+            const iconStyle: React.CSSProperties = {
+                color: isEntityUnavailable ? '#9CA3AF' : color, // gray-400 for unavailable
+                fontSize: `${slot.iconSize}px`,
+                filter: (isEntityOn && visualStyle.type.includes('glow')) 
+                    ? `drop-shadow(0 0 ${visualStyle.glowIntensity * 8}px ${color})`
+                    : 'none'
+            };
+
+            return (
+                <div
+                    key={binding.slotId}
+                    title={entity.name}
+                    className={`absolute flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${slot.interactive ? 'cursor-pointer' : 'cursor-default'}`}
+                    style={{
+                        left: `${slot.position.x}%`,
+                        top: `${slot.position.y}%`,
+                        width: `${slot.iconSize}px`,
+                        height: `${slot.iconSize}px`,
+                    }}
+                    onClick={slot.interactive ? (e) => handleIndicatorClick(e, entity.id) : undefined}
+                >
+                    <div className={animationClass} style={{ width: '100%', height: '100%' }}>
+                        <DeviceIcon icon={iconToUse} isOn={isEntityOn} className="!w-full !h-full !m-0" />
+                        <div style={iconStyle} className="absolute inset-0">
+                            <DeviceIcon icon={iconToUse} isOn={isEntityOn} className="!w-full !h-full !m-0" />
+                        </div>
+                    </div>
+                </div>
+            );
+        })}
       </div>
     );
   }

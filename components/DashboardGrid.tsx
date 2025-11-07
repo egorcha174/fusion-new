@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useRef, useState, useLayoutEffect, useMemo } from 'react';
 import {
   DndContext,
@@ -31,9 +33,10 @@ const DraggableDevice: React.FC<{
   onDeviceToggle: (id: string) => void;
   template?: CardTemplate;
   allKnownDevices: Map<string, Device>;
+  customizations: DeviceCustomizations;
   // Pass all other props down to DeviceCard
   [key: string]: any;
-}> = ({ device, isEditMode, onDeviceToggle, template, allKnownDevices, ...cardProps }) => {
+}> = ({ device, isEditMode, onDeviceToggle, template, allKnownDevices, customizations, ...cardProps }) => {
   const { attributes, listeners, setNodeRef: setDraggableNodeRef, isDragging } = useDraggable({
     id: device.id,
     disabled: !isEditMode,
@@ -74,6 +77,8 @@ const DraggableDevice: React.FC<{
         device={device}
         template={template}
         allKnownDevices={allKnownDevices}
+        customizations={customizations}
+        onDeviceToggle={onDeviceToggle}
         onTemperatureChange={(temp, isDelta) => cardProps.onTemperatureChange(device.id, temp, isDelta)}
         onBrightnessChange={(brightness) => cardProps.onBrightnessChange(device.id, brightness)}
         onHvacModeChange={(mode) => cardProps.onHvacModeChange(device.id, mode)}
@@ -138,7 +143,7 @@ interface DashboardGridProps {
 }
 
 const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
-    const { tab, allKnownDevices, isEditMode, onDeviceLayoutChange, searchTerm, templates, customizations } = props;
+    const { tab, allKnownDevices, isEditMode, onDeviceLayoutChange, searchTerm, templates, customizations, onDeviceToggle } = props;
     const viewportRef = useRef<HTMLDivElement>(null);
     const [gridStyle, setGridStyle] = useState<React.CSSProperties>({});
     const [activeId, setActiveId] = useState<string | null>(null);
@@ -357,6 +362,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                                   device={device} 
                                   template={templateToUse}
                                   allKnownDevices={allKnownDevices}
+                                  customizations={customizations}
+                                  onDeviceToggle={onDeviceToggle}
                                   {...props} 
                                   openMenuDeviceId={openMenuDeviceId}
                                   setOpenMenuDeviceId={setOpenMenuDeviceId}
@@ -379,6 +386,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                            template={activeDeviceTemplate}
                            isEditMode={true}
                            allKnownDevices={allKnownDevices}
+                           customizations={customizations}
+                           onDeviceToggle={onDeviceToggle}
                            onTemperatureChange={() => {}}
                            onBrightnessChange={() => {}}
                            onHvacModeChange={() => {}}

@@ -1,7 +1,7 @@
 
 
 import React, { useState, useRef, useMemo } from 'react';
-import { CardTemplate, Device, DeviceType, CardElementId, CardElement } from '../types';
+import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot } from '../types';
 import DeviceCard from './DeviceCard';
 import {
   DndContext,
@@ -14,6 +14,7 @@ import {
 import { SortableContext, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import ContextMenu from './ContextMenu';
+import { nanoid } from 'nanoid';
 
 const SNAP_GRID_SIZE = 4; // pixels
 
@@ -151,13 +152,50 @@ const DraggableCanvasElement: React.FC<{
   );
 };
 
+const DraggableIndicatorSlot: React.FC<{ slot: DeviceSlot, isSelected: boolean, onSelect: () => void; }> = ({ slot, isSelected, onSelect }) => {
+    const { attributes, listeners, setNodeRef, isDragging, transform } = useDraggable({
+        id: `slot-${slot.id}`,
+        data: { type: 'slot', slotId: slot.id }
+    });
+
+    const style: React.CSSProperties = {
+        position: 'absolute',
+        left: `${slot.position.x}%`,
+        top: `${slot.position.y}%`,
+        width: `${slot.iconSize}px`,
+        height: `${slot.iconSize}px`,
+        zIndex: 50,
+        transform: 'translate(-50%, -50%)',
+    };
+
+    if (isDragging && transform) {
+        style.transform = `translate(-50%, -50%) translate3d(${transform.x}px, ${transform.y}px, 0)`;
+    }
+
+    return (
+        <div
+            ref={setNodeRef}
+            {...listeners}
+            {...attributes}
+            onClick={(e) => { e.stopPropagation(); onSelect(); }}
+            style={style}
+            className={`flex items-center justify-center rounded-full cursor-move transition-all duration-100 ${isSelected ? 'ring-2 ring-offset-2 ring-offset-gray-900 ring-blue-500' : ''}`}
+        >
+            <div
+                className="w-full h-full bg-white/20 border-2 border-dashed border-white/50 rounded-full flex items-center justify-center"
+            >
+                <span className="text-white/50 text-xs font-bold">+</span>
+            </div>
+        </div>
+    );
+};
+
 
 // --- Main Modal Component ---
 interface TemplateEditorModalProps {
   templateToEdit: CardTemplate;
   onSave: (newTemplate: CardTemplate) => void;
   onClose: () => void;
-  // Fix: Add allKnownDevices to props
   allKnownDevices: Map<string, Device>;
 }
 
@@ -168,6 +206,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
     height: templateToEdit.height || 1,
   });
   const [selectedElementIds, setSelectedElementIds] = useState<CardElementId[]>([]);
+  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number } | null>(null);
   
   const previewRef = useRef<HTMLDivElement>(null);
@@ -270,6 +309,10 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   const selectedElement = useMemo(() =>
     editedTemplate.elements.find(el => el.id === selectedElementId)
   , [selectedElementId, editedTemplate.elements]);
+  
+  const selectedSlot = useMemo(() =>
+    editedTemplate.deviceSlots?.find(s => s.id === selectedSlotId)
+  , [selectedSlotId, editedTemplate.deviceSlots]);
 
 
   const handleElementUpdate = (elementId: CardElementId, updates: Partial<CardElement>) => {
@@ -303,16 +346,22 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
     onSave(editedTemplate);
   }
 
-  const handleSelectElement = (id: CardElementId, isMultiSelect: boolean) => {
-    setContextMenu(null); // Close context menu on any selection change
-    if (isMultiSelect) {
-        setSelectedElementIds(prev => 
-            prev.includes(id) ? prev.filter(selectedId => selectedId !== id) : [...prev, id]
-        );
-    } else {
-        setSelectedElementIds(prev => prev.includes(id) && prev.length === 1 ? [] : [id]);
-    }
+  const handleSelect = (type: 'element' | 'slot', id: string, isMultiSelect: boolean = false) => {
+      setContextMenu(null);
+      if (type === 'element') {
+          const elementId = id as CardElementId;
+          setSelectedSlotId(null);
+          if (isMultiSelect) {
+            setSelectedElementIds(prev => prev.includes(elementId) ? prev.filter(i => i !== elementId) : [...prev, elementId]);
+          } else {
+            setSelectedElementIds(prev => prev.includes(elementId) && prev.length === 1 ? [] : [elementId]);
+          }
+      } else {
+          setSelectedElementIds([]);
+          setSelectedSlotId(prev => prev === id ? null : id);
+      }
   };
+
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -338,6 +387,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
       // Click was on canvas background
       setContextMenu(null);
       setSelectedElementIds([]);
+      setSelectedSlotId(null);
     }
   };
   
@@ -457,6 +507,57 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
     setContextMenu(null);
 };
 
+    const handleAddSlot = () => {
+        if ((editedTemplate.deviceSlots?.length ?? 0) >= 4) return;
+        const newSlot: DeviceSlot = {
+            id: nanoid(),
+            position: { x: 10, y: 80 },
+            iconSize: 24,
+            interactive: true,
+            visualStyle: {
+                type: 'color_glow',
+                activeColor: '#32b8c6',
+                inactiveColor: '#626c71',
+                glowIntensity: 0.7,
+                animationType: 'pulse',
+            },
+        };
+        setEditedTemplate(prev => ({
+            ...prev,
+            deviceSlots: [...(prev.deviceSlots ?? []), newSlot],
+        }));
+        handleSelect('slot', newSlot.id);
+    };
+
+    const handleRemoveSlot = (slotId: string) => {
+        setEditedTemplate(prev => ({
+            ...prev,
+            deviceSlots: prev.deviceSlots?.filter(s => s.id !== slotId),
+        }));
+        if (selectedSlotId === slotId) {
+            setSelectedSlotId(null);
+        }
+    }
+
+    const handleSlotUpdate = (slotId: string, updates: Partial<DeviceSlot>) => {
+        setEditedTemplate(prev => ({
+            ...prev,
+            deviceSlots: prev.deviceSlots?.map(slot => slot.id === slotId ? { ...slot, ...updates } : slot)
+        }));
+    };
+    
+    const handleSlotVisualStyleUpdate = (slotId: string, updates: Partial<DeviceSlot['visualStyle']>) => {
+        setEditedTemplate(prev => ({
+            ...prev,
+            deviceSlots: prev.deviceSlots?.map(slot => {
+                if (slot.id === slotId) {
+                    return { ...slot, visualStyle: { ...slot.visualStyle, ...updates } };
+                }
+                return slot;
+            })
+        }));
+    };
+
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over, delta } = event;
@@ -486,6 +587,32 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
     
     const previewRect = previewRef.current?.getBoundingClientRect();
     if (!previewRect) return;
+    
+    // --- Handle Slot Drag ---
+    if (type === 'slot') {
+        const slotId = active.data.current?.slotId as string;
+        setEditedTemplate(prev => {
+            const slotIndex = prev.deviceSlots?.findIndex(s => s.id === slotId);
+            if (slotIndex === undefined || slotIndex === -1 || !prev.deviceSlots) return prev;
+            
+            const slot = prev.deviceSlots[slotIndex];
+            // Position is center, so we need to account for that when getting start pixels
+            const startXPixels = (slot.position.x / 100) * previewRect.width;
+            const startYPixels = (slot.position.y / 100) * previewRect.height;
+            const newPixelX = startXPixels + delta.x;
+            const newPixelY = startYPixels + delta.y;
+            
+            let newXPercent = (newPixelX / previewRect.width) * 100;
+            let newYPercent = (newPixelY / previewRect.height) * 100;
+
+            newXPercent = Math.max(0, Math.min(100, newXPercent));
+            newYPercent = Math.max(0, Math.min(100, newYPercent));
+
+            const newSlots = [...prev.deviceSlots];
+            newSlots[slotIndex] = { ...slot, position: { x: newXPercent, y: newYPercent }};
+            return { ...prev, deviceSlots: newSlots };
+        });
+    }
 
     // --- Handle Element Drag ---
     if (type === 'element') {
@@ -580,11 +707,11 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-2xl shadow-lg w-full max-w-6xl h-[80vh] ring-1 ring-white/10 flex" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-2xl shadow-lg w-full max-w-6xl h-[90vh] ring-1 ring-white/10 flex" onClick={e => e.stopPropagation()}>
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
 
         {/* Center: Preview */}
-        <div className="w-1/2 bg-gray-900/50 p-8 flex flex-col items-center justify-center" onClick={() => setSelectedElementIds([])} onContextMenu={handleContextMenu}>
+        <div className="w-1/2 bg-gray-900/50 p-8 flex flex-col items-center justify-center" onClick={() => handleSelect('element', '')} onContextMenu={handleContextMenu}>
           <div 
             ref={previewRef} 
             className="w-full max-w-[400px] transition-all duration-300 relative"
@@ -602,6 +729,8 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
             <DeviceCard
               device={sampleDevice}
               allKnownDevices={sampleAllKnownDevices}
+              customizations={{}}
+              onDeviceToggle={() => {}}
               template={editedTemplate}
               onTemperatureChange={()=>{}} onBrightnessChange={()=>{}} onHvacModeChange={()=>{}} onPresetChange={()=>{}} onCameraCardClick={()=>{}}
               isEditMode={false} onEditDevice={()=>{}} haUrl="" signPath={async()=>({path:''})} getCameraStreamUrl={async()=>''}
@@ -612,10 +741,18 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                   key={element.id}
                   element={element}
                   isSelected={selectedElementIds.includes(element.id)}
-                  onSelect={handleSelectElement}
+                  onSelect={(id, multi) => handleSelect('element', id, multi)}
                   showResizeHandles={selectedElementIds.length === 1 && selectedElementIds[0] === element.id}
                 />
             ))}
+             {editedTemplate.deviceSlots?.map(slot => (
+                <DraggableIndicatorSlot
+                    key={slot.id}
+                    slot={slot}
+                    isSelected={selectedSlotId === slot.id}
+                    onSelect={() => handleSelect('slot', slot.id)}
+                />
+             ))}
           </div>
         </div>
         
@@ -626,7 +763,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
             <p className="text-sm text-gray-400">Изменения применяются ко всем устройствам, использующим этот шаблон.</p>
           </div>
           
-          <div className="flex-grow overflow-y-auto p-6 space-y-6">
+          <div className="flex-grow overflow-y-auto p-6 space-y-6 no-scrollbar">
              <div>
                 <label htmlFor="templateName" className="block text-sm font-medium text-gray-300 mb-2">Название шаблона</label>
                 <input
@@ -664,16 +801,36 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                 </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Слои</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Слои элементов</label>
               <p className="text-xs text-gray-400 mb-2">Перетащите, чтобы изменить порядок (верхний слой имеет приоритет).</p>
               <div className="space-y-2">
                 <SortableContext items={editedTemplate.elements.map(e => `layer-${e.id}`)}>
                    {editedTemplate.elements.map(el => (
-                      <SortableLayerItem key={el.id} element={el} isSelected={selectedElementIds.includes(el.id)} onSelect={() => handleSelectElement(el.id, false)} />
+                      <SortableLayerItem key={el.id} element={el} isSelected={selectedElementIds.includes(el.id)} onSelect={() => handleSelect('element', el.id)} />
                    ))}
                 </SortableContext>
               </div>
             </div>
+
+            {editedTemplate.deviceType === 'climate' && (
+                <div className="pt-4 border-t border-gray-700">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Индикаторы устройств</label>
+                     <div className="space-y-2 mb-4">
+                        {(editedTemplate.deviceSlots || []).map((slot, index) => (
+                            <div key={slot.id} onClick={() => handleSelect('slot', slot.id)} className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${selectedSlotId === slot.id ? 'bg-blue-600/50 ring-1 ring-blue-400' : 'bg-gray-700/50 hover:bg-gray-700'}`}>
+                                <p className="text-sm text-gray-200 font-medium">Слот #{index + 1}</p>
+                                <button onClick={(e) => { e.stopPropagation(); handleRemoveSlot(slot.id); }} className="p-1.5 text-gray-400 hover:text-red-400 rounded-md hover:bg-red-500/20 transition-colors" title="Удалить слот">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                                </button>
+                            </div>
+                        ))}
+                     </div>
+                     <button onClick={handleAddSlot} disabled={(editedTemplate.deviceSlots?.length ?? 0) >= 4} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 disabled:bg-gray-600 disabled:cursor-not-allowed">
+                         Добавить индикатор
+                     </button>
+                </div>
+            )}
+
 
             {selectedElement && (
                 <div className="bg-gray-700/30 p-4 rounded-lg space-y-4">
@@ -798,6 +955,56 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                 </div>
             )}
             
+            {selectedSlot && (
+                <div className="bg-gray-700/30 p-4 rounded-lg space-y-4">
+                    <h3 className="text-base font-semibold text-white">Свойства индикатора</h3>
+                    <div className="flex items-center justify-between">
+                        <label htmlFor="iconSize" className="text-sm text-gray-200">Размер иконки ({selectedSlot.iconSize}px)</label>
+                        <input id="iconSize" type="range" min="20" max="48" value={selectedSlot.iconSize} onChange={e => handleSlotUpdate(selectedSlot.id, { iconSize: parseInt(e.target.value, 10)})} className="w-1/2 accent-blue-500" />
+                    </div>
+                     <div className="flex items-center justify-between">
+                        <label className="text-sm text-gray-200">Интерактивный</label>
+                        <button onClick={() => handleSlotUpdate(selectedSlot.id, { interactive: !selectedSlot.interactive })} className={`relative inline-flex items-center h-5 rounded-full w-9 transition-colors ${selectedSlot.interactive ? 'bg-blue-600' : 'bg-gray-600'}`}>
+                            <span className={`inline-block w-3 h-3 transform bg-white rounded-full transition-transform ${selectedSlot.interactive ? 'translate-x-5' : 'translate-x-1'}`} />
+                        </button>
+                    </div>
+                     <div className="pt-4 border-t border-gray-700 space-y-3">
+                        <h4 className="text-sm font-medium text-gray-300">Визуальный стиль</h4>
+                        <select value={selectedSlot.visualStyle.type} onChange={e => handleSlotVisualStyleUpdate(selectedSlot.id, { type: e.target.value as any })} className="w-full bg-gray-900 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                            <option value="color">Цвет</option>
+                            <option value="glow">Свечение</option>
+                            <option value="animation">Анимация</option>
+                            <option value="color_glow">Цвет + Свечение</option>
+                            <option value="color_animation">Цвет + Анимация</option>
+                        </select>
+                        <div className="flex items-center justify-between">
+                            <label className="text-sm text-gray-200">Цвет (актив.)</label>
+                            <input type="color" value={selectedSlot.visualStyle.activeColor} onChange={(e) => handleSlotVisualStyleUpdate(selectedSlot.id, { activeColor: e.target.value })} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent" />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <label className="text-sm text-gray-200">Цвет (неактив.)</label>
+                            <input type="color" value={selectedSlot.visualStyle.inactiveColor} onChange={(e) => handleSlotVisualStyleUpdate(selectedSlot.id, { inactiveColor: e.target.value })} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent" />
+                        </div>
+                        {selectedSlot.visualStyle.type.includes('glow') && (
+                            <div className="flex items-center justify-between">
+                                <label className="text-sm text-gray-200">Интенсивность свечения</label>
+                                <input type="range" min="0" max="1" step="0.1" value={selectedSlot.visualStyle.glowIntensity} onChange={e => handleSlotVisualStyleUpdate(selectedSlot.id, { glowIntensity: parseFloat(e.target.value)})} className="w-1/3 accent-blue-500" />
+                            </div>
+                        )}
+                         {selectedSlot.visualStyle.type.includes('animation') && (
+                            <div className="flex items-center justify-between">
+                                <label className="text-sm text-gray-200">Тип анимации</label>
+                                <select value={selectedSlot.visualStyle.animationType} onChange={e => handleSlotVisualStyleUpdate(selectedSlot.id, { animationType: e.target.value as any })} className="bg-gray-900 text-gray-100 border border-gray-600 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                    <option value="none">Нет</option>
+                                    <option value="pulse">Пульс</option>
+                                    <option value="rotate">Вращение</option>
+                                </select>
+                            </div>
+                         )}
+                     </div>
+                </div>
+            )}
+
             <div className="space-y-4">
                  <h3 className="text-base font-semibold text-white">Общие стили</h3>
                  <div className="flex items-center justify-between">

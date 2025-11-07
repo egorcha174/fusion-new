@@ -1,18 +1,15 @@
 
 
-import React, { useState } from 'react';
-// Fix: Add DeviceBinding to imports
-import { Device, DeviceCustomization, DeviceType, CardTemplates, DeviceBinding } from '../types';
+import React, { useState, useMemo } from 'react';
+import { Device, DeviceCustomization, DeviceType, CardTemplates, DeviceBinding, CardTemplate } from '../types';
 import DeviceIcon, { icons, getIconNameForDeviceType } from './DeviceIcon';
 
 interface DeviceSettingsModalProps {
   device: Device;
   customization: DeviceCustomization;
-  // Fix: Update onSave to include deviceBindings
   onSave: (deviceId: string, newValues: { name: string; type: DeviceType; icon: string; isHidden: boolean; templateId?: string; iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow'; deviceBindings?: DeviceBinding[] }) => void;
   onClose: () => void;
   templates: CardTemplates;
-  // Fix: Add allKnownDevices prop
   allKnownDevices: Map<string, Device>;
 }
 
@@ -36,6 +33,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   const [isHidden, setIsHidden] = useState(customization.isHidden ?? false);
   const [templateId, setTemplateId] = useState(customization.templateId ?? '');
   const [iconAnimation, setIconAnimation] = useState(customization.iconAnimation ?? 'none');
+  const [bindings, setBindings] = useState<DeviceBinding[]>(customization.deviceBindings ?? []);
 
   const handleTypeChange = (newType: DeviceType) => {
     setType(newType);
@@ -44,7 +42,6 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   };
 
   const handleSave = () => {
-    // Pass the complete, current state of the form up to the parent component (App.tsx).
     onSave(device.id, {
       name: name.trim(),
       type,
@@ -52,12 +49,32 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
       isHidden,
       templateId,
       iconAnimation,
-      // Fix: Pass through deviceBindings
-      deviceBindings: customization.deviceBindings,
+      deviceBindings: bindings,
     });
     onClose();
   };
   
+  const handleBindingChange = (slotId: string, updates: Partial<DeviceBinding>) => {
+    setBindings(prev => {
+        const existingBindingIndex = prev.findIndex(b => b.slotId === slotId);
+        if (existingBindingIndex > -1) {
+            // Update existing binding
+            const newBindings = [...prev];
+            newBindings[existingBindingIndex] = { ...newBindings[existingBindingIndex], ...updates };
+            return newBindings;
+        } else {
+            // Create new binding
+            const newBinding: DeviceBinding = {
+                slotId,
+                entityId: '',
+                enabled: true,
+                ...updates
+            };
+            return [...prev, newBinding];
+        }
+    });
+  };
+
   const availableTypes = Object.keys(DeviceType)
     .filter(key => !isNaN(Number(key)))
     .map(key => ({
@@ -82,6 +99,12 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
     { value: 'pulse', name: 'Пульсация' },
     { value: 'glow', name: 'Сияние' },
   ];
+  
+  const effectiveTemplateId = templateId || (templateType === 'climate' ? 'default-climate' : '');
+  const effectiveTemplate: CardTemplate | undefined = templates[effectiveTemplateId];
+  const deviceSlots = effectiveTemplate?.deviceSlots;
+
+  const sortedEntities = useMemo(() => Array.from(allKnownDevices.values()).sort((a, b) => a.name.localeCompare(b.name)), [allKnownDevices]);
 
 
   return (
@@ -98,7 +121,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
             <p className="text-sm text-gray-400">{device.name}</p>
         </div>
         
-        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto no-scrollbar">
           <div>
             <label htmlFor="deviceName" className="block text-sm font-medium text-gray-300 mb-2">Название</label>
             <input
@@ -145,6 +168,53 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                       </option>
                   ))}
               </select>
+            </div>
+          )}
+
+          {deviceSlots && deviceSlots.length > 0 && (
+            <div className="space-y-4 pt-4 border-t border-gray-700">
+                <h3 className="text-base font-semibold text-white">Привязка индикаторов</h3>
+                {deviceSlots.map((slot, index) => {
+                    const binding = bindings.find(b => b.slotId === slot.id) || { enabled: false, entityId: '', icon: ''};
+                    return (
+                        <div key={slot.id} className="bg-gray-700/50 p-4 rounded-lg space-y-3">
+                           <div className="flex justify-between items-center">
+                               <label className="font-medium text-gray-200">Слот #{index + 1}</label>
+                                <button
+                                    onClick={() => handleBindingChange(slot.id, { enabled: !binding.enabled })}
+                                    className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${binding.enabled ? 'bg-blue-600' : 'bg-gray-600'}`}
+                                >
+                                    <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${binding.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </button>
+                           </div>
+                           <div className={!binding.enabled ? 'opacity-50 pointer-events-none' : ''}>
+                               <div>
+                                   <label className="block text-xs font-medium text-gray-400 mb-1">Устройство</label>
+                                   <select
+                                       value={binding.entityId}
+                                       onChange={(e) => handleBindingChange(slot.id, { entityId: e.target.value })}
+                                       className="w-full bg-gray-900/50 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-sm"
+                                   >
+                                       <option value="">-- Выберите устройство --</option>
+                                       {sortedEntities.map(entity => (
+                                           <option key={entity.id} value={entity.id}>{entity.name}</option>
+                                       ))}
+                                   </select>
+                               </div>
+                               <div>
+                                   <label className="block text-xs font-medium text-gray-400 mb-1 mt-2">Иконка (переопределение)</label>
+                                   <input
+                                       type="text"
+                                       value={binding.icon || ''}
+                                       placeholder="Авто (из устройства)"
+                                       onChange={(e) => handleBindingChange(slot.id, { icon: e.target.value })}
+                                       className="w-full bg-gray-900/50 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                   />
+                               </div>
+                           </div>
+                        </div>
+                    )
+                })}
             </div>
           )}
 
