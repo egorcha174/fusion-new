@@ -114,16 +114,6 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
   const valueRatio = (valueAngle - START_ANGLE) / angleRange;
   const visibleLength = pathLength * valueRatio;
   const strokeDashoffset = pathLength > 0 ? pathLength - visibleLength : undefined;
-
-
-  const getLabelAndColor = () => {
-    switch (hvacAction) {
-      case 'cooling': return { label: 'ОХЛАЖДЕНИЕ', color: '#2563eb' };
-      case 'heating': return { label: 'НАГРЕВ', color: '#f97316' };
-      default: return { label: 'ЦЕЛЬ', color: '#9ca3af' };
-    }
-  };
-  const { label: centerLabel, color: activeColor } = getLabelAndColor();
   
   const fullArcPath = describeArc(CENTER, CENTER, RADIUS, START_ANGLE, END_ANGLE);
 
@@ -137,12 +127,9 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
         style={{ touchAction: 'none' }}
       >
         <defs>
-          <linearGradient id="thermoGradient" gradientTransform={`rotate(${START_ANGLE - 45}, ${CENTER}, ${CENTER})`}>
-            <stop offset="0%" stopColor="#4169E1" />
-            <stop offset="25%" stopColor="#8B5CF6" />
-            <stop offset="50%" stopColor="#EC4899" />
-            <stop offset="75%" stopColor="#F97316" />
-            <stop offset="100%" stopColor="#EF4444" />
+          <linearGradient id="thermoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#4f46e5" />
+            <stop offset="100%" stopColor="#a855f7" />
           </linearGradient>
         </defs>
 
@@ -178,7 +165,7 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <p className="text-xs font-bold" style={{ color: activeColor }}>{centerLabel}</p>
+          <p className="text-xs font-bold text-gray-400">ЦЕЛЬ</p>
           <p className="text-6xl font-light text-white -my-1">{Math.round(value)}</p>
       </div>
     </div>
