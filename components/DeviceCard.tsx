@@ -516,30 +516,58 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
         case 'hvac-modes': {
             const isPresetMode = device.presetModes && device.presetModes.length > 0;
 
-            const containerRef = useRef<HTMLDivElement>(null);
+            const scrollContainerRef = useRef<HTMLDivElement>(null);
+            const listRef = useRef<HTMLDivElement>(null);
             const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
             const [pillStyle, setPillStyle] = useState<React.CSSProperties>({ opacity: 0 });
+            const [showTopFade, setShowTopFade] = useState(false);
+            const [showBottomFade, setShowBottomFade] = useState(false);
 
             const modes = isPresetMode ? device.presetModes! : (device.hvacModes || []);
             const activeMode = isPresetMode ? device.presetMode : device.state;
 
+            const updateFades = useCallback(() => {
+                const el = scrollContainerRef.current;
+                if (!el) return;
+                const isScrollable = el.scrollHeight > el.clientHeight;
+                const scrollBuffer = 1; // Add a buffer for floating point inaccuracies
+                setShowTopFade(isScrollable && el.scrollTop > scrollBuffer);
+                setShowBottomFade(isScrollable && el.scrollTop < el.scrollHeight - el.clientHeight - scrollBuffer);
+            }, []);
+            
             useLayoutEffect(() => {
                 const activeItemEl = itemRefs.current.get(activeMode || '');
-                const containerEl = containerRef.current;
-
+                const containerEl = scrollContainerRef.current;
                 if (activeItemEl && containerEl) {
-                    const containerRect = containerEl.getBoundingClientRect();
-                    const itemRect = activeItemEl.getBoundingClientRect();
-                    
                     setPillStyle({
-                        top: `${itemRect.top - containerRect.top}px`,
-                        height: `${itemRect.height}px`,
+                        top: `${activeItemEl.offsetTop}px`,
+                        height: `${activeItemEl.offsetHeight}px`,
                         opacity: 1,
                     });
+                    
+                    const isVisible = activeItemEl.offsetTop >= containerEl.scrollTop &&
+                                      (activeItemEl.offsetTop + activeItemEl.offsetHeight) <= (containerEl.scrollTop + containerEl.clientHeight);
+                    if (!isVisible) {
+                        activeItemEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
                 } else {
                     setPillStyle(prev => ({ ...prev, opacity: 0 }));
                 }
-            }, [activeMode, modes, element.size]);
+            }, [activeMode, modes]);
+
+            useEffect(() => {
+                const scrollEl = scrollContainerRef.current;
+                if (!scrollEl) return;
+                updateFades(); // Initial check
+                scrollEl.addEventListener('scroll', updateFades, { passive: true });
+                const resizeObserver = new ResizeObserver(updateFades);
+                if (listRef.current) resizeObserver.observe(listRef.current);
+                return () => {
+                    scrollEl.removeEventListener('scroll', updateFades);
+                    resizeObserver.disconnect();
+                };
+            }, [modes, updateFades]);
+
 
             if (modes.length === 0) return null;
 
@@ -565,26 +593,36 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
             return (
                 <div key={element.id} style={style} onClick={e => e.stopPropagation()}>
                     <div
-                        ref={containerRef}
-                        className="relative w-full h-full flex flex-col justify-around items-stretch bg-black/20 rounded-lg p-1"
+                        className="relative w-full h-full bg-black/20 rounded-lg p-1 overflow-hidden"
                     >
+                        <div className={`absolute top-1 left-1 right-1 h-4 bg-gradient-to-b from-black/20 to-transparent z-20 pointer-events-none transition-opacity ${showTopFade ? 'opacity-100' : 'opacity-0'}`} />
+                        
                         <div
-                            className="absolute left-1 right-1 bg-white/20 rounded-md transition-all duration-300 ease-in-out"
-                            style={pillStyle}
-                        />
-                        {modes.map((mode) => (
-                            <button
-                                key={mode}
-                                ref={node => {
-                                    if (node) itemRefs.current.set(mode, node);
-                                    else itemRefs.current.delete(mode);
-                                }}
-                                onClick={() => handleClick(mode)}
-                                className={`relative z-10 w-full text-center text-xs font-bold transition-colors duration-200 py-1 rounded-md ${activeMode === mode ? 'text-white' : 'text-gray-300 hover:text-white'}`}
-                            >
-                                {getLabel(mode)}
-                            </button>
-                        ))}
+                            ref={scrollContainerRef}
+                            className="relative w-full h-full overflow-y-auto no-scrollbar"
+                        >
+                            <div
+                                className="absolute left-0 right-0 bg-white/20 rounded-md transition-all duration-300 ease-in-out"
+                                style={pillStyle}
+                            />
+                            <div ref={listRef} className="relative z-10 flex flex-col items-stretch space-y-1">
+                                {modes.map((mode) => (
+                                    <button
+                                        key={mode}
+                                        ref={node => {
+                                            if (node) itemRefs.current.set(mode, node);
+                                            else itemRefs.current.delete(mode);
+                                        }}
+                                        onClick={() => handleClick(mode)}
+                                        className={`w-full text-center text-xs font-bold transition-colors duration-200 py-1 rounded-md flex-shrink-0 ${activeMode === mode ? 'text-white' : 'text-gray-300 hover:text-white'}`}
+                                    >
+                                        {getLabel(mode)}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className={`absolute bottom-1 left-1 right-1 h-4 bg-gradient-to-t from-black/20 to-transparent z-20 pointer-events-none transition-opacity ${showBottomFade ? 'opacity-100' : 'opacity-0'}`} />
                     </div>
                 </div>
             );

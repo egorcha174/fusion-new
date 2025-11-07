@@ -28,6 +28,14 @@
   .animate-pulse-scale {
     animation: pulse-scale 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
+  /* Utility to hide scrollbars */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
 </style>
 <script type="importmap">
 {
