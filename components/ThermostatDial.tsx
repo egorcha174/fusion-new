@@ -1,5 +1,5 @@
 
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState, useEffect } from 'react';
 
 // --- Helper Functions ---
 const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
@@ -107,6 +107,9 @@ interface ThermostatDialProps {
 
 const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, current, onChange, hvacAction }) => {
   const svgRef = useRef<SVGSVGElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [inputValue, setInputValue] = useState(value.toFixed(1));
   
   const SIZE = 200;
   const STROKE_WIDTH = 20;
@@ -114,6 +117,22 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
   const CENTER = SIZE / 2;
   const START_ANGLE = 135;
   const END_ANGLE = 405;
+
+  useEffect(() => {
+    if (isEditing) {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+    }
+  }, [isEditing]);
+
+  const handleManualTempSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      const newTemp = parseFloat(inputValue);
+      if (!isNaN(newTemp) && newTemp >= min && newTemp <= max) {
+          onChange(newTemp);
+      }
+      setIsEditing(false);
+  };
 
   const handlePointerMove = useCallback((e: PointerEvent) => {
     if (!svgRef.current) return;
@@ -125,11 +144,14 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
     let angleDeg = (angleRad * 180) / Math.PI + 90;
     if (angleDeg < 0) angleDeg += 360;
 
-    // Clamp angle to the allowed range
-    if (angleDeg < START_ANGLE && angleDeg > END_ANGLE - 360) {
-      const distToStart = Math.abs(angleDeg - START_ANGLE);
-      const distToEnd = Math.abs(angleDeg - (END_ANGLE - 360));
-      angleDeg = distToStart < distToEnd ? START_ANGLE : END_ANGLE;
+    // Check if the pointer is within the arc's angular range before clamping.
+    const isWithinArc = (angleDeg >= START_ANGLE && angleDeg <= END_ANGLE) || (angleDeg + 360 >= START_ANGLE && angleDeg + 360 <= END_ANGLE);
+    
+    // Clamp angle to the allowed range only if mouse is dragged outside
+    if (!isWithinArc) {
+        const startDist = Math.min(Math.abs(angleDeg - START_ANGLE), Math.abs(angleDeg - (START_ANGLE + 360)));
+        const endDist = Math.min(Math.abs(angleDeg - END_ANGLE), Math.abs(angleDeg - (END_ANGLE - 360)));
+        angleDeg = startDist < endDist ? START_ANGLE : END_ANGLE;
     }
     
     const range = max - min;
@@ -180,7 +202,6 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
         ref={svgRef}
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         className="w-full h-full"
-        onPointerDown={handlePointerDown}
         style={{ touchAction: 'none' }}
       >
         <defs>
@@ -215,6 +236,17 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
             />
         </g>
         
+         {/* Invisible wider track for easier interaction */}
+        <path
+            d={describeArc(CENTER, CENTER, RADIUS, START_ANGLE, END_ANGLE)}
+            fill="none"
+            stroke="transparent"
+            strokeWidth={STROKE_WIDTH + 8}
+            strokeLinecap="round"
+            className="cursor-pointer"
+            onPointerDown={handlePointerDown}
+        />
+
         {/* Handle */}
         <circle
           cx={handlePosition.x}
@@ -222,12 +254,50 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
           r={STROKE_WIDTH / 2 + 2}
           fill="#ffffff"
           className="cursor-pointer"
+          onPointerDown={handlePointerDown}
         />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+      <div 
+        className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer rounded-full"
+        onClick={(e) => {
+            e.stopPropagation();
+            setInputValue(value.toFixed(1));
+            setIsEditing(true);
+        }}
+      >
           <p className="text-xs font-bold" style={{ color: activeColor }}>{centerLabel}</p>
           <p className="text-6xl font-light text-white -my-1">{value.toFixed(1)}</p>
       </div>
+      
+       {isEditing && (
+        <div 
+            className="absolute inset-0 bg-gray-900/70 backdrop-blur-sm rounded-full flex items-center justify-center z-20 fade-in"
+            onClick={(e) => e.stopPropagation()}
+        >
+            <form onSubmit={handleManualTempSubmit}>
+                <input
+                    ref={inputRef}
+                    type="number"
+                    step="0.1"
+                    min={min}
+                    max={max}
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onBlur={() => setIsEditing(false)}
+                    className="bg-transparent text-white text-6xl font-light w-48 text-center outline-none p-0 m-0"
+                    style={{MozAppearance: 'textfield'}} // Hide spinners in Firefox
+                />
+                <style>{`
+                  input[type=number]::-webkit-inner-spin-button,
+                  input[type=number]::-webkit-outer-spin-button {
+                    -webkit-appearance: none;
+                    margin: 0;
+                  }
+                `}</style>
+                <button type="submit" className="hidden">Установить</button>
+            </form>
+        </div>
+      )}
     </div>
   );
 };
