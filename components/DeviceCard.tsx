@@ -6,11 +6,12 @@
 
 
 
+
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement } from '../types';
 import DeviceIcon from './DeviceIcon';
 import SparklineChart from './SparklineChart';
-import ThermostatDial from './ThermostatDial';
 import Hls from 'hls.js';
 import { constructHaUrl } from '../utils/url';
 import { Icon } from '@iconify/react';
@@ -475,28 +476,20 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
         case 'temperature':
            return (
              <div key={element.id} style={style} className="pointer-events-none">
-               <AutoFitText text={`${device.temperature?.toFixed(0) ?? ''}°`} className="w-full h-full" pClassName="font-bold text-gray-100" maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
+               <AutoFitText text={`${device.temperature?.toFixed(1) ?? ''}${device.unit ?? ''}`} className="w-full h-full" pClassName="font-semibold text-gray-400" maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
              </div>
            );
         case 'target-temperature':
-          return (
-            <div key={element.id} style={style} onClick={e => e.stopPropagation()}>
-              <ThermostatDial 
-                min={device.minTemp ?? 10}
-                max={device.maxTemp ?? 35}
-                value={device.targetTemperature ?? 21}
-                current={device.temperature ?? 21}
-                onChange={value => onTemperatureChange(value, false)}
-                hvacAction={device.hvacAction ?? 'idle'}
-                hvacMode={device.status}
-              />
-            </div>
-          );
+           return (
+             <div key={element.id} style={style} className="pointer-events-none flex items-center justify-center">
+               <AutoFitText text={`${device.targetTemperature?.toFixed(0) ?? ''}°`} className="w-full h-full" pClassName={`font-bold ${isOn ? 'text-gray-900' : 'text-gray-100'}`} maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
+             </div>
+           );
         case 'hvac-modes':
           const hvacModeTranslations: { [key: string]: string } = {
             'off': 'Выкл', 'cool': 'Охлаждение', 'heat': 'Нагрев', 'auto': 'Авто', 'fan_only': 'Вент.', 'dry': 'Осуш.'
           };
-          const currentMode = (device.hvacModes || []).find(mode => device.state?.toLowerCase() === mode) || 'off';
+          const currentMode = (device.hvacModes || []).find(mode => device.status.toLowerCase() === mode) || 'off';
 
           return (
             <div key={element.id} style={style} className="flex flex-col justify-around items-center text-lg font-medium text-gray-400" onClick={e => e.stopPropagation()}>
@@ -633,6 +626,42 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
         );
       case DeviceType.Sensor: {
         return <div>Датчик должен отображаться по шаблону.</div>
+      }
+      case DeviceType.Thermostat: {
+        const isHeating = device.hvacAction === 'heating';
+        const isCooling = device.hvacAction === 'cooling';
+        const isActive = isHeating || isCooling;
+        const onColorClass = isHeating ? 'text-orange-500' : 'text-blue-500';
+
+        return (
+          <div className="flex flex-col h-full text-left">
+            <div className={`flex-shrink-0 ${isActive ? onColorClass : 'text-gray-400'}`}>
+              <DeviceIcon icon={device.icon ?? device.type} isOn={isActive} iconAnimation={device.iconAnimation} />
+            </div>
+            <div className="flex-grow overflow-hidden flex flex-col justify-end min-h-0">
+              <AutoFitText
+                text={device.name}
+                className="w-full h-full"
+                pClassName="font-semibold"
+                maxFontSize={18}
+                mode="multi-line"
+              />
+              <p className={`text-sm ${isActive ? "text-gray-800" : "text-gray-400"} transition-colors flex-shrink-0`}>{device.status}</p>
+            </div>
+            <div className="flex items-center justify-between mt-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => onTemperatureChange(-0.5, true)} className={`p-2 rounded-full ${isActive ? 'bg-gray-400/30' : 'bg-gray-700'} hover:bg-gray-500/40`}>
+                <Icon icon="mdi:minus" className="h-5 w-5" />
+              </button>
+              <div className="text-center">
+                <p className="text-2xl font-bold">{device.targetTemperature}°</p>
+                <p className={`text-xs ${isActive ? "text-gray-600" : "text-gray-500"}`}>Текущая: {device.temperature}°</p>
+              </div>
+              <button onClick={() => onTemperatureChange(0.5, true)} className={`p-2 rounded-full ${isActive ? 'bg-gray-400/30' : 'bg-gray-700'} hover:bg-gray-500/40`}>
+                <Icon icon="mdi:plus" className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        );
       }
       default:
          return (

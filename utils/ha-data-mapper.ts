@@ -1,6 +1,8 @@
 
 
 
+
+
 import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization, WeatherForecast } from '../types';
 
 const getDeviceType = (entity: HassEntity): DeviceType => {
@@ -62,19 +64,6 @@ const getStatusText = (entity: HassEntity): string => {
     const domain = entity.entity_id.split('.')[0];
     const attributes = entity.attributes || {};
 
-    if (domain === 'climate') {
-        const currentTemp = attributes.current_temperature;
-        const humidity = attributes.current_humidity;
-        let statusParts = [];
-        if (typeof currentTemp === 'number') {
-            statusParts.push(`Текущая ${currentTemp}°`);
-        }
-        if (typeof humidity === 'number') {
-            statusParts.push(`Влажность ${humidity}%`);
-        }
-        return statusParts.join(' · ');
-    }
-
     if (domain === 'weather') {
         const stateMap: Record<string, string> = {
             'clear-night': 'Ясно',
@@ -123,7 +112,6 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
     unit: attributes.unit_of_measurement,
     haDomain: entity.entity_id.split('.')[0],
     haDeviceClass: attributes.device_class,
-    state: entity.state,
   };
 
   if (device.type === DeviceType.DimmableLight && attributes.brightness) {
@@ -132,7 +120,6 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
   
   if (device.type === DeviceType.Thermostat) {
     device.temperature = attributes.current_temperature;
-    device.humidity = attributes.current_humidity;
     device.targetTemperature = attributes.temperature;
     device.presetMode = attributes.preset_mode;
     device.presetModes = attributes.preset_modes;

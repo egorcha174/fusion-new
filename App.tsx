@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import Settings from './components/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -206,57 +208,36 @@ const defaultClimateTemplate: CardTemplate = {
   name: 'Стандартный климат',
   deviceType: 'climate',
   styles: {
-    backgroundColor: 'rgb(23 23 23 / 0.5)', // bg-neutral-900/50
+    backgroundColor: 'rgb(55 65 81 / 0.8)', // bg-gray-600/80
+    onBackgroundColor: 'rgb(229 231 235 / 1)', // bg-gray-200
   },
   elements: [
-    { // Center dial
-      id: 'target-temperature',
-      visible: true,
-      position: { x: 25, y: 0 },
-      size: { width: 50, height: 100 },
-      zIndex: 1,
-      styles: {},
+    {
+      id: 'icon', visible: true, position: { x: 8, y: 8 }, size: { width: 20, height: 20 }, zIndex: 2,
+      styles: { onColor: 'rgb(234 88 12)' }, // text-orange-500
     },
-    { // "76°" (large)
-      id: 'temperature',
-      visible: true,
-      position: { x: 2, y: 20 },
-      size: { width: 23, height: 15 },
-      zIndex: 2,
-      styles: { textAlign: 'left', fontSize: 40 },
+    { id: 'name', visible: true, position: { x: 8, y: 35 }, size: { width: 84, height: 22 }, zIndex: 2, styles: {} },
+    { id: 'status', visible: true, position: { x: 8, y: 58 }, size: { width: 84, height: 12 }, zIndex: 2, styles: {} },
+    {
+      id: 'target-temperature', visible: true, position: { x: 35, y: 7 }, size: { width: 30, height: 20 }, zIndex: 2,
+      styles: { fontSize: 24, textAlign: 'center' },
     },
-    { // "Living Room"
-      id: 'name',
-      visible: true,
-      position: { x: 2, y: 35 },
-      size: { width: 23, height: 12 },
-      zIndex: 2,
-      styles: { textAlign: 'left', fontSize: 22 },
+    {
+      id: 'temperature', visible: true, position: { x: 65, y: 12 }, size: { width: 25, height: 15 }, zIndex: 2,
+      styles: { fontSize: 16, textAlign: 'right' },
     },
-    { // "Current 76° · Humidity 54%"
-      id: 'status',
-      visible: true,
-      position: { x: 2, y: 48 },
-      size: { width: 23, height: 10 },
-      zIndex: 2,
-      styles: { textAlign: 'left', fontSize: 14 },
+    {
+      id: 'button-minus', visible: true, position: { x: 8, y: 78 }, size: { width: 25, height: 14 }, zIndex: 2, styles: {},
     },
-    { // Right-side modes
-      id: 'hvac-modes',
-      visible: true,
-      position: { x: 77, y: 20 },
-      size: { width: 21, height: 60 },
-      zIndex: 2,
-      styles: { fontSize: 18 },
+    {
+      id: 'button-plus', visible: true, position: { x: 67, y: 78 }, size: { width: 25, height: 14 }, zIndex: 2, styles: {},
     },
     // Hidden elements for type completeness
-    { id: 'value', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-    { id: 'unit', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-    { id: 'chart', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-    { id: 'slider', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-    { id: 'icon', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-    { id: 'button-plus', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-    { id: 'button-minus', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+    { id: 'hvac-modes', visible: false, position: { x: 0, y: 0 }, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+    { id: 'value', visible: false, position: { x: 0, y: 0 }, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+    { id: 'unit', visible: false, position: { x: 0, y: 0 }, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+    { id: 'chart', visible: false, position: { x: 0, y: 0 }, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+    { id: 'slider', visible: false, position: { x: 0, y: 0 }, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
   ],
 };
 
