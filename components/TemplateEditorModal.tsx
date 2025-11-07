@@ -259,6 +259,37 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
         setSelectedSlotId(prev => prev === id ? null : id);
     }
   };
+  
+  const handleAddSlot = () => {
+    const newSlot: DeviceSlot = {
+      id: nanoid(),
+      position: { x: 50, y: 85 },
+      iconSize: 24,
+      visualStyle: {
+        type: 'color_glow',
+        activeColor: '#34d399', // emerald-400
+        inactiveColor: '#6b7280', // gray-500
+        glowIntensity: 0.7,
+        animationType: 'none',
+      },
+      interactive: true,
+    };
+    setEditedTemplate(prev => ({
+      ...prev,
+      deviceSlots: [...(prev.deviceSlots || []), newSlot]
+    }));
+    handleSelect('slot', newSlot.id);
+  };
+
+  const handleDeleteSlot = (slotIdToDelete: string) => {
+      setEditedTemplate(prev => ({
+          ...prev,
+          deviceSlots: prev.deviceSlots?.filter(s => s.id !== slotIdToDelete)
+      }));
+      if (selectedSlotId === slotIdToDelete) {
+          setSelectedSlotId(null);
+      }
+  };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, delta } = event;
@@ -393,6 +424,33 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                     })}
                   </SortableContext>
               </DndContext>
+              
+               {editedTemplate.deviceSlots && editedTemplate.deviceSlots.length > 0 && (
+                <>
+                    <div className="px-2 pt-4 pb-1 text-xs font-semibold text-gray-400">Индикаторы</div>
+                    {editedTemplate.deviceSlots.map((slot, index) => (
+                        <div key={slot.id} onClick={() => handleSelect('slot', slot.id)} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors ${selectedSlotId === slot.id ? 'bg-blue-600/50' : 'bg-gray-700/50 hover:bg-gray-700'}`}>
+                            <div className="flex items-center gap-2 overflow-hidden">
+                                <Icon icon="mdi:map-marker-radius" className="w-5 h-5 text-gray-400 flex-shrink-0"/>
+                                <span className="text-sm truncate">Индикатор #{index + 1}</span>
+                            </div>
+                            <button onClick={(e) => { e.stopPropagation(); handleDeleteSlot(slot.id); }} className="p-1 text-gray-500 hover:text-red-400">
+                                <Icon icon="mdi:trash-can-outline" className="w-4 h-4"/>
+                            </button>
+                        </div>
+                    ))}
+                </>
+              )}
+
+            </div>
+            <div className="p-2 border-t border-gray-700/80">
+                <button
+                    onClick={handleAddSlot}
+                    className="w-full flex items-center justify-center gap-2 text-sm text-gray-300 hover:text-white bg-gray-700 hover:bg-gray-600/80 rounded-md py-2 transition-colors"
+                >
+                    <Icon icon="mdi:plus-circle-outline" className="w-5 h-5" />
+                    <span>Добавить индикатор</span>
+                </button>
             </div>
           </aside>
 
@@ -475,6 +533,15 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                   <Section title="Поведение">
                     <LabeledInput label="Интерактивный"><button onClick={() => setEditedTemplate(p => ({...p, deviceSlots: p.deviceSlots?.map(s => s.id === selectedSlot.id ? {...s, interactive: !s.interactive} : s)}))} className={`relative inline-flex items-center h-5 rounded-full w-9 transition-colors ${selectedSlot.interactive ? 'bg-blue-600' : 'bg-gray-600'}`}><span className={`inline-block w-3 h-3 transform bg-white rounded-full transition-transform ${selectedSlot.interactive ? 'translate-x-5' : 'translate-x-1'}`} /></button></LabeledInput>
                   </Section>
+                   <div className="pt-4 border-t border-gray-700/80">
+                      <button
+                        onClick={() => handleDeleteSlot(selectedSlot.id)}
+                        className="w-full flex items-center justify-center gap-2 text-sm text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-3 py-2 rounded-lg transition-colors"
+                      >
+                         <Icon icon="mdi:trash-can-outline" className="w-4 h-4" />
+                         Удалить индикатор
+                      </button>
+                    </div>
                 </>
               )}
             </div>
