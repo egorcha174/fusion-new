@@ -86,7 +86,7 @@ const GradientArc: React.FC<{
                         fill="none"
                         stroke={color}
                         strokeWidth={strokeWidth}
-                        strokeLinecap="butt"
+                        strokeLinecap="round"
                     />
                 );
             })}
