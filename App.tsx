@@ -2,6 +2,7 @@
 
 
 
+
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import Settings from './components/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -937,7 +938,9 @@ const App: React.FC = () => {
                     {[
                         {w: 1, h: 1}, 
                         {w: 2, h: 2}, 
-                        {w: 3, h: 3}
+                        {w: 3, h: 3},
+                        {w: 2, h: 3},
+                        {w: 3, h: 2}
                     ].map(size => (
                         <div 
                             key={`${size.w}x${size.h}`} 
