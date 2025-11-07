@@ -15,7 +15,9 @@ const AutoFitText: React.FC<{
   maxFontSize?: number;
   mode?: 'single-line' | 'multi-line';
   maxLines?: number;
-}> = ({ text, className, pClassName, maxFontSize = 48, mode = 'multi-line', maxLines = 2 }) => {
+  fontSize?: number;
+  textAlign?: 'left' | 'center' | 'right';
+}> = ({ text, className, pClassName, maxFontSize = 48, mode = 'multi-line', maxLines = 2, fontSize, textAlign }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const pRef = React.useRef<HTMLParagraphElement>(null);
 
@@ -23,6 +25,16 @@ const AutoFitText: React.FC<{
     const container = containerRef.current;
     const p = pRef.current;
     if (!container || !p) return;
+
+    // --- New Logic: Apply fixed font size if provided ---
+    if (fontSize) {
+      p.style.fontSize = `${fontSize}px`;
+      p.style.whiteSpace = mode === 'multi-line' ? 'normal' : 'nowrap';
+      // We don't need to run the auto-fit logic
+      const resizeObserver = new ResizeObserver(() => {});
+      if (container) resizeObserver.observe(container);
+      return () => { if (container) resizeObserver.unobserve(container); };
+    }
 
     const fitText = () => {
       let currentSize = maxFontSize;
@@ -51,7 +63,7 @@ const AutoFitText: React.FC<{
             resizeObserver.unobserve(container);
         }
     };
-  }, [text, maxFontSize, mode]);
+  }, [text, maxFontSize, mode, fontSize]);
 
   const multiLineStyles: React.CSSProperties = mode === 'multi-line' ? {
       display: '-webkit-box',
@@ -59,9 +71,16 @@ const AutoFitText: React.FC<{
       WebkitBoxOrient: 'vertical',
       overflow: 'hidden',
   } : {};
+  
+  const textAlignClass = {
+    left: 'justify-start',
+    center: 'justify-center',
+    right: 'justify-end',
+  }[textAlign || 'left'];
+
 
   return (
-    <div ref={containerRef} className={`${className} flex items-center justify-start`}>
+    <div ref={containerRef} className={`${className} flex items-center ${textAlignClass}`}>
       <p ref={pRef} className={pClassName} style={{ lineHeight: 1.15, wordBreak: 'break-word', ...multiLineStyles }}>
         {text}
       </p>
@@ -414,7 +433,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
         case 'name':
           return (
             <div key={element.id} style={style}>
-              <AutoFitText text={device.name} className="w-full h-full" pClassName={`font-medium ${isOn ? 'text-gray-900' : 'text-gray-300'} leading-tight`} maxFontSize={100} mode="multi-line" maxLines={2} />
+              <AutoFitText text={device.name} className="w-full h-full" pClassName={`font-medium ${isOn ? 'text-gray-900' : 'text-gray-300'} leading-tight`} maxFontSize={100} mode="multi-line" maxLines={2} fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
             </div>
           );
         case 'icon':
@@ -429,7 +448,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
         case 'status':
           return (
             <div key={element.id} style={style}>
-              <AutoFitText text={device.status} className="w-full h-full" pClassName={`text-sm ${isOn ? 'text-gray-800' : 'text-gray-400'}`} maxFontSize={100} mode="single-line" />
+              <AutoFitText text={device.status} className="w-full h-full" pClassName={`text-sm ${isOn ? 'text-gray-800' : 'text-gray-400'}`} maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
             </div>
           );
         case 'value': {
@@ -441,7 +460,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
           }
           return (
             <div key={element.id} style={style} className="flex items-center">
-              <AutoFitText text={valueText} className="w-full h-full" pClassName="font-semibold text-gray-100" maxFontSize={100} mode="single-line" />
+              <AutoFitText text={valueText} className="w-full h-full" pClassName="font-semibold text-gray-100" maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
             </div>
           );
         }
@@ -450,7 +469,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
           if (!device.unit || !isNumericStatus) return null;
           return (
             <div key={element.id} style={style}>
-              <AutoFitText text={device.unit} className="w-full h-full" pClassName="font-medium text-gray-400" maxFontSize={100} mode="single-line" />
+              <AutoFitText text={device.unit} className="w-full h-full" pClassName="font-medium text-gray-400" maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
             </div>
           );
         }

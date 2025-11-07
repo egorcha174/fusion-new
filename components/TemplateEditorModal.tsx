@@ -510,6 +510,8 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
     handleSingleElementAlignment(action);
   };
   
+  const isTextElement = selectedElement && ['name', 'status', 'value', 'unit'].includes(selectedElement.id);
+  
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-gray-800 rounded-2xl shadow-lg w-full max-w-6xl h-[80vh] ring-1 ring-white/10 flex" onClick={e => e.stopPropagation()}>
@@ -584,6 +586,45 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                             <span className={`inline-block w-3 h-3 transform bg-white rounded-full transition-transform ${selectedElement.visible ? 'translate-x-5' : 'translate-x-1'}`} />
                         </button>
                     </div>
+                    {isTextElement && (
+                        <div className="pt-4 border-t border-gray-700 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <label htmlFor="fontSize" className="text-sm text-gray-200">Размер шрифта (px)</label>
+                                <input
+                                id="fontSize"
+                                type="number"
+                                min="8"
+                                max="100"
+                                placeholder="Авто"
+                                value={selectedElement.styles.fontSize ?? ''}
+                                onChange={(e) => {
+                                    const value = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
+                                    handleElementUpdate(selectedElement.id, {
+                                    styles: { ...selectedElement.styles, fontSize: value }
+                                    });
+                                }}
+                                className="w-24 bg-gray-900 text-gray-100 border border-gray-600 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <label className="text-sm text-gray-200">Выравнивание</label>
+                                <div className="flex items-center bg-gray-900 rounded-lg p-1">
+                                    {(['left', 'center', 'right'] as const).map((align) => (
+                                    <button
+                                        key={align}
+                                        onClick={() => handleElementUpdate(selectedElement.id, { styles: { ...selectedElement.styles, textAlign: align }})}
+                                        title={`Выровнять по ${align === 'left' ? 'левому краю' : align === 'center' ? 'центру' : 'правому краю'}`}
+                                        className={`p-1 rounded-md transition-colors ${(selectedElement.styles.textAlign || 'left') === align ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}
+                                    >
+                                        {align === 'left' && <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" /></svg>}
+                                        {align === 'center' && <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm2 4a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm-2 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm2 4a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clipRule="evenodd" /></svg>}
+                                        {align === 'right' && <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm7 4a1 1 0 011-1h6a1 1 0 110 2h-6a1 1 0 01-1-1zm-7 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm7 4a1 1 0 011-1h6a1 1 0 110 2h-6a1 1 0 01-1-1z" clipRule="evenodd" /></svg>}
+                                    </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     {selectedElement.id === 'value' && (
                       <div className="flex items-center justify-between">
                         <label htmlFor="decimalPlaces" className="text-sm text-gray-200">Знаков после запятой</label>

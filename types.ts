@@ -113,6 +113,8 @@ export interface CardElement {
     decimalPlaces?: number;
     onColor?: string;
     offColor?: string;
+    fontSize?: number;
+    textAlign?: 'left' | 'center' | 'right';
   };
 }
 
