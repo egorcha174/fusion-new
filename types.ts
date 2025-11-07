@@ -133,6 +133,8 @@ export interface CardTemplate {
     backgroundColor: string;
     onBackgroundColor?: string;
   };
+  width?: number;
+  height?: number;
 }
 
 export type CardTemplates = Record<string, CardTemplate>;

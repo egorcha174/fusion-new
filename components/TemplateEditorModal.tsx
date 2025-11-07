@@ -160,7 +160,11 @@ interface TemplateEditorModalProps {
 }
 
 const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdit, onSave, onClose }) => {
-  const [editedTemplate, setEditedTemplate] = useState<CardTemplate>(templateToEdit);
+  const [editedTemplate, setEditedTemplate] = useState<CardTemplate>({
+    ...templateToEdit,
+    width: templateToEdit.width || 1,
+    height: templateToEdit.height || 1,
+  });
   const [selectedElementIds, setSelectedElementIds] = useState<CardElementId[]>([]);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number } | null>(null);
   
@@ -248,6 +252,14 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
     }
   };
   
+  const handleDimensionChange = (key: 'width' | 'height', value: number) => {
+    if (isNaN(value) || value < 1) return;
+    setEditedTemplate(prev => ({
+        ...prev,
+        [key]: value,
+    }));
+  };
+
   const handleSave = () => {
     if (!editedTemplate.name.trim()) {
         alert("Имя шаблона не может быть пустым.");
@@ -538,7 +550,13 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
 
         {/* Center: Preview */}
         <div className="w-1/2 bg-gray-900/50 p-8 flex flex-col items-center justify-center" onClick={() => setSelectedElementIds([])} onContextMenu={handleContextMenu}>
-          <div ref={previewRef} className="w-[300px] h-[300px] transition-all duration-300 relative">
+          <div 
+            ref={previewRef} 
+            className="w-full max-w-[400px] transition-all duration-300 relative"
+            style={{
+                aspectRatio: `${editedTemplate.width || 1} / ${editedTemplate.height || 1}`
+            }}
+          >
             <div 
               className="absolute inset-0 bg-center" 
               style={{ backgroundImage: `
@@ -583,6 +601,32 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                   className="w-full bg-gray-900 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
              </div>
+             <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label htmlFor="templateWidth" className="block text-sm font-medium text-gray-300 mb-2">Ширина (ячеек)</label>
+                    <input
+                        id="templateWidth"
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={editedTemplate.width || 1}
+                        onChange={e => handleDimensionChange('width', parseInt(e.target.value, 10))}
+                        className="w-full bg-gray-900 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                </div>
+                <div>
+                    <label htmlFor="templateHeight" className="block text-sm font-medium text-gray-300 mb-2">Высота (ячеек)</label>
+                    <input
+                        id="templateHeight"
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={editedTemplate.height || 1}
+                        onChange={e => handleDimensionChange('height', parseInt(e.target.value, 10))}
+                        className="w-full bg-gray-900 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                </div>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Слои</label>
               <p className="text-xs text-gray-400 mb-2">Перетащите, чтобы изменить порядок (верхний слой имеет приоритет).</p>
