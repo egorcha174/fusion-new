@@ -1,6 +1,6 @@
 
 
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot } from '../types';
 import DeviceCard from './DeviceCard';
 import { DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, useDraggable } from '@dnd-kit/core';
@@ -232,14 +232,24 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   
   const sampleAllKnownDevices = useMemo(() => new Map<string, Device>([[sampleDevice.id, sampleDevice]]), [sampleDevice]);
 
+  const handleDeleteSlot = useCallback((slotIdToDelete: string) => {
+      setEditedTemplate(prev => ({
+          ...prev,
+          deviceSlots: prev.deviceSlots?.filter(s => s.id !== slotIdToDelete)
+      }));
+      if (selectedSlotId === slotIdToDelete) {
+          setSelectedSlotId(null);
+      }
+  }, [selectedSlotId]);
+
   // --- Keyboard Shortcuts ---
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
         const isTextInput = (e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA';
         if (isTextInput) return;
 
-        const selectedCount = selectedElementIds.length;
-        if (selectedCount === 0) return;
+        const hasSelection = selectedElementIds.length > 0 || selectedSlotId;
+        if (!hasSelection) return;
 
         const isArrowKey = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key);
         if (isArrowKey) {
@@ -257,25 +267,44 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
             const dxPercent = (dx / previewRect.width) * 100;
             const dyPercent = (dy / previewRect.height) * 100;
 
-            setEditedTemplate(prev => ({ ...prev, elements: prev.elements.map(el => 
-                selectedElementIds.includes(el.id) ? { ...el, position: {
-                    x: Math.max(0, Math.min(100 - el.size.width, el.position.x + dxPercent)),
-                    y: Math.max(0, Math.min(100 - el.size.height, el.position.y + dyPercent)),
-                }} : el
-            )}));
+            if (selectedElementIds.length > 0) {
+              setEditedTemplate(prev => ({ ...prev, elements: prev.elements.map(el => 
+                  selectedElementIds.includes(el.id) ? { ...el, position: {
+                      x: Math.max(0, Math.min(100 - el.size.width, el.position.x + dxPercent)),
+                      y: Math.max(0, Math.min(100 - el.size.height, el.position.y + dyPercent)),
+                  }} : el
+              )}));
+            }
+            
+            if (selectedSlotId) {
+                setEditedTemplate(prev => ({
+                    ...prev,
+                    deviceSlots: prev.deviceSlots?.map(slot => 
+                        slot.id === selectedSlotId ? { ...slot, position: {
+                            x: Math.max(0, Math.min(100, slot.position.x + dxPercent)),
+                            y: Math.max(0, Math.min(100, slot.position.y + dyPercent)),
+                        }} : slot
+                    )
+                }));
+            }
         }
         
         if (e.key === 'Delete' || e.key === 'Backspace') {
             e.preventDefault();
-            setEditedTemplate(prev => ({ ...prev, elements: prev.elements.map(el => 
-                selectedElementIds.includes(el.id) ? { ...el, visible: false } : el
-            )}));
-            setSelectedElementIds([]);
+            if (selectedElementIds.length > 0) {
+              setEditedTemplate(prev => ({ ...prev, elements: prev.elements.map(el => 
+                  selectedElementIds.includes(el.id) ? { ...el, visible: false } : el
+              )}));
+              setSelectedElementIds([]);
+            }
+            if (selectedSlotId) {
+              handleDeleteSlot(selectedSlotId);
+            }
         }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedElementIds]);
+  }, [selectedElementIds, selectedSlotId, handleDeleteSlot]);
 
   const handleSelect = (type: 'element' | 'slot', id: string, isMultiSelect: boolean = false) => {
     if (type === 'element') {
@@ -311,16 +340,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
       deviceSlots: [...(prev.deviceSlots || []), newSlot]
     }));
     handleSelect('slot', newSlot.id);
-  };
-
-  const handleDeleteSlot = (slotIdToDelete: string) => {
-      setEditedTemplate(prev => ({
-          ...prev,
-          deviceSlots: prev.deviceSlots?.filter(s => s.id !== slotIdToDelete)
-      }));
-      if (selectedSlotId === slotIdToDelete) {
-          setSelectedSlotId(null);
-      }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
