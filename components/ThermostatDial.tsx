@@ -109,7 +109,7 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
   const svgRef = useRef<SVGSVGElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [inputValue, setInputValue] = useState(value.toFixed(1));
+  const [inputValue, setInputValue] = useState(value.toFixed(1).replace('.', ','));
   
   const SIZE = 200;
   const STROKE_WIDTH = 20;
@@ -120,13 +120,16 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
 
   useEffect(() => {
     if (isEditing) {
+        // Ensure input value is up-to-date with the prop when editing starts
+        setInputValue(value.toFixed(1).replace('.', ','));
         inputRef.current?.focus();
         inputRef.current?.select();
     }
-  }, [isEditing]);
+  }, [isEditing, value]);
   
   const submitNewValue = () => {
-    const newTemp = parseFloat(inputValue);
+    // Replace comma with a dot for robust parsing, handle empty input
+    const newTemp = parseFloat(inputValue.replace(',', '.'));
     if (!isNaN(newTemp) && newTemp >= min && newTemp <= max) {
         onChange(newTemp);
     }
@@ -139,10 +142,12 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
   };
   
   const adjustTemp = (delta: number) => {
-    const currentTemp = parseFloat(inputValue) || value;
+    // Replace comma with dot for robust parsing
+    const currentTemp = parseFloat(inputValue.replace(',', '.')) || value;
     let newTemp = currentTemp + delta;
     newTemp = Math.max(min, Math.min(max, newTemp)); // clamp value
-    setInputValue(newTemp.toFixed(1));
+    // Format back with a comma for display
+    setInputValue(newTemp.toFixed(1).replace('.', ','));
   };
 
 
@@ -273,7 +278,6 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
         className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer rounded-full"
         onClick={(e) => {
             e.stopPropagation();
-            setInputValue(value.toFixed(1).replace('.', ','));
             setIsEditing(true);
         }}
       >
@@ -290,23 +294,20 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
                 <form onSubmit={handleManualTempSubmit}>
                     <input
                         ref={inputRef}
-                        type="number"
-                        step="0.1"
+                        type="text"
+                        inputMode="decimal"
                         min={min}
                         max={max}
                         value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
+                        onChange={(e) => {
+                            const sanitizedValue = e.target.value.replace('.', ',');
+                            if (sanitizedValue === '' || /^\d{1,2}(,\d{0,1})?$/.test(sanitizedValue)) {
+                                setInputValue(sanitizedValue);
+                            }
+                        }}
                         onBlur={submitNewValue}
                         className="bg-transparent text-white text-6xl font-light w-44 text-center outline-none p-0 m-0"
-                        style={{MozAppearance: 'textfield'}} // Hide spinners in Firefox
                     />
-                    <style>{`
-                      input[type=number]::-webkit-inner-spin-button,
-                      input[type=number]::-webkit-outer-spin-button {
-                        -webkit-appearance: none;
-                        margin: 0;
-                      }
-                    `}</style>
                     <button type="submit" className="hidden">Установить</button>
                 </form>
                  <div className="flex flex-col -ml-2">
