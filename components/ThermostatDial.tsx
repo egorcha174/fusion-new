@@ -92,7 +92,6 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
 
   const valueAngle = valueToAngle(value, min, max, START_ANGLE, END_ANGLE);
   const handlePosition = polarToCartesian(CENTER, CENTER, RADIUS, valueAngle);
-  const MID_ANGLE = (START_ANGLE + END_ANGLE) / 2;
 
   const getLabelAndColor = () => {
     switch (hvacAction) {
@@ -113,14 +112,12 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
         style={{ touchAction: 'none' }}
       >
         <defs>
-          <linearGradient id="thermoGradientCold" x1="0" y1="1" x2="1" y2="0">
-            <stop offset="0%" stopColor="#3b82f6" /> {/* Blue */}
-            <stop offset="100%" stopColor="#a855f7" /> {/* Purple */}
-          </linearGradient>
-          <linearGradient id="thermoGradientHot" x1="0.5" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#a855f7" /> {/* Purple */}
-            <stop offset="50%" stopColor="#f97316" /> {/* Orange */}
-            <stop offset="100%" stopColor="#ef4444" /> {/* Red */}
+          <linearGradient id="fullThermoGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#4169E1" />
+            <stop offset="25%" stopColor="#8B5CF6" />
+            <stop offset="50%" stopColor="#EC4899" />
+            <stop offset="75%" stopColor="#F97316" />
+            <stop offset="100%" stopColor="#EF4444" />
           </linearGradient>
 
           <mask id="thermoValueMask">
@@ -145,19 +142,12 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
         
         {/* Full Gradient Track (to be masked) */}
         <g mask="url(#thermoValueMask)">
-            {/* Cold part of the arc */}
             <path
-                d={describeArc(CENTER, CENTER, RADIUS, START_ANGLE, MID_ANGLE)}
+                d={describeArc(CENTER, CENTER, RADIUS, START_ANGLE, END_ANGLE)}
                 fill="none"
-                stroke="url(#thermoGradientCold)"
+                stroke="url(#fullThermoGradient)"
                 strokeWidth={STROKE_WIDTH}
-            />
-            {/* Hot part of the arc */}
-            <path
-                d={describeArc(CENTER, CENTER, RADIUS, MID_ANGLE, END_ANGLE)}
-                fill="none"
-                stroke="url(#thermoGradientHot)"
-                strokeWidth={STROKE_WIDTH}
+                strokeLinecap="round"
             />
         </g>
         
