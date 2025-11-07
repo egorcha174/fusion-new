@@ -226,7 +226,7 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <p className="text-xs font-bold" style={{ color: activeColor }}>{centerLabel}</p>
-          <p className="text-6xl font-light text-white -my-1">{Math.round(value)}</p>
+          <p className="text-6xl font-light text-white -my-1">{value.toFixed(1)}</p>
       </div>
     </div>
   );

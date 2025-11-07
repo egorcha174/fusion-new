@@ -761,7 +761,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, onTemperatureChange, on
                 <p className={`${styles.thermostatTempText} text-white flex-shrink-0`}>{device.temperature}{device.unit}</p>
                 <div className="flex items-center justify-between mt-1 flex-shrink-0">
                     <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(-0.5, true); }} className={`${styles.thermostatButton} rounded-full bg-black/20 text-white flex items-center justify-center font-light text-2xl leading-none pb-1`}>-</button>
-                    <span className={`${styles.thermostatTargetText} text-gray-300`}>Цель: {device.targetTemperature}{device.unit}</span>
+                    <span className={`${styles.thermostatTargetText} text-gray-300`}>Цель: {device.targetTemperature?.toFixed(1)}{device.unit}</span>
                     <button onClick={(e) => { e.stopPropagation(); onTemperatureChange(0.5, true); }} className={`${styles.thermostatButton} rounded-full bg-black/20 text-white flex items-center justify-center font-light text-2xl leading-none pb-1`}>+</button>
                 </div>
             </div>
