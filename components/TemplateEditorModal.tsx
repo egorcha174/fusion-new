@@ -8,6 +8,8 @@
 
 
 
+
+
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot, ColorScheme } from '../types';
 import DeviceCard from './DeviceCard';
@@ -642,6 +644,13 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                          </LabeledInput>
                     </Section>
                  )}
+                {selectedElement.id === 'target-temperature' && (
+                    <Section title="Стили термостата">
+                        <LabeledInput label="Цвет (Цель)"><input type="color" value={selectedElement.styles.idleLabelColor || '#9CA3AF'} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, idleLabelColor: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
+                        <LabeledInput label="Цвет (Нагрев)"><input type="color" value={selectedElement.styles.heatingLabelColor || '#F97316'} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, heatingLabelColor: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
+                        <LabeledInput label="Цвет (Охлаждение)"><input type="color" value={selectedElement.styles.coolingLabelColor || '#3B82F6'} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, coolingLabelColor: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
+                    </Section>
+                )}
                  {selectedElement.id === 'linked-entity' && (
                      <Section title="Связанное устройство">
                          <LabeledInput label="ID устройства"><input type="text" placeholder="e.g. sensor.temperature" value={selectedElement.styles.linkedEntityId ?? ''} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, linkedEntityId: e.target.value}} : el)}))} className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"/></LabeledInput>

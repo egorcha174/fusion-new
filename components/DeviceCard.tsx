@@ -591,6 +591,10 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                 current={device.temperature ?? 21}
                 onChange={value => { if (!isPreview) onTemperatureChange(value); }}
                 hvacAction={device.hvacAction ?? 'idle'}
+                idleLabelColor={element.styles.idleLabelColor}
+                heatingLabelColor={element.styles.heatingLabelColor}
+                coolingLabelColor={element.styles.coolingLabelColor}
+                colorScheme={colorScheme}
               />
             </div>
           );

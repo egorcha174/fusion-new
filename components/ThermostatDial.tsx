@@ -1,4 +1,5 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react';
+import { ColorScheme } from '../types';
 
 // --- Helper Functions ---
 const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
@@ -102,9 +103,13 @@ interface ThermostatDialProps {
   current: number; // Current temperature
   onChange: (value: number) => void;
   hvacAction: string;
+  idleLabelColor?: string;
+  heatingLabelColor?: string;
+  coolingLabelColor?: string;
+  colorScheme: ColorScheme['light'];
 }
 
-const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, current, onChange, hvacAction }) => {
+const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, current, onChange, hvacAction, idleLabelColor, heatingLabelColor, coolingLabelColor, colorScheme }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -203,14 +208,14 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
   const valueAngle = valueToAngle(value, min, max, START_ANGLE, END_ANGLE);
   const handlePosition = polarToCartesian(CENTER, CENTER, RADIUS, valueAngle);
 
-  const getLabelAndColor = () => {
+  const getLabelAndStyle = () => {
     switch (hvacAction) {
-      case 'cooling': return { label: 'ОХЛАЖДЕНИЕ', className: 'text-blue-500' };
-      case 'heating': return { label: 'НАГРЕВ', className: 'text-orange-500' };
-      default: return { label: 'ЦЕЛЬ', className: 'text-gray-500 dark:text-gray-400' };
+      case 'cooling': return { label: 'ОХЛАЖДЕНИЕ', style: { color: coolingLabelColor || '#3B82F6' } };
+      case 'heating': return { label: 'НАГРЕВ', style: { color: heatingLabelColor || '#F97316' } };
+      default: return { label: 'ЦЕЛЬ', style: { color: idleLabelColor || colorScheme.statusTextColor } };
     }
   };
-  const { label: centerLabel, className: activeClassName } = getLabelAndColor();
+  const { label: centerLabel, style: activeStyle } = getLabelAndStyle();
 
   return (
     <div className="relative w-full h-full flex items-center justify-center">
@@ -279,7 +284,7 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
             setIsEditing(true);
         }}
       >
-          <p className={`text-xs font-bold ${activeClassName}`}>{centerLabel}</p>
+          <p className="text-xs font-bold" style={activeStyle}>{centerLabel}</p>
           <p className="text-6xl font-light text-gray-900 dark:text-white -my-1">{value.toFixed(1).replace('.', ',')}</p>
       </div>
       

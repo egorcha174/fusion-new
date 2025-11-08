@@ -160,6 +160,9 @@ export interface CardElement {
     showValue?: boolean;
     chartTimeRange?: number;
     chartTimeRangeUnit?: 'minutes' | 'hours' | 'days';
+    idleLabelColor?: string;
+    heatingLabelColor?: string;
+    coolingLabelColor?: string;
   };
 }
 
