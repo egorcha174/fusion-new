@@ -260,16 +260,34 @@ const DEFAULT_COLOR_SCHEME: ColorScheme = {
     sidebarBackground: 'rgba(255, 255, 255, 0.7)',
     cardBackground: 'rgba(255, 255, 255, 0.8)',
     cardBackgroundOn: '#f3f4f6', // gray-100
-    cardTextColor: '#111827', // gray-900
-    cardTextColorOn: '#111827', // gray-900
+    
+    // Text Colors - Off State
+    nameTextColor: '#1f2937', // gray-800
+    statusTextColor: '#6b7280', // gray-500
+    valueTextColor: '#111827', // gray-900
+    unitTextColor: '#6b7280', // gray-500
+    // Text Colors - On State
+    nameTextColorOn: '#111827', // gray-900
+    statusTextColorOn: '#4b5563', // gray-600
+    valueTextColorOn: '#111827', // gray-900
+    unitTextColorOn: '#4b5563', // gray-600
   },
   dark: {
     dashboardBackground: '#111827', // gray-900
     sidebarBackground: 'rgba(17, 24, 39, 0.75)',
     cardBackground: 'rgba(31, 41, 55, 0.8)', // gray-800/80
     cardBackgroundOn: '#374151', // gray-700
-    cardTextColor: '#e5e7eb', // gray-200
-    cardTextColorOn: '#f9fafb', // gray-50
+
+    // Text Colors - Off State
+    nameTextColor: '#d1d5db', // gray-300
+    statusTextColor: '#9ca3af', // gray-400
+    valueTextColor: '#f9fafb', // gray-50
+    unitTextColor: '#9ca3af', // gray-400
+    // Text Colors - On State
+    nameTextColorOn: '#f9fafb', // gray-50
+    statusTextColorOn: '#d1d5db', // gray-300
+    valueTextColorOn: '#f9fafb', // gray-50
+    unitTextColorOn: '#d1d5db', // gray-300
   },
 };
 

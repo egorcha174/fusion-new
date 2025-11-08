@@ -115,23 +115,27 @@ export interface CameraSettings {
   selectedEntityId: string | null;
 }
 
+interface ColorThemeSet {
+  dashboardBackground: string;
+  sidebarBackground: string;
+  cardBackground: string;
+  cardBackgroundOn: string;
+
+  // Text Colors - Off State
+  nameTextColor: string;
+  statusTextColor: string;
+  valueTextColor: string;
+  unitTextColor: string;
+  // Text Colors - On State
+  nameTextColorOn: string;
+  statusTextColorOn: string;
+  valueTextColorOn: string;
+  unitTextColorOn: string;
+}
+
 export interface ColorScheme {
-  light: {
-    dashboardBackground: string;
-    sidebarBackground: string;
-    cardBackground: string;
-    cardTextColor: string;
-    cardBackgroundOn: string;
-    cardTextColorOn: string;
-  };
-  dark: {
-    dashboardBackground: string;
-    sidebarBackground: string;
-    cardBackground: string;
-    cardTextColor: string;
-    cardBackgroundOn: string;
-    cardTextColorOn: string;
-  };
+  light: ColorThemeSet;
+  dark: ColorThemeSet;
 }
 
 

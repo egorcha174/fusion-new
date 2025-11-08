@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement, DeviceCustomizations, ColorScheme } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -492,12 +493,14 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
       };
 
       switch(element.id) {
-        case 'name':
-          return (
-            <div key={element.id} style={style}>
-              <AutoFitText text={device.name} className="w-full h-full" pClassName={`font-medium ${isOn ? 'text-gray-900 dark:text-gray-50' : 'text-gray-700 dark:text-gray-200'} leading-tight`} maxFontSize={100} mode="multi-line" maxLines={2} fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
-            </div>
-          );
+        case 'name': {
+            const nameColor = isOn ? colorScheme.nameTextColorOn : colorScheme.nameTextColor;
+            return (
+                <div key={element.id} style={style}>
+                    <AutoFitText text={device.name} className="w-full h-full" pClassName="font-medium leading-tight" pStyle={{ color: nameColor }} maxFontSize={100} mode="multi-line" maxLines={2} fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
+                </div>
+            );
+        }
         case 'icon':
           const iconColor = isOn
               ? (element.styles.onColor || 'rgb(59 130 246)') // default blue
@@ -507,12 +510,14 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
               <DeviceIcon icon={device.icon ?? device.type} isOn={isOn} className="!w-full !h-full" iconAnimation={device.iconAnimation} />
             </div>
           );
-        case 'status':
-          return (
-            <div key={element.id} style={style}>
-              <AutoFitText text={device.status} className="w-full h-full" pClassName={`text-sm ${isOn ? 'text-gray-800 dark:text-gray-200' : 'text-gray-500 dark:text-gray-400'}`} maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
-            </div>
-          );
+        case 'status': {
+            const statusColor = isOn ? colorScheme.statusTextColorOn : colorScheme.statusTextColor;
+            return (
+                <div key={element.id} style={style}>
+                    <AutoFitText text={device.status} className="w-full h-full" pClassName="text-sm" pStyle={{ color: statusColor }} maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
+                </div>
+            );
+        }
         case 'value': {
           const { decimalPlaces } = element.styles;
           let valueText = device.status;
@@ -520,19 +525,21 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
           if (!isNaN(numericStatus) && typeof decimalPlaces === 'number' && decimalPlaces >= 0) {
             valueText = numericStatus.toFixed(decimalPlaces);
           }
-           const pStyle: React.CSSProperties = dynamicValueColor ? { color: dynamicValueColor } : {};
+           const valueColor = isOn ? colorScheme.valueTextColorOn : colorScheme.valueTextColor;
+           const pStyle: React.CSSProperties = dynamicValueColor ? { color: dynamicValueColor } : { color: valueColor };
           return (
             <div key={element.id} style={style} className="flex items-center">
-              <AutoFitText text={valueText} className="w-full h-full" pClassName="font-semibold text-black dark:text-white" maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} pStyle={pStyle} />
+              <AutoFitText text={valueText} className="w-full h-full" pClassName="font-semibold" maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} pStyle={pStyle} />
             </div>
           );
         }
         case 'unit': {
           const isNumericStatus = !isNaN(parseFloat(device.status));
           if (!device.unit || !isNumericStatus) return null;
+          const unitColor = isOn ? colorScheme.unitTextColorOn : colorScheme.unitTextColor;
           return (
             <div key={element.id} style={style}>
-              <AutoFitText text={device.unit} className="w-full h-full" pClassName="font-medium text-gray-500 dark:text-gray-400" maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
+              <AutoFitText text={device.unit} className="w-full h-full" pClassName="font-medium" pStyle={{ color: unitColor }} maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
             </div>
           );
         }
@@ -568,9 +575,10 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                tempText = device.temperature.toFixed(0);
              }
            }
+           const tempColor = isOn ? colorScheme.valueTextColorOn : colorScheme.valueTextColor;
            return (
              <div key={element.id} style={style} className="pointer-events-none">
-               <AutoFitText text={`${tempText}°`} className="w-full h-full" pClassName="font-bold text-black dark:text-white" maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
+               <AutoFitText text={`${tempText}°`} className="w-full h-full" pClassName="font-bold" pStyle={{ color: tempColor }} maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
              </div>
            );
         }
@@ -736,7 +744,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                             <AutoFitText
                                 text={valueText}
                                 className="w-full h-full"
-                                pClassName={`font-semibold ${isOn ? 'text-black dark:text-white' : 'text-black dark:text-white'}`}
+                                pClassName="font-semibold"
+                                pStyle={{ color: isOn ? colorScheme.valueTextColorOn : colorScheme.valueTextColor }}
                                 maxFontSize={100}
                                 mode="single-line"
                                 fontSize={fontSize}
@@ -906,11 +915,12 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                         text={device.name}
                         className="w-full h-full"
                         pClassName={styles.nameText}
+                        pStyle={{ color: isOn ? colorScheme.nameTextColorOn : colorScheme.nameTextColor }}
                         maxFontSize={18}
                         mode="multi-line"
                     />
                 </div>
-              <p className={`${styles.statusText} transition-colors flex-shrink-0`}>{device.status}</p>
+              <p className={`${styles.statusText} transition-colors flex-shrink-0`} style={{ color: isOn ? colorScheme.statusTextColorOn : colorScheme.statusTextColor }}>{device.status}</p>
                {isOn && (
                 <div className="mt-2 flex-shrink-0" onClick={(e) => { if (!isPreview) e.stopPropagation(); }}>
                     <input
@@ -970,14 +980,15 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                         text={device.name}
                         className="w-full h-full"
                         pClassName={styles.nameText}
+                        pStyle={{ color: isOn ? colorScheme.nameTextColorOn : colorScheme.nameTextColor }}
                         maxFontSize={18}
                         mode="multi-line"
                     />
                 </div>
-                <p className={`${styles.thermostatTempText} flex-shrink-0`}>{device.temperature}{device.unit}</p>
+                <p className={`${styles.thermostatTempText} flex-shrink-0`} style={{ color: colorScheme.valueTextColor }}>{device.temperature}{device.unit}</p>
                 <div className="flex items-center justify-between mt-1 flex-shrink-0">
                     <button onClick={(e) => { if (!isPreview) { e.stopPropagation(); onTemperatureChange(-0.5, true); } }} disabled={isPreview} className={`${styles.thermostatButton} rounded-full flex items-center justify-center font-light text-2xl leading-none pb-1`}>-</button>
-                    <span className={`${styles.thermostatTargetText}`}>Цель: {device.targetTemperature?.toFixed(1)}{device.unit}</span>
+                    <span className={`${styles.thermostatTargetText}`} style={{ color: colorScheme.statusTextColor }}>Цель: {device.targetTemperature?.toFixed(1)}{device.unit}</span>
                     <button onClick={(e) => { if (!isPreview) { e.stopPropagation(); onTemperatureChange(0.5, true); } }} disabled={isPreview} className={`${styles.thermostatButton} rounded-full flex items-center justify-center font-light text-2xl leading-none pb-1`}>+</button>
                 </div>
             </div>
@@ -996,13 +1007,14 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                     text={device.name}
                     className="w-full h-full"
                     pClassName={styles.nameText}
+                    pStyle={{ color: isOn ? colorScheme.nameTextColorOn : colorScheme.nameTextColor }}
                     maxFontSize={18}
                     mode="multi-line"
                 />
               </div>
               <div className="flex items-baseline">
-                <p className={`${styles.sensorStatusText}`}>{device.status}</p>
-                {isNumericStatus && device.unit && <p className={`ml-1 ${styles.sensorUnitText}`}>{device.unit}</p>}
+                <p className={`${styles.sensorStatusText}`} style={{ color: colorScheme.valueTextColor }}>{device.status}</p>
+                {isNumericStatus && device.unit && <p className={`ml-1 ${styles.sensorUnitText}`} style={{ color: colorScheme.unitTextColor }}>{device.unit}</p>}
               </div>
             </div>
           </div>
@@ -1020,11 +1032,12 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                     text={device.name}
                     className="w-full h-full"
                     pClassName={styles.nameText}
+                    pStyle={{ color: isOn ? colorScheme.nameTextColorOn : colorScheme.nameTextColor }}
                     maxFontSize={18}
                     mode="multi-line"
                 />
               </div>
-              <p className={`${styles.statusText} transition-colors flex-shrink-0`}>{device.status}</p>
+              <p className={`${styles.statusText} transition-colors flex-shrink-0`} style={{ color: isOn ? colorScheme.statusTextColorOn : colorScheme.statusTextColor }}>{device.status}</p>
             </div>
           </div>
         );
@@ -1050,7 +1063,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
       }
       return {
           backgroundColor: isOn ? colorScheme.cardBackgroundOn : colorScheme.cardBackground,
-          color: isOn ? colorScheme.cardTextColorOn : colorScheme.cardTextColor
       }
   }
 

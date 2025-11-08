@@ -231,8 +231,18 @@ const Settings: React.FC<SettingsProps> = (props) => {
                            <ColorSettingRow label="Фон боковой панели" value={colorScheme.light.sidebarBackground} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, sidebarBackground: c }})}/>
                            <ColorSettingRow label="Фон карточки" value={colorScheme.light.cardBackground} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, cardBackground: c }})}/>
                            <ColorSettingRow label="Фон вкл. карточки" value={colorScheme.light.cardBackgroundOn} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, cardBackgroundOn: c }})}/>
-                           <ColorSettingRow label="Цвет текста" value={colorScheme.light.cardTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, cardTextColor: c }})}/>
-                           <ColorSettingRow label="Цвет вкл. текста" value={colorScheme.light.cardTextColorOn} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, cardTextColorOn: c }})}/>
+                           
+                           <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-400 pt-3">Текст (состояние Выкл.)</h4>
+                           <ColorSettingRow label="Название" value={colorScheme.light.nameTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, nameTextColor: c }})}/>
+                           <ColorSettingRow label="Статус" value={colorScheme.light.statusTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, statusTextColor: c }})}/>
+                           <ColorSettingRow label="Значение" value={colorScheme.light.valueTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, valueTextColor: c }})}/>
+                           <ColorSettingRow label="Единица изм." value={colorScheme.light.unitTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, unitTextColor: c }})}/>
+                           
+                           <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-400 pt-3">Текст (состояние Вкл.)</h4>
+                           <ColorSettingRow label="Название" value={colorScheme.light.nameTextColorOn} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, nameTextColorOn: c }})}/>
+                           <ColorSettingRow label="Статус" value={colorScheme.light.statusTextColorOn} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, statusTextColorOn: c }})}/>
+                           <ColorSettingRow label="Значение" value={colorScheme.light.valueTextColorOn} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, valueTextColorOn: c }})}/>
+                           <ColorSettingRow label="Единица изм." value={colorScheme.light.unitTextColorOn} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, unitTextColorOn: c }})}/>
                         </div>
                     </div>
                      <div>
@@ -242,8 +252,18 @@ const Settings: React.FC<SettingsProps> = (props) => {
                            <ColorSettingRow label="Фон боковой панели" value={colorScheme.dark.sidebarBackground} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, sidebarBackground: c }})}/>
                            <ColorSettingRow label="Фон карточки" value={colorScheme.dark.cardBackground} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, cardBackground: c }})}/>
                            <ColorSettingRow label="Фон вкл. карточки" value={colorScheme.dark.cardBackgroundOn} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, cardBackgroundOn: c }})}/>
-                           <ColorSettingRow label="Цвет текста" value={colorScheme.dark.cardTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, cardTextColor: c }})}/>
-                           <ColorSettingRow label="Цвет вкл. текста" value={colorScheme.dark.cardTextColorOn} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, cardTextColorOn: c }})}/>
+                           
+                           <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-400 pt-3">Текст (состояние Выкл.)</h4>
+                           <ColorSettingRow label="Название" value={colorScheme.dark.nameTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, nameTextColor: c }})}/>
+                           <ColorSettingRow label="Статус" value={colorScheme.dark.statusTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, statusTextColor: c }})}/>
+                           <ColorSettingRow label="Значение" value={colorScheme.dark.valueTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, valueTextColor: c }})}/>
+                           <ColorSettingRow label="Единица изм." value={colorScheme.dark.unitTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, unitTextColor: c }})}/>
+                           
+                           <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-400 pt-3">Текст (состояние Вкл.)</h4>
+                           <ColorSettingRow label="Название" value={colorScheme.dark.nameTextColorOn} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, nameTextColorOn: c }})}/>
+                           <ColorSettingRow label="Статус" value={colorScheme.dark.statusTextColorOn} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, statusTextColorOn: c }})}/>
+                           <ColorSettingRow label="Значение" value={colorScheme.dark.valueTextColorOn} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, valueTextColorOn: c }})}/>
+                           <ColorSettingRow label="Единица изм." value={colorScheme.dark.unitTextColorOn} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, unitTextColorOn: c }})}/>
                         </div>
                     </div>
                     <button onClick={onResetColorScheme} className="w-full text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600/80 rounded-md py-2 transition-colors">
