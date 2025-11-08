@@ -1,5 +1,6 @@
 
 
+
 import React, { useMemo, useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import useHomeAssistant from './hooks/useHomeAssistant';
@@ -822,7 +823,7 @@ const App: React.FC = () => {
   const otherTabs = tabs.filter(t => t.id !== contextMenu?.tabId);
 
   return (
-    <div className="flex min-h-screen bg-gray-200 dark:bg-gray-200 text-gray-900 dark:text-gray-200">
+    <div className="flex min-h-screen bg-gray-200 dark:bg-gray-900 text-gray-900 dark:text-gray-200">
       <Suspense fallback={<div className="bg-gray-900" style={{ width: `${sidebarWidth}px` }} />}>
         <InfoPanel 
           clockSettings={clockSettings} 
