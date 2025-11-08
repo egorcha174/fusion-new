@@ -155,6 +155,7 @@ export interface CardElement {
     offColor?: string;
     fontSize?: number;
     textAlign?: 'left' | 'center' | 'right';
+    textColor?: string;
     linkedEntityId?: string;
     showValue?: boolean;
     chartTimeRange?: number;

@@ -6,6 +6,8 @@
 
 
 
+
+
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot, ColorScheme } from '../types';
 import DeviceCard from './DeviceCard';
@@ -578,8 +580,33 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                 
                  {['name', 'status', 'value', 'unit', 'temperature'].includes(selectedElement.id) && (
                     <Section title="Текст">
-                        {/* Fix: Moved suffix prop from NumberInput to LabeledInput */}
                         <LabeledInput label="Размер шрифта" suffix="px"><NumberInput value={selectedElement.styles.fontSize} onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === selectedElement.id ? {...e, styles: {...e.styles, fontSize: v}} : e)}))} min={8} max={100} placeholder="Авто" /></LabeledInput>
+                        <LabeledInput label="Цвет текста">
+                            <div className="flex items-center gap-2">
+                                <input 
+                                    type="color" 
+                                    value={selectedElement.styles.textColor || '#ffffff'} 
+                                    onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, textColor: e.target.value}} : el)}))}
+                                    className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"
+                                />
+                                <button 
+                                    onClick={() => setEditedTemplate(p => {
+                                        const newElements = [...p.elements];
+                                        const elIndex = newElements.findIndex(el => el.id === selectedElement.id);
+                                        if (elIndex > -1) {
+                                            const newStyles = { ...newElements[elIndex].styles };
+                                            delete newStyles.textColor;
+                                            newElements[elIndex] = { ...newElements[elIndex], styles: newStyles };
+                                        }
+                                        return {...p, elements: newElements};
+                                    })}
+                                    title="Сбросить" 
+                                    className="p-1 text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-md transition-colors"
+                                >
+                                    <Icon icon="mdi:close" className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </LabeledInput>
                     </Section>
                  )}
                  {['value', 'temperature'].includes(selectedElement.id) && (

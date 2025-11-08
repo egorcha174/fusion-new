@@ -1,7 +1,5 @@
 
 
-
-
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement, DeviceCustomizations, ColorScheme } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -494,7 +492,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
 
       switch(element.id) {
         case 'name': {
-            const nameColor = isOn ? colorScheme.nameTextColorOn : colorScheme.nameTextColor;
+            const nameColor = element.styles.textColor || (isOn ? colorScheme.nameTextColorOn : colorScheme.nameTextColor);
             return (
                 <div key={element.id} style={style}>
                     <AutoFitText text={device.name} className="w-full h-full" pClassName="font-medium leading-tight" pStyle={{ color: nameColor }} maxFontSize={100} mode="multi-line" maxLines={2} fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
@@ -511,7 +509,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
             </div>
           );
         case 'status': {
-            const statusColor = isOn ? colorScheme.statusTextColorOn : colorScheme.statusTextColor;
+            const statusColor = element.styles.textColor || (isOn ? colorScheme.statusTextColorOn : colorScheme.statusTextColor);
             return (
                 <div key={element.id} style={style}>
                     <AutoFitText text={device.status} className="w-full h-full" pClassName="text-sm" pStyle={{ color: statusColor }} maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
@@ -526,7 +524,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
             valueText = numericStatus.toFixed(decimalPlaces);
           }
            const valueColor = isOn ? colorScheme.valueTextColorOn : colorScheme.valueTextColor;
-           const pStyle: React.CSSProperties = dynamicValueColor ? { color: dynamicValueColor } : { color: valueColor };
+           const finalColor = element.styles.textColor || dynamicValueColor || valueColor;
+           const pStyle: React.CSSProperties = { color: finalColor };
           return (
             <div key={element.id} style={style} className="flex items-center">
               <AutoFitText text={valueText} className="w-full h-full" pClassName="font-semibold" maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} pStyle={pStyle} />
@@ -536,7 +535,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         case 'unit': {
           const isNumericStatus = !isNaN(parseFloat(device.status));
           if (!device.unit || !isNumericStatus) return null;
-          const unitColor = isOn ? colorScheme.unitTextColorOn : colorScheme.unitTextColor;
+          const unitColor = element.styles.textColor || (isOn ? colorScheme.unitTextColorOn : colorScheme.unitTextColor);
           return (
             <div key={element.id} style={style}>
               <AutoFitText text={device.unit} className="w-full h-full" pClassName="font-medium" pStyle={{ color: unitColor }} maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
@@ -575,7 +574,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                tempText = device.temperature.toFixed(0);
              }
            }
-           const tempColor = isOn ? colorScheme.valueTextColorOn : colorScheme.valueTextColor;
+           const tempColor = element.styles.textColor || (isOn ? colorScheme.valueTextColorOn : colorScheme.valueTextColor);
            return (
              <div key={element.id} style={style} className="pointer-events-none">
                <AutoFitText text={`${tempText}°`} className="w-full h-full" pClassName="font-bold" pStyle={{ color: tempColor }} maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
