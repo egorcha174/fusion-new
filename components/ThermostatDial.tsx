@@ -1,4 +1,3 @@
-
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 
 // --- Helper Functions ---
@@ -184,6 +183,7 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
 
     const handlePointerUp = () => {
@@ -274,7 +274,7 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
         />
       </svg>
       <div 
-        className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer rounded-full"
+        className="absolute top-1/2 left-1/2 w-[78%] h-[78%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center cursor-pointer rounded-full"
         onClick={(e) => {
             e.stopPropagation();
             setIsEditing(true);
