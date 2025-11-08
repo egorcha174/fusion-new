@@ -1,4 +1,5 @@
 
+
 import React, { useEffect, useRef, useState } from 'react';
 
 interface ContextMenuProps {
@@ -59,10 +60,18 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, isOpen, onClose, childr
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-2xl ring-1 ring-white/10 p-1 text-sm text-gray-200 min-w-[180px] fade-in"
+      className="fixed z-50 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-2xl ring-1 ring-black/10 dark:ring-white/10 p-1 text-sm text-gray-800 dark:text-gray-200 min-w-[180px] fade-in"
       style={{ top: adjustedY, left: adjustedX }}
     >
-      {children}
+      {React.Children.map(children, child => {
+        // FIX: Add generic type to `isValidElement` to inform TypeScript about the `className` prop, resolving type errors.
+        if (React.isValidElement<{ className?: string }>(child) && child.props.className) {
+          return React.cloneElement(child, {
+            className: `${child.props.className} hover:bg-gray-200 dark:hover:bg-gray-700/80`
+          });
+        }
+        return child;
+      })}
     </div>
   );
 };

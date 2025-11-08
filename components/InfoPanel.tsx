@@ -48,7 +48,7 @@ const Clock: React.FC<ClockProps> = ({ settings, sidebarWidth }) => {
 
     return (
         <div 
-            className="font-mono font-bold text-gray-100 tracking-tighter whitespace-nowrap"
+            className="font-mono font-bold text-gray-900 dark:text-gray-100 tracking-tighter whitespace-nowrap"
             style={fontSizeStyle}
         >
             {time.toLocaleTimeString('ru-RU', options)}
@@ -93,7 +93,7 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
     return (
         <div>
             <div
-                className="relative aspect-video bg-gray-800 rounded-lg text-white overflow-hidden flex items-center justify-center group"
+                className="relative aspect-video bg-gray-200 dark:bg-gray-800 rounded-lg text-white overflow-hidden flex items-center justify-center group"
                 onClick={handleCameraClick}
                 onContextMenu={handleContextMenu}
             >
@@ -113,7 +113,7 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
                         </div>
                     </>
                 ) : (
-                    <div className="text-gray-500 text-center p-4">
+                    <div className="text-gray-500 dark:text-gray-500 text-center p-4">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.55a2 2 0 01.95 1.664V16a2 2 0 01-2 2H5a2 2 0 01-2 2v-2.336a2 2 0 01.95-1.664L8 10l3 3 4-3z" />
                         </svg>
@@ -190,7 +190,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, sidebarWidth, setS
 
     return (
         <aside
-            className="fixed top-0 left-0 h-full bg-gray-900 ring-1 ring-white/5 text-white hidden lg:flex flex-col p-8"
+            className="fixed top-0 left-0 h-full bg-white/70 dark:bg-gray-900 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/5 hidden lg:flex flex-col p-8"
             style={{ width: `${sidebarWidth}px` }}
         >
             <div className="flex justify-center">

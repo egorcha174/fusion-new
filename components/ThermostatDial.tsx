@@ -205,12 +205,12 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
 
   const getLabelAndColor = () => {
     switch (hvacAction) {
-      case 'cooling': return { label: 'ОХЛАЖДЕНИЕ', color: '#2563eb' };
-      case 'heating': return { label: 'НАГРЕВ', color: '#f97316' };
-      default: return { label: 'ЦЕЛЬ', color: '#9ca3af' };
+      case 'cooling': return { label: 'ОХЛАЖДЕНИЕ', className: 'text-blue-500' };
+      case 'heating': return { label: 'НАГРЕВ', className: 'text-orange-500' };
+      default: return { label: 'ЦЕЛЬ', className: 'text-gray-500 dark:text-gray-400' };
     }
   };
-  const { label: centerLabel, color: activeColor } = getLabelAndColor();
+  const { label: centerLabel, className: activeClassName } = getLabelAndColor();
 
   return (
     <div className="relative w-full h-full flex items-center justify-center">
@@ -236,7 +236,7 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
         <path
           d={describeArc(CENTER, CENTER, RADIUS, START_ANGLE, END_ANGLE)}
           fill="none"
-          stroke="#4b5563" // gray-600
+          className="stroke-gray-300 dark:stroke-gray-600"
           strokeWidth={STROKE_WIDTH}
           strokeLinecap="round"
         />
@@ -268,8 +268,7 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
           cx={handlePosition.x}
           cy={handlePosition.y}
           r={STROKE_WIDTH / 2 + 2}
-          fill="#ffffff"
-          className="cursor-pointer"
+          className="fill-gray-800 dark:fill-white cursor-pointer"
           onPointerDown={handlePointerDown}
         />
       </svg>
@@ -280,13 +279,13 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
             setIsEditing(true);
         }}
       >
-          <p className="text-xs font-bold" style={{ color: activeColor }}>{centerLabel}</p>
-          <p className="text-6xl font-light text-white -my-1">{value.toFixed(1).replace('.', ',')}</p>
+          <p className={`text-xs font-bold ${activeClassName}`}>{centerLabel}</p>
+          <p className="text-6xl font-light text-gray-900 dark:text-white -my-1">{value.toFixed(1).replace('.', ',')}</p>
       </div>
       
        {isEditing && (
         <div 
-            className="absolute inset-0 bg-gray-900/70 backdrop-blur-sm rounded-full flex items-center justify-center z-20 fade-in"
+            className="absolute inset-0 bg-gray-200/70 dark:bg-gray-900/70 backdrop-blur-sm rounded-full flex items-center justify-center z-20 fade-in"
             onClick={(e) => e.stopPropagation()}
         >
             <div className="flex items-center justify-center">
@@ -305,7 +304,7 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
                             }
                         }}
                         onBlur={submitNewValue}
-                        className="bg-transparent text-white text-6xl font-light w-44 text-center outline-none p-0 m-0"
+                        className="bg-transparent text-gray-900 dark:text-white text-6xl font-light w-44 text-center outline-none p-0 m-0"
                     />
                     <button type="submit" className="hidden">Установить</button>
                 </form>

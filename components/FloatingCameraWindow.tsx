@@ -103,7 +103,7 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({
 
   return (
     <div
-      className="fixed z-50 bg-gray-800 rounded-lg shadow-2xl ring-1 ring-white/10 flex flex-col user-select-none overflow-hidden"
+      className="fixed z-50 bg-white dark:bg-gray-800 rounded-lg shadow-2xl ring-1 ring-black/10 dark:ring-white/10 flex flex-col user-select-none overflow-hidden"
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,
@@ -115,14 +115,14 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({
       {/* Заголовок окна */}
       <header
         onPointerDown={handleDragPointerDown}
-        className="h-10 bg-gray-700/80 flex-shrink-0 flex items-center justify-between px-3 cursor-move"
+        className="h-10 bg-gray-100 dark:bg-gray-700/80 flex-shrink-0 flex items-center justify-between px-3 cursor-move"
       >
-        <h3 className="font-bold text-white text-sm truncate select-none">
+        <h3 className="font-bold text-gray-900 dark:text-white text-sm truncate select-none">
           {device.name}
         </h3>
         <button
           onClick={onClose}
-          className="p-1 rounded-full text-gray-300 hover:bg-gray-600 hover:text-white transition-colors"
+          className="p-1 rounded-full text-gray-500 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 hover:text-gray-800 dark:hover:text-white transition-colors"
           aria-label="Закрыть окно камеры"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

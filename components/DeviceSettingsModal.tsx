@@ -2,6 +2,7 @@
 
 
 
+
 import React, { useState, useMemo } from 'react';
 import { Device, DeviceCustomization, DeviceType, CardTemplates, DeviceBinding, CardTemplate, ThresholdRule } from '../types';
 import DeviceIcon, { icons, getIconNameForDeviceType } from './DeviceIcon';
@@ -156,34 +157,34 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="bg-gray-800 rounded-2xl shadow-lg w-full max-w-md ring-1 ring-white/10"
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg w-full max-w-md ring-1 ring-black/5 dark:ring-white/10"
         onClick={e => e.stopPropagation()}
       >
-        <div className="p-6 border-b border-gray-700">
-            <h2 className="text-xl font-bold text-white">Настроить устройство</h2>
-            <p className="text-sm text-gray-400">{device.name}</p>
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Настроить устройство</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{device.name}</p>
         </div>
         
         <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto no-scrollbar">
           <div>
-            <label htmlFor="deviceName" className="block text-sm font-medium text-gray-300 mb-2">Название</label>
+            <label htmlFor="deviceName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Название</label>
             <input
               id="deviceName"
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
-              className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div>
-            <label htmlFor="deviceType" className="block text-sm font-medium text-gray-300 mb-2">Тип устройства</label>
-            <p className="text-xs text-gray-400 mb-2">Определяет поведение карточки. Используйте, если автоопределение неверно.</p>
+            <label htmlFor="deviceType" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Тип устройства</label>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Определяет поведение карточки. Используйте, если автоопределение неверно.</p>
             <select
                 id="deviceType"
                 value={type}
                 onChange={(e) => handleTypeChange(Number(e.target.value) as DeviceType)}
-                className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+                className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
             >
                 {availableTypes.map(typeOption => (
                     <option key={typeOption.value} value={typeOption.value}>
@@ -195,12 +196,12 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
 
           {isTemplateable && (
             <div>
-              <label htmlFor="deviceTemplate" className="block text-sm font-medium text-gray-300 mb-2">Шаблон</label>
+              <label htmlFor="deviceTemplate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Шаблон</label>
               <select
                   id="deviceTemplate"
                   value={templateId}
                   onChange={(e) => setTemplateId(e.target.value)}
-                  className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+                  className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
               >
                   <option value="">По умолчанию</option>
                   {Object.values(templates)
@@ -214,39 +215,39 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
             </div>
           )}
            {isSensor && (
-            <div className="space-y-4 pt-4 border-t border-gray-700">
-                <h3 className="text-base font-semibold text-white">Пороги значений</h3>
-                 <p className="text-xs text-gray-400 -mt-2">Изменяйте цвет фона или значения в зависимости от состояния сенсора.</p>
+            <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">Пороги значений</h3>
+                 <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">Изменяйте цвет фона или значения в зависимости от состояния сенсора.</p>
                 <div className="space-y-2">
                 {(thresholds).map((rule, index) => (
-                    <div key={index} className="bg-gray-700/50 p-3 rounded-lg space-y-3">
+                    <div key={index} className="bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg space-y-3">
                         <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-gray-200">Правило #{index + 1}</span>
-                            <button onClick={() => handleDeleteThreshold(index)} className="p-1 text-gray-500 hover:text-red-400 rounded-md transition-colors">
+                            <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">Правило #{index + 1}</span>
+                            <button onClick={() => handleDeleteThreshold(index)} className="p-1 text-gray-500 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 rounded-md transition-colors">
                                 <Icon icon="mdi:trash-can-outline" className="w-4 h-4" />
                             </button>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
-                            <select value={rule.comparison} onChange={(e) => handleUpdateThreshold(index, 'comparison', e.target.value as 'above' | 'below')} className="w-full bg-gray-900/50 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none">
+                            <select value={rule.comparison} onChange={(e) => handleUpdateThreshold(index, 'comparison', e.target.value as 'above' | 'below')} className="w-full bg-white dark:bg-gray-900/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none">
                                 <option value="above">Больше чем</option>
                                 <option value="below">Меньше чем</option>
                             </select>
-                            <input type="number" value={rule.value} onChange={e => handleUpdateThreshold(index, 'value', parseFloat(e.target.value) ?? 0)} className="w-full bg-gray-900/50 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                            <input type="number" value={rule.value} onChange={e => handleUpdateThreshold(index, 'value', parseFloat(e.target.value) ?? 0)} className="w-full bg-white dark:bg-gray-900/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
                         </div>
                         <div className="grid grid-cols-2 items-center gap-4">
-                            <label className="text-xs text-gray-400 truncate">Цвет фона</label>
+                            <label className="text-xs text-gray-500 dark:text-gray-400 truncate">Цвет фона</label>
                              <div className="flex items-center gap-2">
                                 <input type="color" value={rule.style.backgroundColor || '#ffffff'} onChange={e => handleUpdateThreshold(index, 'style', { ...rule.style, backgroundColor: e.target.value })} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/>
-                                <button onClick={() => handleClearThresholdColor(index, 'backgroundColor')} title="Сбросить" className="p-1 text-gray-500 hover:text-white rounded-md transition-colors">
+                                <button onClick={() => handleClearThresholdColor(index, 'backgroundColor')} title="Сбросить" className="p-1 text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-md transition-colors">
                                     <Icon icon="mdi:close" className="w-4 h-4" />
                                 </button>
                              </div>
                         </div>
                         <div className="grid grid-cols-2 items-center gap-4">
-                            <label className="text-xs text-gray-400 truncate">Цвет значения</label>
+                            <label className="text-xs text-gray-500 dark:text-gray-400 truncate">Цвет значения</label>
                               <div className="flex items-center gap-2">
                                 <input type="color" value={rule.style.valueColor || '#ffffff'} onChange={e => handleUpdateThreshold(index, 'style', { ...rule.style, valueColor: e.target.value })} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/>
-                                 <button onClick={() => handleClearThresholdColor(index, 'valueColor')} title="Сбросить" className="p-1 text-gray-500 hover:text-white rounded-md transition-colors">
+                                 <button onClick={() => handleClearThresholdColor(index, 'valueColor')} title="Сбросить" className="p-1 text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-md transition-colors">
                                     <Icon icon="mdi:close" className="w-4 h-4" />
                                 </button>
                               </div>
@@ -254,7 +255,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                     </div>
                 ))}
                 </div>
-                <button onClick={handleAddThreshold} className="mt-2 w-full flex items-center justify-center gap-2 text-sm text-gray-300 hover:text-white bg-gray-700 hover:bg-gray-600/80 rounded-md py-2 transition-colors">
+                <button onClick={handleAddThreshold} className="mt-2 w-full flex items-center justify-center gap-2 text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600/80 rounded-md py-2 transition-colors">
                     <Icon icon="mdi:plus" className="w-5 h-5"/>
                     Добавить правило
                 </button>
@@ -262,28 +263,28 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
           )}
 
           {deviceSlots && deviceSlots.length > 0 && (
-            <div className="space-y-4 pt-4 border-t border-gray-700">
-                <h3 className="text-base font-semibold text-white">Привязка индикаторов</h3>
+            <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">Привязка индикаторов</h3>
                 {deviceSlots.map((slot, index) => {
                     const binding = bindings.find(b => b.slotId === slot.id) || { enabled: false, entityId: '', icon: ''};
                     return (
-                        <div key={slot.id} className="bg-gray-700/50 p-4 rounded-lg space-y-3">
+                        <div key={slot.id} className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg space-y-3">
                            <div className="flex justify-between items-center">
-                               <label className="font-medium text-gray-200">Слот #{index + 1}</label>
+                               <label className="font-medium text-gray-800 dark:text-gray-200">Слот #{index + 1}</label>
                                 <button
                                     onClick={() => handleBindingChange(slot.id, { enabled: !binding.enabled })}
-                                    className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${binding.enabled ? 'bg-blue-600' : 'bg-gray-600'}`}
+                                    className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${binding.enabled ? 'bg-blue-600' : 'bg-gray-500 dark:bg-gray-600'}`}
                                 >
                                     <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${binding.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
                                 </button>
                            </div>
                            <div className={!binding.enabled ? 'opacity-50 pointer-events-none' : ''}>
                                <div>
-                                   <label className="block text-xs font-medium text-gray-400 mb-1">Устройство</label>
+                                   <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Устройство</label>
                                    <select
                                        value={binding.entityId}
                                        onChange={(e) => handleBindingChange(slot.id, { entityId: e.target.value })}
-                                       className="w-full bg-gray-900/50 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-sm"
+                                       className="w-full bg-white dark:bg-gray-900/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-sm"
                                    >
                                        <option value="">-- Выберите устройство --</option>
                                        {sortedEntities.map(entity => (
@@ -292,13 +293,13 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                                    </select>
                                </div>
                                <div>
-                                   <label className="block text-xs font-medium text-gray-400 mb-1 mt-2">Иконка (переопределение)</label>
+                                   <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 mt-2">Иконка (переопределение)</label>
                                    <input
                                        type="text"
                                        value={binding.icon || ''}
                                        placeholder="Авто (из устройства)"
                                        onChange={(e) => handleBindingChange(slot.id, { icon: e.target.value })}
-                                       className="w-full bg-gray-900/50 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                       className="w-full bg-white dark:bg-gray-900/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                                    />
                                </div>
                            </div>
@@ -309,23 +310,23 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Иконка</label>
-            <p className="text-xs text-gray-400 mb-2">Вставьте название с <a href="https://iconify.design/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Iconify.design</a> или выберите из стандартных.</p>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Иконка</label>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Вставьте название с <a href="https://iconify.design/" target="_blank" rel="noopener noreferrer" className="text-blue-500 dark:text-blue-400 hover:underline">Iconify.design</a> или выберите из стандартных.</p>
             <input
               id="deviceIcon"
               type="text"
               value={icon}
               onChange={e => setIcon(e.target.value)}
               placeholder="например, mdi:lightbulb"
-              className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
+              className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
             />
-            <div className="bg-gray-700/50 p-3 rounded-lg grid grid-cols-5 sm:grid-cols-7 gap-3">
+            <div className="bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg grid grid-cols-5 sm:grid-cols-7 gap-3">
                  {availableIcons.map(iconType => {
                     const iconName = getIconNameForDeviceType(iconType, false);
                     const isSelected = icon === iconName;
                     return (
-                        <div key={iconType} onClick={() => setIcon(iconName)} className={`p-2 rounded-lg cursor-pointer transition-colors aspect-square flex items-center justify-center ${isSelected ? 'bg-blue-600 ring-2 ring-blue-400' : 'bg-gray-800 hover:bg-gray-700'}`}>
-                           <div className="w-8 h-8 text-gray-400">
+                        <div key={iconType} onClick={() => setIcon(iconName)} className={`p-2 rounded-lg cursor-pointer transition-colors aspect-square flex items-center justify-center ${isSelected ? 'bg-blue-600 ring-2 ring-blue-400' : 'bg-white dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                           <div className="w-8 h-8 text-gray-500 dark:text-gray-400">
                             <DeviceIcon icon={iconType} isOn={false} className="!w-full !h-full !m-0" />
                            </div>
                         </div>
@@ -335,12 +336,12 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
          </div>
           
           <div>
-            <label htmlFor="iconAnimation" className="block text-sm font-medium text-gray-300 mb-2">Анимация иконки (для вкл. состояния)</label>
+            <label htmlFor="iconAnimation" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Анимация иконки (для вкл. состояния)</label>
             <select
               id="iconAnimation"
               value={iconAnimation}
               onChange={(e) => setIconAnimation(e.target.value as 'none' | 'spin' | 'pulse' | 'glow')}
-              className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+              className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
             >
               {animationOptions.map(opt => (
                 <option key={opt.value} value={opt.value}>
@@ -350,14 +351,14 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
             </select>
           </div>
 
-          <div className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg">
+          <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg">
             <div>
-              <label htmlFor="isHidden" className="text-sm font-medium text-gray-200">Скрыть устройство</label>
-              <p className="text-xs text-gray-400">Устройство не будет отображаться на дашборде.</p>
+              <label htmlFor="isHidden" className="text-sm font-medium text-gray-800 dark:text-gray-200">Скрыть устройство</label>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Устройство не будет отображаться на дашборде.</p>
             </div>
             <button
               onClick={() => setIsHidden(!isHidden)}
-              className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${isHidden ? 'bg-red-600' : 'bg-gray-600'}`}
+              className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${isHidden ? 'bg-red-600' : 'bg-gray-500 dark:bg-gray-600'}`}
             >
               <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${isHidden ? 'translate-x-6' : 'translate-x-1'}`} />
             </button>
@@ -365,8 +366,8 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
 
         </div>
 
-        <div className="p-6 flex justify-end gap-4 bg-gray-800/50 rounded-b-2xl border-t border-gray-700">
-            <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">Отмена</button>
+        <div className="p-6 flex justify-end gap-4 bg-gray-100/50 dark:bg-gray-800/50 rounded-b-2xl border-t border-gray-200 dark:border-gray-700">
+            <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors">Отмена</button>
             <button onClick={handleSave} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Сохранить</button>
         </div>
       </div>

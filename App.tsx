@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useMemo, useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import useHomeAssistant from './hooks/useHomeAssistant';
@@ -47,6 +49,7 @@ const defaultSensorTemplate: CardTemplate = {
   deviceType: 'sensor',
   styles: {
     backgroundColor: 'rgb(31 41 55 / 0.8)', // bg-gray-800/80
+    lightBackgroundColor: 'rgb(243 244 246 / 0.9)', // bg-gray-100/90
   },
   elements: [
     {
@@ -111,7 +114,9 @@ const defaultLightTemplate: CardTemplate = {
     deviceType: 'light',
     styles: {
       backgroundColor: 'rgb(55 65 81 / 0.8)', // bg-gray-600/80 for off state
+      lightBackgroundColor: 'rgb(229 231 235 / 0.9)', // bg-gray-200/90
       onBackgroundColor: 'rgb(229 231 235 / 1)', // bg-gray-200/100
+      lightOnBackgroundColor: 'rgb(255 255 255 / 1)', // bg-white
     },
     elements: [
       {
@@ -157,7 +162,9 @@ const defaultSwitchTemplate: CardTemplate = {
     deviceType: 'switch',
     styles: {
       backgroundColor: 'rgb(55 65 81 / 0.8)', // bg-gray-600/80 for off state
+      lightBackgroundColor: 'rgb(229 231 235 / 0.9)', // bg-gray-200/90
       onBackgroundColor: 'rgb(229 231 235 / 1)', // bg-gray-200/100
+      lightOnBackgroundColor: 'rgb(255 255 255 / 1)', // bg-white
     },
     elements: [
       {
@@ -195,6 +202,7 @@ const defaultClimateTemplate: CardTemplate = {
   deviceType: 'climate',
   styles: {
     backgroundColor: 'rgba(30, 30, 30, 0.5)', // A dark, blurred background look
+    lightBackgroundColor: 'rgba(240, 240, 240, 0.8)',
   },
   elements: [
     {
@@ -295,9 +303,30 @@ const App: React.FC = () => {
   const [sidebarWidth, setSidebarWidth] = useLocalStorage<number>('ha-sidebar-width', 320);
   const [haUrl] = useLocalStorage('ha-url', '');
   const [openWeatherMapKey, setOpenWeatherMapKey] = useLocalStorage<string>('ha-openweathermap-key', '');
+  const [theme, setTheme] = useLocalStorage<'day' | 'night' | 'auto'>('ha-theme', 'auto');
+
 
   const brightnessTimeoutRef = useRef<number | null>(null);
   const isLg = useIsLg();
+
+  // Theme management
+  useEffect(() => {
+    const root = window.document.documentElement;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    
+    const updateTheme = () => {
+      const isDark =
+        theme === 'night' ||
+        (theme === 'auto' && mediaQuery.matches);
+      root.classList.toggle('dark', isDark);
+    };
+
+    updateTheme();
+
+    mediaQuery.addEventListener('change', updateTheme);
+    return () => mediaQuery.removeEventListener('change', updateTheme);
+  }, [theme]);
+
 
   // Cleanup for brightness debounce timer on component unmount
   useEffect(() => {
@@ -797,7 +826,7 @@ const App: React.FC = () => {
   const otherTabs = tabs.filter(t => t.id !== contextMenu?.tabId);
 
   return (
-    <div className="flex min-h-screen bg-gray-900 text-gray-200">
+    <div className="flex min-h-screen bg-gray-200 dark:bg-gray-900 text-gray-900 dark:text-gray-200">
       <Suspense fallback={<div className="bg-gray-900" style={{ width: `${sidebarWidth}px` }} />}>
         <InfoPanel 
           clockSettings={clockSettings} 
@@ -832,6 +861,8 @@ const App: React.FC = () => {
                 currentPage={currentPage}
                 searchTerm={searchTerm}
                 onSearchChange={setSearchTerm}
+                theme={theme}
+                onThemeChange={setTheme}
             />
         </Suspense>
         <main className="flex-1 overflow-y-auto">

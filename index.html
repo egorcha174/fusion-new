@@ -1,10 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF--8" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHJ4PSI4IiBmaWxsPSIjNEE1NTY4Ii8+PHBhdGggZD0iTTE2IDhMNyAxNVYyNEgxMlYxOEgyMFYyNEgyNVYxNUwxNiA4WiIgZmlsbD0id2hpdGUiLz48L3N2Zz4=" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Home Assistant UI</title>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+      }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
 <style>
   @keyframes fadeIn {
@@ -56,7 +61,7 @@
 }
 </script>
 </head>
-  <body class="bg-gray-900">
+  <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

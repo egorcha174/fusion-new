@@ -175,8 +175,10 @@ export interface CardTemplate {
   deviceType: 'sensor' | 'light' | 'switch' | 'climate';
   elements: CardElement[];
   styles: {
-    backgroundColor: string;
-    onBackgroundColor?: string;
+    backgroundColor: string; // Dark mode off state
+    lightBackgroundColor?: string; // Light mode off state
+    onBackgroundColor?: string; // Dark mode on state
+    lightOnBackgroundColor?: string; // Light mode on state
   };
   width?: number;
   height?: number;

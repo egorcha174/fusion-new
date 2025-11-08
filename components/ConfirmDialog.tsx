@@ -33,18 +33,18 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       onClick={onCancel}
     >
       <div
-        className="bg-gray-800 rounded-2xl shadow-lg w-full max-w-sm ring-1 ring-white/10"
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg w-full max-w-sm ring-1 ring-black/5 dark:ring-white/10"
         onClick={e => e.stopPropagation()}
       >
         <div className="p-6">
-          <h2 className="text-xl font-bold text-white">{title}</h2>
-          <div className="mt-2 text-sm text-gray-300">{message}</div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h2>
+          <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">{message}</div>
         </div>
         
-        <div className="p-4 flex justify-end gap-4 bg-gray-900/50 rounded-b-2xl">
+        <div className="p-4 flex justify-end gap-4 bg-gray-100/50 dark:bg-gray-900/50 rounded-b-2xl">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
           >
             {cancelText}
           </button>

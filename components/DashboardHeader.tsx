@@ -4,6 +4,8 @@ import type { DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Tab, Page } from '../types';
+import { Icon } from '@iconify/react';
+
 
 interface SortableTabProps {
     tab: Tab;
@@ -24,10 +26,10 @@ const SortableTab: React.FC<SortableTabProps> = ({ tab, isActive, isEditMode, on
         <div ref={setNodeRef} style={style} {...attributes}>
             <button
                 onClick={onSelect}
-                className={`relative group whitespace-nowrap px-4 py-2 text-lg font-semibold transition-colors ${isActive ? 'text-white' : 'text-gray-400 hover:text-white'}`}
+                className={`relative group whitespace-nowrap px-4 py-2 text-lg font-semibold transition-colors ${isActive ? 'text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'}`}
             >
                 {isEditMode ? <span {...listeners} className="cursor-move">{tab.name}</span> : tab.name}
-                {isActive && <div className="absolute bottom-0 left-4 right-4 h-0.5 bg-white rounded-full" />}
+                {isActive && <div className="absolute bottom-0 left-4 right-4 h-0.5 bg-black dark:bg-white rounded-full" />}
                 {isEditMode && (
                     <button
                         onClick={(e) => { e.stopPropagation(); onEdit(); }}
@@ -57,10 +59,12 @@ interface DashboardHeaderProps {
     currentPage: Page;
     searchTerm: string;
     onSearchChange: (term: string) => void;
+    theme: 'day' | 'night' | 'auto';
+    onThemeChange: (theme: 'day' | 'night' | 'auto') => void;
 }
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({
-    tabs, activeTabId, onTabChange, onTabOrderChange, isEditMode, onToggleEditMode, onNavigate, onAddTab, onEditTab, currentPage, searchTerm, onSearchChange
+    tabs, activeTabId, onTabChange, onTabOrderChange, isEditMode, onToggleEditMode, onNavigate, onAddTab, onEditTab, currentPage, searchTerm, onSearchChange, theme, onThemeChange
 }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -79,37 +83,49 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
     const renderMenuItems = () => (
         <div className="py-1">
-            <button onClick={() => { onToggleEditMode(); setIsMenuOpen(false); setIsMobileMenuOpen(false); }} className="flex items-center gap-3 w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 rounded-md">
+            <button onClick={() => { onToggleEditMode(); setIsMenuOpen(false); setIsMobileMenuOpen(false); }} className="flex items-center gap-3 w-full text-left px-4 py-2 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
                 <span>{isEditMode ? 'Готово' : 'Редактировать'}</span>
             </button>
-            <button onClick={() => { onNavigate('all-devices'); setIsMenuOpen(false); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full text-left px-4 py-2 text-sm rounded-md transition-colors ${currentPage === 'all-devices' ? 'bg-gray-700 text-white' : 'text-gray-200 hover:bg-gray-700'}`}>
+            <button onClick={() => { onNavigate('all-devices'); setIsMenuOpen(false); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full text-left px-4 py-2 text-sm rounded-md transition-colors ${currentPage === 'all-devices' ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100 4m0-4a2 2 0 110 4m0-4v2m0 4v2m8-12a2 2 0 100 4m0-4a2 2 0 110 4m0 4v2m0-4v2m-8 4a2 2 0 100 4m0-4a2 2 0 110 4m0-4v2m0 4v2" />
                 </svg>
                 <span>Все устройства</span>
             </button>
-            <button onClick={() => { onNavigate('settings'); setIsMenuOpen(false); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full text-left px-4 py-2 text-sm rounded-md transition-colors ${currentPage === 'settings' ? 'bg-gray-700 text-white' : 'text-gray-200 hover:bg-gray-700'}`}>
+            <button onClick={() => { onNavigate('settings'); setIsMenuOpen(false); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full text-left px-4 py-2 text-sm rounded-md transition-colors ${currentPage === 'settings' ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0 3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 <span>Настройки</span>
             </button>
+             <div className="border-t border-gray-300 dark:border-gray-700 my-1" />
+            <div className="px-4 pt-2 pb-1 text-xs text-gray-500 dark:text-gray-400">Тема</div>
+             {[{val: 'day', name: 'Дневная'}, {val: 'night', name: 'Ночная'}, {val: 'auto', name: 'Авто'}].map(themeOption => {
+                const themeValue = themeOption.val as 'day' | 'night' | 'auto';
+                const isActive = theme === themeValue;
+                return (
+                    <button key={themeValue} onClick={() => { onThemeChange(themeValue); setIsMenuOpen(false); setIsMobileMenuOpen(false); }} className={`flex justify-between items-center w-full text-left px-4 py-2 text-sm rounded-md transition-colors ${isActive ? 'bg-blue-600 text-white' : 'text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                        <span>{themeOption.name}</span>
+                        {isActive && <Icon icon="mdi:check" className="w-5 h-5" />}
+                    </button>
+                )
+            })}
         </div>
     );
 
     return (
-        <header className="flex items-center justify-between text-white p-4 border-b border-gray-700/50 gap-4">
-            <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2 -ml-2 rounded-full hover:bg-gray-700">
+        <header className="flex items-center justify-between p-4 border-b border-gray-300 dark:border-gray-700/50 gap-4">
+            <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2 -ml-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-700">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
             </button>
             <div className="flex-1 flex items-center gap-2 overflow-hidden">
-                <div className="overflow-x-auto whitespace-nowrap">
+                <div className="overflow-x-auto whitespace-nowrap no-scrollbar">
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                         <SortableContext items={tabs.map(t => t.id)} strategy={horizontalListSortingStrategy}>
                             <nav className="flex items-center">
@@ -125,7 +141,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                             ))}
                              {isEditMode && (
                                 <div className="flex items-center flex-shrink-0">
-                                    <button onClick={onAddTab} className="ml-2 px-3 py-1 bg-gray-700 rounded-md text-sm hover:bg-gray-600">+</button>
+                                    <button onClick={onAddTab} className="ml-2 px-3 py-1 bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md text-sm hover:bg-gray-400 dark:hover:bg-gray-600">+</button>
                                 </div>
                             )}
                             </nav>
@@ -147,7 +163,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                             placeholder="Поиск устройств..."
                             value={searchTerm}
                             onChange={(e) => onSearchChange(e.target.value)}
-                            className="w-full bg-gray-800 text-gray-200 border border-gray-700 rounded-lg py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                            className="w-full bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-700 rounded-lg py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
                         />
                     </div>
                 )}
@@ -157,14 +173,14 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 <button
                     onClick={() => setIsMenuOpen(!isMenuOpen)}
                     onBlur={() => setTimeout(() => setIsMenuOpen(false), 200)}
-                    className="p-2 rounded-full hover:bg-gray-700"
+                    className="p-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-700"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                     </svg>
                 </button>
                 {isMenuOpen && (
-                     <div className="absolute right-0 mt-2 w-56 bg-gray-800 rounded-md shadow-lg z-20 ring-1 ring-black ring-opacity-5">
+                     <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg z-20 ring-1 ring-black/5 dark:ring-white/10">
                         {renderMenuItems()}
                     </div>
                 )}
@@ -174,7 +190,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             {isMobileMenuOpen && (
                 <div className="fixed inset-0 bg-black/60 z-30 lg:hidden" onClick={() => setIsMobileMenuOpen(false)}>
                     <div 
-                        className="absolute top-0 left-0 h-full bg-gray-800 w-64 p-4 shadow-lg ring-1 ring-white/10 fade-in" 
+                        className="absolute top-0 left-0 h-full bg-white dark:bg-gray-800 w-64 p-4 shadow-lg ring-1 ring-black/5 dark:ring-white/10 fade-in" 
                         onClick={e => e.stopPropagation()}
                     >
                          <h2 className="text-xl font-bold mb-4">Меню</h2>
