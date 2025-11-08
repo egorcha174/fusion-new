@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement, DeviceCustomizations } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -492,7 +493,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         case 'name':
           return (
             <div key={element.id} style={style}>
-              <AutoFitText text={device.name} className="w-full h-full" pClassName={`font-medium ${isOn ? 'text-gray-900' : 'text-gray-700 dark:text-gray-200'} leading-tight`} maxFontSize={100} mode="multi-line" maxLines={2} fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
+              <AutoFitText text={device.name} className="w-full h-full" pClassName={`font-medium ${isOn ? 'text-gray-900 dark:text-gray-50' : 'text-gray-700 dark:text-gray-200'} leading-tight`} maxFontSize={100} mode="multi-line" maxLines={2} fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
             </div>
           );
         case 'icon':
@@ -507,7 +508,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         case 'status':
           return (
             <div key={element.id} style={style}>
-              <AutoFitText text={device.status} className="w-full h-full" pClassName={`text-sm ${isOn ? 'text-gray-800' : 'text-gray-500 dark:text-gray-400'}`} maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
+              <AutoFitText text={device.status} className="w-full h-full" pClassName={`text-sm ${isOn ? 'text-gray-800 dark:text-gray-200' : 'text-gray-500 dark:text-gray-400'}`} maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
             </div>
           );
         case 'value': {
@@ -1036,7 +1037,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         return baseClasses; // Background is controlled by template
     }
       
-    const onStateClasses = "bg-gray-100 dark:bg-gray-50 text-gray-900";
+    const onStateClasses = "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100";
     const offStateClasses = "bg-white/80 dark:bg-gray-800/80 hover:bg-gray-200 dark:hover:bg-gray-700/80";
     
     let finalClasses = `${baseClasses} `;

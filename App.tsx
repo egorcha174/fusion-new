@@ -1,4 +1,5 @@
 
+
 import React, { useMemo, useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import useHomeAssistant from './hooks/useHomeAssistant';
@@ -110,7 +111,7 @@ const defaultLightTemplate: CardTemplate = {
     styles: {
       backgroundColor: 'rgb(55 65 81 / 0.8)', // bg-gray-600/80 for off state
       lightBackgroundColor: 'rgb(229 231 235 / 0.9)', // bg-gray-200/90
-      onBackgroundColor: 'rgb(249 250 251 / 1)', // bg-gray-50
+      onBackgroundColor: 'rgb(75 85 99 / 0.9)', // bg-gray-600/90
       lightOnBackgroundColor: 'rgb(255 255 255 / 1)', // bg-white
     },
     elements: [
@@ -158,7 +159,7 @@ const defaultSwitchTemplate: CardTemplate = {
     styles: {
       backgroundColor: 'rgb(55 65 81 / 0.8)', // bg-gray-600/80 for off state
       lightBackgroundColor: 'rgb(229 231 235 / 0.9)', // bg-gray-200/90
-      onBackgroundColor: 'rgb(249 250 251 / 1)', // bg-gray-50
+      onBackgroundColor: 'rgb(75 85 99 / 0.9)', // bg-gray-600/90
       lightOnBackgroundColor: 'rgb(255 255 255 / 1)', // bg-white
     },
     elements: [
@@ -821,7 +822,7 @@ const App: React.FC = () => {
   const otherTabs = tabs.filter(t => t.id !== contextMenu?.tabId);
 
   return (
-    <div className="flex min-h-screen bg-gray-200 dark:bg-gray-900 text-gray-900 dark:text-gray-200">
+    <div className="flex min-h-screen bg-gray-200 dark:bg-gray-200 text-gray-900 dark:text-gray-200">
       <Suspense fallback={<div className="bg-gray-900" style={{ width: `${sidebarWidth}px` }} />}>
         <InfoPanel 
           clockSettings={clockSettings} 
