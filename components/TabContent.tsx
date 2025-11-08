@@ -1,8 +1,9 @@
 
 
+
 import React from 'react';
 import DashboardGrid from './DashboardGrid';
-import { Tab, Device, GridLayoutItem, CardTemplates, DeviceCustomizations } from '../types';
+import { Tab, Device, GridLayoutItem, CardTemplates, DeviceCustomizations, ColorScheme } from '../types';
 
 interface TabContentProps {
   tab: Tab;
@@ -23,6 +24,7 @@ interface TabContentProps {
   getCameraStreamUrl: (entityId: string) => Promise<string>;
   templates: CardTemplates;
   customizations: DeviceCustomizations;
+  colorScheme: ColorScheme['light'];
 }
 
 const TabContent: React.FC<TabContentProps> = (props) => {

@@ -1,12 +1,13 @@
 
 
 
+
 import React, { useMemo, useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
-import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CameraSettings, GridLayoutItem, CardTemplates, CardTemplate, DeviceBinding, ThresholdRule } from './types';
+import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CameraSettings, GridLayoutItem, CardTemplates, CardTemplate, DeviceBinding, ThresholdRule, ColorScheme } from './types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from './components/DeviceIcon';
 
@@ -253,6 +254,23 @@ const defaultClimateTemplate: CardTemplate = {
   ],
 };
 
+const DEFAULT_COLOR_SCHEME: ColorScheme = {
+  light: {
+    dashboardBackground: '#e5e7eb', // gray-200
+    cardBackground: 'rgba(255, 255, 255, 0.8)',
+    cardBackgroundOn: '#f3f4f6', // gray-100
+    cardTextColor: '#111827', // gray-900
+    cardTextColorOn: '#111827', // gray-900
+  },
+  dark: {
+    dashboardBackground: '#111827', // gray-900
+    cardBackground: 'rgba(31, 41, 55, 0.8)', // gray-800/80
+    cardBackgroundOn: '#374151', // gray-700
+    cardTextColor: '#e5e7eb', // gray-200
+    cardTextColorOn: '#f9fafb', // gray-50
+  },
+};
+
 
 const App: React.FC = () => {
   const {
@@ -301,6 +319,7 @@ const App: React.FC = () => {
   const [haUrl] = useLocalStorage('ha-url', '');
   const [openWeatherMapKey, setOpenWeatherMapKey] = useLocalStorage<string>('ha-openweathermap-key', '');
   const [theme, setTheme] = useLocalStorage<'day' | 'night' | 'auto'>('ha-theme', 'auto');
+  const [colorScheme, setColorScheme] = useLocalStorage<ColorScheme>('ha-color-scheme', DEFAULT_COLOR_SCHEME);
 
 
   const brightnessTimeoutRef = useRef<number | null>(null);
@@ -389,6 +408,10 @@ const App: React.FC = () => {
 
     return filteredRooms;
   }, [searchTerm, allRoomsForDevicePage]);
+
+    const isSystemDark = useMemo(() => window.matchMedia('(prefers-color-scheme: dark)').matches, []);
+    const isDark = useMemo(() => theme === 'night' || (theme === 'auto' && isSystemDark), [theme, isSystemDark]);
+    const currentColorScheme = useMemo(() => isDark ? colorScheme.dark : colorScheme.light, [isDark, colorScheme]);
 
 
   // --- Context Menu Handlers ---
@@ -785,6 +808,9 @@ const App: React.FC = () => {
               onEditTemplate={(template) => setEditingTemplate(template)}
               onDeleteTemplate={handleDeleteTemplate}
               onCreateTemplate={(type) => setEditingTemplate(createNewBlankTemplate(type))}
+              colorScheme={colorScheme}
+              onColorSchemeChange={setColorScheme}
+              onResetColorScheme={() => setColorScheme(DEFAULT_COLOR_SCHEME)}
             />
           </div>
         );
@@ -813,6 +839,7 @@ const App: React.FC = () => {
             getCameraStreamUrl={getCameraStreamUrl}
             templates={templates}
             customizations={customizations}
+            colorScheme={currentColorScheme}
           />
         ) : (
           <div className="text-center text-gray-500">Выберите или создайте вкладку</div>
@@ -823,7 +850,7 @@ const App: React.FC = () => {
   const otherTabs = tabs.filter(t => t.id !== contextMenu?.tabId);
 
   return (
-    <div className="flex min-h-screen bg-gray-200 dark:bg-gray-900 text-gray-900 dark:text-gray-200">
+    <div className="flex min-h-screen" style={{ backgroundColor: currentColorScheme.dashboardBackground }}>
       <Suspense fallback={<div className="bg-gray-900" style={{ width: `${sidebarWidth}px` }} />}>
         <InfoPanel 
           clockSettings={clockSettings} 
@@ -898,6 +925,7 @@ const App: React.FC = () => {
               onSave={handleSaveTemplate}
               onClose={() => setEditingTemplate(null)}
               allKnownDevices={allKnownDevices}
+              colorScheme={currentColorScheme}
           />
         )}
 

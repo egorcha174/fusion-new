@@ -7,7 +7,7 @@
 
 
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
-import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot } from '../types';
+import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot, ColorScheme } from '../types';
 import DeviceCard from './DeviceCard';
 import { DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, useDraggable } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove } from '@dnd-kit/sortable';
@@ -183,6 +183,7 @@ interface TemplateEditorModalProps {
   onSave: (newTemplate: CardTemplate) => void;
   onClose: () => void;
   allKnownDevices: Map<string, Device>;
+  colorScheme: ColorScheme['light'];
 }
 
 const ELEMENT_LABELS: Record<CardElementId, string> = {
@@ -223,7 +224,7 @@ const SortableLayerItem: React.FC<SortableLayerItemProps> = React.memo(({ elemen
     );
 });
 
-const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdit, onSave, onClose, allKnownDevices }) => {
+const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdit, onSave, onClose, allKnownDevices, colorScheme }) => {
   const [editedTemplate, setEditedTemplate] = useState<CardTemplate>({
     ...templateToEdit,
     width: templateToEdit.width || 1,
@@ -532,7 +533,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
           <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
             <main className="flex-1 flex flex-col items-center justify-center bg-gray-900/50 relative" onClick={() => handleSelect('element', '')}>
               <div ref={previewRef} className="w-[400px] transition-all duration-300 relative" style={{ aspectRatio: `${editedTemplate.width || 1} / ${editedTemplate.height || 1}`}}>
-                  <DeviceCard device={sampleDevice} allKnownDevices={sampleAllKnownDevices} customizations={{}} onDeviceToggle={() => {}} template={editedTemplate} isPreview={true} onTemperatureChange={()=>{}} onBrightnessChange={()=>{}} onHvacModeChange={()=>{}} onPresetChange={()=>{}} onCameraCardClick={()=>{}} isEditMode={false} onEditDevice={()=>{}} haUrl="" signPath={async()=>({path:''})} getCameraStreamUrl={async()=>''}/>
+                  <DeviceCard device={sampleDevice} allKnownDevices={sampleAllKnownDevices} customizations={{}} onDeviceToggle={() => {}} template={editedTemplate} isPreview={true} onTemperatureChange={()=>{}} onBrightnessChange={()=>{}} onHvacModeChange={()=>{}} onPresetChange={()=>{}} onCameraCardClick={()=>{}} isEditMode={false} onEditDevice={()=>{}} haUrl="" signPath={async()=>({path:''})} getCameraStreamUrl={async()=>''} colorScheme={colorScheme} />
                   {editedTemplate.elements.map(element => <DraggableCanvasElement key={element.id} element={element} isSelected={selectedElementIds.includes(element.id)} onSelect={(id, multi) => handleSelect('element', id, multi)} showResizeHandles={selectedElementIds.length === 1 && selectedElementIds[0] === element.id}/>)}
                   {editedTemplate.deviceSlots?.map(slot => <DraggableIndicatorSlot key={slot.id} slot={slot} isSelected={selectedSlotId === slot.id} onSelect={() => handleSelect('slot', slot.id)} />)}
               </div>
@@ -626,7 +627,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                             </button>
                         </LabeledInput>
                         {selectedElement.styles.showValue && (
-                            <LabeledInput label="Знаков после ,">
+                            <LabeledInput label="Знаков после ," >
                                 <NumberInput value={selectedElement.styles.decimalPlaces} onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === selectedElement.id ? {...e, styles: {...e.styles, decimalPlaces: v}} : e)}))} min={0} max={5} />
                             </LabeledInput>
                         )}

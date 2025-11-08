@@ -1,4 +1,5 @@
 
+
 export enum DeviceType {
   Light,
   Lamp,
@@ -112,6 +113,23 @@ export interface ClockSettings {
 
 export interface CameraSettings {
   selectedEntityId: string | null;
+}
+
+export interface ColorScheme {
+  light: {
+    dashboardBackground: string;
+    cardBackground: string;
+    cardTextColor: string;
+    cardBackgroundOn: string;
+    cardTextColorOn: string;
+  };
+  dark: {
+    dashboardBackground: string;
+    cardBackground: string;
+    cardTextColor: string;
+    cardBackgroundOn: string;
+    cardTextColorOn: string;
+  };
 }
 
 

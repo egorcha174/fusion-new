@@ -1,7 +1,8 @@
 
 
+
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
-import { Device, DeviceType, CardTemplate, CardElement, DeviceCustomizations } from '../types';
+import { Device, DeviceType, CardTemplate, CardElement, DeviceCustomizations, ColorScheme } from '../types';
 import DeviceIcon from './DeviceIcon';
 import SparklineChart from './SparklineChart';
 import ThermostatDial from './ThermostatDial';
@@ -356,9 +357,10 @@ interface DeviceCardProps {
   template?: CardTemplate;
   openMenuDeviceId?: string | null;
   setOpenMenuDeviceId?: (id: string | null) => void;
+  colorScheme: ColorScheme['light'];
 }
 
-const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, customizations, onDeviceToggle, onTemperatureChange, onBrightnessChange, onHvacModeChange, onPresetChange, onCameraCardClick, isEditMode, isPreview = false, onEditDevice, onRemoveFromTab, haUrl, signPath, getCameraStreamUrl, template, openMenuDeviceId, setOpenMenuDeviceId }) => {
+const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, customizations, onDeviceToggle, onTemperatureChange, onBrightnessChange, onHvacModeChange, onPresetChange, onCameraCardClick, isEditMode, isPreview = false, onEditDevice, onRemoveFromTab, haUrl, signPath, getCameraStreamUrl, template, openMenuDeviceId, setOpenMenuDeviceId, colorScheme }) => {
   const isOn = device.status.toLowerCase() === 'включено' || device.state === 'on';
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
   const presetMenuRef = useRef<HTMLDivElement>(null);
@@ -385,13 +387,13 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
    const styles = {
       padding: 'p-[8%]',
       nameText: 'font-semibold leading-tight',
-      statusText: 'text-sm',
+      statusText: 'text-sm opacity-70',
       sensorStatusText: 'font-bold',
-      sensorUnitText: 'font-medium',
+      sensorUnitText: 'font-medium opacity-70',
       thermostatTempText: 'font-bold text-lg',
-      thermostatTargetText: 'text-sm font-medium',
-      thermostatButton: 'w-8 h-8 text-lg font-semibold',
-      thermostatPresetButton: 'w-8 h-8',
+      thermostatTargetText: 'text-sm font-medium opacity-80',
+      thermostatButton: 'w-8 h-8 text-lg font-semibold bg-black/5 dark:bg-white/5',
+      thermostatPresetButton: 'w-8 h-8 bg-black/5 dark:bg-white/5',
       thermostatPresetIcon: 'h-5 w-5',
       brightnessCircle: 'w-10 h-10',
       brightnessText: 'text-xs font-semibold',
@@ -889,12 +891,12 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         return (
           <div className="flex flex-col h-full">
             <div className="flex justify-between items-start flex-shrink-0">
-              <div className={isOn ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400'}>
+              <div className={isOn ? 'text-blue-500' : 'opacity-70'}>
                  <DeviceIcon icon={device.icon ?? device.type} isOn={isOn} iconAnimation={device.iconAnimation} />
               </div>
               {isOn && device.brightness !== undefined && (
-                <div className={`${styles.brightnessCircle} rounded-full border-2 border-gray-300 dark:border-gray-500 flex items-center justify-center`}>
-                  <span className={`${styles.brightnessText} text-gray-800 dark:text-gray-200`}>{device.brightness}%</span>
+                <div className={`${styles.brightnessCircle} rounded-full border-2 border-current opacity-30 flex items-center justify-center`}>
+                  <span className={styles.brightnessText}>{device.brightness}%</span>
                 </div>
               )}
             </div>
@@ -908,7 +910,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                         mode="multi-line"
                     />
                 </div>
-              <p className={`${styles.statusText} ${isOn ? 'text-gray-800 dark:text-gray-300' : 'text-gray-500 dark:text-gray-400'} transition-colors flex-shrink-0`}>{device.status}</p>
+              <p className={`${styles.statusText} transition-colors flex-shrink-0`}>{device.status}</p>
                {isOn && (
                 <div className="mt-2 flex-shrink-0" onClick={(e) => { if (!isPreview) e.stopPropagation(); }}>
                     <input
@@ -918,7 +920,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                         value={device.brightness}
                         onInput={(e) => { if (!isPreview) onBrightnessChange(parseInt(e.currentTarget.value)); }}
                         disabled={isPreview}
-                        className="w-full h-2 bg-gray-300 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                        className="w-full h-2 bg-black/10 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-blue-500"
                     />
                 </div>
             )}
@@ -929,7 +931,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         return (
           <div className="flex flex-col h-full text-left">
             <div className="flex justify-between items-start flex-shrink-0">
-                <div className="text-gray-500 dark:text-gray-400">
+                <div className="opacity-70">
                     <DeviceIcon icon={device.icon ?? device.type} isOn={false} iconAnimation={device.iconAnimation} />
                 </div>
 
@@ -938,7 +940,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                         <button
                             onClick={(e) => { if (!isPreview) { e.stopPropagation(); setIsPresetMenuOpen(prev => !prev); } }}
                             disabled={isPreview}
-                            className={`${styles.thermostatPresetButton} rounded-full bg-gray-200 dark:bg-black/20 text-gray-800 dark:text-white flex items-center justify-center hover:bg-gray-300 dark:hover:bg-black/40`}
+                            className={`${styles.thermostatPresetButton} rounded-full hover:bg-black/10 dark:hover:bg-white/10`}
                             aria-label="Открыть предустановки"
                         >
                            <svg xmlns="http://www.w3.org/2000/svg" className={styles.thermostatPresetIcon} viewBox="0 0 20 20" fill="currentColor">
@@ -972,21 +974,20 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                         mode="multi-line"
                     />
                 </div>
-                <p className={`${styles.thermostatTempText} text-gray-900 dark:text-white flex-shrink-0`}>{device.temperature}{device.unit}</p>
+                <p className={`${styles.thermostatTempText} flex-shrink-0`}>{device.temperature}{device.unit}</p>
                 <div className="flex items-center justify-between mt-1 flex-shrink-0">
-                    <button onClick={(e) => { if (!isPreview) { e.stopPropagation(); onTemperatureChange(-0.5, true); } }} disabled={isPreview} className={`${styles.thermostatButton} rounded-full bg-gray-200 dark:bg-black/20 text-gray-800 dark:text-white flex items-center justify-center font-light text-2xl leading-none pb-1`}>-</button>
-                    <span className={`${styles.thermostatTargetText} text-gray-600 dark:text-gray-300`}>Цель: {device.targetTemperature?.toFixed(1)}{device.unit}</span>
-                    <button onClick={(e) => { if (!isPreview) { e.stopPropagation(); onTemperatureChange(0.5, true); } }} disabled={isPreview} className={`${styles.thermostatButton} rounded-full bg-gray-200 dark:bg-black/20 text-gray-800 dark:text-white flex items-center justify-center font-light text-2xl leading-none pb-1`}>+</button>
+                    <button onClick={(e) => { if (!isPreview) { e.stopPropagation(); onTemperatureChange(-0.5, true); } }} disabled={isPreview} className={`${styles.thermostatButton} rounded-full flex items-center justify-center font-light text-2xl leading-none pb-1`}>-</button>
+                    <span className={`${styles.thermostatTargetText}`}>Цель: {device.targetTemperature?.toFixed(1)}{device.unit}</span>
+                    <button onClick={(e) => { if (!isPreview) { e.stopPropagation(); onTemperatureChange(0.5, true); } }} disabled={isPreview} className={`${styles.thermostatButton} rounded-full flex items-center justify-center font-light text-2xl leading-none pb-1`}>+</button>
                 </div>
             </div>
           </div>
         );
       case DeviceType.Sensor: {
-        // Minimal fallback UI in case a template is missing.
         const isNumericStatus = !isNaN(parseFloat(device.status));
         return (
           <div className="flex flex-col h-full text-left">
-            <div className={`flex-shrink-0 text-gray-500 dark:text-gray-400`}>
+            <div className={`flex-shrink-0 opacity-70`}>
               <DeviceIcon icon={device.icon ?? device.type} isOn={false} iconAnimation={device.iconAnimation} />
             </div>
             <div className="flex-grow flex flex-col justify-end overflow-hidden min-h-0">
@@ -1000,8 +1001,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                 />
               </div>
               <div className="flex items-baseline">
-                <p className={`${styles.sensorStatusText} text-gray-900 dark:text-white`}>{device.status}</p>
-                {isNumericStatus && device.unit && <p className={`ml-1 text-gray-500 dark:text-gray-400 ${styles.sensorUnitText}`}>{device.unit}</p>}
+                <p className={`${styles.sensorStatusText}`}>{device.status}</p>
+                {isNumericStatus && device.unit && <p className={`ml-1 ${styles.sensorUnitText}`}>{device.unit}</p>}
               </div>
             </div>
           </div>
@@ -1010,7 +1011,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
       default:
         return (
           <div className="flex flex-col h-full">
-            <div className={`flex-shrink-0 ${isOn ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400'}`}>
+            <div className={`flex-shrink-0 ${isOn ? 'text-blue-500' : 'opacity-70'}`}>
                <DeviceIcon icon={device.icon ?? device.type} isOn={isOn} iconAnimation={device.iconAnimation} />
             </div>
             <div className="flex-grow text-left overflow-hidden flex flex-col justify-end min-h-0">
@@ -1023,7 +1024,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                     mode="multi-line"
                 />
               </div>
-              <p className={`${styles.statusText} ${isOn ? 'text-gray-800 dark:text-gray-300' : 'text-gray-500 dark:text-gray-400'} transition-colors flex-shrink-0`}>{device.status}</p>
+              <p className={`${styles.statusText} transition-colors flex-shrink-0`}>{device.status}</p>
             </div>
           </div>
         );
@@ -1034,30 +1035,27 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
     const baseClasses = "w-full h-full rounded-2xl flex flex-col transition-all duration-200 ease-in-out select-none relative";
     
     if (template) {
-        return baseClasses; // Background is controlled by template
+        return baseClasses;
     }
-      
-    const onStateClasses = "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100";
-    const offStateClasses = "bg-white/80 dark:bg-gray-800/80 hover:bg-gray-200 dark:hover:bg-gray-700/80";
-    
-    let finalClasses = `${baseClasses} `;
 
-    if (isCamera) {
-      finalClasses += `p-0 ${offStateClasses}`;
-    } else if (device.type === DeviceType.Thermostat || device.type === DeviceType.Sensor) {
-        finalClasses += `${styles.padding} ${offStateClasses}`;
-    } else {
-        finalClasses += `${styles.padding} ${isOn ? onStateClasses : offStateClasses}`;
-    }
+    const layoutClasses = isCamera ? 'p-0' : styles.padding;
+    const interactionClasses = (isTogglable || isCamera) && !isEditMode && !isPreview ? 'cursor-pointer hover:brightness-95 dark:hover:brightness-110' : '';
   
-    if ((isTogglable || isCamera) && !isEditMode && !isPreview) {
-        finalClasses += ' cursor-pointer';
-    }
-    return finalClasses;
+    return `${baseClasses} ${layoutClasses} ${interactionClasses}`;
+  }
+
+  const getCardStyle = (): React.CSSProperties => {
+      if(template) {
+          return {};
+      }
+      return {
+          backgroundColor: isOn ? colorScheme.cardBackgroundOn : colorScheme.cardBackground,
+          color: isOn ? colorScheme.cardTextColorOn : colorScheme.cardTextColor
+      }
   }
 
   return (
-    <div className={getCardClasses()}>
+    <div className={getCardClasses()} style={getCardStyle()}>
        {renderContent()}
     </div>
   );

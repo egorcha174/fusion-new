@@ -4,6 +4,7 @@
 
 
 
+
 import React, { useRef, useState, useLayoutEffect, useMemo } from 'react';
 import {
   DndContext,
@@ -19,7 +20,7 @@ import {
 } from '@dnd-kit/core';
 import { snapCenterToCursor } from '@dnd-kit/modifiers';
 import DeviceCard from './DeviceCard';
-import { Tab, Device, DeviceType, GridLayoutItem, CardTemplates, DeviceCustomizations, CardTemplate } from '../types';
+import { Tab, Device, DeviceType, GridLayoutItem, CardTemplates, DeviceCustomizations, CardTemplate, ColorScheme } from '../types';
 
 const DEFAULT_SENSOR_TEMPLATE_ID = 'default-sensor';
 const DEFAULT_LIGHT_TEMPLATE_ID = 'default-light';
@@ -34,9 +35,10 @@ const DraggableDevice: React.FC<{
   template?: CardTemplate;
   allKnownDevices: Map<string, Device>;
   customizations: DeviceCustomizations;
+  colorScheme: ColorScheme['light'];
   // Pass all other props down to DeviceCard
   [key: string]: any;
-}> = ({ device, isEditMode, onDeviceToggle, template, allKnownDevices, customizations, ...cardProps }) => {
+}> = ({ device, isEditMode, onDeviceToggle, template, allKnownDevices, customizations, colorScheme, ...cardProps }) => {
   const { attributes, listeners, setNodeRef: setDraggableNodeRef, isDragging } = useDraggable({
     id: device.id,
     disabled: !isEditMode,
@@ -91,6 +93,7 @@ const DraggableDevice: React.FC<{
         getCameraStreamUrl={cardProps.getCameraStreamUrl}
         openMenuDeviceId={cardProps.openMenuDeviceId}
         setOpenMenuDeviceId={cardProps.setOpenMenuDeviceId}
+        colorScheme={colorScheme}
       />
     </div>
   );
@@ -140,6 +143,7 @@ interface DashboardGridProps {
     getCameraStreamUrl: (entityId: string) => Promise<string>;
     templates: CardTemplates;
     customizations: DeviceCustomizations;
+    colorScheme: ColorScheme['light'];
 }
 
 const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
@@ -397,6 +401,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                            haUrl={props.haUrl}
                            signPath={props.signPath}
                            getCameraStreamUrl={props.getCameraStreamUrl}
+                           colorScheme={props.colorScheme}
                         />
                       </div>
                     ) : null}

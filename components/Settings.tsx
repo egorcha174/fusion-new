@@ -1,7 +1,9 @@
 
+
+
 import React, { useRef, useState } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { ClockSettings, ClockSize, CardTemplates, CardTemplate } from '../types';
+import { ClockSettings, ClockSize, CardTemplates, CardTemplate, ColorScheme } from '../types';
 import ConfirmDialog from './ConfirmDialog';
 
 
@@ -20,7 +22,22 @@ interface SettingsProps {
   onEditTemplate?: (template: CardTemplate) => void;
   onDeleteTemplate?: (templateId: string) => void;
   onCreateTemplate?: (type: 'sensor' | 'light' | 'switch' | 'climate') => void;
+  colorScheme?: ColorScheme;
+  onColorSchemeChange?: (scheme: ColorScheme) => void;
+  onResetColorScheme?: () => void;
 }
+
+const ColorSettingRow: React.FC<{ label: string, value: string, onChange: (newColor: string) => void }> = ({ label, value, onChange }) => (
+  <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg">
+    <label className="text-sm font-medium text-gray-800 dark:text-gray-200">{label}</label>
+    <input
+      type="color"
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"
+    />
+  </div>
+);
 
 // Keys to be backed up
 const LOCAL_STORAGE_KEYS = [
@@ -34,10 +51,11 @@ const LOCAL_STORAGE_KEYS = [
   'ha-sidebar-width',
   'ha-openweathermap-key',
   'ha-theme',
+  'ha-color-scheme',
 ];
 
 const Settings: React.FC<SettingsProps> = (props) => {
-  const { onConnect, connectionStatus, error, onDisconnect, clockSettings, onClockSettingsChange, openWeatherMapKey, onOpenWeatherMapKeyChange, templates, onEditTemplate, onDeleteTemplate, onCreateTemplate } = props;
+  const { onConnect, connectionStatus, error, onDisconnect, clockSettings, onClockSettingsChange, openWeatherMapKey, onOpenWeatherMapKeyChange, templates, onEditTemplate, onDeleteTemplate, onCreateTemplate, colorScheme, onColorSchemeChange, onResetColorScheme } = props;
   const [url, setUrl] = useLocalStorage('ha-url', '');
   const [token, setToken] = useLocalStorage('ha-token', '');
   const [localError, setLocalError] = useState('');
@@ -137,7 +155,7 @@ const Settings: React.FC<SettingsProps> = (props) => {
 
   const isLoading = connectionStatus === 'connecting';
 
-  if (connectionStatus === 'connected' && onDisconnect && clockSettings && onClockSettingsChange && openWeatherMapKey !== undefined && onOpenWeatherMapKeyChange && templates && onEditTemplate && onDeleteTemplate && onCreateTemplate) {
+  if (connectionStatus === 'connected' && onDisconnect && clockSettings && onClockSettingsChange && openWeatherMapKey !== undefined && onOpenWeatherMapKeyChange && templates && onEditTemplate && onDeleteTemplate && onCreateTemplate && colorScheme && onColorSchemeChange && onResetColorScheme) {
     return (
         <>
         <div className="w-full max-w-md bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 space-y-8">
@@ -199,6 +217,35 @@ const Settings: React.FC<SettingsProps> = (props) => {
                             </button>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Цветовая схема</h2>
+                <div className="space-y-4">
+                    <div>
+                        <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Светлая тема</h3>
+                        <div className="space-y-2">
+                           <ColorSettingRow label="Фон дашборда" value={colorScheme.light.dashboardBackground} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, dashboardBackground: c }})}/>
+                           <ColorSettingRow label="Фон карточки" value={colorScheme.light.cardBackground} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, cardBackground: c }})}/>
+                           <ColorSettingRow label="Фон вкл. карточки" value={colorScheme.light.cardBackgroundOn} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, cardBackgroundOn: c }})}/>
+                           <ColorSettingRow label="Цвет текста" value={colorScheme.light.cardTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, cardTextColor: c }})}/>
+                           <ColorSettingRow label="Цвет вкл. текста" value={colorScheme.light.cardTextColorOn} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, cardTextColorOn: c }})}/>
+                        </div>
+                    </div>
+                     <div>
+                        <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Темная тема</h3>
+                        <div className="space-y-2">
+                           <ColorSettingRow label="Фон дашборда" value={colorScheme.dark.dashboardBackground} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, dashboardBackground: c }})}/>
+                           <ColorSettingRow label="Фон карточки" value={colorScheme.dark.cardBackground} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, cardBackground: c }})}/>
+                           <ColorSettingRow label="Фон вкл. карточки" value={colorScheme.dark.cardBackgroundOn} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, cardBackgroundOn: c }})}/>
+                           <ColorSettingRow label="Цвет текста" value={colorScheme.dark.cardTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, cardTextColor: c }})}/>
+                           <ColorSettingRow label="Цвет вкл. текста" value={colorScheme.dark.cardTextColorOn} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, cardTextColorOn: c }})}/>
+                        </div>
+                    </div>
+                    <button onClick={onResetColorScheme} className="w-full text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600/80 rounded-md py-2 transition-colors">
+                        Сбросить цвета
+                    </button>
                 </div>
             </div>
             
