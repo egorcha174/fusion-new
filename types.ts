@@ -118,6 +118,7 @@ export interface CameraSettings {
 export interface ColorScheme {
   light: {
     dashboardBackground: string;
+    sidebarBackground: string;
     cardBackground: string;
     cardTextColor: string;
     cardBackgroundOn: string;
@@ -125,6 +126,7 @@ export interface ColorScheme {
   };
   dark: {
     dashboardBackground: string;
+    sidebarBackground: string;
     cardBackground: string;
     cardTextColor: string;
     cardBackgroundOn: string;

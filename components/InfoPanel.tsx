@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ClockSettings, Device, ClockSize, CameraSettings } from '../types';
+import { ClockSettings, Device, ClockSize, CameraSettings, ColorScheme } from '../types';
 import { CameraStreamContent } from './DeviceCard';
 import ContextMenu from './ContextMenu';
 import WeatherWidget from './WeatherWidget';
@@ -158,9 +158,10 @@ interface InfoPanelProps {
     getCameraStreamUrl: (entityId: string) => Promise<string>;
     openWeatherMapKey: string;
     getConfig: () => Promise<any>;
+    colorScheme: ColorScheme['light'];
 }
 
-const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, sidebarWidth, setSidebarWidth, cameras, cameraSettings, onCameraSettingsChange, onCameraWidgetClick, haUrl, signPath, getCameraStreamUrl, openWeatherMapKey, getConfig }) => {
+const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, sidebarWidth, setSidebarWidth, cameras, cameraSettings, onCameraSettingsChange, onCameraWidgetClick, haUrl, signPath, getCameraStreamUrl, openWeatherMapKey, getConfig, colorScheme }) => {
     const [isResizing, setIsResizing] = useState(false);
 
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -190,8 +191,8 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, sidebarWidth, setS
 
     return (
         <aside
-            className="fixed top-0 left-0 h-full bg-white/70 dark:bg-gray-900 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/5 hidden lg:flex flex-col p-8"
-            style={{ width: `${sidebarWidth}px` }}
+            className="fixed top-0 left-0 h-full backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/5 hidden lg:flex flex-col p-8"
+            style={{ width: `${sidebarWidth}px`, backgroundColor: colorScheme.sidebarBackground }}
         >
             <div className="flex justify-center">
                 <Clock settings={clockSettings} sidebarWidth={sidebarWidth} />

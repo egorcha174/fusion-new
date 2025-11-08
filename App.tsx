@@ -257,6 +257,7 @@ const defaultClimateTemplate: CardTemplate = {
 const DEFAULT_COLOR_SCHEME: ColorScheme = {
   light: {
     dashboardBackground: '#e5e7eb', // gray-200
+    sidebarBackground: 'rgba(255, 255, 255, 0.7)',
     cardBackground: 'rgba(255, 255, 255, 0.8)',
     cardBackgroundOn: '#f3f4f6', // gray-100
     cardTextColor: '#111827', // gray-900
@@ -264,6 +265,7 @@ const DEFAULT_COLOR_SCHEME: ColorScheme = {
   },
   dark: {
     dashboardBackground: '#111827', // gray-900
+    sidebarBackground: 'rgba(17, 24, 39, 0.75)',
     cardBackground: 'rgba(31, 41, 55, 0.8)', // gray-800/80
     cardBackgroundOn: '#374151', // gray-700
     cardTextColor: '#e5e7eb', // gray-200
@@ -865,6 +867,7 @@ const App: React.FC = () => {
           getCameraStreamUrl={getCameraStreamUrl}
           openWeatherMapKey={openWeatherMapKey}
           getConfig={getConfig}
+          colorScheme={currentColorScheme}
         />
       </Suspense>
       <div className="flex flex-col flex-1" style={{ marginLeft: isLg ? `${sidebarWidth}px` : '0px' }}>

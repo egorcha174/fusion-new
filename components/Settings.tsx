@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useRef, useState } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ClockSettings, ClockSize, CardTemplates, CardTemplate, ColorScheme } from '../types';
@@ -227,6 +228,7 @@ const Settings: React.FC<SettingsProps> = (props) => {
                         <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Светлая тема</h3>
                         <div className="space-y-2">
                            <ColorSettingRow label="Фон дашборда" value={colorScheme.light.dashboardBackground} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, dashboardBackground: c }})}/>
+                           <ColorSettingRow label="Фон боковой панели" value={colorScheme.light.sidebarBackground} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, sidebarBackground: c }})}/>
                            <ColorSettingRow label="Фон карточки" value={colorScheme.light.cardBackground} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, cardBackground: c }})}/>
                            <ColorSettingRow label="Фон вкл. карточки" value={colorScheme.light.cardBackgroundOn} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, cardBackgroundOn: c }})}/>
                            <ColorSettingRow label="Цвет текста" value={colorScheme.light.cardTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, cardTextColor: c }})}/>
@@ -237,6 +239,7 @@ const Settings: React.FC<SettingsProps> = (props) => {
                         <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Темная тема</h3>
                         <div className="space-y-2">
                            <ColorSettingRow label="Фон дашборда" value={colorScheme.dark.dashboardBackground} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, dashboardBackground: c }})}/>
+                           <ColorSettingRow label="Фон боковой панели" value={colorScheme.dark.sidebarBackground} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, sidebarBackground: c }})}/>
                            <ColorSettingRow label="Фон карточки" value={colorScheme.dark.cardBackground} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, cardBackground: c }})}/>
                            <ColorSettingRow label="Фон вкл. карточки" value={colorScheme.dark.cardBackgroundOn} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, cardBackgroundOn: c }})}/>
                            <ColorSettingRow label="Цвет текста" value={colorScheme.dark.cardTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, cardTextColor: c }})}/>
