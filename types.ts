@@ -1,6 +1,4 @@
 
-
-
 export enum DeviceType {
   Light,
   Lamp,
@@ -176,7 +174,7 @@ export interface CardTemplate {
   elements: CardElement[];
   styles: {
     backgroundColor: string; // Dark mode off state
-    lightBackgroundColor?: string; // Light mode off state
+    lightBackgroundColor: string; // Light mode off state
     onBackgroundColor?: string; // Dark mode on state
     lightOnBackgroundColor?: string; // Light mode on state
   };

@@ -1,5 +1,4 @@
 
-
 import React, { useRef, useState } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ClockSettings, ClockSize, CardTemplates, CardTemplate } from '../types';
@@ -310,12 +309,12 @@ const Settings: React.FC<SettingsProps> = (props) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-gray-800 p-8 rounded-2xl shadow-lg ring-1 ring-white/10">
-        <h1 className="text-3xl font-bold text-center text-gray-100 mb-6">Home Assistant</h1>
+    <div className="min-h-screen bg-gray-200 dark:bg-gray-900 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg ring-1 ring-black/5 dark:ring-white/10">
+        <h1 className="text-3xl font-bold text-center text-gray-900 dark:text-gray-100 mb-6">Home Assistant</h1>
         <div className="space-y-6">
           <div>
-            <label htmlFor="url" className="block text-sm font-medium text-gray-300 mb-2">
+            <label htmlFor="url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Home Assistant URL
             </label>
             <input
@@ -324,12 +323,12 @@ const Settings: React.FC<SettingsProps> = (props) => {
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="e.g., 192.168.1.100:8123"
-              className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={isLoading}
             />
           </div>
           <div>
-            <label htmlFor="token" className="block text-sm font-medium text-gray-300 mb-2">
+            <label htmlFor="token" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Long-Lived Access Token
             </label>
             <input
@@ -338,10 +337,10 @@ const Settings: React.FC<SettingsProps> = (props) => {
               value={token}
               onChange={(e) => setToken(e.target.value)}
               placeholder="Paste your token here"
-              className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={isLoading}
             />
-             <p className="text-xs text-gray-500 mt-2">
+             <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                 You can create a token in your Home Assistant Profile page.
             </p>
           </div>

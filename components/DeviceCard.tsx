@@ -1,7 +1,4 @@
 
-
-
-
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement, DeviceCustomizations } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -365,6 +362,17 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
   const presetMenuRef = useRef<HTMLDivElement>(null);
 
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+
+    useEffect(() => {
+        setIsDark(document.documentElement.classList.contains('dark'));
+        const observer = new MutationObserver(() => {
+            setIsDark(document.documentElement.classList.contains('dark'));
+        });
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+        return () => observer.disconnect();
+    }, []);
+
   const mockHistory = useMemo(() => {
     if (device.type !== DeviceType.Sensor) return [];
     const value = parseFloat(device.status) || 20;
@@ -427,9 +435,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
   }, [isPresetMenuOpen]);
 
   
-  const textOnClasses = "text-gray-800";
-  const textOffClasses = "text-gray-400";
-  
   const isCamera = device.type === DeviceType.Camera;
   const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && device.type !== DeviceType.Sensor && !isCamera;
 
@@ -437,7 +442,12 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
 
   // --- Universal Template Renderer ---
   if (template) {
-    let dynamicBackgroundColor = isOn ? (template.styles.onBackgroundColor || '#E5E7EB') : template.styles.backgroundColor;
+     const bgOff = isDark ? template.styles.backgroundColor : template.styles.lightBackgroundColor;
+     const bgOn = isDark 
+         ? (template.styles.onBackgroundColor || template.styles.backgroundColor) 
+         : (template.styles.lightOnBackgroundColor || template.styles.lightBackgroundColor);
+
+    let dynamicBackgroundColor = isOn ? bgOn : bgOff;
     let dynamicValueColor: string | undefined = undefined;
 
     const deviceCustomization = customizations[device.id];
@@ -482,7 +492,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         case 'name':
           return (
             <div key={element.id} style={style}>
-              <AutoFitText text={device.name} className="w-full h-full" pClassName={`font-medium ${isOn ? 'text-gray-900' : 'text-gray-300'} leading-tight`} maxFontSize={100} mode="multi-line" maxLines={2} fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
+              <AutoFitText text={device.name} className="w-full h-full" pClassName={`font-medium ${isOn ? 'text-gray-900' : 'text-gray-700 dark:text-gray-200'} leading-tight`} maxFontSize={100} mode="multi-line" maxLines={2} fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
             </div>
           );
         case 'icon':
@@ -497,7 +507,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         case 'status':
           return (
             <div key={element.id} style={style}>
-              <AutoFitText text={device.status} className="w-full h-full" pClassName={`text-sm ${isOn ? 'text-gray-800' : 'text-gray-400'}`} maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
+              <AutoFitText text={device.status} className="w-full h-full" pClassName={`text-sm ${isOn ? 'text-gray-800' : 'text-gray-500 dark:text-gray-400'}`} maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
             </div>
           );
         case 'value': {
@@ -510,7 +520,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
            const pStyle: React.CSSProperties = dynamicValueColor ? { color: dynamicValueColor } : {};
           return (
             <div key={element.id} style={style} className="flex items-center">
-              <AutoFitText text={valueText} className="w-full h-full" pClassName="font-semibold text-gray-100" maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} pStyle={pStyle} />
+              <AutoFitText text={valueText} className="w-full h-full" pClassName="font-semibold text-black dark:text-white" maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} pStyle={pStyle} />
             </div>
           );
         }
@@ -519,14 +529,14 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
           if (!device.unit || !isNumericStatus) return null;
           return (
             <div key={element.id} style={style}>
-              <AutoFitText text={device.unit} className="w-full h-full" pClassName="font-medium text-gray-400" maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
+              <AutoFitText text={device.unit} className="w-full h-full" pClassName="font-medium text-gray-500 dark:text-gray-400" maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
             </div>
           );
         }
         case 'chart':
           return (
             <div key={element.id} style={style}>
-              <SparklineChart data={device.history || mockHistory} strokeColor="#E5E7EB" />
+              <SparklineChart data={device.history || mockHistory} strokeColor={isDark ? "#4B5563" : "#D1D5DB"} />
             </div>
           );
         case 'slider': {
@@ -540,7 +550,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                   value={device.brightness}
                   onInput={(e) => { if (!isPreview) onBrightnessChange(parseInt(e.currentTarget.value)); }}
                   disabled={isPreview}
-                  className="w-full h-full bg-gray-700/50 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                  className="w-full h-full bg-gray-300 dark:bg-gray-700/50 rounded-lg appearance-none cursor-pointer accent-blue-500"
                 />
               </div>
            );
@@ -557,7 +567,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
            }
            return (
              <div key={element.id} style={style} className="pointer-events-none">
-               <AutoFitText text={`${tempText}°`} className="w-full h-full" pClassName="font-bold text-gray-100" maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
+               <AutoFitText text={`${tempText}°`} className="w-full h-full" pClassName="font-bold text-black dark:text-white" maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
              </div>
            );
         }
@@ -649,21 +659,21 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                         <button
                             onClick={handleButtonClick}
                             disabled={isPreview}
-                            className="w-full h-full flex flex-col items-center justify-center bg-white/10 hover:bg-white/20 rounded-xl transition-all p-1"
+                            className="w-full h-full flex flex-col items-center justify-center bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 rounded-xl transition-all p-1"
                         >
-                            <Icon icon={activeConfig.icon} className="w-auto h-[55%] text-white" />
-                            <span className="text-[10px] font-bold text-white mt-auto leading-tight text-center">{activeConfig.label}</span>
+                            <Icon icon={activeConfig.icon} className="w-auto h-[55%] text-black dark:text-white" />
+                            <span className="text-[10px] font-bold text-black dark:text-white mt-auto leading-tight text-center">{activeConfig.label}</span>
                         </button>
         
                         {isDropdownOpen && !isPreview && (
-                            <div className="absolute top-full right-0 mt-2 min-w-[150px] w-max bg-gray-800/80 backdrop-blur-lg rounded-xl shadow-lg ring-1 ring-white/10 p-1 z-20 fade-in">
+                            <div className="absolute top-full right-0 mt-2 min-w-[150px] w-max bg-gray-100 dark:bg-gray-800/80 backdrop-blur-lg rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-1 z-20 fade-in">
                                 {modes.map(mode => {
                                     const config = getConfig(mode);
                                     return (
                                         <button
                                             key={mode}
                                             onClick={() => handleModeClick(mode)}
-                                            className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left rounded-lg transition-colors ${activeMode?.toLowerCase() === mode.toLowerCase() ? 'bg-blue-600/60 text-white' : 'text-gray-200 hover:bg-white/10'}`}
+                                            className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left rounded-lg transition-colors ${activeMode?.toLowerCase() === mode.toLowerCase() ? 'bg-blue-600/60 text-white' : 'text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-white/10'}`}
                                         >
                                             <Icon icon={config.icon} className="w-5 h-5 flex-shrink-0" />
                                             <span>{config.label}</span>
@@ -723,7 +733,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                             <AutoFitText
                                 text={valueText}
                                 className="w-full h-full"
-                                pClassName={`font-semibold ${isOn ? 'text-gray-900' : 'text-gray-100'}`}
+                                pClassName={`font-semibold ${isOn ? 'text-black dark:text-white' : 'text-black dark:text-white'}`}
                                 maxFontSize={100}
                                 mode="single-line"
                                 fontSize={fontSize}
@@ -811,7 +821,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                     onClick={slot.interactive ? (e) => handleIndicatorClick(e, entity.id) : undefined}
                 >
                   {visualStyle.showValue && valueText ? (
-                    <div className="flex items-baseline text-white whitespace-nowrap" style={{ color }}>
+                    <div className="flex items-baseline text-black dark:text-white whitespace-nowrap" style={{ color }}>
                       <span
                         className="font-semibold leading-none"
                         style={{ fontSize: visualStyle.fontSize ? `${visualStyle.fontSize}px` : `${slot.iconSize * 0.8}px` }}
@@ -820,7 +830,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                       </span>
                       {visualStyle.unit && (
                         <span
-                          className="font-medium text-gray-400 leading-none ml-1"
+                          className="font-medium text-gray-600 dark:text-gray-400 leading-none ml-1"
                           style={{ fontSize: visualStyle.fontSize ? `${visualStyle.fontSize * 0.6}px` : `${slot.iconSize * 0.5}px` }}
                         >
                           {visualStyle.unit}
@@ -878,12 +888,12 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         return (
           <div className="flex flex-col h-full">
             <div className="flex justify-between items-start flex-shrink-0">
-              <div className={isOn ? 'text-blue-500' : 'text-gray-400'}>
+              <div className={isOn ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400'}>
                  <DeviceIcon icon={device.icon ?? device.type} isOn={isOn} iconAnimation={device.iconAnimation} />
               </div>
               {isOn && device.brightness !== undefined && (
-                <div className={`${styles.brightnessCircle} rounded-full border-2 ${isOn ? 'border-gray-400/50' : 'border-gray-500'} flex items-center justify-center`}>
-                  <span className={`${styles.brightnessText} ${isOn ? textOnClasses : textOffClasses}`}>{device.brightness}%</span>
+                <div className={`${styles.brightnessCircle} rounded-full border-2 border-gray-300 dark:border-gray-500 flex items-center justify-center`}>
+                  <span className={`${styles.brightnessText} text-gray-800 dark:text-gray-200`}>{device.brightness}%</span>
                 </div>
               )}
             </div>
@@ -897,7 +907,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                         mode="multi-line"
                     />
                 </div>
-              <p className={`${styles.statusText} ${isOn ? textOnClasses : textOffClasses} transition-colors flex-shrink-0`}>{device.status}</p>
+              <p className={`${styles.statusText} ${isOn ? 'text-gray-800 dark:text-gray-300' : 'text-gray-500 dark:text-gray-400'} transition-colors flex-shrink-0`}>{device.status}</p>
                {isOn && (
                 <div className="mt-2 flex-shrink-0" onClick={(e) => { if (!isPreview) e.stopPropagation(); }}>
                     <input
@@ -907,7 +917,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                         value={device.brightness}
                         onInput={(e) => { if (!isPreview) onBrightnessChange(parseInt(e.currentTarget.value)); }}
                         disabled={isPreview}
-                        className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                        className="w-full h-2 bg-gray-300 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
                     />
                 </div>
             )}
@@ -918,7 +928,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         return (
           <div className="flex flex-col h-full text-left">
             <div className="flex justify-between items-start flex-shrink-0">
-                <div className="text-gray-400">
+                <div className="text-gray-500 dark:text-gray-400">
                     <DeviceIcon icon={device.icon ?? device.type} isOn={false} iconAnimation={device.iconAnimation} />
                 </div>
 
@@ -927,7 +937,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                         <button
                             onClick={(e) => { if (!isPreview) { e.stopPropagation(); setIsPresetMenuOpen(prev => !prev); } }}
                             disabled={isPreview}
-                            className={`${styles.thermostatPresetButton} rounded-full bg-black/20 text-white flex items-center justify-center hover:bg-black/40`}
+                            className={`${styles.thermostatPresetButton} rounded-full bg-gray-200 dark:bg-black/20 text-gray-800 dark:text-white flex items-center justify-center hover:bg-gray-300 dark:hover:bg-black/40`}
                             aria-label="Открыть предустановки"
                         >
                            <svg xmlns="http://www.w3.org/2000/svg" className={styles.thermostatPresetIcon} viewBox="0 0 20 20" fill="currentColor">
@@ -935,12 +945,12 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                            </svg>
                         </button>
                         {isPresetMenuOpen && !isPreview && (
-                            <div className="absolute top-full right-0 mt-1 w-40 bg-gray-700 rounded-md shadow-lg z-20 ring-1 ring-black ring-opacity-5 p-1 max-h-48 overflow-y-auto fade-in">
+                            <div className="absolute top-full right-0 mt-1 w-40 bg-gray-100 dark:bg-gray-700 rounded-md shadow-lg z-20 ring-1 ring-black/5 dark:ring-black dark:ring-opacity-5 p-1 max-h-48 overflow-y-auto fade-in">
                                 {device.presetModes.map(preset => (
                                     <button
                                         key={preset}
                                         onClick={() => { onPresetChange(preset); setIsPresetMenuOpen(false); }}
-                                        className="block w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-600 rounded-md"
+                                        className="block w-full text-left px-3 py-1.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md"
                                     >
                                         {translatePreset(preset)}
                                     </button>
@@ -961,11 +971,11 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                         mode="multi-line"
                     />
                 </div>
-                <p className={`${styles.thermostatTempText} text-white flex-shrink-0`}>{device.temperature}{device.unit}</p>
+                <p className={`${styles.thermostatTempText} text-gray-900 dark:text-white flex-shrink-0`}>{device.temperature}{device.unit}</p>
                 <div className="flex items-center justify-between mt-1 flex-shrink-0">
-                    <button onClick={(e) => { if (!isPreview) { e.stopPropagation(); onTemperatureChange(-0.5, true); } }} disabled={isPreview} className={`${styles.thermostatButton} rounded-full bg-black/20 text-white flex items-center justify-center font-light text-2xl leading-none pb-1`}>-</button>
-                    <span className={`${styles.thermostatTargetText} text-gray-300`}>Цель: {device.targetTemperature?.toFixed(1)}{device.unit}</span>
-                    <button onClick={(e) => { if (!isPreview) { e.stopPropagation(); onTemperatureChange(0.5, true); } }} disabled={isPreview} className={`${styles.thermostatButton} rounded-full bg-black/20 text-white flex items-center justify-center font-light text-2xl leading-none pb-1`}>+</button>
+                    <button onClick={(e) => { if (!isPreview) { e.stopPropagation(); onTemperatureChange(-0.5, true); } }} disabled={isPreview} className={`${styles.thermostatButton} rounded-full bg-gray-200 dark:bg-black/20 text-gray-800 dark:text-white flex items-center justify-center font-light text-2xl leading-none pb-1`}>-</button>
+                    <span className={`${styles.thermostatTargetText} text-gray-600 dark:text-gray-300`}>Цель: {device.targetTemperature?.toFixed(1)}{device.unit}</span>
+                    <button onClick={(e) => { if (!isPreview) { e.stopPropagation(); onTemperatureChange(0.5, true); } }} disabled={isPreview} className={`${styles.thermostatButton} rounded-full bg-gray-200 dark:bg-black/20 text-gray-800 dark:text-white flex items-center justify-center font-light text-2xl leading-none pb-1`}>+</button>
                 </div>
             </div>
           </div>
@@ -975,7 +985,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         const isNumericStatus = !isNaN(parseFloat(device.status));
         return (
           <div className="flex flex-col h-full text-left">
-            <div className={`flex-shrink-0 text-gray-400`}>
+            <div className={`flex-shrink-0 text-gray-500 dark:text-gray-400`}>
               <DeviceIcon icon={device.icon ?? device.type} isOn={false} iconAnimation={device.iconAnimation} />
             </div>
             <div className="flex-grow flex flex-col justify-end overflow-hidden min-h-0">
@@ -989,8 +999,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                 />
               </div>
               <div className="flex items-baseline">
-                <p className={`${styles.sensorStatusText} text-white`}>{device.status}</p>
-                {isNumericStatus && device.unit && <p className={`ml-1 text-gray-400 ${styles.sensorUnitText}`}>{device.unit}</p>}
+                <p className={`${styles.sensorStatusText} text-gray-900 dark:text-white`}>{device.status}</p>
+                {isNumericStatus && device.unit && <p className={`ml-1 text-gray-500 dark:text-gray-400 ${styles.sensorUnitText}`}>{device.unit}</p>}
               </div>
             </div>
           </div>
@@ -999,7 +1009,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
       default:
         return (
           <div className="flex flex-col h-full">
-            <div className={`flex-shrink-0 ${isOn ? 'text-blue-500' : 'text-gray-400'}`}>
+            <div className={`flex-shrink-0 ${isOn ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400'}`}>
                <DeviceIcon icon={device.icon ?? device.type} isOn={isOn} iconAnimation={device.iconAnimation} />
             </div>
             <div className="flex-grow text-left overflow-hidden flex flex-col justify-end min-h-0">
@@ -1012,7 +1022,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                     mode="multi-line"
                 />
               </div>
-              <p className={`${styles.statusText} ${isOn ? textOnClasses : textOffClasses} transition-colors flex-shrink-0`}>{device.status}</p>
+              <p className={`${styles.statusText} ${isOn ? 'text-gray-800 dark:text-gray-300' : 'text-gray-500 dark:text-gray-400'} transition-colors flex-shrink-0`}>{device.status}</p>
             </div>
           </div>
         );
@@ -1026,8 +1036,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         return baseClasses; // Background is controlled by template
     }
       
-    const onStateClasses = "bg-gray-200 text-gray-900";
-    const offStateClasses = "bg-gray-800/80 hover:bg-gray-700/80";
+    const onStateClasses = "bg-gray-100 dark:bg-gray-50 text-gray-900";
+    const offStateClasses = "bg-white/80 dark:bg-gray-800/80 hover:bg-gray-200 dark:hover:bg-gray-700/80";
     
     let finalClasses = `${baseClasses} `;
 

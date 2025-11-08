@@ -1,5 +1,4 @@
 
-
 import React, { useEffect, useRef, useState } from 'react';
 
 interface ContextMenuProps {
@@ -64,7 +63,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, isOpen, onClose, childr
       style={{ top: adjustedY, left: adjustedX }}
     >
       {React.Children.map(children, child => {
-        // FIX: Add generic type to `isValidElement` to inform TypeScript about the `className` prop, resolving type errors.
         if (React.isValidElement<{ className?: string }>(child) && child.props.className) {
           return React.cloneElement(child, {
             className: `${child.props.className} hover:bg-gray-200 dark:hover:bg-gray-700/80`

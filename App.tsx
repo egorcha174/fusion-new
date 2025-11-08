@@ -1,9 +1,4 @@
 
-
-
-
-
-
 import React, { useMemo, useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import useHomeAssistant from './hooks/useHomeAssistant';
@@ -115,7 +110,7 @@ const defaultLightTemplate: CardTemplate = {
     styles: {
       backgroundColor: 'rgb(55 65 81 / 0.8)', // bg-gray-600/80 for off state
       lightBackgroundColor: 'rgb(229 231 235 / 0.9)', // bg-gray-200/90
-      onBackgroundColor: 'rgb(229 231 235 / 1)', // bg-gray-200/100
+      onBackgroundColor: 'rgb(249 250 251 / 1)', // bg-gray-50
       lightOnBackgroundColor: 'rgb(255 255 255 / 1)', // bg-white
     },
     elements: [
@@ -163,7 +158,7 @@ const defaultSwitchTemplate: CardTemplate = {
     styles: {
       backgroundColor: 'rgb(55 65 81 / 0.8)', // bg-gray-600/80 for off state
       lightBackgroundColor: 'rgb(229 231 235 / 0.9)', // bg-gray-200/90
-      onBackgroundColor: 'rgb(229 231 235 / 1)', // bg-gray-200/100
+      onBackgroundColor: 'rgb(249 250 251 / 1)', // bg-gray-50
       lightOnBackgroundColor: 'rgb(255 255 255 / 1)', // bg-white
     },
     elements: [
@@ -917,7 +912,7 @@ const App: React.FC = () => {
                   if (deviceToEdit) setEditingDevice(deviceToEdit);
                   handleCloseContextMenu(); 
                 }} 
-                className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer"
+                className="px-3 py-1.5 rounded-md cursor-pointer"
               >
                   Редактировать
               </div>
@@ -928,48 +923,48 @@ const App: React.FC = () => {
                         setEditingTemplate(currentTemplate);
                         handleCloseContextMenu(); 
                     }} 
-                    className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer"
+                    className="px-3 py-1.5 rounded-md cursor-pointer"
                 >
                     Редактировать шаблон
                 </div>
               )}
 
 
-              {otherTabs.length > 0 && <div className="h-px bg-gray-600/50 my-1" />}
+              {otherTabs.length > 0 && <div className="h-px bg-gray-300 dark:bg-gray-600/50 my-1" />}
 
               {otherTabs.length > 0 && (
                   <>
                       <div className="relative group/menu">
-                          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-default flex justify-between items-center">
+                          <div className="px-3 py-1.5 rounded-md cursor-default flex justify-between items-center">
                               Копировать в... <span className="text-xs ml-4">▶</span>
                           </div>
-                          <div className="absolute left-full top-[-5px] z-10 hidden group-hover/menu:block bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-white/10 p-1 min-w-[150px]">
+                          <div className="absolute left-full top-[-5px] z-10 hidden group-hover/menu:block bg-white dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-1 min-w-[150px]">
                               {otherTabs.map(tab => (
-                                  <div key={tab.id} onClick={() => { handleDeviceAddToTab(contextMenu.deviceId, tab.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer">{tab.name}</div>
+                                  <div key={tab.id} onClick={() => { handleDeviceAddToTab(contextMenu.deviceId, tab.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md cursor-pointer">{tab.name}</div>
                               ))}
                           </div>
                       </div>
 
                       <div className="relative group/menu">
-                          <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-default flex justify-between items-center">
+                          <div className="px-3 py-1.5 rounded-md cursor-default flex justify-between items-center">
                               Переместить в... <span className="text-xs ml-4">▶</span>
                           </div>
-                          <div className="absolute left-full top-[-5px] z-10 hidden group-hover/menu:block bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-white/10 p-1 min-w-[150px]">
+                          <div className="absolute left-full top-[-5px] z-10 hidden group-hover/menu:block bg-white dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-1 min-w-[150px]">
                                {otherTabs.map(tab => (
-                                  <div key={tab.id} onClick={() => { handleDeviceMoveToTab(contextMenu.deviceId, contextMenu.tabId, tab.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer">{tab.name}</div>
+                                  <div key={tab.id} onClick={() => { handleDeviceMoveToTab(contextMenu.deviceId, contextMenu.tabId, tab.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md cursor-pointer">{tab.name}</div>
                               ))}
                           </div>
                       </div>
                   </>
               )}
 
-              <div className="h-px bg-gray-600/50 my-1" />
+              <div className="h-px bg-gray-300 dark:bg-gray-600/50 my-1" />
               
               <div className="relative group/menu">
-                  <div className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-default flex justify-between items-center">
+                  <div className="px-3 py-1.5 rounded-md cursor-default flex justify-between items-center">
                       Размер <span className="text-xs ml-4">▶</span>
                   </div>
-                  <div className="absolute left-full top-[-5px] z-10 hidden group-hover/menu:block bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-white/10 p-1 min-w-[120px]">
+                  <div className="absolute left-full top-[-5px] z-10 hidden group-hover/menu:block bg-white dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-1 min-w-[120px]">
                       {[
                           {w: 1, h: 1}, 
                           {w: 2, h: 2}, 
@@ -983,7 +978,7 @@ const App: React.FC = () => {
                                   handleDeviceResizeOnTab(contextMenu.tabId, contextMenu.deviceId, size.w, size.h); 
                                   handleCloseContextMenu(); 
                               }} 
-                              className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer"
+                              className="px-3 py-1.5 rounded-md cursor-pointer"
                           >
                               {`${size.w} x ${size.h}`}
                           </div>
@@ -991,11 +986,11 @@ const App: React.FC = () => {
                   </div>
               </div>
 
-              <div className="h-px bg-gray-600/50 my-1" />
+              <div className="h-px bg-gray-300 dark:bg-gray-600/50 my-1" />
 
                <div 
                   onClick={() => { handleDeviceRemoveFromTab(contextMenu.deviceId, contextMenu.tabId); handleCloseContextMenu(); }} 
-                  className="px-3 py-1.5 rounded-md text-red-400 hover:bg-red-500/20 hover:text-red-300 cursor-pointer"
+                  className="px-3 py-1.5 rounded-md text-red-500 dark:text-red-400 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-300 cursor-pointer"
               >
                   Удалить с вкладки
               </div>
