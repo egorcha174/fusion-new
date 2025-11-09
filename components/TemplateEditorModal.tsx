@@ -149,7 +149,7 @@ const Section: React.FC<{ title: string, children: React.ReactNode, defaultOpen?
 };
 
 const LabeledInput: React.FC<{ label: string, children: React.ReactNode, suffix?: string }> = ({ label, children, suffix }) => (
-    <div className="grid grid-cols-2 items-center gap-4">
+    <div className="grid grid-cols-[auto,1fr] items-center gap-4">
         <label className="text-xs text-gray-400 truncate">{label}</label>
         <div className="flex items-center gap-2">
             {children}
