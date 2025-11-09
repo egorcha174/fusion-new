@@ -213,7 +213,11 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, sidebarWidth, setS
                     getCameraStreamUrl={getCameraStreamUrl}
                 />
             
-                <WeatherWidget openWeatherMapKey={openWeatherMapKey} getConfig={getConfig} />
+                <WeatherWidget 
+                    openWeatherMapKey={openWeatherMapKey} 
+                    getConfig={getConfig} 
+                    colorScheme={colorScheme}
+                />
             </div>
 
             <div

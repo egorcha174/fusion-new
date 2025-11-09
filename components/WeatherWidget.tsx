@@ -1,4 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
+import { ColorScheme } from '../types';
 
 // --- Types ---
 interface CurrentWeather {
@@ -22,9 +24,10 @@ interface WeatherData {
 interface WeatherWidgetProps {
     openWeatherMapKey: string;
     getConfig: () => Promise<any>;
+    colorScheme: ColorScheme['light'];
 }
 
-const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey, getConfig }) => {
+const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey, getConfig, colorScheme }) => {
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -146,8 +149,37 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey, getCon
                     className="w-24 h-24 flex-shrink-0 -ml-2"
                 />
                 <div className="overflow-hidden">
-                    <p className="text-4xl font-bold">{current.temp}°C</p>
-                    <p className="text-gray-400 text-sm -mt-1 truncate capitalize" title={current.desc}>{current.desc}</p>
+                    <p
+                      className="text-4xl font-bold"
+                      style={{
+                          color: colorScheme.valueTextColor,
+                          fontFamily: colorScheme.valueTextFontFamily,
+                          fontSize: colorScheme.valueTextFontSize ? `${colorScheme.valueTextFontSize}px` : undefined,
+                      }}
+                      data-style-key="valueTextColor"
+                      data-style-name="Погода (температура)"
+                      data-is-text="true"
+                      data-style-origin="scheme"
+                      data-is-on="false"
+                    >
+                      {current.temp}°C
+                    </p>
+                    <p
+                      className="text-sm -mt-1 truncate capitalize"
+                      title={current.desc}
+                      style={{
+                          color: colorScheme.statusTextColor,
+                          fontFamily: colorScheme.statusTextFontFamily,
+                          fontSize: colorScheme.statusTextFontSize ? `${colorScheme.statusTextFontSize}px` : undefined,
+                      }}
+                      data-style-key="statusTextColor"
+                      data-style-name="Погода (описание)"
+                      data-is-text="true"
+                      data-style-origin="scheme"
+                      data-is-on="false"
+                    >
+                      {current.desc}
+                    </p>
                 </div>
             </div>
 
@@ -155,15 +187,57 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey, getCon
             <div className="mt-4 grid grid-cols-4 gap-2 text-center">
                 {forecast.map((day, index) => (
                     <div key={index} className="flex flex-col items-center space-y-1">
-                        <p className="text-xs font-medium text-gray-400 capitalize">{day.day}</p>
+                        <p
+                          className="text-xs font-medium capitalize"
+                          style={{
+                              color: colorScheme.nameTextColor,
+                              fontFamily: colorScheme.nameTextFontFamily,
+                              fontSize: colorScheme.nameTextFontSize ? `${colorScheme.nameTextFontSize}px` : undefined,
+                          }}
+                          data-style-key="nameTextColor"
+                          data-style-name="Погода (день недели)"
+                          data-is-text="true"
+                          data-style-origin="scheme"
+                          data-is-on="false"
+                        >
+                          {day.day}
+                        </p>
                          <img 
                             src={getWeatherIconUrl(day.icon, '2x')} 
                             alt=""
                             className="w-12 h-12"
                         />
                         <div>
-                            <p className="text-lg font-semibold">{Math.round(day.tempMax)}°</p>
-                            <p className="text-sm text-gray-400 -mt-1">{Math.round(day.tempMin)}°</p>
+                            <p
+                              className="text-lg font-semibold"
+                              style={{
+                                  color: colorScheme.valueTextColor,
+                                  fontFamily: colorScheme.valueTextFontFamily,
+                                  fontSize: colorScheme.valueTextFontSize ? `${colorScheme.valueTextFontSize}px` : undefined,
+                              }}
+                              data-style-key="valueTextColor"
+                              data-style-name="Погода (макс. темп.)"
+                              data-is-text="true"
+                              data-style-origin="scheme"
+                              data-is-on="false"
+                            >
+                              {Math.round(day.tempMax)}°
+                            </p>
+                            <p
+                              className="text-sm -mt-1"
+                              style={{
+                                  color: colorScheme.statusTextColor,
+                                  fontFamily: colorScheme.statusTextFontFamily,
+                                  fontSize: colorScheme.statusTextFontSize ? `${colorScheme.statusTextFontSize}px` : undefined,
+                              }}
+                              data-style-key="statusTextColor"
+                              data-style-name="Погода (мин. темп.)"
+                              data-is-text="true"
+                              data-style-origin="scheme"
+                              data-is-on="false"
+                            >
+                              {Math.round(day.tempMin)}°
+                            </p>
                         </div>
                     </div>
                 ))}
