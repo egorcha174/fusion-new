@@ -2,8 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Device, ColorScheme } from '../types';
 import LoadingSpinner from './LoadingSpinner';
 import HistoryChart from './HistoryChart';
-// FIX: Replace `subHours` and `subDays` with the more modern `sub` function to resolve module export errors.
-import { sub } from 'date-fns';
+// FIX: Module '"date-fns"' has no exported member 'sub'. Using 'subHours' and 'subDays' instead.
+import { subHours, subDays } from 'date-fns';
 import { Icon } from '@iconify/react';
 
 interface HistoryModalProps {
@@ -65,14 +65,14 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ entityId, onClose, getHisto
       const now = new Date();
       let startDate: Date;
 
-      // FIX: Use `sub` function with duration object for better readability and to fix export errors.
+      // FIX: Use `subHours` and `subDays` as the `sub` function is not available in the project's date-fns version.
       switch (timeRange) {
-        case '1h': startDate = sub(now, { hours: 1 }); break;
-        case '6h': startDate = sub(now, { hours: 6 }); break;
-        case '12h': startDate = sub(now, { hours: 12 }); break;
-        case '24h': startDate = sub(now, { hours: 24 }); break;
-        case '3d': startDate = sub(now, { days: 3 }); break;
-        default: startDate = sub(now, { hours: 24 });
+        case '1h': startDate = subHours(now, 1); break;
+        case '6h': startDate = subHours(now, 6); break;
+        case '12h': startDate = subHours(now, 12); break;
+        case '24h': startDate = subHours(now, 24); break;
+        case '3d': startDate = subDays(now, 3); break;
+        default: startDate = subHours(now, 24);
       }
 
       try {
@@ -135,7 +135,8 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ entityId, onClose, getHisto
       onClick={onClose}
     >
       <div
-        className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-lg w-full max-w-4xl h-full max-h-[80vh] ring-1 ring-black/5 dark:ring-white/10 flex flex-col"
+        className="backdrop-blur-xl rounded-2xl shadow-lg w-full max-w-4xl h-full max-h-[80vh] ring-1 ring-black/5 dark:ring-white/10 flex flex-col"
+        style={{ backgroundColor: colorScheme.cardBackground }}
         onClick={e => e.stopPropagation()}
       >
         <header className="p-4 flex-shrink-0 flex items-center justify-between border-b border-gray-300/50 dark:border-gray-700/50">
