@@ -2,8 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Device, ColorScheme } from '../types';
 import LoadingSpinner from './LoadingSpinner';
 import HistoryChart from './HistoryChart';
-// FIX: Module '"date-fns"' has no exported member 'sub'. Using 'subHours' and 'subDays' instead.
-import { subHours, subDays } from 'date-fns';
+// FIX: Import date-fns helpers from their specific subpaths to resolve module resolution error.
+import subHours from 'date-fns/subHours';
+import subDays from 'date-fns/subDays';
 import { Icon } from '@iconify/react';
 
 interface HistoryModalProps {

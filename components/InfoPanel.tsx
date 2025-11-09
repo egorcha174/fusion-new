@@ -199,11 +199,11 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, sidebarWidth, setS
             data-style-name="Фон боковой панели"
             data-style-origin="scheme"
         >
-            <div className="flex justify-center">
+            <div className="flex-shrink-0 flex justify-center">
                 <Clock settings={clockSettings} sidebarWidth={sidebarWidth} />
             </div>
 
-            <div className="mt-4 space-y-4">
+            <div className="flex-1 mt-4 space-y-4 overflow-y-auto no-scrollbar min-h-0">
                  <CameraWidget
                     cameras={cameras}
                     settings={cameraSettings}
