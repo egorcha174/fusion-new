@@ -1,9 +1,10 @@
+
 import React, { useMemo, useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
-import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CameraSettings, GridLayoutItem, CardTemplates, CardTemplate, DeviceBinding, ThresholdRule, ColorScheme, ColorPickerContextData } from './types';
+import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CameraSettings, GridLayoutItem, CardTemplates, CardTemplate, DeviceBinding, ThresholdRule, ColorScheme, ColorPickerContextData, CardElementId, CardElement } from './types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from './components/DeviceIcon';
 import { set } from './utils/obj-path';
@@ -304,6 +305,15 @@ const DEFAULT_COLOR_SCHEME: ColorScheme = {
   },
 };
 
+interface StyleUpdateInfo {
+    origin: 'scheme' | 'template';
+    baseKey: string;
+    theme: 'light' | 'dark';
+    isOn: boolean;
+    templateId?: string;
+    elementId?: CardElementId;
+    styleProperty?: string;
+}
 
 const App: React.FC = () => {
   const {
@@ -453,41 +463,112 @@ const App: React.FC = () => {
     setContextMenu(null);
   }, []);
   
-  const handleOpenColorPicker = useCallback((
-    event: React.MouseEvent,
-    baseKey: string,
-    targetName: string,
-    isTextElement: boolean,
-    isOn: boolean
-  ) => {
-    setContextMenu(null); // Close regular context menu if open
-    
-    const themeKey = isDark ? 'dark' : 'light';
-    const onSuffix = isOn ? 'On' : '';
-    const colorKey = `${themeKey}.${baseKey}${onSuffix}`;
-    const fontFamilyKey = `${themeKey}.${baseKey.replace('Color', 'FontFamily')}${onSuffix}`;
-    const fontSizeKey = `${themeKey}.${baseKey.replace('Color', 'FontSize')}${onSuffix}`;
+  const handleStyleUpdate = useCallback((updateInfo: StyleUpdateInfo, value: any) => {
+    const { origin, theme: themeKey, baseKey, isOn, templateId, elementId, styleProperty } = updateInfo;
 
+    if (origin === 'scheme') {
+        const onSuffix = isOn ? 'On' : '';
+        const key = `${themeKey}.${baseKey}${onSuffix}`;
+        setColorScheme(prev => {
+            const newScheme = JSON.parse(JSON.stringify(prev));
+            if (value === undefined || value === '') {
+                // Special case for resetting fonts
+                const pathParts = key.split('.');
+                const lastKey = pathParts.pop()!;
+                let parent = newScheme;
+                for (const part of pathParts) {
+                    parent = parent[part];
+                }
+                delete parent[lastKey];
+            } else {
+                set(newScheme, key, value);
+            }
+            return newScheme;
+        });
+    } else if (origin === 'template') {
+        if (!templateId || !elementId || !styleProperty) return;
+
+        setTemplates(prev => {
+            const newTemplates = JSON.parse(JSON.stringify(prev));
+            const template = newTemplates[templateId];
+            if (!template) return prev;
+
+            const elementIndex = template.elements.findIndex((el: CardElement) => el.id === elementId);
+            if (elementIndex === -1) return prev;
+
+            if (value === undefined || value === '') {
+                delete template.elements[elementIndex].styles[styleProperty as keyof typeof template.elements[0]['styles']];
+            } else {
+                (template.elements[elementIndex].styles as any)[styleProperty] = value;
+            }
+            
+            return newTemplates;
+        });
+    }
+}, [setColorScheme, setTemplates]);
+
+
+const handleOpenColorPicker = useCallback((
+    event: React.MouseEvent,
+    styleInfoFromClick: any 
+  ) => {
+    setContextMenu(null);
+    const { baseKey, targetName, isTextElement, isOn, origin, templateId, elementId } = styleInfoFromClick;
+    const themeKey = isDark ? 'dark' : 'light';
     const scheme = isDark ? colorScheme.dark : colorScheme.light;
+    const template = templateId ? templates[templateId] : null;
+    const element = template ? template.elements.find((el: CardElement) => el.id === elementId) : null;
+    const onSuffix = isOn ? 'On' : '';
+
+    let initialValue = isDark ? '#FFFFFF' : '#000000';
+    if (origin === 'template' && element?.styles.textColor) {
+        initialValue = element.styles.textColor;
+    } else if (origin === 'scheme') {
+        initialValue = (scheme as any)[`${baseKey}${onSuffix}`] || initialValue;
+    }
+
+    let initialFontFamily: string | undefined;
+    if (origin === 'template' && element?.styles.fontFamily) {
+        initialFontFamily = element.styles.fontFamily;
+    } else if (origin === 'scheme') {
+        initialFontFamily = (scheme as any)[`${baseKey.replace('Color', 'FontFamily')}${onSuffix}`];
+    }
+
+    let initialFontSize: number | undefined;
+    if (origin === 'template' && element?.styles.fontSize) {
+        initialFontSize = element.styles.fontSize;
+    } else if (origin === 'scheme') {
+        initialFontSize = (scheme as any)[`${baseKey.replace('Color', 'FontSize')}${onSuffix}`];
+    }
     
-    // A helper to get nested property
-    const get = (obj: any, path: string) => path.split('.').slice(1).reduce((o, p) => (o ? o[p] : undefined), obj);
-    
+    const onUpdate = (property: 'color' | 'fontFamily' | 'fontSize', value: any) => {
+        const baseUpdateInfo: Omit<StyleUpdateInfo, 'baseKey' | 'styleProperty'> = {
+            origin, theme: themeKey, isOn, templateId, elementId,
+        };
+        let finalUpdateInfo: StyleUpdateInfo;
+
+        if (property === 'color') {
+            finalUpdateInfo = { ...baseUpdateInfo, baseKey, styleProperty: 'textColor' };
+        } else if (property === 'fontFamily') {
+            finalUpdateInfo = { ...baseUpdateInfo, baseKey: baseKey.replace('Color', 'FontFamily'), styleProperty: 'fontFamily' };
+        } else { // fontSize
+            finalUpdateInfo = { ...baseUpdateInfo, baseKey: baseKey.replace('Color', 'FontSize'), styleProperty: 'fontSize' };
+        }
+        handleStyleUpdate(finalUpdateInfo, value);
+    };
+
     setColorPickerMenu({
         x: event.clientX,
         y: event.clientY,
-        targetKey: colorKey,
         targetName,
         isTextElement,
-        onUpdate: handleUpdateColorScheme,
-        initialValue: get(scheme, colorKey) || (isDark ? '#FFFFFF' : '#000000'),
-        initialFontFamily: get(scheme, fontFamilyKey),
-        initialFontSize: get(scheme, fontSizeKey),
+        onUpdate,
+        initialValue,
+        initialFontFamily,
+        initialFontSize,
     });
-
-  }, [isDark, colorScheme]);
+}, [isDark, colorScheme, templates, handleStyleUpdate]);
   
-  // FIX: Added handleDeviceContextMenu to be passed to TabContent
   const handleDeviceContextMenu = useCallback((event: React.MouseEvent, deviceId: string, tabId: string) => {
     event.preventDefault();
     setContextMenu({ x: event.clientX, y: event.clientY, deviceId, tabId });
@@ -498,17 +579,34 @@ const App: React.FC = () => {
     setColorPickerMenu(null);
 
     const target = event.target as HTMLElement;
-    const styleTarget = target.closest('[data-style-key]') as HTMLElement | null;
+    const styleTarget = target.closest('[data-style-origin]') as HTMLElement | null;
     const deviceTarget = target.closest('[data-device-id]') as HTMLElement | null;
 
     if (styleTarget) {
       event.preventDefault();
-      const baseKey = styleTarget.dataset.styleKey!;
-      const targetName = styleTarget.dataset.styleName || 'Элемент';
-      const isText = styleTarget.dataset.isText === 'true';
-      const isOn = styleTarget.dataset.isOn === 'true';
+      
+      const { 
+        styleOrigin: origin, 
+        styleKey: baseKey, 
+        styleName: targetName,
+        isText: isTextStr,
+        isOn: isOnStr,
+        templateId,
+        templateElementId: elementId
+      } = styleTarget.dataset;
 
-      handleOpenColorPicker(event, baseKey, targetName, isText, isOn);
+      const styleInfo = {
+          origin,
+          baseKey,
+          targetName: targetName || 'Элемент',
+          isTextElement: isTextStr === 'true',
+          isOn: isOnStr === 'true',
+          templateId,
+          elementId,
+      };
+
+      handleOpenColorPicker(event, styleInfo);
+
     } else if (deviceTarget) {
       event.preventDefault();
       const deviceId = deviceTarget.dataset.deviceId!;
@@ -517,13 +615,6 @@ const App: React.FC = () => {
     }
   }, [handleOpenColorPicker]);
 
-  const handleUpdateColorScheme = useCallback((key: string, value: any) => {
-    setColorScheme(prev => {
-        const newScheme = JSON.parse(JSON.stringify(prev)); // Deep copy
-        set(newScheme, key, value);
-        return newScheme;
-    });
-  }, [setColorScheme]);
 
 
 
@@ -953,7 +1044,7 @@ const App: React.FC = () => {
   const otherTabs = tabs.filter(t => t.id !== contextMenu?.tabId);
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: currentColorScheme.dashboardBackground }} onContextMenu={handleGlobalContextMenu} data-style-key="dashboardBackground" data-style-name="Фон дашборда">
+    <div className="flex min-h-screen" style={{ backgroundColor: currentColorScheme.dashboardBackground }} onContextMenu={handleGlobalContextMenu} data-style-key="dashboardBackground" data-style-name="Фон дашборда" data-style-origin="scheme">
       <Suspense fallback={<div className="bg-gray-900" style={{ width: `${sidebarWidth}px` }} />}>
         <InfoPanel 
           clockSettings={clockSettings} 

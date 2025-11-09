@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { ColorPickerContextData } from '../types';
 
@@ -28,23 +29,20 @@ const ColorPickerContextMenu: React.FC<{ data: ColorPickerContextData, onClose: 
     }, [data.x, data.y]);
 
     const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        data.onUpdate(data.targetKey, e.target.value);
+        data.onUpdate('color', e.target.value);
     };
 
     const handleFontFamilyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const fontFamilyKey = data.targetKey.replace('Color', 'FontFamily');
-        data.onUpdate(fontFamilyKey, e.target.value);
+        data.onUpdate('fontFamily', e.target.value);
     };
     
     const handleFontSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const fontSizeKey = data.targetKey.replace('Color', 'FontSize');
         const value = e.target.value ? parseInt(e.target.value, 10) : undefined;
-        data.onUpdate(fontSizeKey, value);
+        data.onUpdate('fontSize', value);
     };
     
     const handleResetFont = (type: 'Family' | 'Size') => {
-        const key = data.targetKey.replace('Color', `Font${type}`);
-        data.onUpdate(key, undefined);
+        data.onUpdate(type === 'Family' ? 'fontFamily' : 'fontSize', undefined);
     };
 
 

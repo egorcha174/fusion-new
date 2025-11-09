@@ -172,10 +172,9 @@ export interface ColorScheme {
 export interface ColorPickerContextData {
   x: number;
   y: number;
-  targetKey: string;
   targetName: string;
   isTextElement: boolean;
-  onUpdate: (key: string, value: any) => void;
+  onUpdate: (property: 'color' | 'fontFamily' | 'fontSize', value: any) => void;
   initialValue: string; // for color
   initialFontFamily?: string;
   initialFontSize?: number;
@@ -197,6 +196,7 @@ export interface CardElement {
     onColor?: string;
     offColor?: string;
     fontSize?: number;
+    fontFamily?: string;
     textAlign?: 'left' | 'center' | 'right';
     textColor?: string;
     linkedEntityId?: string;
