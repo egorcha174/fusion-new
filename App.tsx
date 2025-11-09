@@ -3,6 +3,7 @@
 
 
 
+
 import React, { useMemo, useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import useHomeAssistant from './hooks/useHomeAssistant';
@@ -26,7 +27,7 @@ const ContextMenu = lazy(() => import('./components/ContextMenu'));
 const FloatingCameraWindow = lazy(() => import('./components/FloatingCameraWindow'));
 const TemplateEditorModal = lazy(() => import('./components/TemplateEditorModal'));
 const ColorPickerContextMenu = lazy(() => import('./components/ColorPickerContextMenu'));
-const HistoryPage = lazy(() => import('./components/HistoryPage'));
+const HistoryModal = lazy(() => import('./components/HistoryModal'));
 
 
 // Hook to check for large screens to conditionally apply margin
@@ -344,7 +345,7 @@ const App: React.FC = () => {
   } = useHomeAssistant();
 
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
-  const [historyEntityId, setHistoryEntityId] = useState<string | null>(null);
+  const [historyModalEntityId, setHistoryModalEntityId] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [editingTab, setEditingTab] = useState<Tab | null>(null);
@@ -830,8 +831,7 @@ const handleOpenColorPicker = useCallback((
   }, []);
 
   const handleShowHistory = useCallback((entityId: string) => {
-    setHistoryEntityId(entityId);
-    setCurrentPage('history');
+    setHistoryModalEntityId(entityId);
   }, []);
 
 
@@ -1044,19 +1044,6 @@ const handleOpenColorPicker = useCallback((
         );
       case 'all-devices':
         return <AllDevicesPage rooms={filteredRoomsForDevicePage} customizations={customizations} onToggleVisibility={handleToggleVisibility} tabs={tabs} onDeviceAddToTab={handleDeviceAddToTab} />;
-      case 'history':
-        return historyEntityId ? (
-          <HistoryPage
-            entityId={historyEntityId}
-            onBack={() => {
-                setHistoryEntityId(null);
-                setCurrentPage('dashboard');
-            }}
-            getHistory={getHistory}
-            allKnownDevices={allKnownDevices}
-            colorScheme={currentColorScheme}
-          />
-        ) : null;
       case 'dashboard':
       default:
         return activeTab ? (
@@ -1094,7 +1081,7 @@ const handleOpenColorPicker = useCallback((
 
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: currentColorScheme.dashboardBackground }} onContextMenu={handleGlobalContextMenu} data-style-key="dashboardBackground" data-style-name="Фон дашборда" data-style-origin="scheme">
-      {isSidebarVisible && currentPage !== 'history' && (
+      {isSidebarVisible && (
       <Suspense fallback={<div className="bg-gray-900" style={{ width: `${sidebarWidth}px` }} />}>
         <InfoPanel 
           clockSettings={clockSettings} 
@@ -1113,35 +1100,33 @@ const handleOpenColorPicker = useCallback((
         />
       </Suspense>
       )}
-      <div className="flex flex-col flex-1" style={{ marginLeft: isLg && isSidebarVisible && currentPage !== 'history' ? `${sidebarWidth}px` : '0px' }}>
-        {currentPage !== 'history' && (
-            <Suspense fallback={<div className="h-[73px] bg-gray-900 border-b border-gray-700/50" />}>
-                <DashboardHeader
-                    tabs={tabs}
-                    activeTabId={activeTabId}
-                    onTabChange={(tabId) => {
-                      setActiveTabId(tabId);
-                      setCurrentPage('dashboard');
-                    }}
-                    onTabOrderChange={handleTabOrderChange}
-                    isEditMode={isEditMode}
-                    onToggleEditMode={() => setIsEditMode(!isEditMode)}
-                    onNavigate={(page) => setCurrentPage(page)}
-                    onAddTab={handleAddTab}
-                    onEditTab={setEditingTab}
-                    currentPage={currentPage}
-                    searchTerm={searchTerm}
-                    onSearchChange={setSearchTerm}
-                    theme={theme}
-                    onThemeChange={setTheme}
-                    colorScheme={currentColorScheme}
-                />
-            </Suspense>
-        )}
+      <div className="flex flex-col flex-1" style={{ marginLeft: isLg && isSidebarVisible ? `${sidebarWidth}px` : '0px' }}>
+        <Suspense fallback={<div className="h-[73px] bg-gray-900 border-b border-gray-700/50" />}>
+            <DashboardHeader
+                tabs={tabs}
+                activeTabId={activeTabId}
+                onTabChange={(tabId) => {
+                  setActiveTabId(tabId);
+                  setCurrentPage('dashboard');
+                }}
+                onTabOrderChange={handleTabOrderChange}
+                isEditMode={isEditMode}
+                onToggleEditMode={() => setIsEditMode(!isEditMode)}
+                onNavigate={(page) => setCurrentPage(page)}
+                onAddTab={handleAddTab}
+                onEditTab={setEditingTab}
+                currentPage={currentPage}
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                theme={theme}
+                onThemeChange={setTheme}
+                colorScheme={currentColorScheme}
+            />
+        </Suspense>
         <main className="flex-1 overflow-y-auto">
           <Suspense fallback={<div className="flex h-full w-full items-center justify-center"><LoadingSpinner /></div>}>
-            <div className={`${currentPage !== 'history' ? 'container mx-auto' : ''} h-full`}>
-              <div key={currentPage + (activeTab?.id || '') + historyEntityId} className="fade-in h-full">
+            <div className="container mx-auto h-full">
+              <div key={currentPage + (activeTab?.id || '')} className="fade-in h-full">
                 {renderPage()}
               </div>
             </div>
@@ -1175,6 +1160,16 @@ const handleOpenColorPicker = useCallback((
               onClose={() => setEditingTemplate(null)}
               allKnownDevices={allKnownDevices}
               colorScheme={currentColorScheme}
+          />
+        )}
+        
+        {historyModalEntityId && (
+          <HistoryModal
+            entityId={historyModalEntityId}
+            onClose={() => setHistoryModalEntityId(null)}
+            getHistory={getHistory}
+            allKnownDevices={allKnownDevices}
+            colorScheme={currentColorScheme}
           />
         )}
 

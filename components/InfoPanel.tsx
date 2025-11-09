@@ -207,7 +207,6 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, sidebarWidth, setS
                  <CameraWidget
                     cameras={cameras}
                     settings={cameraSettings}
-                    // FIX: Renamed prop 'onCameraSettingsChange' to 'onSettingsChange' to match the 'CameraWidgetProps' interface.
                     onSettingsChange={onCameraSettingsChange}
                     onCameraWidgetClick={onCameraWidgetClick}
                     haUrl={haUrl}

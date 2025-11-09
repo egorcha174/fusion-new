@@ -1,6 +1,7 @@
 
 
 
+
 export enum DeviceType {
   Light,
   Lamp,
@@ -102,7 +103,7 @@ export interface DeviceCustomization {
 
 export type DeviceCustomizations = Record<string, DeviceCustomization>; // Key is device.id (entity_id)
 
-export type Page = 'dashboard' | 'settings' | 'all-devices' | 'history';
+export type Page = 'dashboard' | 'settings' | 'all-devices';
 
 export type ClockSize = 'sm' | 'md' | 'lg';
 

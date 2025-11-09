@@ -1,0 +1,151 @@
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { Device, ColorScheme } from '../types';
+import LoadingSpinner from './LoadingSpinner';
+import HistoryChart from './HistoryChart';
+import { subHours, subDays, startOfHour, endOfHour, startOfDay, endOfDay } from 'date-fns';
+import { Icon } from '@iconify/react';
+
+interface HistoryModalProps {
+  entityId: string;
+  onClose: () => void;
+  getHistory: (entityIds: string[], startTime: string, endTime?: string) => Promise<any>;
+  allKnownDevices: Map<string, Device>;
+  colorScheme: ColorScheme['light'];
+}
+
+type TimeRange = '1h' | '6h' | '12h' | '24h' | '3d';
+
+const TIME_RANGES: { id: TimeRange; label: string }[] = [
+    { id: '1h', label: '1 час' },
+    { id: '6h', label: '6 часов' },
+    { id: '12h', label: '12 часов' },
+    { id: '24h', label: '24 часа' },
+    { id: '3d', label: '3 дня' },
+];
+
+const HistoryModal: React.FC<HistoryModalProps> = ({ entityId, onClose, getHistory, allKnownDevices, colorScheme }) => {
+  const [chartData, setChartData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [timeRange, setTimeRange] = useState<TimeRange>('24h');
+
+  const device = allKnownDevices.get(entityId);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      setChartData(null);
+
+      const now = new Date();
+      let startDate: Date;
+
+      switch (timeRange) {
+        case '1h': startDate = subHours(now, 1); break;
+        case '6h': startDate = subHours(now, 6); break;
+        case '12h': startDate = subHours(now, 12); break;
+        case '24h': startDate = subHours(now, 24); break;
+        case '3d': startDate = subDays(now, 3); break;
+        default: startDate = subHours(now, 24);
+      }
+
+      try {
+        const data = await getHistory([entityId], startDate.toISOString(), now.toISOString());
+        const historyPoints = data[entityId];
+
+        if (!historyPoints || historyPoints.length === 0) {
+          throw new Error("Нет данных истории за выбранный период.");
+        }
+
+        const processedData = historyPoints
+          .filter((point: any) => point && !isNaN(parseFloat(point.s)))
+          .map((point: any) => ({
+            x: new Date(point.lu * 1000), // last_updated in seconds
+            y: parseFloat(point.s),
+          }));
+        
+        if (processedData.length < 2) {
+          throw new Error("Недостаточно данных для построения графика.");
+        }
+
+        setChartData({
+          datasets: [{
+            label: device?.name || entityId,
+            data: processedData,
+            borderColor: 'rgb(59, 130, 246)',
+            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            fill: true,
+            tension: 0.3,
+          }]
+        });
+
+      } catch (err: any) {
+        setError(err.message || "Не удалось загрузить историю.");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [entityId, timeRange, getHistory, device?.name]);
+  
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 fade-in"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-lg w-full max-w-4xl h-full max-h-[80vh] ring-1 ring-black/5 dark:ring-white/10 flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
+        <header className="p-4 flex-shrink-0 flex items-center justify-between border-b border-gray-300/50 dark:border-gray-700/50">
+            <div>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">История: {device?.name || entityId}</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">График изменения состояния</p>
+            </div>
+            <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                 <Icon icon="mdi:close" className="w-6 h-6" />
+            </button>
+        </header>
+        
+        <div className="p-4 flex-shrink-0 flex items-center justify-center gap-2 border-b border-gray-300/50 dark:border-gray-700/50">
+            {TIME_RANGES.map(({ id, label }) => (
+                <button
+                    key={id}
+                    onClick={() => setTimeRange(id)}
+                    className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-colors ${timeRange === id ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+                >
+                    {label}
+                </button>
+            ))}
+        </div>
+
+        <main className="flex-1 p-4 overflow-hidden relative">
+            {loading && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <LoadingSpinner />
+                </div>
+            )}
+            {error && !loading && (
+                <div className="absolute inset-0 flex items-center justify-center text-center text-red-500 dark:text-red-400 p-4">
+                    <div>
+                        <p className="font-semibold">Ошибка загрузки графика</p>
+                        <p className="text-sm mt-1">{error}</p>
+                    </div>
+                </div>
+            )}
+            {chartData && !loading && !error && (
+                <HistoryChart data={chartData} unit={device?.unit || ''} />
+            )}
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default HistoryModal;
