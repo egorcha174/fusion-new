@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement, DeviceCustomizations, ColorScheme } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -451,7 +452,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
          ? (template.styles.onBackgroundColor || template.styles.backgroundColor) 
          : (template.styles.lightOnBackgroundColor || template.styles.lightBackgroundColor);
 
-    let dynamicBackgroundColor = isOn ? bgOn : bgOff;
+    let dynamicBackgroundColor = isOn ? colorScheme.cardBackgroundOn : colorScheme.cardBackground;
     let dynamicValueColor: string | undefined = undefined;
 
     const deviceCustomization = customizations[device.id];
@@ -774,11 +775,12 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                                 text={valueText}
                                 className="w-full h-full"
                                 pClassName="font-semibold"
-                                pStyle={{ color: isOn ? colorScheme.valueTextColorOn : colorScheme.valueTextColor }}
+                                pStyle={{ color: isOn ? colorScheme.valueTextColorOn : colorScheme.valueTextColor, fontFamily: isOn ? colorScheme.valueTextFontFamilyOn : colorScheme.valueTextFontFamily, fontSize: isOn ? colorScheme.valueTextFontSizeOn : colorScheme.valueTextFontSize, }}
                                 maxFontSize={100}
                                 mode="single-line"
                                 fontSize={fontSize}
                                 textAlign={textAlign || 'center'}
+                                dataAttrs={{ 'data-style-key': 'valueTextColor', 'data-style-name': 'Значение', 'data-is-text': 'true' }}
                             />
                         </div>
                     )}
