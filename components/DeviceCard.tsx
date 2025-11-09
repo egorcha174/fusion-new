@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement, DeviceCustomizations, ColorScheme } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -825,9 +824,12 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
       }
     };
     
+    const hoverClass = !isEditMode && !isPreview ? 'hover:brightness-95 dark:hover:brightness-110' : '';
+    const cursorClass = isTogglable && !isEditMode && !isPreview ? 'cursor-pointer' : '';
+
     return (
       <div
-        className="w-full h-full relative rounded-2xl"
+        className={`w-full h-full relative rounded-2xl transition-all duration-200 ease-in-out select-none ${hoverClass} ${cursorClass}`}
         style={{ backgroundColor: dynamicBackgroundColor }}
         onContextMenu={onContextMenu}
         data-style-key="cardBackground"
@@ -1129,9 +1131,10 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
     }
 
     const layoutClasses = isCamera ? 'p-0' : styles.padding;
-    const interactionClasses = (isTogglable || isCamera) && !isEditMode && !isPreview ? 'cursor-pointer hover:brightness-95 dark:hover:brightness-110' : '';
+    const cursorClass = (isTogglable || isCamera) && !isEditMode && !isPreview ? 'cursor-pointer' : '';
+    const hoverClass = !isEditMode && !isPreview ? 'hover:brightness-95 dark:hover:brightness-110' : '';
   
-    return `${baseClasses} ${layoutClasses} ${interactionClasses}`;
+    return `${baseClasses} ${layoutClasses} ${cursorClass} ${hoverClass}`;
   }
 
   const getCardStyle = (): React.CSSProperties => {
