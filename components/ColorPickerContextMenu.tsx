@@ -4,6 +4,7 @@ import { ColorPickerContextData } from '../types';
 
 const FONT_FAMILIES = [
     { name: 'Системный', value: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"` },
+    { name: 'San Francisco (SF Pro)', value: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' },
     { name: 'С засечками', value: 'Georgia, serif' },
     { name: 'Моноширинный', value: 'monospace' },
 ];
