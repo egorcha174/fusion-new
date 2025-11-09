@@ -2,6 +2,7 @@
 
 
 
+
 import React, { useRef, useState } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ClockSettings, ClockSize, CardTemplates, CardTemplate, ColorScheme } from '../types';
@@ -26,6 +27,8 @@ interface SettingsProps {
   colorScheme?: ColorScheme;
   onColorSchemeChange?: (scheme: ColorScheme) => void;
   onResetColorScheme?: () => void;
+  isSidebarVisible?: boolean;
+  onSidebarVisibilityChange?: (isVisible: boolean) => void;
 }
 
 const ColorSettingRow: React.FC<{ label: string, value: string, onChange: (newColor: string) => void }> = ({ label, value, onChange }) => (
@@ -53,10 +56,11 @@ const LOCAL_STORAGE_KEYS = [
   'ha-openweathermap-key',
   'ha-theme',
   'ha-color-scheme',
+  'ha-sidebar-visible',
 ];
 
 const Settings: React.FC<SettingsProps> = (props) => {
-  const { onConnect, connectionStatus, error, onDisconnect, clockSettings, onClockSettingsChange, openWeatherMapKey, onOpenWeatherMapKeyChange, templates, onEditTemplate, onDeleteTemplate, onCreateTemplate, colorScheme, onColorSchemeChange, onResetColorScheme } = props;
+  const { onConnect, connectionStatus, error, onDisconnect, clockSettings, onClockSettingsChange, openWeatherMapKey, onOpenWeatherMapKeyChange, templates, onEditTemplate, onDeleteTemplate, onCreateTemplate, colorScheme, onColorSchemeChange, onResetColorScheme, isSidebarVisible, onSidebarVisibilityChange } = props;
   const [url, setUrl] = useLocalStorage('ha-url', '');
   const [token, setToken] = useLocalStorage('ha-token', '');
   const [localError, setLocalError] = useState('');
@@ -156,7 +160,7 @@ const Settings: React.FC<SettingsProps> = (props) => {
 
   const isLoading = connectionStatus === 'connecting';
 
-  if (connectionStatus === 'connected' && onDisconnect && clockSettings && onClockSettingsChange && openWeatherMapKey !== undefined && onOpenWeatherMapKeyChange && templates && onEditTemplate && onDeleteTemplate && onCreateTemplate && colorScheme && onColorSchemeChange && onResetColorScheme) {
+  if (connectionStatus === 'connected' && onDisconnect && clockSettings && onClockSettingsChange && openWeatherMapKey !== undefined && onOpenWeatherMapKeyChange && templates && onEditTemplate && onDeleteTemplate && onCreateTemplate && colorScheme && onColorSchemeChange && onResetColorScheme && isSidebarVisible !== undefined && onSidebarVisibilityChange) {
     return (
         <>
         <div className="w-full max-w-md bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 space-y-8">
@@ -218,6 +222,19 @@ const Settings: React.FC<SettingsProps> = (props) => {
                             </button>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Интерфейс</h2>
+                <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg">
+                    <label htmlFor="showSidebar" className="text-sm font-medium text-gray-800 dark:text-gray-200">Показывать боковую панель</label>
+                    <button
+                        onClick={() => onSidebarVisibilityChange(!isSidebarVisible)}
+                        className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${isSidebarVisible ? 'bg-blue-600' : 'bg-gray-500 dark:bg-gray-600'}`}
+                    >
+                        <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${isSidebarVisible ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
                 </div>
             </div>
 

@@ -1,5 +1,6 @@
 
 
+
 import React, { useMemo, useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import useHomeAssistant from './hooks/useHomeAssistant';
@@ -365,6 +366,7 @@ const App: React.FC = () => {
     selectedEntityId: null,
   });
   const [sidebarWidth, setSidebarWidth] = useLocalStorage<number>('ha-sidebar-width', 320);
+  const [isSidebarVisible, setIsSidebarVisible] = useLocalStorage<boolean>('ha-sidebar-visible', true);
   const [haUrl] = useLocalStorage('ha-url', '');
   const [openWeatherMapKey, setOpenWeatherMapKey] = useLocalStorage<string>('ha-openweathermap-key', '');
   const [theme, setTheme] = useLocalStorage<'day' | 'night' | 'auto'>('ha-theme', 'auto');
@@ -1024,6 +1026,8 @@ const handleOpenColorPicker = useCallback((
               colorScheme={colorScheme}
               onColorSchemeChange={setColorScheme}
               onResetColorScheme={() => setColorScheme(DEFAULT_COLOR_SCHEME)}
+              isSidebarVisible={isSidebarVisible}
+              onSidebarVisibilityChange={setIsSidebarVisible}
             />
           </div>
         );
@@ -1065,6 +1069,7 @@ const handleOpenColorPicker = useCallback((
 
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: currentColorScheme.dashboardBackground }} onContextMenu={handleGlobalContextMenu} data-style-key="dashboardBackground" data-style-name="Фон дашборда" data-style-origin="scheme">
+      {isSidebarVisible && (
       <Suspense fallback={<div className="bg-gray-900" style={{ width: `${sidebarWidth}px` }} />}>
         <InfoPanel 
           clockSettings={clockSettings} 
@@ -1082,7 +1087,8 @@ const handleOpenColorPicker = useCallback((
           colorScheme={currentColorScheme}
         />
       </Suspense>
-      <div className="flex flex-col flex-1" style={{ marginLeft: isLg ? `${sidebarWidth}px` : '0px' }}>
+      )}
+      <div className="flex flex-col flex-1" style={{ marginLeft: isLg && isSidebarVisible ? `${sidebarWidth}px` : '0px' }}>
         <Suspense fallback={<div className="h-[73px] bg-gray-900 border-b border-gray-700/50" />}>
             <DashboardHeader
                 tabs={tabs}
