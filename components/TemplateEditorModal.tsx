@@ -166,7 +166,7 @@ const NumberInput: React.FC<{ value: number | undefined, onChange: (val?: number
         placeholder={placeholder}
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
-        className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+        className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 [color-scheme:dark]"
     />
 );
 
