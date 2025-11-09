@@ -102,12 +102,10 @@ const ColorPickerContextMenu: React.FC<{ data: ColorPickerContextData, onClose: 
                                 <input
                                     id="font-size"
                                     type="number"
-                                    min="8"
-                                    max="72"
                                     placeholder="Авто"
                                     value={data.initialFontSize ?? ''}
                                     onChange={handleFontSizeChange}
-                                    className="mt-1 w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 pr-8"
+                                    className="mt-1 w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 pr-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 />
                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none">px</span>
                             </div>
