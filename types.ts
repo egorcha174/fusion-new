@@ -3,6 +3,7 @@
 
 
 
+
 export enum DeviceType {
   Light,
   Lamp,
@@ -123,6 +124,14 @@ interface ColorThemeSet {
   sidebarBackground: string;
   cardBackground: string;
   cardBackgroundOn: string;
+  headerBackground: string;
+  tabTextColor: string;
+  activeTabTextColor: string;
+  tabIndicatorColor: string;
+  thermostatHandleColor: string;
+  thermostatDialTextColor: string;
+  thermostatDialLabelColor: string;
+
 
   // Text Colors - Off State
   nameTextColor: string;

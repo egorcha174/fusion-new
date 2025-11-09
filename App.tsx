@@ -259,6 +259,13 @@ const DEFAULT_COLOR_SCHEME: ColorScheme = {
     sidebarBackground: 'rgba(255, 255, 255, 0.7)',
     cardBackground: 'rgba(255, 255, 255, 0.8)',
     cardBackgroundOn: '#f3f4f6', // gray-100
+    headerBackground: 'rgba(255, 255, 255, 0.7)',
+    tabTextColor: '#6b7280', // gray-500
+    activeTabTextColor: '#111827', // gray-900
+    tabIndicatorColor: '#111827', // gray-900
+    thermostatHandleColor: '#1f2937', // gray-800
+    thermostatDialTextColor: '#111827', // gray-900
+    thermostatDialLabelColor: '#6b7280', // gray-500
     
     // Text Colors - Off State
     nameTextColor: '#1f2937', // gray-800
@@ -276,6 +283,13 @@ const DEFAULT_COLOR_SCHEME: ColorScheme = {
     sidebarBackground: 'rgba(17, 24, 39, 0.75)',
     cardBackground: 'rgba(31, 41, 55, 0.8)', // gray-800/80
     cardBackgroundOn: '#374151', // gray-700
+    headerBackground: 'rgba(17, 24, 39, 0.75)',
+    tabTextColor: '#9ca3af', // gray-400
+    activeTabTextColor: '#f9fafb', // gray-50
+    tabIndicatorColor: '#f9fafb', // gray-50
+    thermostatHandleColor: '#f9fafb', // gray-50
+    thermostatDialTextColor: '#f9fafb', // gray-50
+    thermostatDialLabelColor: '#9ca3af', // gray-400
 
     // Text Colors - Off State
     nameTextColor: '#d1d5db', // gray-300
@@ -977,6 +991,7 @@ const App: React.FC = () => {
                 onSearchChange={setSearchTerm}
                 theme={theme}
                 onThemeChange={setTheme}
+                colorScheme={currentColorScheme}
             />
         </Suspense>
         <main className="flex-1 overflow-y-auto">

@@ -212,7 +212,7 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
     switch (hvacAction) {
       case 'cooling': return { label: 'ОХЛАЖДЕНИЕ', style: { color: coolingLabelColor || '#3B82F6' } };
       case 'heating': return { label: 'НАГРЕВ', style: { color: heatingLabelColor || '#F97316' } };
-      default: return { label: 'ЦЕЛЬ', style: { color: idleLabelColor || colorScheme.statusTextColor } };
+      default: return { label: 'ЦЕЛЬ', style: { color: idleLabelColor || colorScheme.thermostatDialLabelColor } };
     }
   };
   const { label: centerLabel, style: activeStyle } = getLabelAndStyle();
@@ -273,8 +273,11 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
           cx={handlePosition.x}
           cy={handlePosition.y}
           r={STROKE_WIDTH / 2 + 2}
-          className="fill-gray-800 dark:fill-white cursor-pointer"
+          style={{ fill: colorScheme.thermostatHandleColor }}
+          className="cursor-pointer"
           onPointerDown={handlePointerDown}
+          data-style-key="thermostatHandleColor"
+          data-style-name="Ползунок (термостат)"
         />
       </svg>
       <div 
@@ -284,8 +287,24 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
             setIsEditing(true);
         }}
       >
-          <p className="text-xs font-bold" style={activeStyle}>{centerLabel}</p>
-          <p className="text-6xl font-light text-gray-900 dark:text-white -my-1">{value.toFixed(1).replace('.', ',')}</p>
+          <p 
+            className="text-xs font-bold" 
+            style={activeStyle}
+            data-style-key="thermostatDialLabelColor"
+            data-style-name="Ярлык (термостат)"
+            data-is-text="true"
+          >
+            {centerLabel}
+          </p>
+          <p 
+            className="text-6xl font-light -my-1" 
+            style={{ color: colorScheme.thermostatDialTextColor }}
+            data-style-key="thermostatDialTextColor"
+            data-style-name="Температура (термостат)"
+            data-is-text="true"
+          >
+            {value.toFixed(1).replace('.', ',')}
+          </p>
       </div>
       
        {isEditing && (

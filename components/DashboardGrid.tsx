@@ -69,22 +69,6 @@ const DraggableDevice: React.FC<{
     if (isTogglable) onDeviceToggle(device.id);
   };
 
-  const handleContextMenu = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement;
-    const styleTarget = target.closest('[data-style-key]');
-    
-    if (styleTarget) {
-        const baseKey = styleTarget.getAttribute('data-style-key')!;
-        const targetName = styleTarget.getAttribute('data-style-name')!;
-        const isText = styleTarget.getAttribute('data-is-text') === 'true';
-        const isOn = device.state === 'on';
-        cardProps.onOpenColorPicker(e, baseKey, targetName, isText, isOn);
-    } else {
-        // Fallback to regular context menu if no specific style key is found
-        cardProps.onDeviceContextMenu(e, device.id, cardProps.tab.id);
-    }
-};
-
   return (
     <div
       ref={setNodeRef}
@@ -93,7 +77,8 @@ const DraggableDevice: React.FC<{
       {...listeners}
       {...attributes}
       onClick={handleClick}
-      onContextMenu={handleContextMenu}
+      data-device-id={device.id}
+      data-tab-id={cardProps.tab.id}
     >
       <DeviceCard
         device={device}

@@ -3,7 +3,7 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from 
 import type { DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Tab, Page } from '../types';
+import { Tab, Page, ColorScheme } from '../types';
 import { Icon } from '@iconify/react';
 
 
@@ -13,9 +13,10 @@ interface SortableTabProps {
     isEditMode: boolean;
     onSelect: () => void;
     onEdit: () => void;
+    colorScheme: ColorScheme['light'];
 }
 
-const SortableTab: React.FC<SortableTabProps> = ({ tab, isActive, isEditMode, onSelect, onEdit }) => {
+const SortableTab: React.FC<SortableTabProps> = ({ tab, isActive, isEditMode, onSelect, onEdit, colorScheme }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: tab.id, disabled: !isEditMode });
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -26,10 +27,21 @@ const SortableTab: React.FC<SortableTabProps> = ({ tab, isActive, isEditMode, on
         <div ref={setNodeRef} style={style} {...attributes}>
             <button
                 onClick={onSelect}
-                className={`relative group whitespace-nowrap px-4 py-2 text-lg font-semibold transition-colors ${isActive ? 'text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'}`}
+                className={`relative group whitespace-nowrap px-4 py-2 text-lg font-semibold transition-colors`}
+                style={{ color: isActive ? colorScheme.activeTabTextColor : colorScheme.tabTextColor }}
+                data-style-key={isActive ? 'activeTabTextColor' : 'tabTextColor'}
+                data-style-name={isActive ? 'Активная вкладка' : 'Вкладка'}
+                data-is-text="true"
             >
                 {isEditMode ? <span {...listeners} className="cursor-move">{tab.name}</span> : tab.name}
-                {isActive && <div className="absolute bottom-0 left-4 right-4 h-0.5 bg-black dark:bg-white rounded-full" />}
+                {isActive && (
+                    <div 
+                        className="absolute bottom-0 left-4 right-4 h-0.5 rounded-full" 
+                        style={{ backgroundColor: colorScheme.tabIndicatorColor }}
+                        data-style-key="tabIndicatorColor"
+                        data-style-name="Индикатор вкладки"
+                    />
+                )}
                 {isEditMode && (
                     <button
                         onClick={(e) => { e.stopPropagation(); onEdit(); }}
@@ -61,10 +73,11 @@ interface DashboardHeaderProps {
     onSearchChange: (term: string) => void;
     theme: 'day' | 'night' | 'auto';
     onThemeChange: (theme: 'day' | 'night' | 'auto') => void;
+    colorScheme: ColorScheme['light'];
 }
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({
-    tabs, activeTabId, onTabChange, onTabOrderChange, isEditMode, onToggleEditMode, onNavigate, onAddTab, onEditTab, currentPage, searchTerm, onSearchChange, theme, onThemeChange
+    tabs, activeTabId, onTabChange, onTabOrderChange, isEditMode, onToggleEditMode, onNavigate, onAddTab, onEditTab, currentPage, searchTerm, onSearchChange, theme, onThemeChange, colorScheme
 }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -118,7 +131,12 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     );
 
     return (
-        <header className="flex items-center justify-between p-4 border-b border-gray-300 dark:border-gray-700/50 gap-4">
+        <header 
+            className="flex items-center justify-between p-4 border-b border-gray-300 dark:border-gray-700/50 gap-4"
+            style={{ backgroundColor: colorScheme.headerBackground }}
+            data-style-key="headerBackground"
+            data-style-name="Фон заголовка"
+        >
             <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2 -ml-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-700">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
@@ -137,6 +155,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                                     isEditMode={isEditMode}
                                     onSelect={() => onTabChange(tab.id)}
                                     onEdit={() => onEditTab(tab)}
+                                    colorScheme={colorScheme}
                                 />
                             ))}
                              {isEditMode && (
