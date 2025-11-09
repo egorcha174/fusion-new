@@ -22,6 +22,7 @@ const useHomeAssistant = () => {
   const signPathCallbacks = useRef<Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>>(new Map());
   const cameraStreamCallbacks = useRef<Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>>(new Map());
   const configCallbacks = useRef<Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>>(new Map());
+  const historyPeriodCallbacks = useRef<Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>>(new Map());
   const connectionStatusRef = useRef(connectionStatus);
   
   useEffect(() => {
@@ -107,6 +108,27 @@ const useHomeAssistant = () => {
                 configCallbacks.current.delete(id);
             }
         }, 10000); // 10 second timeout
+    });
+  }, [sendMessage]);
+
+  const getHistory = useCallback(async (entityIds: string[], startTime: string, endTime?: string): Promise<any> => {
+    return new Promise((resolve, reject) => {
+        const id = messageIdRef.current++;
+        historyPeriodCallbacks.current.set(id, { resolve, reject });
+        sendMessage({
+            id,
+            type: 'history/history_during_period',
+            entity_ids: entityIds,
+            start_time: startTime,
+            end_time: endTime,
+            minimal_response: true,
+        });
+        setTimeout(() => {
+            if (historyPeriodCallbacks.current.has(id)) {
+                reject(new Error("Timeout waiting for history response."));
+                historyPeriodCallbacks.current.delete(id);
+            }
+        }, 15000); // 15 second timeout
     });
   }, [sendMessage]);
 
@@ -210,6 +232,18 @@ const useHomeAssistant = () => {
             return;
         }
 
+        if (data.type === 'result' && historyPeriodCallbacks.current.has(data.id)) {
+            const callback = historyPeriodCallbacks.current.get(data.id);
+            if (data.success) {
+                callback?.resolve(data.result);
+            } else {
+                callback?.reject(data.error);
+            }
+            historyPeriodCallbacks.current.delete(data.id);
+            return;
+        }
+
+
         switch (data.type) {
           case 'result':
             handleInitialFetches(data);
@@ -289,7 +323,7 @@ const useHomeAssistant = () => {
     }
   }, []);
 
-  return { connectionStatus, isLoading, error, entities, areas, devices, entityRegistry, connect, disconnect, callService, signPath, getCameraStreamUrl, getConfig };
+  return { connectionStatus, isLoading, error, entities, areas, devices, entityRegistry, connect, disconnect, callService, signPath, getCameraStreamUrl, getConfig, getHistory };
 };
 
 export default useHomeAssistant;

@@ -1,0 +1,111 @@
+import React from 'react';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  TimeScale,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+import 'chartjs-adapter-date-fns';
+// FIX: The Russian locale should be imported from its specific subpath.
+import { ru } from 'date-fns/locale/ru';
+
+ChartJS.register(
+  CategoryScale, LinearScale, PointElement, LineElement, TimeScale, Title, Tooltip, Legend, Filler
+);
+
+interface HistoryChartProps {
+  data: any; // Chart.js data object
+  unit: string;
+}
+
+const HistoryChart: React.FC<HistoryChartProps> = ({ data, unit }) => {
+    const isDark = document.documentElement.classList.contains('dark');
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+    const textColor = isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)';
+
+    const options = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom' as const,
+                labels: {
+                  color: textColor,
+                  usePointStyle: true,
+                  boxWidth: 8,
+                }
+            },
+            tooltip: {
+                mode: 'index' as const,
+                intersect: false,
+                callbacks: {
+                    label: function(context: any) {
+                        let label = context.dataset.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        if (context.parsed.y !== null) {
+                            label += `${context.parsed.y.toFixed(1)} ${unit}`;
+                        }
+                        return label;
+                    }
+                }
+            },
+        },
+        interaction: {
+            mode: 'index' as const,
+            intersect: false,
+        },
+        scales: {
+            x: {
+                type: 'time' as const,
+                time: {
+                    unit: 'hour' as const,
+                    tooltipFormat: 'dd MMM, HH:mm',
+                    displayFormats: {
+                        hour: 'HH:mm',
+                        day: 'dd MMM',
+                    },
+                },
+                adapters: {
+                    date: {
+                        locale: ru,
+                    },
+                },
+                grid: {
+                    color: gridColor,
+                },
+                ticks: {
+                    color: textColor,
+                },
+            },
+            y: {
+                grid: {
+                    color: gridColor,
+                },
+                ticks: {
+                    color: textColor,
+                    callback: function(value: any) {
+                        return `${value}${unit ? ` ${unit}` : ''}`;
+                    },
+                },
+                title: {
+                    display: true,
+                    text: unit,
+                    color: textColor,
+                }
+            },
+        },
+    };
+
+    return <Line options={options} data={data} />;
+};
+
+export default React.memo(HistoryChart);

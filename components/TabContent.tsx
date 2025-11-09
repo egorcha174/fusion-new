@@ -4,6 +4,7 @@
 
 
 
+
 import React from 'react';
 import DashboardGrid from './DashboardGrid';
 import { Tab, Device, GridLayoutItem, CardTemplates, DeviceCustomizations, ColorScheme } from '../types';
@@ -19,6 +20,7 @@ interface TabContentProps {
   onHvacModeChange: (deviceId: string, mode: string) => void;
   onPresetChange: (deviceId: string, preset: string) => void;
   onCameraCardClick: (device: Device) => void;
+  onShowHistory: (entityId: string) => void;
   isEditMode: boolean;
   onEditDevice: (device: Device) => void;
   onDeviceContextMenu: (event: React.MouseEvent, deviceId: string, tabId: string) => void;

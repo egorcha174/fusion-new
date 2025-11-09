@@ -17,7 +17,11 @@
     "@dnd-kit/utilities": "3.2.2",
     "@dnd-kit/modifiers": "6.0.1",
     "@iconify/react": "latest",
-    "hls.js": "1.5.8"
+    "hls.js": "1.5.8",
+    "chart.js": "4.4.2",
+    "react-chartjs-2": "5.2.0",
+    "date-fns": "^4.1.0",
+    "chartjs-adapter-date-fns": "3.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useRef, useState, useLayoutEffect, useMemo } from 'react';
 import {
   DndContext,
@@ -27,13 +29,14 @@ const DraggableDevice: React.FC<{
   device: Device;
   isEditMode: boolean;
   onDeviceToggle: (id: string) => void;
+  onShowHistory: (id: string) => void;
   template?: CardTemplate;
   allKnownDevices: Map<string, Device>;
   customizations: DeviceCustomizations;
   colorScheme: ColorScheme['light'];
   // Pass all other props down to DeviceCard
   [key: string]: any;
-}> = ({ device, isEditMode, onDeviceToggle, template, allKnownDevices, customizations, colorScheme, ...cardProps }) => {
+}> = ({ device, isEditMode, onDeviceToggle, onShowHistory, template, allKnownDevices, customizations, colorScheme, ...cardProps }) => {
   const { attributes, listeners, setNodeRef: setDraggableNodeRef, isDragging } = useDraggable({
     id: device.id,
     disabled: !isEditMode,
@@ -55,9 +58,19 @@ const DraggableDevice: React.FC<{
     if (isEditMode) {
       e.preventDefault(); e.stopPropagation(); return;
     }
+    
+    // For sensors, show history page
+    if (device.type === DeviceType.Sensor) {
+      onShowHistory(device.id);
+      return;
+    }
+
     const isCamera = device.type === DeviceType.Camera;
-    const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && device.type !== DeviceType.Sensor && !isCamera;
-    if (isTogglable) onDeviceToggle(device.id);
+    const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && !isCamera;
+    if (isTogglable) {
+      onDeviceToggle(device.id);
+    }
+    // Note: Camera click is handled inside DeviceCard itself to call onCameraCardClick
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -139,6 +152,7 @@ interface DashboardGridProps {
     onHvacModeChange: (deviceId: string, mode: string) => void;
     onPresetChange: (deviceId: string, preset: string) => void;
     onCameraCardClick: (device: Device) => void;
+    onShowHistory: (entityId: string) => void;
     onEditDevice: (device: Device) => void;
     onDeviceContextMenu: (event: React.MouseEvent, deviceId: string, tabId: string) => void;
     onOpenColorPicker: (event: React.MouseEvent, baseKey: string, targetName: string, isTextElement: boolean, isOn: boolean) => void;
@@ -151,7 +165,7 @@ interface DashboardGridProps {
 }
 
 const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
-    const { tab, allKnownDevices, isEditMode, onDeviceLayoutChange, searchTerm, templates, customizations, onDeviceToggle } = props;
+    const { tab, allKnownDevices, isEditMode, onDeviceLayoutChange, searchTerm, templates, customizations, onDeviceToggle, onShowHistory } = props;
     const viewportRef = useRef<HTMLDivElement>(null);
     const [gridStyle, setGridStyle] = useState<React.CSSProperties>({});
     const [activeId, setActiveId] = useState<string | null>(null);
@@ -372,6 +386,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                                   allKnownDevices={allKnownDevices}
                                   customizations={customizations}
                                   onDeviceToggle={onDeviceToggle}
+                                  onShowHistory={onShowHistory}
                                   {...props} 
                                   openMenuDeviceId={openMenuDeviceId}
                                   setOpenMenuDeviceId={setOpenMenuDeviceId}
