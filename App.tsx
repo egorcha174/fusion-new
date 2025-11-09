@@ -468,7 +468,7 @@ const App: React.FC = () => {
     setContextMenu(null);
   }, []);
   
-  const handleStyleUpdate = useCallback((updateInfo: StyleUpdateInfo, value: any) => {
+const handleStyleUpdate = useCallback((updateInfo: StyleUpdateInfo, value: any) => {
     const { origin, theme: themeKey, baseKey, isOn, templateId, elementId, styleProperty } = updateInfo;
 
     if (origin === 'scheme') {
@@ -477,16 +477,16 @@ const App: React.FC = () => {
         setColorScheme(prev => {
             const newScheme = JSON.parse(JSON.stringify(prev));
             if (value === undefined || value === '') {
-                // Special case for resetting fonts or other properties
+                // Delete the key to reset to default css
                 const pathParts = key.split('.');
                 const lastKey = pathParts.pop()!;
                 let parent = newScheme;
                 for (const part of pathParts) {
-                    if (!parent) break;
+                    if (!parent || typeof parent !== 'object') break;
                     parent = parent[part];
                 }
-                if (parent) {
-                  delete parent[lastKey];
+                if (parent && typeof parent === 'object' && lastKey in parent) {
+                    delete parent[lastKey];
                 }
             } else {
                 set(newScheme, key, value);
@@ -503,11 +503,12 @@ const App: React.FC = () => {
 
             const elementIndex = template.elements.findIndex((el: CardElement) => el.id === elementId);
             if (elementIndex === -1) return prev;
-
+            
+            const styles = template.elements[elementIndex].styles as Record<string, any>;
             if (value === undefined || value === '') {
-                delete template.elements[elementIndex].styles[styleProperty as keyof typeof template.elements[0]['styles']];
+                delete styles[styleProperty];
             } else {
-                (template.elements[elementIndex].styles as any)[styleProperty] = value;
+                styles[styleProperty] = value;
             }
             
             return newTemplates;
@@ -536,17 +537,19 @@ const handleOpenColorPicker = useCallback((
     }
 
     let initialFontFamily: string | undefined;
+    const fontFamilyKey = baseKey.replace('Color', 'FontFamily');
     if (origin === 'template' && element?.styles.fontFamily) {
         initialFontFamily = element.styles.fontFamily;
     } else if (origin === 'scheme') {
-        initialFontFamily = (scheme as any)[`${baseKey.replace('Color', 'FontFamily')}${onSuffix}`];
+        initialFontFamily = (scheme as any)[`${fontFamilyKey}${onSuffix}`];
     }
 
     let initialFontSize: number | undefined;
+    const fontSizeKey = baseKey.replace('Color', 'FontSize');
     if (origin === 'template' && element?.styles.fontSize) {
         initialFontSize = element.styles.fontSize;
     } else if (origin === 'scheme') {
-        initialFontSize = (scheme as any)[`${baseKey.replace('Color', 'FontSize')}${onSuffix}`];
+        initialFontSize = (scheme as any)[`${fontSizeKey}${onSuffix}`];
     }
     
     const onUpdate = (property: 'color' | 'fontFamily' | 'fontSize', value: any) => {
@@ -558,9 +561,9 @@ const handleOpenColorPicker = useCallback((
         if (property === 'color') {
             finalUpdateInfo = { ...baseUpdateInfo, baseKey, styleProperty: styleProperty || 'textColor' };
         } else if (property === 'fontFamily') {
-            finalUpdateInfo = { ...baseUpdateInfo, baseKey: baseKey.replace('Color', 'FontFamily'), styleProperty: 'fontFamily' };
+            finalUpdateInfo = { ...baseUpdateInfo, baseKey: fontFamilyKey, styleProperty: 'fontFamily' };
         } else { // fontSize
-            finalUpdateInfo = { ...baseUpdateInfo, baseKey: baseKey.replace('Color', 'FontSize'), styleProperty: 'fontSize' };
+            finalUpdateInfo = { ...baseUpdateInfo, baseKey: fontSizeKey, styleProperty: 'fontSize' };
         }
         handleStyleUpdate(finalUpdateInfo, value);
     };
