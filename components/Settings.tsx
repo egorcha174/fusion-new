@@ -1,8 +1,4 @@
 
-
-
-
-
 import React, { useRef, useState } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ClockSettings, ClockSize, CardTemplates, CardTemplate, ColorScheme } from '../types';
@@ -54,6 +50,7 @@ const LOCAL_STORAGE_KEYS = [
   'ha-card-templates',
   'ha-sidebar-width',
   'ha-openweathermap-key',
+  'ha-camera-settings',
   'ha-theme',
   'ha-color-scheme',
   'ha-sidebar-visible',
