@@ -534,7 +534,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
           </DndContext>
 
           {/* Right Panel */}
-          <aside className="w-[320px] bg-gray-800/50 flex-shrink-0 flex flex-col border-l border-gray-700/80">
+          <aside className="w-[360px] bg-gray-800/50 flex-shrink-0 flex flex-col border-l border-gray-700/80">
             <div className="p-4 border-b border-gray-700/80">
               <h3 className="font-bold text-lg">Инспектор</h3>
               <p className="text-xs text-gray-400 mt-1">
