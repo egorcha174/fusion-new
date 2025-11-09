@@ -1,6 +1,8 @@
 
 
 
+
+
 import React from 'react';
 import DashboardGrid from './DashboardGrid';
 import { Tab, Device, GridLayoutItem, CardTemplates, DeviceCustomizations, ColorScheme } from '../types';
@@ -19,6 +21,7 @@ interface TabContentProps {
   isEditMode: boolean;
   onEditDevice: (device: Device) => void;
   onDeviceContextMenu: (event: React.MouseEvent, deviceId: string, tabId: string) => void;
+  onOpenColorPicker: (event: React.MouseEvent, baseKey: string, targetName: string, isTextElement: boolean, isOn: boolean) => void;
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
   getCameraStreamUrl: (entityId: string) => Promise<string>;

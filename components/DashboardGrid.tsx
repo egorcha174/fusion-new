@@ -5,6 +5,8 @@
 
 
 
+
+
 import React, { useRef, useState, useLayoutEffect, useMemo } from 'react';
 import {
   DndContext,
@@ -65,6 +67,22 @@ const DraggableDevice: React.FC<{
     if (isTogglable) onDeviceToggle(device.id);
   };
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const styleTarget = target.closest('[data-style-key]');
+    
+    if (styleTarget) {
+        const baseKey = styleTarget.getAttribute('data-style-key')!;
+        const targetName = styleTarget.getAttribute('data-style-name')!;
+        const isText = styleTarget.getAttribute('data-is-text') === 'true';
+        const isOn = device.state === 'on';
+        cardProps.onOpenColorPicker(e, baseKey, targetName, isText, isOn);
+    } else {
+        // Fallback to regular context menu if no specific style key is found
+        cardProps.onDeviceContextMenu(e, device.id, cardProps.tab.id);
+    }
+};
+
   return (
     <div
       ref={setNodeRef}
@@ -73,7 +91,7 @@ const DraggableDevice: React.FC<{
       {...listeners}
       {...attributes}
       onClick={handleClick}
-      onContextMenu={(e) => cardProps.onDeviceContextMenu(e, device.id, cardProps.tab.id)}
+      onContextMenu={handleContextMenu}
     >
       <DeviceCard
         device={device}
@@ -138,6 +156,7 @@ interface DashboardGridProps {
     onCameraCardClick: (device: Device) => void;
     onEditDevice: (device: Device) => void;
     onDeviceContextMenu: (event: React.MouseEvent, deviceId: string, tabId: string) => void;
+    onOpenColorPicker: (event: React.MouseEvent, baseKey: string, targetName: string, isTextElement: boolean, isOn: boolean) => void;
     haUrl: string;
     signPath: (path: string) => Promise<{ path: string }>;
     getCameraStreamUrl: (entityId: string) => Promise<string>;

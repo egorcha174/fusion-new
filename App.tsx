@@ -2,14 +2,18 @@
 
 
 
+
+
 import React, { useMemo, useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import useHomeAssistant from './hooks/useHomeAssistant';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { mapEntitiesToRooms } from './utils/ha-data-mapper';
-import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CameraSettings, GridLayoutItem, CardTemplates, CardTemplate, DeviceBinding, ThresholdRule, ColorScheme } from './types';
+import { Device, DeviceCustomization, DeviceCustomizations, Page, Tab, Room, ClockSettings, DeviceType, CameraSettings, GridLayoutItem, CardTemplates, CardTemplate, DeviceBinding, ThresholdRule, ColorScheme, ColorPickerContextData } from './types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from './components/DeviceIcon';
+import { set } from './utils/obj-path';
+
 
 // Lazy load components for code splitting and better performance
 const Settings = lazy(() => import('./components/Settings'));
@@ -22,6 +26,7 @@ const TabSettingsModal = lazy(() => import('./components/TabSettingsModal'));
 const ContextMenu = lazy(() => import('./components/ContextMenu'));
 const FloatingCameraWindow = lazy(() => import('./components/FloatingCameraWindow'));
 const TemplateEditorModal = lazy(() => import('./components/TemplateEditorModal'));
+const ColorPickerContextMenu = lazy(() => import('./components/ColorPickerContextMenu'));
 
 
 // Hook to check for large screens to conditionally apply margin
@@ -316,6 +321,7 @@ const App: React.FC = () => {
   const [editingTemplate, setEditingTemplate] = useState<CardTemplate | 'new' | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, deviceId: string, tabId: string } | null>(null);
+  const [colorPickerMenu, setColorPickerMenu] = useState<ColorPickerContextData | null>(null);
   const [floatingCamera, setFloatingCamera] = useState<Device | null>(null);
 
   const [tabs, setTabs] = useLocalStorage<Tab[]>('ha-tabs', []);
@@ -443,6 +449,53 @@ const App: React.FC = () => {
   const handleCloseContextMenu = useCallback(() => {
     setContextMenu(null);
   }, []);
+
+  const handleUpdateColorScheme = useCallback((key: string, value: any) => {
+    setColorScheme(prev => {
+        const newScheme = JSON.parse(JSON.stringify(prev)); // Deep copy
+        set(newScheme, key, value);
+        return newScheme;
+    });
+  }, [setColorScheme]);
+
+  const handleOpenColorPicker = useCallback((
+    event: React.MouseEvent,
+    baseKey: string,
+    targetName: string,
+    isTextElement: boolean,
+    isOn: boolean
+  ) => {
+    event.preventDefault();
+    setContextMenu(null); // Close regular context menu if open
+    
+    const themeKey = isDark ? 'dark' : 'light';
+    const onSuffix = isOn ? 'On' : '';
+    const colorKey = `${themeKey}.${baseKey}${onSuffix}`;
+    const fontFamilyKey = `${themeKey}.${baseKey.replace('Color', 'FontFamily')}${onSuffix}`;
+    const fontSizeKey = `${themeKey}.${baseKey.replace('Color', 'FontSize')}${onSuffix}`;
+
+    const scheme = isDark ? colorScheme.dark : colorScheme.light;
+    
+    // A helper to get nested property
+    const get = (obj: any, path: string) => path.split('.').slice(1).reduce((o, p) => (o ? o[p] : undefined), obj);
+    
+    const onUpdate = (key: string, value: any) => {
+        handleUpdateColorScheme(key, value);
+    };
+
+    setColorPickerMenu({
+        x: event.clientX,
+        y: event.clientY,
+        targetKey: colorKey,
+        targetName,
+        isTextElement,
+        onUpdate,
+        initialValue: get(scheme, colorKey) || '#ffffff',
+        initialFontFamily: get(scheme, fontFamilyKey),
+        initialFontSize: get(scheme, fontSizeKey),
+    });
+
+  }, [isDark, colorScheme, handleUpdateColorScheme]);
 
 
   // --- Tab Management Handlers ---
@@ -854,6 +907,7 @@ const App: React.FC = () => {
             isEditMode={isEditMode}
             onEditDevice={setEditingDevice}
             onDeviceContextMenu={handleDeviceContextMenu}
+            onOpenColorPicker={handleOpenColorPicker}
             haUrl={haUrl}
             signPath={signPath}
             getCameraStreamUrl={getCameraStreamUrl}
@@ -1047,6 +1101,13 @@ const App: React.FC = () => {
               </div>
 
           </ContextMenu>
+        )}
+
+        {colorPickerMenu && (
+            <ColorPickerContextMenu
+                data={colorPickerMenu}
+                onClose={() => setColorPickerMenu(null)}
+            />
         )}
 
         {floatingCamera && haUrl && (

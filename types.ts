@@ -1,5 +1,6 @@
 
 
+
 export enum DeviceType {
   Light,
   Lamp,
@@ -131,11 +132,42 @@ interface ColorThemeSet {
   statusTextColorOn: string;
   valueTextColorOn: string;
   unitTextColorOn: string;
+
+  // --- NEW: Font properties ---
+  nameTextFontFamily?: string;
+  nameTextFontSize?: number;
+  statusTextFontFamily?: string;
+  statusTextFontSize?: number;
+  valueTextFontFamily?: string;
+  valueTextFontSize?: number;
+  unitTextFontFamily?: string;
+  unitTextFontSize?: number;
+
+  nameTextFontFamilyOn?: string;
+  nameTextFontSizeOn?: number;
+  statusTextFontFamilyOn?: string;
+  statusTextFontSizeOn?: number;
+  valueTextFontFamilyOn?: string;
+  valueTextFontSizeOn?: number;
+  unitTextFontFamilyOn?: string;
+  unitTextFontSizeOn?: number;
 }
 
 export interface ColorScheme {
   light: ColorThemeSet;
   dark: ColorThemeSet;
+}
+
+export interface ColorPickerContextData {
+  x: number;
+  y: number;
+  targetKey: string;
+  targetName: string;
+  isTextElement: boolean;
+  onUpdate: (key: string, value: any) => void;
+  initialValue: string; // for color
+  initialFontFamily?: string;
+  initialFontSize?: number;
 }
 
 
