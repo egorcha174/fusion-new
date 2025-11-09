@@ -276,6 +276,7 @@ const DEFAULT_COLOR_SCHEME: ColorScheme = {
     thermostatDialLabelColor: '#6b7280', // gray-500
     thermostatHeatingColor: '#f97316', // orange-500
     thermostatCoolingColor: '#3b82f6', // blue-500
+    clockTextColor: '#111827', // gray-900
     
     // Text Colors - Off State
     nameTextColor: '#1f2937', // gray-800
@@ -302,6 +303,7 @@ const DEFAULT_COLOR_SCHEME: ColorScheme = {
     thermostatDialLabelColor: '#9ca3af', // gray-400
     thermostatHeatingColor: '#fb923c', // orange-400
     thermostatCoolingColor: '#60a5fa', // blue-400
+    clockTextColor: '#f9fafb', // gray-50
 
     // Text Colors - Off State
     nameTextColor: '#d1d5db', // gray-300

@@ -8,9 +8,10 @@ import WeatherWidget from './WeatherWidget';
 interface ClockProps {
     settings: ClockSettings;
     sidebarWidth: number;
+    color: string;
 }
 
-const Clock: React.FC<ClockProps> = ({ settings, sidebarWidth }) => {
+const Clock: React.FC<ClockProps> = ({ settings, sidebarWidth, color }) => {
     const [time, setTime] = useState(new Date());
 
     useEffect(() => {
@@ -43,14 +44,19 @@ const Clock: React.FC<ClockProps> = ({ settings, sidebarWidth }) => {
         return Math.max(24, Math.min(finalSize, 128));
     };
 
-    const fontSizeStyle = {
+    const finalStyle = {
         fontSize: `${getAdaptiveFontSize()}px`,
+        color: color,
     };
 
     return (
         <div 
-            className="font-mono font-bold text-gray-900 dark:text-gray-100 tracking-tighter whitespace-nowrap"
-            style={fontSizeStyle}
+            className="font-mono font-bold tracking-tighter whitespace-nowrap"
+            style={finalStyle}
+            data-style-key="clockTextColor"
+            data-style-name="Цвет часов"
+            data-style-origin="scheme"
+            data-is-text="true"
         >
             {time.toLocaleTimeString('ru-RU', options)}
         </div>
@@ -200,7 +206,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, sidebarWidth, setS
             data-style-origin="scheme"
         >
             <div className="flex-shrink-0 flex justify-center">
-                <Clock settings={clockSettings} sidebarWidth={sidebarWidth} />
+                <Clock settings={clockSettings} sidebarWidth={sidebarWidth} color={colorScheme.clockTextColor} />
             </div>
 
             <div className="flex-1 mt-4 space-y-4 overflow-y-auto no-scrollbar min-h-0">
