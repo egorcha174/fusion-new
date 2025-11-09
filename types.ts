@@ -1,4 +1,5 @@
 
+
 export enum DeviceType {
   Light,
   Lamp,
@@ -200,6 +201,7 @@ export interface CardElement {
     showValue?: boolean;
     chartTimeRange?: number;
     chartTimeRangeUnit?: 'minutes' | 'hours' | 'days';
+    chartType?: 'line' | 'gradient';
     idleLabelColor?: string;
     heatingLabelColor?: string;
     coolingLabelColor?: string;

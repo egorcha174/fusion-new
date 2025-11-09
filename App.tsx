@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useMemo, useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import useHomeAssistant from './hooks/useHomeAssistant';
@@ -95,6 +96,7 @@ const defaultSensorTemplate: CardTemplate = {
       styles: {
         chartTimeRange: 24,
         chartTimeRangeUnit: 'hours',
+        chartType: 'gradient',
       },
     },
     { 

@@ -595,7 +595,11 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         case 'chart':
           return (
             <div key={element.id} style={style}>
-              <SparklineChart data={device.history || mockHistory} strokeColor={isDark ? "#4B5563" : "#D1D5DB"} />
+              <SparklineChart
+                data={device.history || mockHistory}
+                strokeColor={isDark ? "#4B5563" : "#D1D5DB"}
+                styleType={element.styles.chartType || 'gradient'}
+              />
             </div>
           );
         case 'slider': {

@@ -703,6 +703,16 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                                 <option value="days">Дни</option>
                             </select>
                          </LabeledInput>
+                         <LabeledInput label="Тип">
+                            <select 
+                                value={selectedElement.styles.chartType || 'gradient'}
+                                onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, chartType: e.target.value as any}} : el)}))}
+                                className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
+                            >
+                                <option value="gradient">Градиент</option>
+                                <option value="line">Линия</option>
+                            </select>
+                         </LabeledInput>
                     </Section>
                  )}
                 {selectedElement.id === 'target-temperature' && (
