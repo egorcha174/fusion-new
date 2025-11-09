@@ -229,6 +229,12 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   const previewRef = useRef<HTMLDivElement>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
+  const FONT_FAMILIES = [
+    { name: 'Системный', value: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"` },
+    { name: 'С засечками', value: 'Georgia, serif' },
+    { name: 'Моноширинный', value: 'monospace' },
+  ];
+
   const sampleDevice = useMemo(() => {
     if (templateToEdit.deviceType === 'climate') return { id: 'climate.living_room', name: 'Гостиная', status: 'Охлаждение до 22°', type: DeviceType.Thermostat, temperature: 24, targetTemperature: 22, minTemp: 16, maxTemp: 30, hvacModes: ['off', 'cool', 'heat', 'auto'], hvacAction: 'cooling', presetMode: 'comfort', presetModes: ['none', 'away', 'comfort', 'eco', 'sleep'], state: 'cool', haDomain: 'climate' };
     if (templateToEdit.deviceType === 'light') return { id: 'light.sample_dimmable', name: 'Лампа в гостиной', status: 'Включено', type: DeviceType.DimmableLight, brightness: 80, state: 'on', haDomain: 'light' };
@@ -614,6 +620,47 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                                     <Icon icon="mdi:close" className="w-4 h-4" />
                                 </button>
                             </div>
+                        </LabeledInput>
+                        <LabeledInput label="Шрифт">
+                           <div className="flex items-center gap-2 w-full">
+                               <div className="relative w-full">
+                                   <select
+                                       value={selectedElement.styles.fontFamily || ''}
+                                       onChange={e => setEditedTemplate(p => ({
+                                           ...p, 
+                                           elements: p.elements.map(el => el.id === selectedElement.id ? {
+                                               ...el, 
+                                               styles: { ...el.styles, fontFamily: e.target.value || undefined }
+                                           } : el)
+                                       }))}
+                                       className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none pr-6"
+                                   >
+                                       <option value="">По умолчанию</option>
+                                       {FONT_FAMILIES.map(font => (
+                                           <option key={font.name} value={font.value}>{font.name}</option>
+                                       ))}
+                                   </select>
+                                   <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                                        <Icon icon="mdi:chevron-down" className="w-4 h-4 text-gray-400"/>
+                                   </div>
+                               </div>
+                                <button 
+                                   onClick={() => setEditedTemplate(p => {
+                                       const newElements = [...p.elements];
+                                       const elIndex = newElements.findIndex(el => el.id === selectedElement.id);
+                                       if (elIndex > -1) {
+                                           const newStyles = { ...newElements[elIndex].styles };
+                                           delete newStyles.fontFamily;
+                                           newElements[elIndex] = { ...newElements[elIndex], styles: newStyles };
+                                       }
+                                       return {...p, elements: newElements};
+                                   })}
+                                   title="Сбросить" 
+                                   className="p-1 text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-md transition-colors flex-shrink-0"
+                               >
+                                   <Icon icon="mdi:close" className="w-4 h-4" />
+                               </button>
+                           </div>
                         </LabeledInput>
                     </Section>
                  )}
