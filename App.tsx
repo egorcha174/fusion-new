@@ -1,9 +1,3 @@
-
-
-
-
-
-
 import React, { useMemo, useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import useHomeAssistant from './hooks/useHomeAssistant';
@@ -441,23 +435,10 @@ const App: React.FC = () => {
 
 
   // --- Context Menu Handlers ---
-  const handleDeviceContextMenu = useCallback((event: React.MouseEvent, deviceId: string, tabId: string) => {
-    event.preventDefault();
-    setContextMenu({ x: event.clientX, y: event.clientY, deviceId, tabId });
-  }, []);
-  
   const handleCloseContextMenu = useCallback(() => {
     setContextMenu(null);
   }, []);
-
-  const handleUpdateColorScheme = useCallback((key: string, value: any) => {
-    setColorScheme(prev => {
-        const newScheme = JSON.parse(JSON.stringify(prev)); // Deep copy
-        set(newScheme, key, value);
-        return newScheme;
-    });
-  }, [setColorScheme]);
-
+  
   const handleOpenColorPicker = useCallback((
     event: React.MouseEvent,
     baseKey: string,
@@ -465,7 +446,6 @@ const App: React.FC = () => {
     isTextElement: boolean,
     isOn: boolean
   ) => {
-    event.preventDefault();
     setContextMenu(null); // Close regular context menu if open
     
     const themeKey = isDark ? 'dark' : 'light';
@@ -479,23 +459,58 @@ const App: React.FC = () => {
     // A helper to get nested property
     const get = (obj: any, path: string) => path.split('.').slice(1).reduce((o, p) => (o ? o[p] : undefined), obj);
     
-    const onUpdate = (key: string, value: any) => {
-        handleUpdateColorScheme(key, value);
-    };
-
     setColorPickerMenu({
         x: event.clientX,
         y: event.clientY,
         targetKey: colorKey,
         targetName,
         isTextElement,
-        onUpdate,
-        initialValue: get(scheme, colorKey) || '#ffffff',
+        onUpdate: handleUpdateColorScheme,
+        initialValue: get(scheme, colorKey) || (isDark ? '#FFFFFF' : '#000000'),
         initialFontFamily: get(scheme, fontFamilyKey),
         initialFontSize: get(scheme, fontSizeKey),
     });
 
-  }, [isDark, colorScheme, handleUpdateColorScheme]);
+  }, [isDark, colorScheme]);
+  
+  // FIX: Added handleDeviceContextMenu to be passed to TabContent
+  const handleDeviceContextMenu = useCallback((event: React.MouseEvent, deviceId: string, tabId: string) => {
+    event.preventDefault();
+    setContextMenu({ x: event.clientX, y: event.clientY, deviceId, tabId });
+  }, []);
+  
+  const handleGlobalContextMenu = useCallback((event: React.MouseEvent) => {
+    setContextMenu(null);
+    setColorPickerMenu(null);
+
+    const target = event.target as HTMLElement;
+    const styleTarget = target.closest('[data-style-key]') as HTMLElement | null;
+    const deviceTarget = target.closest('[data-device-id]') as HTMLElement | null;
+
+    if (styleTarget) {
+      event.preventDefault();
+      const baseKey = styleTarget.dataset.styleKey!;
+      const targetName = styleTarget.dataset.styleName || 'Элемент';
+      const isText = styleTarget.dataset.isText === 'true';
+      const isOn = styleTarget.dataset.isOn === 'true';
+
+      handleOpenColorPicker(event, baseKey, targetName, isText, isOn);
+    } else if (deviceTarget) {
+      event.preventDefault();
+      const deviceId = deviceTarget.dataset.deviceId!;
+      const tabId = deviceTarget.dataset.tabId!;
+      setContextMenu({ x: event.clientX, y: event.clientY, deviceId, tabId });
+    }
+  }, [handleOpenColorPicker]);
+
+  const handleUpdateColorScheme = useCallback((key: string, value: any) => {
+    setColorScheme(prev => {
+        const newScheme = JSON.parse(JSON.stringify(prev)); // Deep copy
+        set(newScheme, key, value);
+        return newScheme;
+    });
+  }, [setColorScheme]);
+
 
 
   // --- Tab Management Handlers ---
@@ -924,7 +939,7 @@ const App: React.FC = () => {
   const otherTabs = tabs.filter(t => t.id !== contextMenu?.tabId);
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: currentColorScheme.dashboardBackground }}>
+    <div className="flex min-h-screen" style={{ backgroundColor: currentColorScheme.dashboardBackground }} onContextMenu={handleGlobalContextMenu} data-style-key="dashboardBackground" data-style-name="Фон дашборда">
       <Suspense fallback={<div className="bg-gray-900" style={{ width: `${sidebarWidth}px` }} />}>
         <InfoPanel 
           clockSettings={clockSettings} 
