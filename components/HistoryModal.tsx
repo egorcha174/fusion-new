@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Device, ColorScheme } from '../types';
 import LoadingSpinner from './LoadingSpinner';
 import HistoryChart from './HistoryChart';
-import { subHours, subDays, startOfHour, endOfHour, startOfDay, endOfDay } from 'date-fns';
+// FIX: Replace `subHours` and `subDays` with the more modern `sub` function to resolve module export errors.
+import { sub } from 'date-fns';
 import { Icon } from '@iconify/react';
 
 interface HistoryModalProps {
@@ -24,11 +24,35 @@ const TIME_RANGES: { id: TimeRange; label: string }[] = [
     { id: '3d', label: '3 дня' },
 ];
 
+// Функция для сглаживания данных методом скользящего среднего
+const smoothData = (data: { x: Date; y: number }[], windowSize: number): { x: Date; y: number }[] => {
+  if (windowSize <= 1 || data.length < windowSize) {
+    return data;
+  }
+
+  const smoothedData: { x: Date; y: number }[] = [];
+  const halfWindow = Math.floor(windowSize / 2);
+
+  for (let i = 0; i < data.length; i++) {
+    const start = Math.max(0, i - halfWindow);
+    const end = Math.min(data.length, i + halfWindow + 1);
+    const windowSlice = data.slice(start, end);
+    const sum = windowSlice.reduce((acc, point) => acc + point.y, 0);
+    const avg = sum / windowSlice.length;
+    
+    smoothedData.push({ x: data[i].x, y: avg });
+  }
+
+  return smoothedData;
+};
+
+
 const HistoryModal: React.FC<HistoryModalProps> = ({ entityId, onClose, getHistory, allKnownDevices, colorScheme }) => {
-  const [chartData, setChartData] = useState<any>(null);
+  const [rawProcessedData, setRawProcessedData] = useState<{ x: Date; y: number }[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [timeRange, setTimeRange] = useState<TimeRange>('24h');
+  const [timeRange, setTimeRange] = useState<TimeRange>('6h');
+  const [isSmoothed, setIsSmoothed] = useState(false);
 
   const device = allKnownDevices.get(entityId);
 
@@ -36,18 +60,19 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ entityId, onClose, getHisto
     const fetchData = async () => {
       setLoading(true);
       setError(null);
-      setChartData(null);
+      setRawProcessedData(null);
 
       const now = new Date();
       let startDate: Date;
 
+      // FIX: Use `sub` function with duration object for better readability and to fix export errors.
       switch (timeRange) {
-        case '1h': startDate = subHours(now, 1); break;
-        case '6h': startDate = subHours(now, 6); break;
-        case '12h': startDate = subHours(now, 12); break;
-        case '24h': startDate = subHours(now, 24); break;
-        case '3d': startDate = subDays(now, 3); break;
-        default: startDate = subHours(now, 24);
+        case '1h': startDate = sub(now, { hours: 1 }); break;
+        case '6h': startDate = sub(now, { hours: 6 }); break;
+        case '12h': startDate = sub(now, { hours: 12 }); break;
+        case '24h': startDate = sub(now, { hours: 24 }); break;
+        case '3d': startDate = sub(now, { days: 3 }); break;
+        default: startDate = sub(now, { hours: 24 });
       }
 
       try {
@@ -69,19 +94,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ entityId, onClose, getHisto
           throw new Error("Недостаточно данных для построения графика.");
         }
 
-        setChartData({
-          datasets: [{
-            label: device?.name || entityId,
-            data: processedData,
-            borderColor: 'rgb(59, 130, 246)',
-            backgroundColor: 'rgba(59, 130, 246, 0.2)',
-            borderWidth: 2,
-            pointRadius: 0,
-            pointHoverRadius: 5,
-            fill: true,
-            tension: 0.3,
-          }]
-        });
+        setRawProcessedData(processedData);
 
       } catch (err: any) {
         setError(err.message || "Не удалось загрузить историю.");
@@ -92,8 +105,30 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ entityId, onClose, getHisto
     };
 
     fetchData();
-  }, [entityId, timeRange, getHistory, device?.name]);
+  }, [entityId, timeRange, getHistory]);
   
+  const chartData = useMemo(() => {
+    if (!rawProcessedData) return null;
+
+    const dataToRender = isSmoothed 
+      ? smoothData(rawProcessedData, 5) // Окно сглаживания - 5 точек
+      : rawProcessedData;
+
+    return {
+      datasets: [{
+        label: device?.name || entityId,
+        data: dataToRender,
+        borderColor: 'rgb(59, 130, 246)',
+        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        fill: true,
+        tension: 0.3,
+      }]
+    };
+  }, [rawProcessedData, isSmoothed, device?.name, entityId]);
+
   return (
     <div
       className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 fade-in"
@@ -113,16 +148,28 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ entityId, onClose, getHisto
             </button>
         </header>
         
-        <div className="p-4 flex-shrink-0 flex items-center justify-center gap-2 border-b border-gray-300/50 dark:border-gray-700/50">
-            {TIME_RANGES.map(({ id, label }) => (
+        <div className="p-4 flex-shrink-0 flex items-center justify-between gap-4 border-b border-gray-300/50 dark:border-gray-700/50">
+            <div className="flex items-center gap-2">
+                {TIME_RANGES.map(({ id, label }) => (
+                    <button
+                        key={id}
+                        onClick={() => setTimeRange(id)}
+                        className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-colors ${timeRange === id ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+                    >
+                        {label}
+                    </button>
+                ))}
+            </div>
+             <div className="flex items-center gap-2">
+                <label htmlFor="smoothing-toggle" className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none">Сглаживать</label>
                 <button
-                    key={id}
-                    onClick={() => setTimeRange(id)}
-                    className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-colors ${timeRange === id ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+                    id="smoothing-toggle"
+                    onClick={() => setIsSmoothed(prev => !prev)}
+                    className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${isSmoothed ? 'bg-blue-600' : 'bg-gray-400 dark:bg-gray-600'}`}
                 >
-                    {label}
+                    <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${isSmoothed ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
-            ))}
+            </div>
         </div>
 
         <main className="flex-1 p-4 overflow-hidden relative">
