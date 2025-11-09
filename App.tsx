@@ -566,6 +566,20 @@ const handleOpenColorPicker = useCallback((
             finalUpdateInfo = { ...baseUpdateInfo, baseKey: fontSizeKey, styleProperty: 'fontSize' };
         }
         handleStyleUpdate(finalUpdateInfo, value);
+        
+        // Update the context menu's state so it re-renders with the new value.
+        setColorPickerMenu(prev => {
+            if (!prev) return null;
+            const newMenuData = { ...prev };
+            if (property === 'fontSize') {
+                newMenuData.initialFontSize = value;
+            } else if (property === 'fontFamily') {
+                newMenuData.initialFontFamily = value;
+            } else if (property === 'color') {
+                newMenuData.initialValue = value;
+            }
+            return newMenuData;
+        });
     };
 
     setColorPickerMenu({
@@ -578,7 +592,7 @@ const handleOpenColorPicker = useCallback((
         initialFontFamily,
         initialFontSize,
     });
-}, [isDark, colorScheme, templates, handleStyleUpdate]);
+}, [isDark, colorScheme, templates, handleStyleUpdate, setColorPickerMenu]);
   
   const handleDeviceContextMenu = useCallback((event: React.MouseEvent, deviceId: string, tabId: string) => {
     event.preventDefault();
