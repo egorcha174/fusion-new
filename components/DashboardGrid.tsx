@@ -1,14 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
 import React, { useRef, useState, useLayoutEffect, useMemo } from 'react';
 import {
   DndContext,
@@ -69,6 +59,11 @@ const DraggableDevice: React.FC<{
     if (isTogglable) onDeviceToggle(device.id);
   };
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    // onDeviceContextMenu is passed down from App.tsx. It handles preventDefault.
+    cardProps.onDeviceContextMenu(e, device.id, cardProps.tab.id);
+  };
+
   return (
     <div
       ref={setNodeRef}
@@ -77,6 +72,7 @@ const DraggableDevice: React.FC<{
       {...listeners}
       {...attributes}
       onClick={handleClick}
+      onContextMenu={handleContextMenu}
       data-device-id={device.id}
       data-tab-id={cardProps.tab.id}
     >
