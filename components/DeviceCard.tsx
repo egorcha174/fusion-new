@@ -357,9 +357,10 @@ interface DeviceCardProps {
   openMenuDeviceId?: string | null;
   setOpenMenuDeviceId?: (id: string | null) => void;
   colorScheme: ColorScheme['light'];
+  onContextMenu?: (event: React.MouseEvent) => void;
 }
 
-const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, customizations, onDeviceToggle, onTemperatureChange, onBrightnessChange, onHvacModeChange, onPresetChange, onCameraCardClick, isEditMode, isPreview = false, onEditDevice, onRemoveFromTab, haUrl, signPath, getCameraStreamUrl, template, openMenuDeviceId, setOpenMenuDeviceId, colorScheme }) => {
+const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, customizations, onDeviceToggle, onTemperatureChange, onBrightnessChange, onHvacModeChange, onPresetChange, onCameraCardClick, isEditMode, isPreview = false, onEditDevice, onRemoveFromTab, haUrl, signPath, getCameraStreamUrl, template, openMenuDeviceId, setOpenMenuDeviceId, colorScheme, onContextMenu }) => {
   const isOn = device.status.toLowerCase() === 'включено' || device.state === 'on';
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
   const presetMenuRef = useRef<HTMLDivElement>(null);
@@ -818,6 +819,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
       <div
         className="w-full h-full relative rounded-2xl"
         style={{ backgroundColor: dynamicBackgroundColor }}
+        onContextMenu={onContextMenu}
         data-style-key="cardBackground"
         data-style-name="Фон карточки"
         data-style-origin="scheme"
@@ -1128,7 +1130,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
   }
 
   return (
-    <div className={getCardClasses()} style={getCardStyle()} data-style-key="cardBackground" data-style-name="Фон карточки" data-style-origin="scheme" data-is-on={String(isOn)}>
+    <div className={getCardClasses()} style={getCardStyle()} onContextMenu={onContextMenu} data-style-key="cardBackground" data-style-name="Фон карточки" data-style-origin="scheme" data-is-on={String(isOn)}>
        {renderContent()}
     </div>
   );

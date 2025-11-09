@@ -1,4 +1,5 @@
 
+
 import React, { useMemo, useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import useHomeAssistant from './hooks/useHomeAssistant';
@@ -584,8 +585,7 @@ const handleOpenColorPicker = useCallback((
 
     const target = event.target as HTMLElement;
     const styleTarget = target.closest('[data-style-origin]') as HTMLElement | null;
-    const deviceTarget = target.closest('[data-device-id]') as HTMLElement | null;
-
+    
     if (styleTarget) {
       event.preventDefault();
       
@@ -612,12 +612,6 @@ const handleOpenColorPicker = useCallback((
       };
 
       handleOpenColorPicker(event, styleInfo);
-
-    } else if (deviceTarget) {
-      event.preventDefault();
-      const deviceId = deviceTarget.dataset.deviceId!;
-      const tabId = deviceTarget.dataset.tabId!;
-      setContextMenu({ x: event.clientX, y: event.clientY, deviceId, tabId });
     }
   }, [handleOpenColorPicker]);
 
@@ -1138,30 +1132,6 @@ const handleOpenColorPicker = useCallback((
             isOpen={!!contextMenu}
             onClose={handleCloseContextMenu}
           >
-              <div 
-                onClick={() => { 
-                  const deviceToEdit = allKnownDevices.get(contextMenu.deviceId);
-                  if (deviceToEdit) setEditingDevice(deviceToEdit);
-                  handleCloseContextMenu(); 
-                }} 
-                className="px-3 py-1.5 rounded-md cursor-pointer"
-              >
-                  Редактировать
-              </div>
-
-              {isTemplateable && currentTemplate && (
-                <div 
-                    onClick={() => { 
-                        setEditingTemplate(currentTemplate);
-                        handleCloseContextMenu(); 
-                    }} 
-                    className="px-3 py-1.5 rounded-md cursor-pointer"
-                >
-                    Редактировать шаблон
-                </div>
-              )}
-
-
               {otherTabs.length > 0 && <div className="h-px bg-gray-300 dark:bg-gray-600/50 my-1" />}
 
               {otherTabs.length > 0 && (
@@ -1219,6 +1189,29 @@ const handleOpenColorPicker = useCallback((
               </div>
 
               <div className="h-px bg-gray-300 dark:bg-gray-600/50 my-1" />
+              
+              <div 
+                onClick={() => { 
+                  const deviceToEdit = allKnownDevices.get(contextMenu.deviceId);
+                  if (deviceToEdit) setEditingDevice(deviceToEdit);
+                  handleCloseContextMenu(); 
+                }} 
+                className="px-3 py-1.5 rounded-md cursor-pointer"
+              >
+                  Редактировать
+              </div>
+
+              {isTemplateable && currentTemplate && (
+                <div 
+                    onClick={() => { 
+                        setEditingTemplate(currentTemplate);
+                        handleCloseContextMenu(); 
+                    }} 
+                    className="px-3 py-1.5 rounded-md cursor-pointer"
+                >
+                    Редактировать шаблон
+                </div>
+              )}
 
                <div 
                   onClick={() => { handleDeviceRemoveFromTab(contextMenu.deviceId, contextMenu.tabId); handleCloseContextMenu(); }} 
