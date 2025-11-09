@@ -477,14 +477,17 @@ const App: React.FC = () => {
         setColorScheme(prev => {
             const newScheme = JSON.parse(JSON.stringify(prev));
             if (value === undefined || value === '') {
-                // Special case for resetting fonts
+                // Special case for resetting fonts or other properties
                 const pathParts = key.split('.');
                 const lastKey = pathParts.pop()!;
                 let parent = newScheme;
                 for (const part of pathParts) {
+                    if (!parent) break;
                     parent = parent[part];
                 }
-                delete parent[lastKey];
+                if (parent) {
+                  delete parent[lastKey];
+                }
             } else {
                 set(newScheme, key, value);
             }
