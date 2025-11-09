@@ -557,11 +557,32 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
               </>)}
               { selectedElement && (<>
                 <Section title="Положение и размер">
-                    <div className="grid grid-cols-2 gap-2">
-                        <LabeledInput label="X" suffix="%"><NumberInput value={Math.round(selectedElement.position.x)} onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === selectedElement.id ? {...e, position: {...e.position, x: v || 0}} : e)}))} /></LabeledInput>
-                        <LabeledInput label="Y" suffix="%"><NumberInput value={Math.round(selectedElement.position.y)} onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === selectedElement.id ? {...e, position: {...e.position, y: v || 0}} : e)}))} /></LabeledInput>
-                        <LabeledInput label="Ширина" suffix="%"><NumberInput value={Math.round(selectedElement.size.width)} onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === selectedElement.id ? {...e, size: {...e.size, width: v || 0}} : e)}))} /></LabeledInput>
-                        <LabeledInput label="Высота" suffix="%"><NumberInput value={Math.round(selectedElement.size.height)} onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === selectedElement.id ? {...e, size: {...e.size, height: v || 0}} : e)}))} /></LabeledInput>
+                    <div className="grid grid-cols-[auto_1fr_auto_1fr] gap-x-2 gap-y-3 items-center">
+                        {/* Row 1 */}
+                        <label className="text-xs text-gray-400 justify-self-end">X</label>
+                        <div className="flex items-center gap-1">
+                            <NumberInput value={Math.round(selectedElement.position.x)} onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === selectedElement.id ? {...e, position: {...e.position, x: v || 0}} : e)}))} />
+                            <span className="text-xs text-gray-500">%</span>
+                        </div>
+                        
+                        <label className="text-xs text-gray-400 justify-self-end pl-2">Y</label>
+                        <div className="flex items-center gap-1">
+                            <NumberInput value={Math.round(selectedElement.position.y)} onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === selectedElement.id ? {...e, position: {...e.position, y: v || 0}} : e)}))} />
+                            <span className="text-xs text-gray-500">%</span>
+                        </div>
+                        
+                        {/* Row 2 */}
+                        <label className="text-xs text-gray-400 justify-self-end">Ширина</label>
+                        <div className="flex items-center gap-1">
+                            <NumberInput value={Math.round(selectedElement.size.width)} onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === selectedElement.id ? {...e, size: {...e.size, width: v || 0}} : e)}))} />
+                            <span className="text-xs text-gray-500">%</span>
+                        </div>
+                        
+                        <label className="text-xs text-gray-400 justify-self-end pl-2">Высота</label>
+                        <div className="flex items-center gap-1">
+                            <NumberInput value={Math.round(selectedElement.size.height)} onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === selectedElement.id ? {...e, size: {...e.size, height: v || 0}} : e)}))} />
+                            <span className="text-xs text-gray-500">%</span>
+                        </div>
                     </div>
                 </Section>
                 
