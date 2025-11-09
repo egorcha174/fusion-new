@@ -231,8 +231,15 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
 
   const FONT_FAMILIES = [
     { name: 'Системный', value: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"` },
-    { name: 'С засечками', value: 'Georgia, serif' },
-    { name: 'Моноширинный', value: 'monospace' },
+    { name: 'Arial', value: 'Arial, Helvetica, sans-serif' },
+    { name: 'Calibri', value: 'Calibri, Candara, Segoe, "Segoe UI", Optima, Arial, sans-serif' },
+    { name: 'Roboto', value: 'Roboto, sans-serif' },
+    { name: 'Tahoma', value: 'Tahoma, Verdana, Segoe, sans-serif' },
+    { name: 'Verdana', value: 'Verdana, Geneva, sans-serif' },
+    { name: 'Times New Roman', value: '"Times New Roman", Times, serif' },
+    { name: 'Georgia', value: 'Georgia, serif' },
+    { name: 'Courier New', value: '"Courier New", Courier, monospace' },
+    { name: 'Lucida Console', value: '"Lucida Console", Monaco, monospace' }
   ];
 
   const sampleDevice = useMemo(() => {
