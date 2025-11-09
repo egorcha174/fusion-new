@@ -267,6 +267,8 @@ const DEFAULT_COLOR_SCHEME: ColorScheme = {
     thermostatHandleColor: '#1f2937', // gray-800
     thermostatDialTextColor: '#111827', // gray-900
     thermostatDialLabelColor: '#6b7280', // gray-500
+    thermostatHeatingColor: '#f97316', // orange-500
+    thermostatCoolingColor: '#3b82f6', // blue-500
     
     // Text Colors - Off State
     nameTextColor: '#1f2937', // gray-800
@@ -291,6 +293,8 @@ const DEFAULT_COLOR_SCHEME: ColorScheme = {
     thermostatHandleColor: '#f9fafb', // gray-50
     thermostatDialTextColor: '#f9fafb', // gray-50
     thermostatDialLabelColor: '#9ca3af', // gray-400
+    thermostatHeatingColor: '#fb923c', // orange-400
+    thermostatCoolingColor: '#60a5fa', // blue-400
 
     // Text Colors - Off State
     nameTextColor: '#d1d5db', // gray-300
@@ -513,7 +517,7 @@ const handleOpenColorPicker = useCallback((
     styleInfoFromClick: any 
   ) => {
     setContextMenu(null);
-    const { baseKey, targetName, isTextElement, isOn, origin, templateId, elementId } = styleInfoFromClick;
+    const { baseKey, targetName, isTextElement, isOn, origin, templateId, elementId, styleProperty } = styleInfoFromClick;
     const themeKey = isDark ? 'dark' : 'light';
     const scheme = isDark ? colorScheme.dark : colorScheme.light;
     const template = templateId ? templates[templateId] : null;
@@ -521,8 +525,8 @@ const handleOpenColorPicker = useCallback((
     const onSuffix = isOn ? 'On' : '';
 
     let initialValue = isDark ? '#FFFFFF' : '#000000';
-    if (origin === 'template' && element?.styles.textColor) {
-        initialValue = element.styles.textColor;
+    if (origin === 'template' && element) {
+        initialValue = (element.styles as any)[styleProperty || 'textColor'] || initialValue;
     } else if (origin === 'scheme') {
         initialValue = (scheme as any)[`${baseKey}${onSuffix}`] || initialValue;
     }
@@ -548,7 +552,7 @@ const handleOpenColorPicker = useCallback((
         let finalUpdateInfo: StyleUpdateInfo;
 
         if (property === 'color') {
-            finalUpdateInfo = { ...baseUpdateInfo, baseKey, styleProperty: 'textColor' };
+            finalUpdateInfo = { ...baseUpdateInfo, baseKey, styleProperty: styleProperty || 'textColor' };
         } else if (property === 'fontFamily') {
             finalUpdateInfo = { ...baseUpdateInfo, baseKey: baseKey.replace('Color', 'FontFamily'), styleProperty: 'fontFamily' };
         } else { // fontSize
@@ -592,7 +596,8 @@ const handleOpenColorPicker = useCallback((
         isText: isTextStr,
         isOn: isOnStr,
         templateId,
-        templateElementId: elementId
+        templateElementId: elementId,
+        styleProperty,
       } = styleTarget.dataset;
 
       const styleInfo = {
@@ -603,6 +608,7 @@ const handleOpenColorPicker = useCallback((
           isOn: isOnStr === 'true',
           templateId,
           elementId,
+          styleProperty,
       };
 
       handleOpenColorPicker(event, styleInfo);

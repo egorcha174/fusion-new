@@ -1,3 +1,4 @@
+
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 import { ColorScheme } from '../types';
 
@@ -210,12 +211,27 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
 
   const getLabelAndStyle = () => {
     switch (hvacAction) {
-      case 'cooling': return { label: 'ОХЛАЖДЕНИЕ', style: { color: coolingLabelColor || '#3B82F6' } };
-      case 'heating': return { label: 'НАГРЕВ', style: { color: heatingLabelColor || '#F97316' } };
-      default: return { label: 'ЦЕЛЬ', style: { color: idleLabelColor || colorScheme.thermostatDialLabelColor } };
+      case 'cooling': return {
+          label: 'ОХЛАЖДЕНИЕ',
+          style: { color: coolingLabelColor || colorScheme.thermostatCoolingColor },
+          dataKey: 'thermostatCoolingColor',
+          dataName: 'Ярлык (Охлаждение)'
+      };
+      case 'heating': return {
+          label: 'НАГРЕВ',
+          style: { color: heatingLabelColor || colorScheme.thermostatHeatingColor },
+          dataKey: 'thermostatHeatingColor',
+          dataName: 'Ярлык (Нагрев)'
+      };
+      default: return {
+          label: 'ЦЕЛЬ',
+          style: { color: idleLabelColor || colorScheme.thermostatDialLabelColor },
+          dataKey: 'thermostatDialLabelColor',
+          dataName: 'Ярлык (Цель)'
+      };
     }
   };
-  const { label: centerLabel, style: activeStyle } = getLabelAndStyle();
+  const { label: centerLabel, style: activeStyle, dataKey, dataName } = getLabelAndStyle();
 
   return (
     <div className="relative w-full h-full flex items-center justify-center">
@@ -290,9 +306,10 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
           <p 
             className="text-xs font-bold" 
             style={activeStyle}
-            data-style-key="thermostatDialLabelColor"
-            data-style-name="Ярлык (термостат)"
+            data-style-key={dataKey}
+            data-style-name={dataName}
             data-is-text="true"
+            data-style-origin="scheme"
           >
             {centerLabel}
           </p>

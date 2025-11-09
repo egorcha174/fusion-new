@@ -1,9 +1,4 @@
 
-
-
-
-
-
 export enum DeviceType {
   Light,
   Lamp,
@@ -131,6 +126,8 @@ interface ColorThemeSet {
   thermostatHandleColor: string;
   thermostatDialTextColor: string;
   thermostatDialLabelColor: string;
+  thermostatHeatingColor: string;
+  thermostatCoolingColor: string;
 
 
   // Text Colors - Off State

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ClockSettings, Device, ClockSize, CameraSettings, ColorScheme } from '../types';
 import { CameraStreamContent } from './DeviceCard';
@@ -193,6 +194,9 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, sidebarWidth, setS
         <aside
             className="fixed top-0 left-0 h-full backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/5 hidden lg:flex flex-col p-8"
             style={{ width: `${sidebarWidth}px`, backgroundColor: colorScheme.sidebarBackground }}
+            data-style-key="sidebarBackground"
+            data-style-name="Фон боковой панели"
+            data-style-origin="scheme"
         >
             <div className="flex justify-center">
                 <Clock settings={clockSettings} sidebarWidth={sidebarWidth} />

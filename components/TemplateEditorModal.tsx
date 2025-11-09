@@ -1,15 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
-
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot, ColorScheme } from '../types';
 import DeviceCard from './DeviceCard';
@@ -569,13 +558,9 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
               { selectedElement && (<>
                 <Section title="Положение и размер">
                     <div className="grid grid-cols-2 gap-2">
-                        {/* Fix: Moved suffix prop from NumberInput to LabeledInput */}
                         <LabeledInput label="X" suffix="%"><NumberInput value={Math.round(selectedElement.position.x)} onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === selectedElement.id ? {...e, position: {...e.position, x: v || 0}} : e)}))} /></LabeledInput>
-                        {/* Fix: Moved suffix prop from NumberInput to LabeledInput */}
                         <LabeledInput label="Y" suffix="%"><NumberInput value={Math.round(selectedElement.position.y)} onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === selectedElement.id ? {...e, position: {...e.position, y: v || 0}} : e)}))} /></LabeledInput>
-                        {/* Fix: Moved suffix prop from NumberInput to LabeledInput */}
                         <LabeledInput label="Ширина" suffix="%"><NumberInput value={Math.round(selectedElement.size.width)} onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === selectedElement.id ? {...e, size: {...e.size, width: v || 0}} : e)}))} /></LabeledInput>
-                        {/* Fix: Moved suffix prop from NumberInput to LabeledInput */}
                         <LabeledInput label="Высота" suffix="%"><NumberInput value={Math.round(selectedElement.size.height)} onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === selectedElement.id ? {...e, size: {...e.size, height: v || 0}} : e)}))} /></LabeledInput>
                     </div>
                 </Section>
@@ -613,7 +598,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                  )}
                  {['value', 'temperature'].includes(selectedElement.id) && (
                      <Section title="Данные">
-                        <LabeledInput label="Знаков после ,"><NumberInput value={selectedElement.styles.decimalPlaces} onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === selectedElement.id ? {...e, styles: {...e.styles, decimalPlaces: v}} : e)}))} min={0} max={5} /></LabeledInput>
+                        <LabeledInput label="Знаков после ," ><NumberInput value={selectedElement.styles.decimalPlaces} onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === selectedElement.id ? {...e, styles: {...e.styles, decimalPlaces: v}} : e)}))} min={0} max={5} /></LabeledInput>
                      </Section>
                  )}
                  {selectedElement.id === 'icon' && (
@@ -667,6 +652,10 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                                 <NumberInput value={selectedElement.styles.decimalPlaces} onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === selectedElement.id ? {...e, styles: {...e.styles, decimalPlaces: v}} : e)}))} min={0} max={5} />
                             </LabeledInput>
                         )}
+                        <Section title="Стили иконки">
+                            <LabeledInput label="Цвет (Вкл.)"><input type="color" value={selectedElement.styles.onColor || '#3B82F6'} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, onColor: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
+                            <LabeledInput label="Цвет (Выкл.)"><input type="color" value={selectedElement.styles.offColor || '#9CA3AF'} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, offColor: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
+                        </Section>
                      </Section>
                  )}
               </>)}

@@ -1,9 +1,4 @@
 
-
-
-
-
-
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement, DeviceCustomizations, ColorScheme } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -541,7 +536,17 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
               ? (element.styles.onColor || 'rgb(59 130 246)') // default blue
               : (element.styles.offColor || 'rgb(156 163 175)'); // default gray-400
           return (
-            <div key={element.id} style={{ ...style, color: iconColor }}>
+            <div
+              key={element.id}
+              style={{ ...style, color: iconColor }}
+              data-style-key="iconColor"
+              data-style-name={`Цвет иконки (${isOn ? 'Вкл' : 'Выкл'})`}
+              data-style-property={isOn ? 'onColor' : 'offColor'}
+              data-style-origin="template"
+              data-template-id={template.id}
+              data-template-element-id={element.id}
+              data-is-on={String(isOn)}
+            >
               <DeviceIcon icon={device.icon ?? device.type} isOn={isOn} className="!w-full !h-full" iconAnimation={device.iconAnimation} />
             </div>
           );
