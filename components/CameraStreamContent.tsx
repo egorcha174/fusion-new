@@ -97,7 +97,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
       <video ref={videoRef} className="w-full h-full object-contain" muted autoPlay playsInline />
 
       <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded-md text-white text-xs font-bold tracking-wider fade-in">
-        RTC
+        HLS
       </div>
       
       <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-auto z-10">
