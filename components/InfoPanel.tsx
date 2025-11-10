@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ClockSettings, Device, ClockSize, CameraSettings, ColorScheme } from '../types';
 import { CameraStreamContent } from './CameraStreamContent';
@@ -163,13 +165,14 @@ interface InfoPanelProps {
     getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
     getConfig: () => Promise<any>;
     colorScheme: ColorScheme['light'];
+    isDark: boolean;
 }
 
 /**
  * Боковая информационная панель, содержащая часы, виджет камеры и виджет погоды.
  * Поддерживает изменение ширины путем перетаскивания правого края.
  */
-const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, cameras, cameraSettings, onCameraSettingsChange, onCameraWidgetClick, haUrl, signPath, getCameraStreamUrl, getConfig, colorScheme }) => {
+const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, cameras, cameraSettings, onCameraSettingsChange, onCameraWidgetClick, haUrl, signPath, getCameraStreamUrl, getConfig, colorScheme, isDark }) => {
     const [isResizing, setIsResizing] = useState(false);
     const { clockSettings, openWeatherMapKey } = useAppStore();
 
@@ -201,14 +204,13 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, ca
             window.removeEventListener('mouseup', handleMouseUp);
         };
     }, [isResizing, handleMouseMove, handleMouseUp]);
+    
+    const sidebarBackgroundColor = isDark ? 'rgba(28, 28, 30, 0.75)' : 'rgba(240, 245, 255, 0.7)';
 
     return (
         <aside
             className="fixed top-0 left-0 h-full backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/5 hidden lg:flex flex-col p-8"
-            style={{ width: `${sidebarWidth}px`, backgroundColor: colorScheme.sidebarBackground }}
-            data-style-key="sidebarBackground"
-            data-style-name="Фон боковой панели"
-            data-style-origin="scheme"
+            style={{ width: `${sidebarWidth}px`, backgroundColor: sidebarBackgroundColor }}
         >
             <div className="flex-shrink-0 flex justify-center">
                 <Clock settings={clockSettings} sidebarWidth={sidebarWidth} color={colorScheme.clockTextColor} />

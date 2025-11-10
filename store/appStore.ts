@@ -1,6 +1,8 @@
 
 
 
+
+
 import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
@@ -70,10 +72,8 @@ const DEFAULT_COLOR_SCHEME: ColorScheme = {
     dashboardBackgroundImageBlur: 0,
     dashboardBackgroundImageBrightness: 100,
     cardOpacity: 0.8,
-    sidebarBackground: 'rgba(255, 255, 255, 0.6)',
     cardBackground: 'rgba(255, 255, 255, 0.7)',
     cardBackgroundOn: 'rgba(255, 255, 255, 0.7)',
-    headerBackground: 'rgba(255, 255, 255, 0.6)',
     tabTextColor: '#6A6A6A',
     activeTabTextColor: '#212121',
     tabIndicatorColor: '#212121',
@@ -100,7 +100,7 @@ const DEFAULT_COLOR_SCHEME: ColorScheme = {
     dashboardBackgroundImageBrightness: 100,
     cardOpacity: 0.8,
     nameTextColor: '#d1d5db', statusTextColor: '#9ca3af', valueTextColor: '#f9fafb', unitTextColor: '#9ca3af',
-    sidebarBackground: 'rgba(17, 24, 39, 0.75)', cardBackground: 'rgba(31, 41, 55, 0.8)', cardBackgroundOn: '#374151', headerBackground: 'rgba(17, 24, 39, 0.75)',
+    cardBackground: 'rgba(31, 41, 55, 0.8)', cardBackgroundOn: '#374151',
     tabTextColor: '#9ca3af', activeTabTextColor: '#f9fafb', tabIndicatorColor: '#f9fafb', thermostatHandleColor: '#f9fafb', thermostatDialTextColor: '#f9fafb',
     thermostatDialLabelColor: '#9ca3af', thermostatHeatingColor: '#fb923c', thermostatCoolingColor: '#60a5fa', clockTextColor: '#f9fafb',
     nameTextColorOn: '#f9fafb', statusTextColorOn: '#d1d5db', valueTextColorOn: '#f9fafb', unitTextColorOn: '#d1d5db',

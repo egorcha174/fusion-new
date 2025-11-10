@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useMemo } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
@@ -129,13 +131,13 @@ const DashboardHeader: React.FC = () => {
             })}
         </div>
     );
+    
+    const headerBackgroundColor = isDark ? 'rgba(28, 28, 30, 0.75)' : 'rgba(240, 245, 255, 0.7)';
 
     return (
         <header 
-            className="flex items-center justify-between p-4 border-b border-gray-300 dark:border-gray-700/50 gap-4"
-            style={{ backgroundColor: currentColorScheme.headerBackground }}
-            data-style-key="headerBackground"
-            data-style-name="Фон заголовка"
+            className="flex items-center justify-between p-4 border-b border-gray-300 dark:border-gray-700/50 gap-4 backdrop-blur-xl"
+            style={{ backgroundColor: headerBackgroundColor }}
         >
             {/* Кнопка "бургер" для мобильных устройств */}
             <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2 -ml-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-700">

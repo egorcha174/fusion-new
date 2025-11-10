@@ -1,6 +1,8 @@
 
 
 
+
+
 import { Tab, GridLayoutItem, CardTemplates, CardElement, CardTemplate, ColorScheme } from '../types';
 
 /**
@@ -66,6 +68,10 @@ export function loadAndMigrate<T>(key: string, initialValue: T): T {
                 loadedSet.dashboardBackgroundColor1 = loadedSet.dashboardBackground;
                 delete loadedSet.dashboardBackground;
             }
+            // Удаляем устаревшие свойства
+            delete loadedSet.sidebarBackground;
+            delete loadedSet.headerBackground;
+
             // Объединяем, чтобы добавить новые свойства из default
             return { ...defaultSet, ...loadedSet };
         };
