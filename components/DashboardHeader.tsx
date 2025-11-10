@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useMemo } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
@@ -136,7 +137,7 @@ const DashboardHeader: React.FC = () => {
 
     return (
         <header 
-            className="flex items-center justify-between p-4 border-b border-gray-300 dark:border-gray-700/50 gap-4 backdrop-blur-xl"
+            className="relative z-30 flex items-center justify-between p-4 border-b border-gray-300 dark:border-gray-700/50 gap-4 backdrop-blur-xl"
             style={{ backgroundColor: headerBackgroundColor }}
         >
             {/* Кнопка "бургер" для мобильных устройств */}
