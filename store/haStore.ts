@@ -127,53 +127,63 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                         });
                         sendMessage({ id: messageIdRef++, type: 'subscribe_events', event_type: 'state_changed' });
                         
-                        socketRef!.onmessage = (event) => handleMessage(event, initialFetchIds);
+                        socketRef!.onmessage = (event: MessageEvent) => {
+                            const data = JSON.parse(event.data);
+                            if (data.type === 'result') {
+                                const callbacks = [signPathCallbacks, cameraStreamCallbacks, configCallbacks, historyPeriodCallbacks];
+                                for (const cbMap of callbacks) {
+                                    if (cbMap.has(data.id)) {
+                                        const callback = cbMap.get(data.id);
+                                        if (data.success) callback?.resolve(data.result);
+                                        else callback?.reject(data.error);
+                                        cbMap.delete(data.id);
+                                        return;
+                                    }
+                                }
+            
+                                if (data.success && initialFetchIds.has(data.id)) {
+                                    let stateUpdate: Partial<HAState> = {};
+                                    let isInitialFetch = false;
+
+                                    if (data.id === fetches.states.id) {
+                                        stateUpdate.entities = data.result.reduce((acc: HassEntities, entity: HassEntity) => ({ ...acc, [entity.entity_id]: entity }), {});
+                                        isInitialFetch = true;
+                                    } else if (data.id === fetches.areas.id) {
+                                        stateUpdate.areas = data.result;
+                                        isInitialFetch = true;
+                                    } else if (data.id === fetches.devices.id) {
+                                        stateUpdate.devices = data.result;
+                                        isInitialFetch = true;
+                                    } else if (data.id === fetches.entities.id) {
+                                        stateUpdate.entityRegistry = data.result;
+                                        isInitialFetch = true;
+                                    }
+                                    
+                                    if(isInitialFetch) {
+                                        set(stateUpdate);
+                                        initialFetchIds.delete(data.id);
+                                        
+                                        if (initialFetchIds.size === 0) {
+                                            const s = get();
+                                            updateDerivedState(s.entities, s.areas, s.devices, s.entityRegistry);
+                                            set({ isLoading: false });
+                                        }
+                                    }
+                                }
+                            } else if (data.type === 'event' && data.event.event_type === 'state_changed') {
+                                const { entity_id, new_state } = data.event.data;
+                                const newEntities = { ...get().entities, [entity_id]: new_state };
+                                if (!new_state) delete newEntities[entity_id];
+                                set({ entities: newEntities });
+                                updateDerivedState(newEntities, get().areas, get().devices, get().entityRegistry);
+                            }
+                        };
                         break;
                     case 'auth_invalid':
                         set({ error: `Authentication failed: ${data.message}`, connectionStatus: 'failed', isLoading: false });
                         socketRef?.close();
                         break;
                 }
-            };
-            
-            const handleMessage = (event: MessageEvent, initialFetchIds: Set<number>) => {
-                const data = JSON.parse(event.data);
-                if (data.type === 'result') {
-                    const callbacks = [signPathCallbacks, cameraStreamCallbacks, configCallbacks, historyPeriodCallbacks];
-                    for (const cbMap of callbacks) {
-                        if (cbMap.has(data.id)) {
-                            const callback = cbMap.get(data.id);
-                            if (data.success) callback?.resolve(data.result);
-                            else callback?.reject(data.error);
-                            cbMap.delete(data.id);
-                            return;
-                        }
-                    }
-
-                    if (data.success) {
-                        let newEntities = get().entities, newAreas = get().areas, newDevices = get().devices, newEntityRegistry = get().entityRegistry;
-                        if (data.id === fetches.states.id) newEntities = data.result.reduce((acc: HassEntities, entity: HassEntity) => ({ ...acc, [entity.entity_id]: entity }), {});
-                        if (data.id === fetches.areas.id) newAreas = data.result;
-                        if (data.id === fetches.devices.id) newDevices = data.result;
-                        if (data.id === fetches.entities.id) newEntityRegistry = data.result;
-                        set({ entities: newEntities, areas: newAreas, devices: newDevices, entityRegistry: newEntityRegistry });
-                        updateDerivedState(newEntities, newAreas, newDevices, newEntityRegistry);
-                    }
-                    if (initialFetchIds.has(data.id)) {
-                        initialFetchIds.delete(data.id);
-                        if (initialFetchIds.size === 0) set({ isLoading: false });
-                    }
-                } else if (data.type === 'event' && data.event.event_type === 'state_changed') {
-                    const { entity_id, new_state } = data.event.data;
-                    const newEntities = { ...get().entities, [entity_id]: new_state };
-                    if (!new_state) delete newEntities[entity_id];
-                    set({ entities: newEntities });
-                    updateDerivedState(newEntities, get().areas, get().devices, get().entityRegistry);
-                }
-            };
-            
-            const fetches = {
-                states: { id: 1 }, areas: { id: 2 }, devices: { id: 3 }, entities: { id: 4 }
             };
 
             socketRef.onclose = () => {
