@@ -13,6 +13,7 @@ interface HistoryModalProps {
   getHistory: (entityIds: string[], startTime: string, endTime?: string) => Promise<any>;
   allKnownDevices: Map<string, Device>;
   colorScheme: ColorScheme['light'];
+  decimalPlaces?: number;
 }
 
 type TimeRange = '1h' | '6h' | '12h' | '24h' | '3d';
@@ -48,7 +49,7 @@ const smoothData = (data: { x: Date; y: number }[], windowSize: number): { x: Da
 };
 
 
-const HistoryModal: React.FC<HistoryModalProps> = ({ entityId, onClose, getHistory, allKnownDevices, colorScheme }) => {
+const HistoryModal: React.FC<HistoryModalProps> = ({ entityId, onClose, getHistory, allKnownDevices, colorScheme, decimalPlaces }) => {
   const [rawProcessedData, setRawProcessedData] = useState<{ x: Date; y: number }[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -189,7 +190,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ entityId, onClose, getHisto
                 </div>
             )}
             {chartData && !loading && !error && (
-                <HistoryChart data={chartData} unit={device?.unit || ''} />
+                <HistoryChart data={chartData} unit={device?.unit || ''} decimalPlaces={decimalPlaces} />
             )}
         </main>
       </div>

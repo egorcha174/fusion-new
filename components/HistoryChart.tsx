@@ -23,9 +23,10 @@ ChartJS.register(
 interface HistoryChartProps {
   data: any; // Chart.js data object
   unit: string;
+  decimalPlaces?: number;
 }
 
-const HistoryChart: React.FC<HistoryChartProps> = ({ data, unit }) => {
+const HistoryChart: React.FC<HistoryChartProps> = ({ data, unit, decimalPlaces }) => {
     const isDark = document.documentElement.classList.contains('dark');
     const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
     const textColor = isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)';
@@ -52,7 +53,10 @@ const HistoryChart: React.FC<HistoryChartProps> = ({ data, unit }) => {
                             label += ': ';
                         }
                         if (context.parsed.y !== null) {
-                            label += `${context.parsed.y.toFixed(1)} ${unit}`;
+                            const value = typeof decimalPlaces === 'number'
+                                ? context.parsed.y.toFixed(decimalPlaces)
+                                : context.parsed.y.toFixed(1);
+                            label += `${value} ${unit}`;
                         }
                         return label;
                     }
@@ -92,8 +96,11 @@ const HistoryChart: React.FC<HistoryChartProps> = ({ data, unit }) => {
                 },
                 ticks: {
                     color: textColor,
-                    callback: function(value: any) {
-                        return `${value}${unit ? ` ${unit}` : ''}`;
+                    callback: function(value: number) {
+                        const formattedValue = typeof decimalPlaces === 'number'
+                            ? value.toFixed(decimalPlaces)
+                            : value.toFixed(1);
+                        return `${formattedValue}${unit ? ` ${unit}` : ''}`;
                     },
                 },
                 title: {

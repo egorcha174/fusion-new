@@ -1018,6 +1018,11 @@ const handleOpenColorPicker = useCallback((
 
   const currentTemplate = getTemplateForDevice(contextMenuDevice);
 
+  const historyDevice = historyModalEntityId ? allKnownDevices.get(historyModalEntityId) : null;
+  const historyDeviceTemplate = getTemplateForDevice(historyDevice);
+  const valueElement = historyDeviceTemplate?.elements.find(el => el.id === 'value' || el.id === 'temperature');
+  const historyDecimalPlaces = valueElement?.styles?.decimalPlaces;
+
   const renderPage = () => {
     switch (currentPage) {
       case 'settings':
@@ -1172,6 +1177,7 @@ const handleOpenColorPicker = useCallback((
             getHistory={getHistory}
             allKnownDevices={allKnownDevices}
             colorScheme={currentColorScheme}
+            decimalPlaces={historyDecimalPlaces}
           />
         )}
 
