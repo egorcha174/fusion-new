@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Device, ColorScheme } from '../types';
 import LoadingSpinner from './LoadingSpinner';
 import HistoryChart from './HistoryChart';
-// FIX: Changed date-fns imports to use direct paths to resolve potential module resolution issues.
-import subHours from 'date-fns/subHours';
-import subDays from 'date-fns/subDays';
+// Fix: Import date-fns functions from their specific paths to resolve module errors.
+import { subHours } from 'date-fns/subHours';
+import { subDays } from 'date-fns/subDays';
 import { Icon } from '@iconify/react';
 
 interface HistoryModalProps {

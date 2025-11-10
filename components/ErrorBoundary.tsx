@@ -1,3 +1,4 @@
+
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 
 interface Props {
@@ -9,6 +10,12 @@ interface State {
   error: Error | null;
 }
 
+/**
+ * Error Boundary - это специальный React-компонент, который отлавливает JavaScript-ошибки
+ * в любом месте своего дочернего дерева компонентов, логирует эти ошибки и отображает
+ * запасной пользовательский интерфейс вместо "сломанного" компонента.
+ * Это предотвращает падение всего приложения из-за ошибки в одном из его частей.
+ */
 class ErrorBoundary extends Component<Props, State> {
   public state: State;
 
@@ -20,23 +27,32 @@ class ErrorBoundary extends Component<Props, State> {
     };
   }
 
+  /**
+   * Этот статический метод жизненного цикла вызывается после того, как в дочернем компоненте
+   * была выброшена ошибка. Он позволяет обновить состояние, чтобы при следующем рендере
+   * показать запасной UI.
+   */
   static getDerivedStateFromError(error: Error): State {
-    // Update state so the next render will show the fallback UI.
     return { hasError: true, error };
   }
 
+  /**
+   * Этот метод жизненного цикла вызывается после того, как в дочернем компоненте
+   * была выброшена ошибка. Он получает информацию об ошибке и о том, какой компонент
+   * вызвал ошибку. Здесь можно, например, отправить лог в систему мониторинга.
+   */
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // You can also log the error to an error reporting service
     console.error("Uncaught error:", error, errorInfo);
   }
 
+  // Обработчик для перезагрузки страницы.
   handleReload = () => {
     window.location.reload();
   };
 
   render(): ReactNode {
+    // Если произошла ошибка, рендерим запасной UI.
     if (this.state.hasError) {
-      // You can render any custom fallback UI
       return (
         <div className="flex h-screen w-screen items-center justify-center bg-gray-900 text-gray-200 p-4">
           <div className="w-full max-w-lg bg-gray-800 p-8 rounded-2xl shadow-lg ring-1 ring-white/10 text-center">
@@ -64,6 +80,7 @@ class ErrorBoundary extends Component<Props, State> {
       );
     }
 
+    // Если ошибок нет, рендерим дочерние компоненты как обычно.
     return this.props.children;
   }
 }

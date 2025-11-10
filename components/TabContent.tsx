@@ -1,4 +1,5 @@
 
+
 import React, { useMemo } from 'react';
 import DashboardGrid from './DashboardGrid';
 import { Tab, Device, GridLayoutItem, CardTemplates, DeviceCustomizations, ColorScheme } from '../types';
@@ -12,16 +13,23 @@ interface TabContentProps {
   onOpenColorPicker: (event: React.MouseEvent, baseKey: string, targetName: string, isTextElement: boolean, isOn: boolean) => void;
 }
 
+/**
+ * Компонент-контейнер для содержимого активной вкладки.
+ * Его основная задача - получить все необходимые данные из хранилищ (Zustand)
+ * и передать их в компонент `DashboardGrid`, который отвечает за рендеринг сетки.
+ * Это позволяет `DashboardGrid` быть более "чистым" компонентом, не зависящим напрямую от хранилищ.
+ */
 const TabContent: React.FC<TabContentProps> = (props) => {
   const { tab } = props;
   const { allKnownDevices, haUrl, signPath, getCameraStreamUrl, handleDeviceToggle, handleTemperatureChange, handleBrightnessChange, handleHvacModeChange, handlePresetChange } = useHAStore();
   const { searchTerm, handleDeviceLayoutChange, setFloatingCamera, setHistoryModalEntityId, setEditingDevice, templates, customizations, colorScheme, theme } = useAppStore();
 
-  // FIX: Derive the correct color theme (light/dark) from the full color scheme object.
+  // Определяем текущую цветовую схему (светлую или темную) на основе настроек.
   const isSystemDark = useMemo(() => window.matchMedia('(prefers-color-scheme: dark)').matches, []);
   const isDark = useMemo(() => theme === 'night' || (theme === 'auto' && isSystemDark), [theme, isSystemDark]);
   const currentColorScheme = useMemo(() => isDark ? colorScheme.dark : colorScheme.light, [isDark, colorScheme]);
 
+  // Если на вкладке нет устройств, показываем заглушку.
   if (tab.layout.length === 0) {
       return (
           <div className="text-center py-20 text-gray-500">
@@ -31,6 +39,7 @@ const TabContent: React.FC<TabContentProps> = (props) => {
       )
   }
   
+  // Рендерим сетку, передавая ей все необходимые пропсы.
   return <DashboardGrid 
             {...props}
             allKnownDevices={allKnownDevices}

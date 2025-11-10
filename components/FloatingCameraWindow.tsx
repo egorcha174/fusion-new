@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { Device } from '../types';
 import { CameraStreamContent } from './CameraStreamContent';
@@ -15,6 +16,11 @@ interface FloatingCameraWindowProps {
 const MIN_WIDTH = 640;
 const MIN_HEIGHT = 480;
 
+/**
+ * Компонент "плавающего" окна для просмотра камеры.
+ * Поддерживает перетаскивание за заголовок и изменение размера за правый нижний угол.
+ * Использует Pointer Events API для более надежной работы с мышью и сенсорными экранами.
+ */
 const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({
   device,
   onClose,
@@ -27,21 +33,20 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({
 
   /**
    * ОБРАБОТЧИК ПЕРЕТАСКИВАНИЯ (DRAG)
-   * При нажатии на заголовок, он захватывает указатель мыши,
-   * отслеживает его движение и обновляет позицию окна.
-   * Это предотвращает случайное выделение текста или другие действия браузера.
+   * При нажатии на заголовок (onPointerDown), он "захватывает" указатель мыши.
+   * Это означает, что все последующие события движения (pointermove) будут приходить к этому элементу,
+   * даже если курсор выйдет за его пределы. Это предотвращает случайное выделение текста или другие действия браузера.
+   * При отпускании кнопки (pointerup) захват снимается.
    * Клик по кнопке закрытия игнорируется.
    */
   const handleDragPointerDown = useCallback((e: React.PointerEvent) => {
-    // Игнорируем нажатия не левой кнопкой мыши или клики по кнопкам внутри заголовка
-    if (e.button !== 0 || (e.target as HTMLElement).closest('button')) {
-      return;
-    }
+    if (e.button !== 0 || (e.target as HTMLElement).closest('button')) return;
+    
     e.preventDefault();
     e.stopPropagation();
 
     const target = e.currentTarget as HTMLElement;
-    target.setPointerCapture(e.pointerId);
+    target.setPointerCapture(e.pointerId); // Захватываем указатель
 
     const initialPos = { ...position };
     const startMouse = { x: e.clientX, y: e.clientY };
@@ -56,7 +61,7 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({
     };
 
     const handlePointerUp = () => {
-      target.releasePointerCapture(e.pointerId);
+      target.releasePointerCapture(e.pointerId); // Освобождаем указатель
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
     };
@@ -109,10 +114,10 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({
         top: `${position.y}px`,
         width: `${size.width}px`,
         height: `${size.height}px`,
-        touchAction: 'none',
+        touchAction: 'none', // Отключает стандартное поведение браузера для сенсорных экранов (прокрутку, масштабирование)
       }}
     >
-      {/* Заголовок окна */}
+      {/* Заголовок окна, который является "ручкой" для перетаскивания */}
       <header
         onPointerDown={handleDragPointerDown}
         className="h-10 bg-gray-100 dark:bg-gray-700/80 flex-shrink-0 flex items-center justify-between px-3 cursor-move"
@@ -125,9 +130,7 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({
           className="p-1 rounded-full text-gray-500 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 hover:text-gray-800 dark:hover:text-white transition-colors"
           aria-label="Закрыть окно камеры"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
         </button>
       </header>
       
@@ -141,7 +144,7 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({
           altText={device.name}
         />
         
-        {/* Уголок для изменения размера */}
+        {/* Уголок, который является "ручкой" для изменения размера */}
         <div
           onPointerDown={handleResizePointerDown}
           className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-10"

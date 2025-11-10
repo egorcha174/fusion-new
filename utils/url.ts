@@ -1,17 +1,18 @@
+
 /**
- * Constructs a full URL for a given Home Assistant path, intelligently determining the protocol.
- * Handles various user inputs for the base HA URL (e.g., with/without protocol, with/without port).
+ * Создает полный URL для заданного пути Home Assistant, автоматически определяя протокол.
+ * Обрабатывает различные варианты ввода базового URL HA (например, с/без протокола, с/без порта).
  *
- * @param haUrl The base URL of the Home Assistant instance (e.g., "192.168.1.100:8123", "my-home.duckdns.org").
- * @param path The API path to append (e.g., "/api/websocket", "/api/camera_proxy_stream/...").
- * @param protocolType The desired protocol ('ws' for WebSocket, 'http' for standard HTTP).
- * @returns A full, well-formed URL.
+ * @param haUrl - Базовый URL экземпляра Home Assistant (например, "192.168.1.100:8123", "my-home.duckdns.org").
+ * @param path - Путь API для добавления (например, "/api/websocket", "/api/camera_proxy_stream/...").
+ * @param protocolType - Желаемый протокол ('ws' для WebSocket, 'http' для стандартного HTTP).
+ * @returns {string} - Полностью сформированный URL.
  */
 export const constructHaUrl = (haUrl: string, path: string, protocolType: 'ws' | 'http'): string => {
   let protocol;
   let cleanUrl = haUrl;
 
-  // Check if haUrl already has a protocol
+  // Проверяем, есть ли уже протокол в haUrl
   if (haUrl.startsWith('https://')) {
     protocol = protocolType === 'ws' ? 'wss://' : 'https://';
     cleanUrl = haUrl.substring(8);
@@ -19,7 +20,8 @@ export const constructHaUrl = (haUrl: string, path: string, protocolType: 'ws' |
     protocol = protocolType === 'ws' ? 'ws://' : 'http://';
     cleanUrl = haUrl.substring(7);
   } else {
-    // Fallback for URLs without a protocol specified, based on the current page's protocol
+    // Резервный вариант для URL без указания протокола, основанный на протоколе текущей страницы.
+    // Это важно для работы в Home Assistant Ingress.
     const isSecure = window.location.protocol === 'https:';
     if (protocolType === 'ws') {
       protocol = isSecure ? 'wss://' : 'ws://';
@@ -28,7 +30,7 @@ export const constructHaUrl = (haUrl: string, path: string, protocolType: 'ws' |
     }
   }
 
-  // Sanitize the rest of the URL: remove trailing slashes
+  // Очищаем URL от возможных слэшей в конце.
   cleanUrl = cleanUrl.replace(/\/$/, '');
 
   return `${protocol}${cleanUrl}${path}`;

@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import { Device, DeviceCustomization, DeviceCustomizations, Tab, Room, ClockSettings, DeviceType, CameraSettings, GridLayoutItem, CardTemplates, CardTemplate, DeviceBinding, ThresholdRule, ColorScheme, ColorPickerContextData, CardElementId, CardElement } from './types';
@@ -11,7 +12,8 @@ import { useAppStore } from './store/appStore';
 import { useHAStore } from './store/haStore';
 
 
-// Lazy load components for code splitting and better performance
+// Ленивая загрузка (Lazy loading) компонентов для разделения кода (code splitting) и улучшения производительности.
+// Компоненты будут загружены только тогда, когда они понадобятся.
 const Settings = lazy(() => import('./components/Settings'));
 const InfoPanel = lazy(() => import('./components/InfoPanel'));
 const DashboardHeader = lazy(() => import('./components/DashboardHeader'));
@@ -26,9 +28,12 @@ const ColorPickerContextMenu = lazy(() => import('./components/ColorPickerContex
 const HistoryModal = lazy(() => import('./components/HistoryModal'));
 
 
-// Hook to check for large screens to conditionally apply margin
+/**
+ * Хук для определения, является ли экран большим (lg breakpoint в Tailwind CSS).
+ * Используется для условного применения стилей, например, отступа для боковой панели.
+ * @returns {boolean} - true, если ширина окна >= 1024px.
+ */
 const useIsLg = () => {
-  // FIX: Import useState from react to resolve 'Cannot find name 'useState'' error.
   const [isLg, setIsLg] = useState(window.innerWidth >= 1024);
   useEffect(() => {
       const handleResize = () => setIsLg(window.innerWidth >= 1024);
@@ -38,8 +43,12 @@ const useIsLg = () => {
   return isLg;
 }
 
+/**
+ * Главный компонент приложения.
+ * Отвечает за общую структуру, управление состоянием и рендеринг страниц.
+ */
 const App: React.FC = () => {
-    // Zustand store selectors
+    // Получение состояний и действий из хранилища Zustand для Home Assistant.
     const {
         connectionStatus, isLoading, error, connect, disconnect, allKnownDevices, allRoomsForDevicePage,
         allCameras, getCameraStreamUrl, getConfig, getHistory, signPath, callService,
@@ -47,6 +56,7 @@ const App: React.FC = () => {
         handlePresetChange, handleTemperatureChange, haUrl
     } = useHAStore();
 
+    // Получение состояний и действий из хранилища Zustand для UI приложения.
     const {
         currentPage, setCurrentPage, isEditMode, setIsEditMode, editingDevice, setEditingDevice,
         editingTab, setEditingTab, editingTemplate, setEditingTemplate, searchTerm, setSearchTerm,
@@ -60,7 +70,8 @@ const App: React.FC = () => {
 
   const isLg = useIsLg();
 
-  // Theme management
+  // Эффект для управления темой (светлая/темная).
+  // Добавляет/удаляет класс 'dark' у корневого элемента <html>.
   useEffect(() => {
     const root = window.document.documentElement;
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -73,11 +84,12 @@ const App: React.FC = () => {
     };
 
     updateTheme();
-    mediaQuery.addEventListener('change', updateTheme);
+    mediaQuery.addEventListener('change', updateTheme); // Следим за системными изменениями
     return () => mediaQuery.removeEventListener('change', updateTheme);
   }, [theme]);
 
-  // Ensure there's always at least one tab and an active tab is set
+  // Эффект, гарантирующий наличие хотя бы одной вкладки и установку активной вкладки.
+  // Запускается после успешного подключения и загрузки данных.
   useEffect(() => {
     if (connectionStatus === 'connected' && !isLoading) {
       if (tabs.length === 0) {
@@ -90,8 +102,10 @@ const App: React.FC = () => {
     }
   }, [tabs, activeTabId, connectionStatus, isLoading, setTabs, setActiveTabId]);
 
+  // Мемоизированное значение текущей активной вкладки для избежания лишних пересчетов.
   const activeTab = useMemo(() => tabs.find(t => t.id === activeTabId), [tabs, activeTabId]);
   
+  // Мемоизированный список комнат для страницы "Все устройства", отфильтрованный по поисковому запросу.
   const filteredRoomsForDevicePage = useMemo(() => {
     if (!searchTerm) return allRoomsForDevicePage;
     const lowercasedFilter = searchTerm.toLowerCase();
@@ -111,30 +125,35 @@ const App: React.FC = () => {
     return filteredRooms;
   }, [searchTerm, allRoomsForDevicePage]);
 
+    // Мемоизированные значения для определения текущей цветовой схемы.
     const isSystemDark = useMemo(() => window.matchMedia('(prefers-color-scheme: dark)').matches, []);
     const isDark = useMemo(() => theme === 'night' || (theme === 'auto' && isSystemDark), [theme, isSystemDark]);
     const currentColorScheme = useMemo(() => isDark ? colorScheme.dark : colorScheme.light, [isDark, colorScheme]);
 
 
-  // --- Context Menu Handlers ---
+  // --- Обработчики Контекстного Меню ---
+
   const handleCloseContextMenu = useCallback(() => {
     setContextMenu(null);
   }, [setContextMenu]);
 
+  // Структура для передачи информации о стиле в обработчик
   interface StyleUpdateInfo {
-    origin: 'scheme' | 'template';
-    baseKey: string;
-    theme: 'light' | 'dark';
-    isOn: boolean;
-    templateId?: string;
-    elementId?: CardElementId;
-    styleProperty?: string;
+    origin: 'scheme' | 'template'; // Откуда пришло изменение: из общей схемы или из шаблона
+    baseKey: string;              // Базовый ключ стиля (например, 'nameTextColor')
+    theme: 'light' | 'dark';      // Для какой темы
+    isOn: boolean;                // Включено ли устройство (для стилей On/Off)
+    templateId?: string;          // ID шаблона, если origin='template'
+    elementId?: CardElementId;    // ID элемента в шаблоне
+    styleProperty?: string;       // Конкретное свойство CSS (например, 'textColor', 'fontSize')
   }
   
+  /**
+   * Универсальный обработчик обновления стилей.
+   * Может обновлять как глобальную цветовую схему, так и стили конкретного элемента в шаблоне.
+   */
   const handleStyleUpdate = useCallback((updateInfo: StyleUpdateInfo, value: any) => {
     const { origin, theme: themeKey, baseKey, isOn, templateId, elementId, styleProperty } = updateInfo;
-    // FIX: Cannot find name 'get'.
-    // Use the Zustand getState() method to access the store's state outside of a React component.
     const currentScheme = useAppStore.getState().colorScheme;
     const currentTemplates = useAppStore.getState().templates;
 
@@ -142,13 +161,12 @@ const App: React.FC = () => {
         const onSuffix = isOn ? 'On' : '';
         const key = `${themeKey}.${baseKey}${onSuffix}`;
         
-        // FIX: Zustand setter does not accept a function. Get current state, modify, and set.
         const newScheme = JSON.parse(JSON.stringify(currentScheme));
         if (value === undefined || value === '') {
-            // Delete the key to reset to default css
+            // Удаляем ключ, чтобы сбросить на значение по умолчанию из CSS
             const pathParts = key.split('.');
             const lastKey = pathParts.pop()!;
-            let parent = newScheme;
+            let parent: any = newScheme;
             for (const part of pathParts) {
                 if (!parent || typeof parent !== 'object') break;
                 parent = parent[part];
@@ -157,13 +175,12 @@ const App: React.FC = () => {
                 delete parent[lastKey];
             }
         } else {
-            set(newScheme, key, value);
+            set(newScheme, key, value); // Используем утилиту set для установки значения по пути
         }
         setColorScheme(newScheme);
     } else if (origin === 'template') {
         if (!templateId || !elementId || !styleProperty) return;
 
-        // FIX: Zustand setter does not accept a function. Get current state, modify, and set.
         const newTemplates = JSON.parse(JSON.stringify(currentTemplates));
         const template = newTemplates[templateId];
         if (!template) return;
@@ -173,7 +190,7 @@ const App: React.FC = () => {
         
         const styles = template.elements[elementIndex].styles as Record<string, any>;
         if (value === undefined || value === '') {
-            delete styles[styleProperty];
+            delete styles[styleProperty]; // Удаляем для сброса
         } else {
             styles[styleProperty] = value;
         }
@@ -183,15 +200,17 @@ const App: React.FC = () => {
   }, [setColorScheme, setTemplates]);
 
 
+/**
+ * Открывает контекстное меню для выбора цвета и шрифта.
+ * Собирает всю необходимую информацию о кликнутом элементе и передает в состояние.
+ */
 const handleOpenColorPicker = useCallback((
     event: React.MouseEvent,
     styleInfoFromClick: any 
   ) => {
-    setContextMenu(null);
+    setContextMenu(null); // Закрываем обычное контекстное меню
     const { baseKey, targetName, isTextElement, isOn, origin, templateId, elementId, styleProperty } = styleInfoFromClick;
     const themeKey = isDark ? 'dark' : 'light';
-    // FIX: Cannot find name 'get'.
-    // Use the Zustand getState() method to access the store's state outside of a React component.
     const currentScheme = useAppStore.getState().colorScheme;
     const currentTemplates = useAppStore.getState().templates;
     const scheme = isDark ? currentScheme.dark : currentScheme.light;
@@ -199,7 +218,8 @@ const handleOpenColorPicker = useCallback((
     const element = template ? template.elements.find((el: CardElement) => el.id === elementId) : null;
     const onSuffix = isOn ? 'On' : '';
 
-    let initialValue = isDark ? '#FFFFFF' : '#000000';
+    // Определяем начальные значения для пикера (цвет, шрифт, размер)
+    let initialValue = isDark ? '#FFFFFF' : '#000000'; // Цвет по умолчанию
     if (origin === 'template' && element) {
         initialValue = (element.styles as any)[styleProperty || 'textColor'] || initialValue;
     } else if (origin === 'scheme') {
@@ -222,12 +242,14 @@ const handleOpenColorPicker = useCallback((
         initialFontSize = (scheme as any)[`${fontSizeKey}${onSuffix}`];
     }
     
+    // Функция обратного вызова для ColorPicker, которая будет обновлять стили
     const onUpdate = (property: 'color' | 'fontFamily' | 'fontSize', value: any) => {
         const baseUpdateInfo: Omit<StyleUpdateInfo, 'baseKey' | 'styleProperty'> = {
             origin, theme: themeKey, isOn, templateId, elementId,
         };
         let finalUpdateInfo: StyleUpdateInfo;
 
+        // Определяем, какое свойство обновляется, и формируем правильный ключ
         if (property === 'color') {
             finalUpdateInfo = { ...baseUpdateInfo, baseKey, styleProperty: styleProperty || 'textColor' };
         } else if (property === 'fontFamily') {
@@ -237,8 +259,7 @@ const handleOpenColorPicker = useCallback((
         }
         handleStyleUpdate(finalUpdateInfo, value);
         
-        // FIX: Zustand setter does not accept a function. Get current state from store, modify, and set.
-        // Update the context menu's state so it re-renders with the new value.
+        // Обновляем состояние самого пикера, чтобы он тут же показал новое значение
         const prev = useAppStore.getState().colorPickerMenu;
         if (!prev) return;
         const newMenuData = { ...prev };
@@ -251,7 +272,8 @@ const handleOpenColorPicker = useCallback((
         }
         setColorPickerMenu(newMenuData);
     };
-
+    
+    // Устанавливаем состояние, чтобы открыть ColorPicker
     setColorPickerMenu({
         x: event.clientX,
         y: event.clientY,
@@ -269,6 +291,11 @@ const handleOpenColorPicker = useCallback((
     setContextMenu({ x: event.clientX, y: event.clientY, deviceId, tabId });
   }, [setContextMenu]);
   
+  /**
+   * Глобальный обработчик контекстного меню (правый клик на всем приложении).
+   * Если клик был по элементу с data-атрибутами для стилизации, открывает ColorPicker,
+   * иначе просто закрывает все открытые меню.
+   */
   const handleGlobalContextMenu = useCallback((event: React.MouseEvent) => {
     setContextMenu(null);
     setColorPickerMenu(null);
@@ -305,12 +332,14 @@ const handleOpenColorPicker = useCallback((
     }
   }, [handleOpenColorPicker, setContextMenu, setColorPickerMenu]);
 
-  // --- RENDER LOGIC ---
+  // --- ЛОГИКА РЕНДЕРИНГА ---
 
+  // Если нет подключения, показываем страницу настроек.
   if (connectionStatus !== 'connected') {
     return <Suspense fallback={<div />}><Settings onConnect={connect} connectionStatus={connectionStatus} error={error} /></Suspense>;
   }
   
+  // Если идет загрузка данных, показываем спиннер.
   if (isLoading) {
     return (
        <div className="flex h-screen w-screen items-center justify-center">
@@ -319,6 +348,7 @@ const handleOpenColorPicker = useCallback((
     );
   }
   
+  // Подготовка данных для модальных окон и контекстных меню
   const contextMenuDevice = contextMenu ? allKnownDevices.get(contextMenu.deviceId) : null;
   const isTemplateable = contextMenuDevice?.type === DeviceType.Sensor || contextMenuDevice?.type === DeviceType.DimmableLight || contextMenuDevice?.type === DeviceType.Light || contextMenuDevice?.type === DeviceType.Switch || contextMenuDevice?.type === DeviceType.Thermostat;
   const currentTemplate = getTemplateForDevice(contextMenuDevice);
@@ -328,6 +358,7 @@ const handleOpenColorPicker = useCallback((
   const historyDecimalPlaces = valueElement?.styles?.decimalPlaces;
   const otherTabs = tabs.filter(t => t.id !== contextMenu?.tabId);
 
+  // Функция-роутер для отображения текущей страницы.
   const renderPage = () => {
     switch (currentPage) {
       case 'settings':
@@ -354,6 +385,7 @@ const handleOpenColorPicker = useCallback((
     }
   };
 
+  // Основная JSX-разметка приложения.
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: currentColorScheme.dashboardBackground }} onContextMenu={handleGlobalContextMenu} data-style-key="dashboardBackground" data-style-name="Фон дашборда" data-style-origin="scheme">
       {isSidebarVisible && (
@@ -388,6 +420,7 @@ const handleOpenColorPicker = useCallback((
         </main>
       </div>
       
+      {/* Секция для модальных окон и оверлеев. Они рендерятся здесь, чтобы быть поверх всего контента. */}
       <Suspense fallback={null}>
         {editingDevice && (
           <DeviceSettingsModal 
@@ -426,10 +459,12 @@ const handleOpenColorPicker = useCallback((
             isOpen={!!contextMenu}
             onClose={handleCloseContextMenu}
           >
+              {/* Рендеринг пунктов контекстного меню для карточки устройства */}
               {otherTabs.length > 0 && <div className="h-px bg-gray-300 dark:bg-gray-600/50 my-1" />}
 
               {otherTabs.length > 0 && (
                   <>
+                      {/* Подменю для копирования */}
                       <div className="relative group/menu">
                           <div className="px-3 py-1.5 rounded-md cursor-default flex justify-between items-center">
                               Копировать в... <span className="text-xs ml-4">▶</span>
@@ -441,6 +476,7 @@ const handleOpenColorPicker = useCallback((
                           </div>
                       </div>
 
+                      {/* Подменю для перемещения */}
                       <div className="relative group/menu">
                           <div className="px-3 py-1.5 rounded-md cursor-default flex justify-between items-center">
                               Переместить в... <span className="text-xs ml-4">▶</span>
@@ -456,6 +492,7 @@ const handleOpenColorPicker = useCallback((
 
               <div className="h-px bg-gray-300 dark:bg-gray-600/50 my-1" />
               
+              {/* Подменю для изменения размера */}
               <div className="relative group/menu">
                   <div className="px-3 py-1.5 rounded-md cursor-default flex justify-between items-center">
                       Размер <span className="text-xs ml-4">▶</span>

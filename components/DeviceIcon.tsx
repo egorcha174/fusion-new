@@ -1,15 +1,18 @@
+
 import React from 'react';
 import { DeviceType } from '../types';
 import { Icon } from '@iconify/react';
 
 interface DeviceIconProps {
-  icon: string | DeviceType;
-  isOn: boolean;
+  icon: string | DeviceType; // Может быть строкой (имя Iconify) или типом устройства
+  isOn: boolean; // Включено ли устройство
   className?: string;
   ariaLabel?: string;
-  iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow';
+  iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow'; // Тип анимации
 }
 
+// Карта, сопоставляющая внутренний тип устройства с иконками для состояний "вкл" и "выкл".
+// Также определяет анимацию по умолчанию для некоторых типов (например, 'spin' для вентилятора).
 const iconMap: Record<DeviceType, { on: string; off: string; animation?: 'spin' | 'pulse' | 'glow' }> = {
   [DeviceType.Light]: { on: 'mdi:lightbulb', off: 'mdi:lightbulb-outline' },
   [DeviceType.DimmableLight]: { on: 'mdi:lightbulb', off: 'mdi:lightbulb-outline' },
@@ -34,43 +37,50 @@ const iconMap: Record<DeviceType, { on: string; off: string; animation?: 'spin' 
 };
 
 
-// This export provides the list of available icon types for the settings modal.
+// Экспортируем карту для использования в модальном окне настроек устройства.
 export const icons: Record<DeviceType, any> = iconMap;
 
+// Хелпер для получения имени иконки по типу устройства и его состоянию.
 export const getIconNameForDeviceType = (type: DeviceType, isOn: boolean): string => {
     const iconData = iconMap[type] ?? iconMap[DeviceType.Unknown];
     return isOn ? iconData.on : iconData.off;
 };
 
+/**
+ * Компонент для отображения иконки устройства.
+ * Обрабатывает кастомные иконки, иконки по умолчанию и анимации.
+ */
 const DeviceIcon: React.FC<DeviceIconProps> = ({ icon, isOn, className = '', ariaLabel, iconAnimation }) => {
   let iconName: string;
   let animationClass = '';
 
+  // Определяем, какую анимацию использовать:
+  // 1. Приоритет у `iconAnimation` из пропсов.
+  // 2. Если его нет, используется анимация по умолчанию из `iconMap`.
+  // 3. `iconAnimation='none'` отключает любую анимацию.
   const defaultAnimation = typeof icon !== 'string' ? (iconMap[icon] ?? iconMap[DeviceType.Unknown]).animation : undefined;
   const effectiveAnimation = iconAnimation === 'none' ? undefined : (iconAnimation ?? defaultAnimation);
   
+  // Применяем класс анимации только если устройство включено.
   if (isOn && effectiveAnimation) {
     switch (effectiveAnimation) {
-      case 'spin':
-        animationClass = 'animate-spin';
-        break;
-      case 'pulse':
-        animationClass = 'animate-pulse-scale';
-        break;
-      case 'glow':
-        animationClass = 'animate-glow';
-        break;
+      case 'spin': animationClass = 'animate-spin'; break;
+      case 'pulse': animationClass = 'animate-pulse-scale'; break;
+      case 'glow': animationClass = 'animate-glow'; break;
     }
   }
 
+  // Определяем имя иконки для Iconify.
   if (typeof icon === 'string') {
+    // Если `icon` - это строка, значит, это кастомная иконка (например, "mdi:lightbulb").
     iconName = icon;
   } else {
+    // Если `icon` - это `DeviceType`, получаем иконку из `iconMap`.
     const iconData = iconMap[icon] ?? iconMap[DeviceType.Unknown];
     iconName = isOn ? iconData.on : iconData.off;
   }
 
-  // Default size for DeviceCard. Can be overridden by passing a className.
+  // Базовые классы для установки размера иконки по умолчанию внутри DeviceCard.
   const baseClasses = 'w-[40%] h-[40%] mb-1';
 
   return (

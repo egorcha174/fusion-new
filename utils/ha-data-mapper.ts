@@ -1,8 +1,13 @@
 
-
-
 import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization, WeatherForecast } from '../types';
 
+/**
+ * Определяет внутренний тип устройства (`DeviceType`) на основе данных из Home Assistant.
+ * Использует иерархическую логику: сначала точные совпадения по домену,
+ * затем домен + атрибуты, затем ключевые слова в названии.
+ * @param entity - Сущность Home Assistant.
+ * @returns {DeviceType} - Внутренний тип устройства.
+ */
 const getDeviceType = (entity: HassEntity): DeviceType => {
   const entityId = entity.entity_id;
   const attributes = entity.attributes || {};
@@ -10,7 +15,7 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
   const entityIdLower = entityId.toLowerCase();
   const domain = entityId.split('.')[0];
 
-  // --- Priority 1: Direct Domain Mapping (unambiguous) ---
+  // --- Приоритет 1: Прямое сопоставление домена (однозначные случаи) ---
   switch (domain) {
     case 'camera': return DeviceType.Camera;
     case 'weather': return DeviceType.Weather;
@@ -19,14 +24,14 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
     case 'fan': return DeviceType.Fan;
   }
 
-  // --- Priority 2: Domain + Attributes/Device Class ---
+  // --- Приоритет 2: Домен + Атрибуты/Класс устройства ---
   if (domain === 'light') {
     return attributes.brightness !== undefined ? DeviceType.DimmableLight : DeviceType.Light;
   }
   
   if (domain === 'switch') {
     if (attributes.device_class === 'outlet') return DeviceType.Outlet;
-    // Heuristic: If a switch's name suggests it's a light, classify it as a light.
+    // Эвристика: если имя переключателя похоже на светильник, классифицируем его как свет.
     if (friendlyName.includes('light') || friendlyName.includes('свет') || friendlyName.includes('лампа') || friendlyName.includes('торшер') || friendlyName.includes('люстра')) {
       return DeviceType.Light;
     }
@@ -36,7 +41,7 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
     if (attributes.device_class === 'tv') return DeviceType.TV;
   }
 
-  // --- Priority 3: Keyword Matching on Name/ID (for ambiguous domains like switch, media_player) ---
+  // --- Приоритет 3: Поиск по ключевым словам в имени/ID (для неоднозначных доменов) ---
   const combinedName = `${friendlyName} ${entityIdLower}`;
 
   if (combinedName.includes('tv') || combinedName.includes('телевизор')) return DeviceType.TV;
@@ -46,92 +51,87 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
   if (combinedName.includes('speaker') || combinedName.includes('колонка')) return DeviceType.Speaker;
   if (combinedName.includes('fan') || combinedName.includes('вентилятор')) return DeviceType.Fan;
   
-  // --- Priority 4: Fallback for remaining domains ---
-  if (domain === 'switch') return DeviceType.Switch; // Any remaining switch is a generic switch
-  if (domain === 'media_player') return DeviceType.Speaker; // Any remaining media player is a generic speaker
+  // --- Приоритет 4: Резервный вариант для оставшихся доменов ---
+  if (domain === 'switch') return DeviceType.Switch;
+  if (domain === 'media_player') return DeviceType.Speaker;
 
-  // --- Final Fallback ---
+  // --- Финальный резервный вариант ---
   return DeviceType.Unknown;
 };
 
+/**
+ * Преобразует "сырое" состояние сущности из Home Assistant в человекочитаемый текст на русском языке.
+ * @param entity - Сущность Home Assistant.
+ * @returns {string} - Человекочитаемый статус.
+ */
 const getStatusText = (entity: HassEntity): string => {
-    // Handle universal states first for consistency across all device types.
+    // Обрабатываем универсальные состояния в первую очередь
     if (entity.state === 'unavailable') return 'Недоступно';
     if (entity.state === 'unknown') return 'Неизвестно';
     
     const domain = entity.entity_id.split('.')[0];
     const attributes = entity.attributes || {};
 
+    // Специальная логика для климата (термостатов)
     if (domain === 'climate') {
-        const hvacAction = attributes.hvac_action;
-        const state = entity.state;
+        const hvacAction = attributes.hvac_action; // 'heating', 'cooling', 'idle'
+        const state = entity.state; // 'heat', 'cool', 'off'
 
         const stateTranslations: Record<string, string> = {
-            'cool': 'Охлаждение',
-            'heat': 'Нагрев',
-            'fan_only': 'Вентилятор',
-            'dry': 'Осушение',
-            'auto': 'Авто',
-            'heat_cool': 'Авто',
-            'off': 'Выключено',
+            'cool': 'Охлаждение', 'heat': 'Нагрев', 'fan_only': 'Вентилятор',
+            'dry': 'Осушение', 'auto': 'Авто', 'heat_cool': 'Авто', 'off': 'Выключено',
         };
-
         const actionTranslations: Record<string, string> = {
-            'cooling': 'Охлаждение',
-            'heating': 'Нагрев',
-            'fan': 'Вентилятор',
-            'drying': 'Осушение',
-            // 'idle' is not translated here, so we fall back to state
-            'off': 'Выключено',
+            'cooling': 'Охлаждение', 'heating': 'Нагрев', 'fan': 'Вентилятор',
+            'drying': 'Осушение', 'off': 'Выключено',
         };
 
-        // If actively doing something (and not just off), use the action.
+        // Если устройство активно что-то делает, показываем действие (приоритет).
         if (hvacAction && hvacAction !== 'idle' && hvacAction !== 'off') {
             return actionTranslations[hvacAction] || hvacAction;
         }
 
-        // Otherwise, use the general state/mode. This covers 'off', 'idle', and cases where hvacAction is missing.
+        // В противном случае показываем общий режим/состояние.
         return stateTranslations[state] || state.charAt(0).toUpperCase() + state.slice(1);
     }
 
+    // Специальная логика для погоды
     if (domain === 'weather') {
         const stateMap: Record<string, string> = {
-            'clear-night': 'Ясно',
-            'cloudy': 'Облачно',
-            'exceptional': 'Особые условия',
-            'fog': 'Туман',
-            'hail': 'Град',
-            'lightning': 'Гроза',
-            'lightning-rainy': 'Гроза с дождем',
-            'partlycloudy': 'Переменная облачность',
-            'pouring': 'Ливень',
-            'rainy': 'Дождь',
-            'snowy': 'Снег',
-            'snowy-rainy': 'Снег с дождем',
-            'sunny': 'Солнечно',
-            'windy': 'Ветрено',
-            'windy-variant': 'Ветрено',
+            'clear-night': 'Ясно', 'cloudy': 'Облачно', 'exceptional': 'Особые условия', 'fog': 'Туман',
+            'hail': 'Град', 'lightning': 'Гроза', 'lightning-rainy': 'Гроза с дождем',
+            'partlycloudy': 'Переменная облачность', 'pouring': 'Ливень', 'rainy': 'Дождь',
+            'snowy': 'Снег', 'snowy-rainy': 'Снег с дождем', 'sunny': 'Солнечно',
+            'windy': 'Ветрено', 'windy-variant': 'Ветрено',
         };
         return stateMap[entity.state] || entity.state.charAt(0).toUpperCase() + entity.state.slice(1);
     }
     
+    // Для сенсоров возвращаем "сырое" значение, форматирование будет на стороне компонента.
     if (domain === 'sensor') {
-        // Formatting (e.g., rounding) is handled in DeviceCard based on template settings.
-        // We pass the raw state through.
         return entity.state;
     }
     
+    // Общие состояния для переключаемых устройств
     if (entity.state === 'on') return 'Включено';
     if (entity.state === 'off') return 'Выключено';
     
-    // Default fallback for any other states (e.g., 'heating' for climate)
+    // Резервный вариант: просто первая буква в верхнем регистре.
     return entity.state.charAt(0).toUpperCase() + entity.state.slice(1);
 }
 
+/**
+ * Преобразует одну сущность Home Assistant (HassEntity) в формат устройства приложения (Device),
+ * применяя при этом пользовательские настройки.
+ * @param entity - Сущность Home Assistant.
+ * @param customization - Пользовательские настройки для этой сущности.
+ * @returns {Device | null} - Объект устройства или null, если не удалось преобразовать.
+ */
 const entityToDevice = (entity: HassEntity, customization: DeviceCustomization = {}): Device | null => {
   const attributes = entity.attributes || {};
   const originalType = getDeviceType(entity);
   
+  // Создаем базовый объект устройства
   const device: Device = {
     id: entity.entity_id,
     name: customization.name || attributes.friendly_name || entity.entity_id,
@@ -145,6 +145,7 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
     state: entity.state,
   };
 
+  // Добавляем специфичные для типов устройств атрибуты
   if (device.type === DeviceType.DimmableLight && attributes.brightness) {
     device.brightness = Math.round((attributes.brightness / 255) * 100);
   }
@@ -164,50 +165,49 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
       device.temperature = attributes.temperature;
       device.condition = entity.state;
 
-      // Fully robust forecast mapping to handle various HA weather integration formats.
+      // Устойчивый парсинг прогноза погоды, который может приходить в разных форматах.
       let forecastArray: any[] | undefined = undefined;
       const forecastAttr = attributes.forecast;
 
       if (Array.isArray(forecastAttr)) {
-          // Case 1: forecast is a direct array: [ {day1}, {day2} ]
           forecastArray = forecastAttr;
       } else if (typeof forecastAttr === 'object' && forecastAttr !== null) {
-          // Case 2: forecast is an object with a 'daily' or 'forecast' key.
-          if (Array.isArray(forecastAttr.daily)) {
-              // e.g., { daily: [...] }
-              forecastArray = forecastAttr.daily;
-          } else if (Array.isArray(forecastAttr.forecast)) {
-              // e.g., { forecast: [...] }
-              forecastArray = forecastAttr.forecast;
-          }
+          if (Array.isArray(forecastAttr.daily)) forecastArray = forecastAttr.daily;
+          else if (Array.isArray(forecastAttr.forecast)) forecastArray = forecastAttr.forecast;
       }
 
       if (forecastArray) {
         device.forecast = forecastArray.map((fc: any): WeatherForecast | null => {
-          // Be flexible with property names (e.g., some integrations use 'max_temp' or 'temp')
+          // Гибко ищем свойства, так как разные интеграции называют их по-разному.
           const temp = fc.temperature ?? fc.max_temp ?? fc.temp;
           const lowTemp = fc.templow ?? fc.min_temp;
-          const condition = fc.condition ?? fc.state; // also check 'state' for condition
-          const dt = fc.datetime ?? fc.date; // also check 'date' for datetime
+          const condition = fc.condition ?? fc.state;
+          const dt = fc.datetime ?? fc.date;
           
           if (dt && condition && temp !== undefined) {
-            return {
-              datetime: dt,
-              condition: condition,
-              temperature: temp,
-              templow: lowTemp,
-            };
+            return { datetime: dt, condition, temperature: temp, templow: lowTemp };
           }
           return null;
-        }).filter((fc): fc is WeatherForecast => fc !== null); // Filter out any null (invalid) entries
+        }).filter((fc): fc is WeatherForecast => fc !== null); // Убираем невалидные записи
       } else {
-        device.forecast = []; // Ensure forecast is always an array
+        device.forecast = [];
       }
   }
 
   return device;
 };
 
+/**
+ * Главная функция маппинга. Принимает все "сырые" данные из HA
+ * и организует их в структуру комнат с устройствами.
+ * @param entities - Все сущности.
+ * @param areas - Все области (комнаты).
+ * @param haDevices - Все физические устройства.
+ * @param entityRegistry - Реестр сущностей для связей.
+ * @param customizations - Пользовательские настройки.
+ * @param showHidden - Показывать ли скрытые устройства.
+ * @returns {Room[]} - Массив комнат с устройствами.
+ */
 export const mapEntitiesToRooms = (
     entities: HassEntity[], 
     areas: HassArea[], 
@@ -218,46 +218,37 @@ export const mapEntitiesToRooms = (
 ): Room[] => {
   const roomsMap: Map<string, Room> = new Map();
 
+  // Инициализируем карту комнат
   areas.forEach(area => {
-    roomsMap.set(area.area_id, {
-      id: area.area_id,
-      name: area.name,
-      devices: [],
-    });
+    roomsMap.set(area.area_id, { id: area.area_id, name: area.name, devices: [] });
   });
   roomsMap.set('no_area', { id: 'no_area', name: 'Без пространства', devices: []});
 
+  // Создаем карты для быстрого поиска связей
   const entityIdToAreaIdMap = new Map<string, string>();
   entityRegistry.forEach(entry => {
-      if (entry.area_id) {
-        entityIdToAreaIdMap.set(entry.entity_id, entry.area_id);
-      }
+      if (entry.area_id) entityIdToAreaIdMap.set(entry.entity_id, entry.area_id);
   });
-
   const deviceIdToAreaIdMap = new Map<string, string>();
   haDevices.forEach(d => {
-      if(d.area_id) {
-          deviceIdToAreaIdMap.set(d.id, d.area_id);
-      }
+      if(d.area_id) deviceIdToAreaIdMap.set(d.id, d.area_id);
   })
 
+  // Проходим по всем сущностям
   entities.forEach(entity => {
-    if (!entity) return; // Extra safety check
+    if (!entity) return;
 
     const customization = customizations[entity.entity_id] || {};
-    if (customization.isHidden && !showHidden) {
-        return; // Skip hidden devices unless showHidden is true
-    }
+    if (customization.isHidden && !showHidden) return; // Пропускаем скрытые
 
     const device = entityToDevice(entity, customization);
+    // Добавляем только успешно преобразованные и не "неизвестные" устройства
     if (device && device.type !== DeviceType.Unknown) {
+        // Определяем, к какой комнате принадлежит устройство
         let areaId: string | undefined | null = entityIdToAreaIdMap.get(entity.entity_id);
-
         if (!areaId && entity.attributes?.device_id) {
             const haDevice = haDevices.find(d => d.id === entity.attributes.device_id);
-            if (haDevice?.area_id) {
-                areaId = haDevice.area_id;
-            }
+            if (haDevice?.area_id) areaId = haDevice.area_id;
         }
 
         const targetRoom = roomsMap.get(areaId || 'no_area') || roomsMap.get('no_area');
@@ -265,5 +256,6 @@ export const mapEntitiesToRooms = (
     }
   });
 
+  // Возвращаем массив комнат, отфильтровывая пустые.
   return Array.from(roomsMap.values()).filter(room => room.devices.length > 0);
 };

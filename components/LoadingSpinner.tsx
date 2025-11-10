@@ -2,6 +2,10 @@
 
 import React from 'react';
 
+/**
+ * Простой компонент для отображения индикатора загрузки (спиннера).
+ * Используется, когда данные загружаются асинхронно.
+ */
 const LoadingSpinner: React.FC = () => {
   return (
     <div className="flex items-center justify-center h-full w-full">

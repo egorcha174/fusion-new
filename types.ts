@@ -1,4 +1,10 @@
 
+
+/**
+ * Перечисление всех возможных типов устройств, используемых в приложении.
+ * Это внутреннее представление, которое используется для определения иконки,
+ * поведения карточки и доступных элементов в шаблонах.
+ */
 export enum DeviceType {
   Light,
   Lamp,
@@ -19,86 +25,110 @@ export enum DeviceType {
   Fan,
   DoorSensor,
   Camera,
-  Unknown, // Fallback for unmapped devices
+  Unknown, // Резервный тип для неопознанных устройств
 }
 
+/**
+ * Структура данных для одного дня в прогнозе погоды.
+ */
 export interface WeatherForecast {
-    condition: string;
-    temperature: number; // high temp
-    templow: number; // low temp
-    datetime: string;
+    condition: string; // Состояние погоды (например, 'partlycloudy')
+    temperature: number; // Максимальная температура
+    templow: number; // Минимальная температура
+    datetime: string; // Дата в формате ISO
 }
 
+/**
+ * Основной интерфейс для представления устройства в приложении.
+ * Эта структура данных является результатом преобразования сущности Home Assistant (HassEntity).
+ */
 export interface Device {
-  id: string; // Will be entity_id from Home Assistant
-  name: string;
-  status: string; // 'På', 'Okänt', 'Heating', etc.
-  type: DeviceType;
-  icon?: string; // Custom icon override (Iconify name)
-  iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow';
-  brightness?: number; // For DimmableLight
-  temperature?: number; // For Thermostat current temp or weather temp
-  targetTemperature?: number; // For Thermostat target temp
-  unit?: string; // For sensors, thermostats, weather
-  forecast?: WeatherForecast[]; // For weather devices
-  condition?: string; // For weather, the raw state like 'partlycloudy'
-  presetMode?: string; // For Thermostat
-  presetModes?: string[]; // For Thermostat
-  hvacModes?: string[];
-  hvacAction?: string;
-  minTemp?: number;
-  maxTemp?: number;
-  history?: number[]; // For sensor sparklines
-  haDomain?: string;
-  haDeviceClass?: string;
-  state?: string; // Raw state from HA
+  id: string; // entity_id из Home Assistant
+  name: string; // Имя устройства
+  status: string; // Человекочитаемый статус (например, 'Включено', '22.5°C', 'Нагрев')
+  type: DeviceType; // Внутренний тип устройства
+  icon?: string; // Переопределение иконки (имя из Iconify)
+  iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow'; // Анимация иконки
+  brightness?: number; // Яркость для DimmableLight (0-100)
+  temperature?: number; // Текущая температура для термостата или погоды
+  targetTemperature?: number; // Целевая температура для термостата
+  unit?: string; // Единица измерения (например, '°C', '%')
+  forecast?: WeatherForecast[]; // Прогноз погоды для устройств типа Weather
+  condition?: string; // Состояние погоды в "сыром" виде (например, 'partlycloudy')
+  presetMode?: string; // Текущий пресет для термостата
+  presetModes?: string[]; // Доступные пресеты для термостата
+  hvacModes?: string[]; // Доступные режимы HVAC
+  hvacAction?: string; // Текущее действие HVAC (например, 'heating', 'cooling')
+  minTemp?: number; // Минимальная температура для термостата
+  maxTemp?: number; // Максимальная температура для термостата
+  history?: number[]; // История значений для спарклайн-графиков
+  haDomain?: string; // Домен из Home Assistant (например, 'light', 'sensor')
+  haDeviceClass?: string; // device_class из Home Assistant
+  state?: string; // "Сырое" состояние из Home Assistant (например, 'on', 'off')
 }
 
+/**
+ * Представление комнаты (области) из Home Assistant.
+ */
 export interface Room {
-  id: string; // Will be area_id from Home Assistant
-  name: string;
-  devices: Device[];
+  id: string; // area_id из Home Assistant
+  name: string; // Название комнаты
+  devices: Device[]; // Массив устройств в этой комнате
 }
 
+/**
+ * Описывает положение и размер устройства на сетке дашборда.
+ */
 export interface GridLayoutItem {
-  deviceId: string;
-  col: number;
-  row: number;
-  width?: number;
-  height?: number;
+  deviceId: string; // ID устройства
+  col: number; // Колонка (начиная с 0)
+  row: number; // Ряд (начиная с 0)
+  width?: number; // Ширина в ячейках сетки
+  height?: number; // Высота в ячейках сетки
 }
 
-// Represents a user-created tab on the dashboard
+/**
+ * Представление пользовательской вкладки на дашборде.
+ */
 export interface Tab {
-  id: string;
-  name: string;
-  layout: GridLayoutItem[]; // The source of truth for device positions
+  id: string; // Уникальный ID вкладки
+  name: string; // Название вкладки
+  layout: GridLayoutItem[]; // Расположение устройств на этой вкладке
   gridSettings: {
-    cols: number;
-    rows: number;
+    cols: number; // Количество колонок в сетке
+    rows: number; // Количество рядов в сетке
   };
 }
 
-// Types for user customizations
+// --- Типы для пользовательских настроек ---
+
+/**
+ * Привязка сущности к слоту-индикатору в шаблоне карточки.
+ */
 export interface DeviceBinding {
-  slotId: string;
-  entityId: string;
-  icon?: string;
-  enabled: boolean;
+  slotId: string; // ID слота в шаблоне
+  entityId: string; // ID сущности Home Assistant
+  icon?: string; // Переопределение иконки
+  enabled: boolean; // Включен ли этот индикатор
 }
 
+/**
+ * Пользовательские настройки для конкретного устройства.
+ * Позволяет переопределять имя, тип, иконку и другие параметры.
+ */
 export interface DeviceCustomization {
-  name?: string;
-  type?: DeviceType;
-  icon?: string; // Iconify name
-  isHidden?: boolean;
-  templateId?: string; // ID of the CardTemplate to use
-  iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow';
-  deviceBindings?: DeviceBinding[];
-  thresholds?: ThresholdRule[];
+  name?: string; // Пользовательское имя
+  type?: DeviceType; // Пользовательский тип
+  icon?: string; // Пользовательская иконка (Iconify)
+  isHidden?: boolean; // Скрыто ли устройство
+  templateId?: string; // ID шаблона карточки для этого устройства
+  iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow'; // Анимация иконки
+  deviceBindings?: DeviceBinding[]; // Привязки для индикаторов
+  thresholds?: ThresholdRule[]; // Правила пороговых значений (для сенсоров)
 }
 
-export type DeviceCustomizations = Record<string, DeviceCustomization>; // Key is device.id (entity_id)
+// Словарь кастомизаций, где ключ - это ID устройства (entity_id).
+export type DeviceCustomizations = Record<string, DeviceCustomization>;
 
 export type Page = 'dashboard' | 'settings' | 'all-devices';
 
@@ -114,7 +144,10 @@ export interface CameraSettings {
   selectedEntityId: string | null;
 }
 
-// FIX: Export ColorThemeSet to make it available for import in other modules.
+/**
+ * Набор цветов для одной темы (светлой или темной).
+ * Определяет все цвета, используемые в интерфейсе.
+ */
 export interface ColorThemeSet {
   dashboardBackground: string;
   sidebarBackground: string;
@@ -131,19 +164,18 @@ export interface ColorThemeSet {
   thermostatCoolingColor: string;
   clockTextColor: string;
 
-
-  // Text Colors - Off State
+  // Цвета текста - состояние "Выкл"
   nameTextColor: string;
   statusTextColor: string;
   valueTextColor: string;
   unitTextColor: string;
-  // Text Colors - On State
+  // Цвета текста - состояние "Вкл"
   nameTextColorOn: string;
   statusTextColorOn: string;
   valueTextColorOn: string;
   unitTextColorOn: string;
 
-  // --- NEW: Font properties ---
+  // --- Свойства шрифтов ---
   nameTextFontFamily?: string;
   nameTextFontSize?: number;
   statusTextFontFamily?: string;
@@ -163,52 +195,65 @@ export interface ColorThemeSet {
   unitTextFontSizeOn?: number;
 }
 
+/**
+ * Полная цветовая схема, включающая светлую и темную темы.
+ */
 export interface ColorScheme {
   light: ColorThemeSet;
   dark: ColorThemeSet;
 }
 
+/**
+ * Данные для контекстного меню выбора цвета и шрифта.
+ */
 export interface ColorPickerContextData {
   x: number;
   y: number;
-  targetName: string;
-  isTextElement: boolean;
-  onUpdate: (property: 'color' | 'fontFamily' | 'fontSize', value: any) => void;
-  initialValue: string; // for color
-  initialFontFamily?: string;
-  initialFontSize?: number;
+  targetName: string; // Название элемента для отображения (например, "Фон карточки")
+  isTextElement: boolean; // Является ли элемент текстовым (для показа настроек шрифта)
+  onUpdate: (property: 'color' | 'fontFamily' | 'fontSize', value: any) => void; // Callback для обновления стиля
+  initialValue: string; // Начальный цвет
+  initialFontFamily?: string; // Начальный шрифт
+  initialFontSize?: number; // Начальный размер шрифта
 }
 
 
-// --- Card Template System ---
+// --- Система шаблонов карточек ---
+
+// ID доступных элементов внутри шаблона карточки.
 export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status' | 'slider' | 'temperature' | 'target-temperature' | 'hvac-modes' | 'linked-entity';
 
+/**
+ * Описывает один элемент (например, иконку, название) внутри шаблона карточки.
+ */
 export interface CardElement {
   id: CardElementId;
-  visible: boolean;
-  position: { x: number; y: number }; // in %
-  size: { width: number; height: number }; // in %
-  zIndex: number;
-  styles: {
-    // other styles can be added here
-    decimalPlaces?: number;
-    onColor?: string;
-    offColor?: string;
-    fontSize?: number;
-    fontFamily?: string;
-    textAlign?: 'left' | 'center' | 'right';
-    textColor?: string;
-    linkedEntityId?: string;
-    showValue?: boolean;
-    chartTimeRange?: number;
-    chartTimeRangeUnit?: 'minutes' | 'hours' | 'days';
-    chartType?: 'line' | 'gradient';
-    idleLabelColor?: string;
-    heatingLabelColor?: string;
-    coolingLabelColor?: string;
+  visible: boolean; // Виден ли элемент
+  position: { x: number; y: number }; // Позиция в % от левого верхнего угла
+  size: { width: number; height: number }; // Размер в %
+  zIndex: number; // z-index для наложения элементов
+  styles: { // Специфичные стили для элемента
+    decimalPlaces?: number; // Для 'value', 'temperature'
+    onColor?: string; // Для 'icon'
+    offColor?: string; // для 'icon'
+    fontSize?: number; // Для текстовых элементов
+    fontFamily?: string; // Для текстовых элементов
+    textAlign?: 'left' | 'center' | 'right'; // Для текстовых элементов
+    textColor?: string; // Для текстовых элементов
+    linkedEntityId?: string; // для 'linked-entity'
+    showValue?: boolean; // для 'linked-entity'
+    chartTimeRange?: number; // для 'chart'
+    chartTimeRangeUnit?: 'minutes' | 'hours' | 'days'; // для 'chart'
+    chartType?: 'line' | 'gradient'; // для 'chart'
+    idleLabelColor?: string; // для 'target-temperature'
+    heatingLabelColor?: string; // для 'target-temperature'
+    coolingLabelColor?: string; // для 'target-temperature'
   };
 }
 
+/**
+ * Описывает один слот-индикатор на карточке.
+ */
 export interface DeviceSlot {
   id: string;
   position: { x: number; y: number }; // %
@@ -219,45 +264,59 @@ export interface DeviceSlot {
     inactiveColor: string;
     glowIntensity: number; // 0-1
     animationType: 'pulse' | 'rotate' | 'none';
-    showValue?: boolean;
+    showValue?: boolean; // Показывать ли значение вместо иконки
     decimalPlaces?: number;
     unit?: string;
     fontSize?: number;
   };
-  interactive: boolean;
+  interactive: boolean; // Можно ли нажимать на индикатор
 }
 
+/**
+ * Стиль, применяемый при выполнении правила порогового значения.
+ */
 export interface ThresholdStyle {
   backgroundColor?: string;
   valueColor?: string;
 }
 
+/**
+ * Правило для изменения стиля карточки сенсора при достижении порогового значения.
+ */
 export interface ThresholdRule {
   value: number;
-  comparison: 'above' | 'below';
+  comparison: 'above' | 'below'; // Условие (больше или меньше)
   style: ThresholdStyle;
 }
 
+/**
+ * Полное описание шаблона карточки устройства.
+ */
 export interface CardTemplate {
   id: string;
   name: string;
-  deviceType: 'sensor' | 'light' | 'switch' | 'climate';
-  elements: CardElement[];
-  styles: {
-    backgroundColor: string; // Dark mode off state
-    lightBackgroundColor: string; // Light mode off state
-    onBackgroundColor?: string; // Dark mode on state
-    lightOnBackgroundColor?: string; // Light mode on state
+  deviceType: 'sensor' | 'light' | 'switch' | 'climate'; // Для какого типа устройств этот шаблон
+  elements: CardElement[]; // Элементы внутри карточки
+  styles: { // Общие стили для карточки
+    backgroundColor: string; // Фон в темной теме (выкл)
+    lightBackgroundColor: string; // Фон в светлой теме (выкл)
+    onBackgroundColor?: string; // Фон в темной теме (вкл)
+    lightOnBackgroundColor?: string; // Фон в светлой теме (вкл)
   };
-  width?: number;
-  height?: number;
-  deviceSlots?: DeviceSlot[];
+  width?: number; // Ширина по умолчанию в ячейках
+  height?: number; // Высота по умолчанию в ячейках
+  deviceSlots?: DeviceSlot[]; // Слоты для индикаторов
 }
 
+// Словарь шаблонов, где ключ - ID шаблона.
 export type CardTemplates = Record<string, CardTemplate>;
 
 
-// Types for Home Assistant WebSocket API
+// --- Типы для WebSocket API Home Assistant ---
+
+/**
+ * Представление сущности из Home Assistant.
+ */
 export interface HassEntity {
   entity_id: string;
   state: string;
@@ -266,10 +325,10 @@ export interface HassEntity {
     device_class?: string;
     unit_of_measurement?: string;
     brightness?: number; // 0-255
-    temperature?: number;
-    current_temperature?: number;
+    temperature?: number; // Целевая температура
+    current_temperature?: number; // Текущая температура
     device_id?: string;
-    // Allow forecast to be `any` to support various unpredictable structures from HA integrations.
+    // `forecast` может иметь любую структуру, в зависимости от интеграции
     forecast?: any;
     preset_mode?: string;
     preset_modes?: string[];
@@ -277,7 +336,7 @@ export interface HassEntity {
     hvac_action?: string;
     min_temp?: number;
     max_temp?: number;
-    [key: string]: any;
+    [key: string]: any; // Для других атрибутов
   };
   context: {
     id: string;
@@ -288,19 +347,28 @@ export interface HassEntity {
   last_updated: string;
 }
 
+/**
+ * Представление области (комнаты) из Home Assistant.
+ */
 export interface HassArea {
     area_id: string;
     name: string;
     picture: string | null;
 }
 
+/**
+ * Представление физического устройства из Home Assistant.
+ */
 export interface HassDevice {
     id: string;
     area_id: string | null;
     name: string;
-    // other properties not needed for this app
+    // другие свойства не используются
 }
 
+/**
+ * Запись из реестра сущностей Home Assistant, связывающая сущности, устройства и области.
+ */
 export interface HassEntityRegistryEntry {
     entity_id: string;
     area_id: string | null;

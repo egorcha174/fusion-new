@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Tab } from '../types';
 import ConfirmDialog from './ConfirmDialog';
@@ -16,8 +17,12 @@ interface TabSettingsModalProps {
     onClose: () => void;
 }
 
+/**
+ * Модальное окно для редактирования настроек вкладки (имя, размер сетки) и ее удаления.
+ */
 const TabSettingsModal: React.FC<TabSettingsModalProps> = ({ tab, onClose }) => {
     const { handleUpdateTabSettings, handleDeleteTab } = useAppStore();
+    // Локальное состояние для формы, инициализируется данными из пропсов.
     const [settings, setSettings] = useState<TabSettings>({
         name: tab.name,
         gridSettings: tab.gridSettings || { cols: 8, rows: 5 },
@@ -25,6 +30,7 @@ const TabSettingsModal: React.FC<TabSettingsModalProps> = ({ tab, onClose }) => 
     const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
     const handleSave = () => {
+        // Сохраняем только если имя не пустое.
         if (settings.name.trim()) {
             handleUpdateTabSettings(tab.id, { ...settings, name: settings.name.trim() });
             onClose();
@@ -32,7 +38,7 @@ const TabSettingsModal: React.FC<TabSettingsModalProps> = ({ tab, onClose }) => 
     };
 
     const handleDelete = () => {
-        setIsConfirmingDelete(true);
+        setIsConfirmingDelete(true); // Открываем диалог подтверждения
     };
 
     const handleConfirmDelete = () => {
@@ -120,6 +126,7 @@ const TabSettingsModal: React.FC<TabSettingsModalProps> = ({ tab, onClose }) => 
                 </div>
             </div>
 
+            {/* Диалог подтверждения удаления */}
             <ConfirmDialog
                 isOpen={isConfirmingDelete}
                 title="Удалить вкладку?"

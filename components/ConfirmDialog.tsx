@@ -1,5 +1,6 @@
 
 
+
 import React from 'react';
 
 interface ConfirmDialogProps {
@@ -13,6 +14,10 @@ interface ConfirmDialogProps {
   confirmButtonClass?: string;
 }
 
+/**
+ * Универсальный компонент для отображения модального окна с подтверждением действия.
+ * Используется, например, для подтверждения удаления.
+ */
 const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   isOpen,
   title,
@@ -29,11 +34,13 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   return (
     <div
+      // Оверлей, закрывающий диалог при клике на него
       className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-60 p-4 fade-in"
       onClick={onCancel}
     >
       <div
         className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg w-full max-w-sm ring-1 ring-black/5 dark:ring-white/10"
+        // Предотвращаем закрытие диалога при клике на само окно
         onClick={e => e.stopPropagation()}
       >
         <div className="p-6">

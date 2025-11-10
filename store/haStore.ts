@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device, Room, DeviceCustomizations, DeviceType } from '../types';
 import { constructHaUrl } from '../utils/url';
@@ -42,7 +43,6 @@ interface HAActions {
   handlePresetChange: (deviceId: string, preset: string) => void;
 }
 
-// FIX: Export the store to make it accessible in other files.
 export const useHAStore = create<HAState & HAActions>((set, get) => {
   let socketRef: WebSocket | null = null;
   let messageIdRef = 1;

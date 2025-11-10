@@ -1,9 +1,4 @@
 
-
-
-
-
-
 import React, { useState, useMemo } from 'react';
 import { Device, DeviceCustomization, DeviceType, CardTemplates, DeviceBinding, CardTemplate, ThresholdRule } from '../types';
 import DeviceIcon, { icons, getIconNameForDeviceType } from './DeviceIcon';
@@ -148,7 +143,6 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   const effectiveTemplate: CardTemplate | undefined = templates[effectiveTemplateId];
   const deviceSlots = effectiveTemplate?.deviceSlots;
 
-  // FIX: Explicitly type `a` and `b` to `Device` to resolve sort callback error.
   const sortedEntities = useMemo(() => Array.from(allKnownDevices.values()).sort((a: Device, b: Device) => a.name.localeCompare(b.name)), [allKnownDevices]);
 
 
@@ -205,7 +199,6 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                   className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
               >
                   <option value="">По умолчанию</option>
-                  {/* FIX: Add explicit type `CardTemplate` to fix type inference issue. */}
                   {Object.values(templates)
                     .filter((template: CardTemplate) => template.deviceType === templateType)
                     .map((template: CardTemplate) => (
@@ -289,7 +282,6 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                                        className="w-full bg-white dark:bg-gray-900/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-sm"
                                    >
                                        <option value="">-- Выберите устройство --</option>
-                                       {/* FIX: Add explicit type `Device` to fix type inference issue. */}
                                        {sortedEntities.map((entity: Device) => (
                                            <option key={entity.id} value={entity.id}>{entity.name}</option>
                                        ))}
