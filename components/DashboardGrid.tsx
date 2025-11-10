@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useLayoutEffect, useMemo } from 'react';
 import {
   DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent,
@@ -445,7 +444,29 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                     {activeDevice && activeDragItemRect ? (
                       <div className="opacity-80 shadow-2xl rounded-2xl" style={{ width: activeDragItemRect.width, height: activeDragItemRect.height }}>
                         {/* Fix: Pass down all required props to DeviceCard within the DragOverlay. */}
-                        <DeviceCard device={activeDevice} template={activeDeviceTemplate} isEditMode={true} {...props} />
+                        {/* FIX: The {...props} spread was causing a type error due to callback signature mismatches.
+                            The overlay is non-interactive, so providing dummy callbacks is the safest fix. */}
+                        <DeviceCard
+                          device={activeDevice}
+                          template={activeDeviceTemplate}
+                          allKnownDevices={props.allKnownDevices}
+                          customizations={props.customizations}
+                          colorScheme={props.colorScheme}
+                          haUrl={props.haUrl}
+                          signPath={props.signPath}
+                          getCameraStreamUrl={props.getCameraStreamUrl}
+                          isEditMode={true}
+                          isPreview={true}
+                          // The DragOverlay is not interactive, so we provide dummy callbacks to satisfy types.
+                          onDeviceToggle={() => {}}
+                          onTemperatureChange={() => {}}
+                          onBrightnessChange={() => {}}
+                          onHvacModeChange={() => {}}
+                          onPresetChange={() => {}}
+                          onCameraCardClick={() => {}}
+                          onEditDevice={() => {}}
+                          onContextMenu={() => {}}
+                        />
                       </div>
                     ) : null}
                 </DragOverlay>

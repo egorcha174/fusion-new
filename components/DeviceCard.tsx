@@ -580,8 +580,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
 
     return (
       <div
-        className={`w-full h-full relative rounded-2xl transition-all duration-200 ease-in-out select-none ${hoverClass} ${cursorClass}`}
-        style={{ backgroundColor: dynamicBackgroundColor }}
+        className={`w-full h-full relative rounded-2xl transition-all duration-200 ease-in-out select-none ${hoverClass} ${cursorClass} shadow-lg ring-1 ring-black/5 dark:ring-white/10`}
+        style={{ backgroundColor: dynamicBackgroundColor, backdropFilter: 'blur(16px)' }}
         onContextMenu={onContextMenu}
         data-style-key="cardBackground" data-style-name="Фон карточки" data-style-origin="scheme" data-is-on={String(isOn)}
       >
@@ -746,7 +746,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
   };
 
   const getCardClasses = () => {
-    const baseClasses = "w-full h-full rounded-2xl flex flex-col transition-all duration-200 ease-in-out select-none relative";
+    const baseClasses = "w-full h-full rounded-2xl flex flex-col transition-all duration-200 ease-in-out select-none relative shadow-lg ring-1 ring-black/5 dark:ring-white/10";
     if (template) return baseClasses;
     const layoutClasses = isCamera ? 'p-0' : styles.padding;
     const cursorClass = (isTogglable || isCamera) && !isEditMode && !isPreview ? 'cursor-pointer' : '';
@@ -756,7 +756,10 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
 
   const getCardStyle = (): React.CSSProperties => {
       if(template) return {};
-      return { backgroundColor: isOn ? colorScheme.cardBackgroundOn : colorScheme.cardBackground };
+      return { 
+          backgroundColor: isOn ? colorScheme.cardBackgroundOn : colorScheme.cardBackground,
+          backdropFilter: 'blur(16px)',
+      };
   }
 
   return (
