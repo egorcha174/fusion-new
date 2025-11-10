@@ -137,6 +137,45 @@ const DroppableCell: React.FC<{
   );
 };
 
+// --- Wrapper for occupied cells to make them droppable ---
+const OccupiedCellWrapper: React.FC<{
+    group: GridLayoutItem[];
+    children: React.ReactNode;
+    isEditMode: boolean;
+    activeId: string | null;
+    openMenuDeviceId: string | null;
+}> = ({ group, children, isEditMode, activeId, openMenuDeviceId }) => {
+    const firstItem = group[0];
+    const { setNodeRef, isOver } = useDroppable({
+        id: `cell-${firstItem.col}-${firstItem.row}`,
+        data: { type: 'cell', col: firstItem.col, row: firstItem.row }
+    });
+    
+    const width = firstItem.width || 1;
+    const height = firstItem.height || 1;
+    const groupHasOpenMenu = group.some(item => item.deviceId === openMenuDeviceId);
+    const groupIsActive = group.some(item => item.deviceId === activeId);
+
+    const overClasses = (isEditMode && isOver) 
+        ? 'bg-blue-500/20 ring-2 ring-blue-400' 
+        : '';
+    
+    return (
+        <div
+            ref={setNodeRef}
+            style={{
+                gridColumn: `${firstItem.col + 1} / span ${Math.ceil(width)}`,
+                gridRow: `${firstItem.row + 1} / span ${Math.ceil(height)}`,
+                zIndex: groupHasOpenMenu ? 40 : (groupIsActive ? 0 : 1),
+            }}
+            className={`relative rounded-xl transition-colors duration-200 ${overClasses}`}
+        >
+            {children}
+        </div>
+    );
+};
+
+
 // --- Main Grid Component ---
 interface DashboardGridProps {
     tab: Tab;
@@ -221,38 +260,65 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         const draggedItem = currentLayout[draggedItemIndex];
         let newLayout = [...currentLayout];
     
-        // Case 1: Dropped on an empty cell
+        // Case 1: Dropped on an empty or partially-filled cell
         if (over.data.current?.type === 'cell') {
             const { col: targetCol, row: targetRow } = over.data.current;
             const draggedWidth = draggedItem.width || 1;
             const draggedHeight = draggedItem.height || 1;
-    
+            
             // Boundary check
-            if (targetCol + draggedWidth > tab.gridSettings.cols || targetRow + draggedHeight > tab.gridSettings.rows) {
+            if (targetCol + Math.ceil(draggedWidth) > tab.gridSettings.cols || targetRow + Math.ceil(draggedHeight) > tab.gridSettings.rows) {
+                return; // Out of bounds
+            }
+            
+            const isDraggedStackable = draggedWidth === 1 && draggedHeight === 0.5;
+    
+            // Find all items that are NOT the one being dragged but would occupy the target cell
+            const itemsInTargetCell = currentLayout.filter(item => 
+                item.deviceId !== draggedDeviceId &&
+                item.col === targetCol &&
+                item.row === targetRow
+            );
+            
+            // Sub-case A: Cell is empty. We can move if no multi-cell items conflict.
+            if (itemsInTargetCell.length === 0) {
+                const multiCellConflicts = currentLayout.filter(item => {
+                    if (item.deviceId === draggedDeviceId) return false;
+                    const itemWidth = item.width || 1;
+                    const itemHeight = item.height || 1;
+                    // Standard AABB check
+                    return (
+                        targetCol < item.col + itemWidth &&
+                        targetCol + draggedWidth > item.col &&
+                        targetRow < item.row + itemHeight &&
+                        targetRow + draggedHeight > item.row
+                    );
+                });
+                
+                if (multiCellConflicts.length === 0) {
+                    newLayout[draggedItemIndex] = { ...draggedItem, col: targetCol, row: targetRow };
+                    onDeviceLayoutChange(tab.id, newLayout);
+                }
+                return;
+            }
+            
+            // Sub-case B: Cell has ONE item, check if we can stack.
+            if (itemsInTargetCell.length === 1 && isDraggedStackable) {
+                const existingItem = itemsInTargetCell[0];
+                const isExistingStackable = (existingItem.width || 1) === 1 && (existingItem.height || 1) === 0.5;
+                
+                if (isExistingStackable) {
+                    newLayout[draggedItemIndex] = { ...draggedItem, col: targetCol, row: targetRow };
+                    onDeviceLayoutChange(tab.id, newLayout);
+                }
                 return;
             }
     
-            // Check for collision with other items in the new location
-            const conflictingItems = currentLayout.filter(item => {
-                if (item.deviceId === draggedDeviceId) return false;
-                const itemWidth = item.width || 1;
-                const itemHeight = item.height || 1;
-                return (
-                    targetCol < item.col + itemWidth &&
-                    targetCol + draggedWidth > item.col &&
-                    targetRow < item.row + itemHeight &&
-                    targetRow + draggedHeight > item.row
-                );
-            });
-    
-            if (conflictingItems.length === 0) {
-                newLayout[draggedItemIndex] = { ...draggedItem, col: targetCol, row: targetRow };
-                onDeviceLayoutChange(tab.id, newLayout);
-            }
+            // Otherwise, it's a collision (cell is full, or contains a non-stackable item).
             return;
         }
     
-        // Case 2: Dropped on another device
+        // Case 2: Dropped directly on another device
         if (over.data.current?.type === 'device') {
             const overDeviceId = over.id as string;
             const overItemIndex = newLayout.findIndex(item => item.deviceId === overDeviceId);
@@ -365,23 +431,16 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                             });
                             if (!groupMatches) return null;
                         }
-
-                        const width = firstItem.width || 1;
-                        const height = firstItem.height || 1;
-                        const groupHasOpenMenu = group.some(item => item.deviceId === openMenuDeviceId);
-                        const groupIsActive = group.some(item => item.deviceId === activeId);
                         
                         const isStackedPair = group.length === 2 && group.every(item => item.height === 0.5);
 
                         return (
-                             <div
+                             <OccupiedCellWrapper
                                 key={`${firstItem.col}-${firstItem.row}`}
-                                style={{
-                                    gridColumn: `${firstItem.col + 1} / span ${Math.ceil(width)}`,
-                                    gridRow: `${firstItem.row + 1} / span ${Math.ceil(height)}`,
-                                    zIndex: groupHasOpenMenu ? 40 : (groupIsActive ? 0 : 1),
-                                }}
-                                className="relative"
+                                group={group}
+                                isEditMode={isEditMode}
+                                activeId={activeId}
+                                openMenuDeviceId={openMenuDeviceId}
                             >
                                 {group.map((item, index) => {
                                     const device = allKnownDevices.get(item.deviceId);
@@ -407,7 +466,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                                         wrapperStyle.position = 'absolute';
                                         wrapperStyle.left = 0;
                                         wrapperStyle.right = 0;
-                                        wrapperStyle.height = '50%'; // 16px total gap -> 8px per card from the middle
+                                        wrapperStyle.height = 'calc(50% - 8px)';
                                         if (index === 0) {
                                             wrapperStyle.top = 0;
                                         } else {
@@ -442,7 +501,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                                         </div>
                                     );
                                 })}
-                            </div>
+                            </OccupiedCellWrapper>
                         )
                     })}
                 </div>
