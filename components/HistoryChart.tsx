@@ -13,7 +13,6 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import 'chartjs-adapter-date-fns';
-// FIX: The Russian locale should be imported from its specific subpath.
 import { ru } from 'date-fns/locale/ru';
 
 ChartJS.register(
@@ -96,10 +95,11 @@ const HistoryChart: React.FC<HistoryChartProps> = ({ data, unit, decimalPlaces }
                 },
                 ticks: {
                     color: textColor,
-                    callback: function(value: number) {
+                    callback: function(value: number | string) {
+                        const numericValue = typeof value === 'string' ? parseFloat(value) : value;
                         const formattedValue = typeof decimalPlaces === 'number'
-                            ? value.toFixed(decimalPlaces)
-                            : value.toFixed(1);
+                            ? numericValue.toFixed(decimalPlaces)
+                            : numericValue.toFixed(1);
                         return `${formattedValue}${unit ? ` ${unit}` : ''}`;
                     },
                 },
@@ -112,7 +112,7 @@ const HistoryChart: React.FC<HistoryChartProps> = ({ data, unit, decimalPlaces }
         },
     };
 
-    return <Line options={options} data={data} />;
+    return <Line options={options as any} data={data} />;
 };
 
 export default React.memo(HistoryChart);

@@ -1,9 +1,14 @@
 
 
+
+
+
+
 import React, { useRef, useState } from 'react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
-import { ClockSettings, ClockSize, CardTemplates, CardTemplate, ColorScheme } from '../types';
+import { ClockSettings, ClockSize, CardTemplates, CardTemplate, ColorScheme, DeviceType } from '../types';
 import ConfirmDialog from './ConfirmDialog';
+import { useAppStore } from '../store/appStore';
+import { useHAStore } from '../store/haStore';
 
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'failed';
@@ -12,20 +17,6 @@ interface SettingsProps {
   onConnect: (url: string, token: string) => void;
   connectionStatus: ConnectionStatus;
   error: string | null;
-  onDisconnect?: () => void;
-  clockSettings?: ClockSettings;
-  onClockSettingsChange?: (settings: ClockSettings) => void;
-  openWeatherMapKey?: string;
-  onOpenWeatherMapKeyChange?: (key: string) => void;
-  templates?: CardTemplates;
-  onEditTemplate?: (template: CardTemplate) => void;
-  onDeleteTemplate?: (templateId: string) => void;
-  onCreateTemplate?: (type: 'sensor' | 'light' | 'switch' | 'climate') => void;
-  colorScheme?: ColorScheme;
-  onColorSchemeChange?: (scheme: ColorScheme) => void;
-  onResetColorScheme?: () => void;
-  isSidebarVisible?: boolean;
-  onSidebarVisibilityChange?: (isVisible: boolean) => void;
 }
 
 const ColorSettingRow: React.FC<{ label: string, value: string, onChange: (newColor: string) => void }> = ({ label, value, onChange }) => (
@@ -58,9 +49,21 @@ const LOCAL_STORAGE_KEYS = [
 ];
 
 const Settings: React.FC<SettingsProps> = (props) => {
-  const { onConnect, connectionStatus, error, onDisconnect, clockSettings, onClockSettingsChange, openWeatherMapKey, onOpenWeatherMapKeyChange, templates, onEditTemplate, onDeleteTemplate, onCreateTemplate, colorScheme, onColorSchemeChange, onResetColorScheme, isSidebarVisible, onSidebarVisibilityChange } = props;
-  const [url, setUrl] = useLocalStorage('ha-url', '');
-  const [token, setToken] = useLocalStorage('ha-token', '');
+  const { onConnect, connectionStatus, error } = props;
+  const { disconnect, haUrl } = useHAStore();
+  const {
+      clockSettings, setClockSettings,
+      templates, setEditingTemplate, handleDeleteTemplate,
+      colorScheme, setColorScheme, onResetColorScheme,
+      isSidebarVisible, setIsSidebarVisible, createNewBlankTemplate,
+      openWeatherMapKey, setOpenWeatherMapKey
+  } = useAppStore();
+    
+  // Use standard useState for connection credentials, initialized from localStorage.
+  // This is because they are needed before the HA connection is established.
+  const [url, setUrl] = useState(() => localStorage.getItem('ha-url') || '');
+  const [token, setToken] = useState(() => localStorage.getItem('ha-token') || '');
+
   const [localError, setLocalError] = useState('');
   const [deletingTemplate, setDeletingTemplate] = useState<CardTemplate | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -73,6 +76,9 @@ const Settings: React.FC<SettingsProps> = (props) => {
       return;
     }
     setLocalError('');
+    // Persist credentials on connect attempt
+    localStorage.setItem('ha-url', url);
+    localStorage.setItem('ha-token', token);
     onConnect(url, token);
   };
 
@@ -158,15 +164,15 @@ const Settings: React.FC<SettingsProps> = (props) => {
 
   const isLoading = connectionStatus === 'connecting';
 
-  if (connectionStatus === 'connected' && onDisconnect && clockSettings && onClockSettingsChange && openWeatherMapKey !== undefined && onOpenWeatherMapKeyChange && templates && onEditTemplate && onDeleteTemplate && onCreateTemplate && colorScheme && onColorSchemeChange && onResetColorScheme && isSidebarVisible !== undefined && onSidebarVisibilityChange) {
+  if (connectionStatus === 'connected') {
     return (
         <>
         <div className="w-full max-w-md bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 space-y-8">
             <div>
                 <h1 className="text-3xl font-bold text-center text-gray-900 dark:text-gray-100 mb-6">Настройки</h1>
-                <p className="text-center text-gray-500 dark:text-gray-400 mb-6">Вы подключены к {url}.</p>
+                <p className="text-center text-gray-500 dark:text-gray-400 mb-6">Вы подключены к {haUrl}.</p>
                 <button
-                    onClick={onDisconnect}
+                    onClick={disconnect}
                     className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200"
                 >
                     Отключиться
@@ -180,12 +186,12 @@ const Settings: React.FC<SettingsProps> = (props) => {
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Формат времени</label>
                         <div className="flex gap-4">
                             <button 
-                                onClick={() => onClockSettingsChange({ ...clockSettings, format: '24h' })}
+                                onClick={() => setClockSettings({ ...clockSettings, format: '24h' })}
                                 className={`flex-1 py-2 rounded-lg text-sm transition-colors ${clockSettings.format === '24h' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>
                                 24-часовой
                             </button>
                             <button 
-                                onClick={() => onClockSettingsChange({ ...clockSettings, format: '12h' })}
+                                onClick={() => setClockSettings({ ...clockSettings, format: '12h' })}
                                 className={`flex-1 py-2 rounded-lg text-sm transition-colors ${clockSettings.format === '12h' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>
                                 12-часовой
                             </button>
@@ -194,7 +200,7 @@ const Settings: React.FC<SettingsProps> = (props) => {
                     <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg">
                         <label htmlFor="showSeconds" className="text-sm font-medium text-gray-800 dark:text-gray-200">Показывать секунды</label>
                         <button
-                            onClick={() => onClockSettingsChange({ ...clockSettings, showSeconds: !clockSettings.showSeconds })}
+                            onClick={() => setClockSettings({ ...clockSettings, showSeconds: !clockSettings.showSeconds })}
                             className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${clockSettings.showSeconds ? 'bg-blue-600' : 'bg-gray-500 dark:bg-gray-600'}`}
                         >
                             <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${clockSettings.showSeconds ? 'translate-x-6' : 'translate-x-1'}`} />
@@ -204,17 +210,17 @@ const Settings: React.FC<SettingsProps> = (props) => {
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Размер часов</label>
                         <div className="flex gap-4">
                             <button 
-                                onClick={() => onClockSettingsChange({ ...clockSettings, size: 'sm' })}
+                                onClick={() => setClockSettings({ ...clockSettings, size: 'sm' })}
                                 className={`flex-1 py-2 rounded-lg text-sm transition-colors ${clockSettings.size === 'sm' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>
                                 Маленький
                             </button>
                             <button 
-                                onClick={() => onClockSettingsChange({ ...clockSettings, size: 'md' })}
+                                onClick={() => setClockSettings({ ...clockSettings, size: 'md' })}
                                 className={`flex-1 py-2 rounded-lg text-sm transition-colors ${clockSettings.size === 'md' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>
                                 Средний
                             </button>
                             <button 
-                                onClick={() => onClockSettingsChange({ ...clockSettings, size: 'lg' })}
+                                onClick={() => setClockSettings({ ...clockSettings, size: 'lg' })}
                                 className={`flex-1 py-2 rounded-lg text-sm transition-colors ${clockSettings.size === 'lg' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>
                                 Большой
                             </button>
@@ -228,7 +234,7 @@ const Settings: React.FC<SettingsProps> = (props) => {
                 <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg">
                     <label htmlFor="showSidebar" className="text-sm font-medium text-gray-800 dark:text-gray-200">Показывать боковую панель</label>
                     <button
-                        onClick={() => onSidebarVisibilityChange(!isSidebarVisible)}
+                        onClick={() => setIsSidebarVisible(!isSidebarVisible)}
                         className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${isSidebarVisible ? 'bg-blue-600' : 'bg-gray-500 dark:bg-gray-600'}`}
                     >
                         <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${isSidebarVisible ? 'translate-x-6' : 'translate-x-1'}`} />
@@ -242,45 +248,45 @@ const Settings: React.FC<SettingsProps> = (props) => {
                     <div>
                         <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Светлая тема</h3>
                         <div className="space-y-2">
-                           <ColorSettingRow label="Фон дашборда" value={colorScheme.light.dashboardBackground} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, dashboardBackground: c }})}/>
-                           <ColorSettingRow label="Фон боковой панели" value={colorScheme.light.sidebarBackground} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, sidebarBackground: c }})}/>
-                           <ColorSettingRow label="Цвет часов" value={colorScheme.light.clockTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, clockTextColor: c }})}/>
-                           <ColorSettingRow label="Фон карточки" value={colorScheme.light.cardBackground} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, cardBackground: c }})}/>
-                           <ColorSettingRow label="Фон вкл. карточки" value={colorScheme.light.cardBackgroundOn} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, cardBackgroundOn: c }})}/>
+                           <ColorSettingRow label="Фон дашборда" value={colorScheme.light.dashboardBackground} onChange={c => setColorScheme({ ...colorScheme, light: { ...colorScheme.light, dashboardBackground: c }})}/>
+                           <ColorSettingRow label="Фон боковой панели" value={colorScheme.light.sidebarBackground} onChange={c => setColorScheme({ ...colorScheme, light: { ...colorScheme.light, sidebarBackground: c }})}/>
+                           <ColorSettingRow label="Цвет часов" value={colorScheme.light.clockTextColor} onChange={c => setColorScheme({ ...colorScheme, light: { ...colorScheme.light, clockTextColor: c }})}/>
+                           <ColorSettingRow label="Фон карточки" value={colorScheme.light.cardBackground} onChange={c => setColorScheme({ ...colorScheme, light: { ...colorScheme.light, cardBackground: c }})}/>
+                           <ColorSettingRow label="Фон вкл. карточки" value={colorScheme.light.cardBackgroundOn} onChange={c => setColorScheme({ ...colorScheme, light: { ...colorScheme.light, cardBackgroundOn: c }})}/>
                            
                            <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-400 pt-3">Текст (состояние Выкл.)</h4>
-                           <ColorSettingRow label="Название" value={colorScheme.light.nameTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, nameTextColor: c }})}/>
-                           <ColorSettingRow label="Статус" value={colorScheme.light.statusTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, statusTextColor: c }})}/>
-                           <ColorSettingRow label="Значение" value={colorScheme.light.valueTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, valueTextColor: c }})}/>
-                           <ColorSettingRow label="Единица изм." value={colorScheme.light.unitTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, unitTextColor: c }})}/>
+                           <ColorSettingRow label="Название" value={colorScheme.light.nameTextColor} onChange={c => setColorScheme({ ...colorScheme, light: { ...colorScheme.light, nameTextColor: c }})}/>
+                           <ColorSettingRow label="Статус" value={colorScheme.light.statusTextColor} onChange={c => setColorScheme({ ...colorScheme, light: { ...colorScheme.light, statusTextColor: c }})}/>
+                           <ColorSettingRow label="Значение" value={colorScheme.light.valueTextColor} onChange={c => setColorScheme({ ...colorScheme, light: { ...colorScheme.light, valueTextColor: c }})}/>
+                           <ColorSettingRow label="Единица изм." value={colorScheme.light.unitTextColor} onChange={c => setColorScheme({ ...colorScheme, light: { ...colorScheme.light, unitTextColor: c }})}/>
                            
                            <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-400 pt-3">Текст (состояние Вкл.)</h4>
-                           <ColorSettingRow label="Название" value={colorScheme.light.nameTextColorOn} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, nameTextColorOn: c }})}/>
-                           <ColorSettingRow label="Статус" value={colorScheme.light.statusTextColorOn} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, statusTextColorOn: c }})}/>
-                           <ColorSettingRow label="Значение" value={colorScheme.light.valueTextColorOn} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, valueTextColorOn: c }})}/>
-                           <ColorSettingRow label="Единица изм." value={colorScheme.light.unitTextColorOn} onChange={c => onColorSchemeChange({ ...colorScheme, light: { ...colorScheme.light, unitTextColorOn: c }})}/>
+                           <ColorSettingRow label="Название" value={colorScheme.light.nameTextColorOn} onChange={c => setColorScheme({ ...colorScheme, light: { ...colorScheme.light, nameTextColorOn: c }})}/>
+                           <ColorSettingRow label="Статус" value={colorScheme.light.statusTextColorOn} onChange={c => setColorScheme({ ...colorScheme, light: { ...colorScheme.light, statusTextColorOn: c }})}/>
+                           <ColorSettingRow label="Значение" value={colorScheme.light.valueTextColorOn} onChange={c => setColorScheme({ ...colorScheme, light: { ...colorScheme.light, valueTextColorOn: c }})}/>
+                           <ColorSettingRow label="Единица изм." value={colorScheme.light.unitTextColorOn} onChange={c => setColorScheme({ ...colorScheme, light: { ...colorScheme.light, unitTextColorOn: c }})}/>
                         </div>
                     </div>
                      <div>
                         <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Темная тема</h3>
                         <div className="space-y-2">
-                           <ColorSettingRow label="Фон дашборда" value={colorScheme.dark.dashboardBackground} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, dashboardBackground: c }})}/>
-                           <ColorSettingRow label="Фон боковой панели" value={colorScheme.dark.sidebarBackground} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, sidebarBackground: c }})}/>
-                           <ColorSettingRow label="Цвет часов" value={colorScheme.dark.clockTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, clockTextColor: c }})}/>
-                           <ColorSettingRow label="Фон карточки" value={colorScheme.dark.cardBackground} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, cardBackground: c }})}/>
-                           <ColorSettingRow label="Фон вкл. карточки" value={colorScheme.dark.cardBackgroundOn} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, cardBackgroundOn: c }})}/>
+                           <ColorSettingRow label="Фон дашборда" value={colorScheme.dark.dashboardBackground} onChange={c => setColorScheme({ ...colorScheme, dark: { ...colorScheme.dark, dashboardBackground: c }})}/>
+                           <ColorSettingRow label="Фон боковой панели" value={colorScheme.dark.sidebarBackground} onChange={c => setColorScheme({ ...colorScheme, dark: { ...colorScheme.dark, sidebarBackground: c }})}/>
+                           <ColorSettingRow label="Цвет часов" value={colorScheme.dark.clockTextColor} onChange={c => setColorScheme({ ...colorScheme, dark: { ...colorScheme.dark, clockTextColor: c }})}/>
+                           <ColorSettingRow label="Фон карточки" value={colorScheme.dark.cardBackground} onChange={c => setColorScheme({ ...colorScheme, dark: { ...colorScheme.dark, cardBackground: c }})}/>
+                           <ColorSettingRow label="Фон вкл. карточки" value={colorScheme.dark.cardBackgroundOn} onChange={c => setColorScheme({ ...colorScheme, dark: { ...colorScheme.dark, cardBackgroundOn: c }})}/>
                            
                            <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-400 pt-3">Текст (состояние Выкл.)</h4>
-                           <ColorSettingRow label="Название" value={colorScheme.dark.nameTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, nameTextColor: c }})}/>
-                           <ColorSettingRow label="Статус" value={colorScheme.dark.statusTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, statusTextColor: c }})}/>
-                           <ColorSettingRow label="Значение" value={colorScheme.dark.valueTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, valueTextColor: c }})}/>
-                           <ColorSettingRow label="Единица изм." value={colorScheme.dark.unitTextColor} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, unitTextColor: c }})}/>
+                           <ColorSettingRow label="Название" value={colorScheme.dark.nameTextColor} onChange={c => setColorScheme({ ...colorScheme, dark: { ...colorScheme.dark, nameTextColor: c }})}/>
+                           <ColorSettingRow label="Статус" value={colorScheme.dark.statusTextColor} onChange={c => setColorScheme({ ...colorScheme, dark: { ...colorScheme.dark, statusTextColor: c }})}/>
+                           <ColorSettingRow label="Значение" value={colorScheme.dark.valueTextColor} onChange={c => setColorScheme({ ...colorScheme, dark: { ...colorScheme.dark, valueTextColor: c }})}/>
+                           <ColorSettingRow label="Единица изм." value={colorScheme.dark.unitTextColor} onChange={c => setColorScheme({ ...colorScheme, dark: { ...colorScheme.dark, unitTextColor: c }})}/>
                            
                            <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-400 pt-3">Текст (состояние Вкл.)</h4>
-                           <ColorSettingRow label="Название" value={colorScheme.dark.nameTextColorOn} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, nameTextColorOn: c }})}/>
-                           <ColorSettingRow label="Статус" value={colorScheme.dark.statusTextColorOn} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, statusTextColorOn: c }})}/>
-                           <ColorSettingRow label="Значение" value={colorScheme.dark.valueTextColorOn} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, valueTextColorOn: c }})}/>
-                           <ColorSettingRow label="Единица изм." value={colorScheme.dark.unitTextColorOn} onChange={c => onColorSchemeChange({ ...colorScheme, dark: { ...colorScheme.dark, unitTextColorOn: c }})}/>
+                           <ColorSettingRow label="Название" value={colorScheme.dark.nameTextColorOn} onChange={c => setColorScheme({ ...colorScheme, dark: { ...colorScheme.dark, nameTextColorOn: c }})}/>
+                           <ColorSettingRow label="Статус" value={colorScheme.dark.statusTextColorOn} onChange={c => setColorScheme({ ...colorScheme, dark: { ...colorScheme.dark, statusTextColorOn: c }})}/>
+                           <ColorSettingRow label="Значение" value={colorScheme.dark.valueTextColorOn} onChange={c => setColorScheme({ ...colorScheme, dark: { ...colorScheme.dark, valueTextColorOn: c }})}/>
+                           <ColorSettingRow label="Единица изм." value={colorScheme.dark.unitTextColorOn} onChange={c => setColorScheme({ ...colorScheme, dark: { ...colorScheme.dark, unitTextColorOn: c }})}/>
                         </div>
                     </div>
                     <button onClick={onResetColorScheme} className="w-full text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600/80 rounded-md py-2 transition-colors">
@@ -299,7 +305,7 @@ const Settings: React.FC<SettingsProps> = (props) => {
                         id="owmKey"
                         type="password"
                         value={openWeatherMapKey}
-                        onChange={(e) => onOpenWeatherMapKeyChange(e.target.value)}
+                        onChange={(e) => setOpenWeatherMapKey(e.target.value)}
                         placeholder="Введите ваш API ключ"
                         className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
@@ -313,14 +319,15 @@ const Settings: React.FC<SettingsProps> = (props) => {
                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Шаблоны карточек</h2>
                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Создавайте и управляйте шаблонами для различных типов устройств.</p>
                  <div className="space-y-2 mb-4">
-                    {Object.values(templates).map(template => (
+                    {/* FIX: Add explicit type `CardTemplate` to `template` to fix property access errors. */}
+                    {Object.values(templates).map((template: CardTemplate) => (
                         <div key={template.id} className="flex items-center justify-between bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg">
                             <div className="flex items-center gap-2 overflow-hidden">
                                 <span className="text-xs font-mono bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded">{template.deviceType}</span>
                                 <p className="text-sm text-gray-800 dark:text-gray-200 font-medium truncate pr-2">{template.name}</p>
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
-                                <button onClick={() => onEditTemplate(template)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" title="Редактировать">
+                                <button onClick={() => setEditingTemplate(template)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" title="Редактировать">
                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
                                 </button>
                                 <button onClick={() => setDeletingTemplate(template)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded-md hover:bg-red-500/10 dark:hover:bg-red-500/20 transition-colors" title="Удалить">
@@ -342,10 +349,10 @@ const Settings: React.FC<SettingsProps> = (props) => {
                             onMouseLeave={() => setIsCreateMenuOpen(false)}
                             className="absolute bottom-full left-0 right-0 mb-2 w-full bg-gray-200 dark:bg-gray-700 rounded-lg shadow-lg z-10 ring-1 ring-black/5 dark:ring-black ring-opacity-5 overflow-hidden fade-in"
                         >
-                            <button onClick={() => { onCreateTemplate('sensor'); setIsCreateMenuOpen(false); }} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для сенсора</button>
-                            <button onClick={() => { onCreateTemplate('light'); setIsCreateMenuOpen(false); }} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для светильника</button>
-                            <button onClick={() => { onCreateTemplate('switch'); setIsCreateMenuOpen(false); }} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для переключателя</button>
-                            <button onClick={() => { onCreateTemplate('climate'); setIsCreateMenuOpen(false); }} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для климата</button>
+                            <button onClick={() => { setEditingTemplate(createNewBlankTemplate(DeviceType.Sensor)); setIsCreateMenuOpen(false); }} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для сенсора</button>
+                            <button onClick={() => { setEditingTemplate(createNewBlankTemplate(DeviceType.Light)); setIsCreateMenuOpen(false); }} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для светильника</button>
+                            <button onClick={() => { setEditingTemplate(createNewBlankTemplate(DeviceType.Switch)); setIsCreateMenuOpen(false); }} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для переключателя</button>
+                            <button onClick={() => { setEditingTemplate(createNewBlankTemplate(DeviceType.Thermostat)); setIsCreateMenuOpen(false); }} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для климата</button>
                         </div>
                     )}
                  </div>
@@ -385,7 +392,7 @@ const Settings: React.FC<SettingsProps> = (props) => {
                 </>
             }
             onConfirm={() => {
-                if (deletingTemplate) onDeleteTemplate(deletingTemplate.id);
+                if (deletingTemplate) handleDeleteTemplate(deletingTemplate.id);
                 setDeletingTemplate(null);
             }}
             onCancel={() => setDeletingTemplate(null)}

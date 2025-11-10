@@ -1,8 +1,4 @@
 
-
-
-
-
 export enum DeviceType {
   Light,
   Lamp,
@@ -118,7 +114,8 @@ export interface CameraSettings {
   selectedEntityId: string | null;
 }
 
-interface ColorThemeSet {
+// FIX: Export ColorThemeSet to make it available for import in other modules.
+export interface ColorThemeSet {
   dashboardBackground: string;
   sidebarBackground: string;
   cardBackground: string;

@@ -1,9 +1,11 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ClockSettings, Device, ClockSize, CameraSettings, ColorScheme } from '../types';
 import { CameraStreamContent } from './DeviceCard';
 import ContextMenu from './ContextMenu';
 import WeatherWidget from './WeatherWidget';
+import { useAppStore } from '../store/appStore';
 
 interface ClockProps {
     settings: ClockSettings;
@@ -154,7 +156,6 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
 
 
 interface InfoPanelProps {
-    clockSettings: ClockSettings;
     sidebarWidth: number;
     setSidebarWidth: (width: number) => void;
     cameras: Device[];
@@ -164,13 +165,13 @@ interface InfoPanelProps {
     haUrl: string;
     signPath: (path: string) => Promise<{ path: string }>;
     getCameraStreamUrl: (entityId: string) => Promise<string>;
-    openWeatherMapKey: string;
     getConfig: () => Promise<any>;
     colorScheme: ColorScheme['light'];
 }
 
-const InfoPanel: React.FC<InfoPanelProps> = ({ clockSettings, sidebarWidth, setSidebarWidth, cameras, cameraSettings, onCameraSettingsChange, onCameraWidgetClick, haUrl, signPath, getCameraStreamUrl, openWeatherMapKey, getConfig, colorScheme }) => {
+const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, cameras, cameraSettings, onCameraSettingsChange, onCameraWidgetClick, haUrl, signPath, getCameraStreamUrl, getConfig, colorScheme }) => {
     const [isResizing, setIsResizing] = useState(false);
+    const { clockSettings, openWeatherMapKey } = useAppStore();
 
     const handleMouseDown = (e: React.MouseEvent) => {
         e.preventDefault();

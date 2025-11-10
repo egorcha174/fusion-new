@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Tab } from '../types';
 import ConfirmDialog from './ConfirmDialog';
+import { useAppStore } from '../store/appStore';
 
 interface TabSettings {
     name: string;
@@ -12,12 +13,11 @@ interface TabSettings {
 
 interface TabSettingsModalProps {
     tab: Tab;
-    onSave: (tabId: string, settings: TabSettings) => void;
-    onDelete: (tabId: string) => void;
     onClose: () => void;
 }
 
-const TabSettingsModal: React.FC<TabSettingsModalProps> = ({ tab, onSave, onDelete, onClose }) => {
+const TabSettingsModal: React.FC<TabSettingsModalProps> = ({ tab, onClose }) => {
+    const { handleUpdateTabSettings, handleDeleteTab } = useAppStore();
     const [settings, setSettings] = useState<TabSettings>({
         name: tab.name,
         gridSettings: tab.gridSettings || { cols: 8, rows: 5 },
@@ -26,7 +26,8 @@ const TabSettingsModal: React.FC<TabSettingsModalProps> = ({ tab, onSave, onDele
 
     const handleSave = () => {
         if (settings.name.trim()) {
-            onSave(tab.id, { ...settings, name: settings.name.trim() });
+            handleUpdateTabSettings(tab.id, { ...settings, name: settings.name.trim() });
+            onClose();
         }
     };
 
@@ -35,8 +36,9 @@ const TabSettingsModal: React.FC<TabSettingsModalProps> = ({ tab, onSave, onDele
     };
 
     const handleConfirmDelete = () => {
-        onDelete(tab.id);
+        handleDeleteTab(tab.id);
         setIsConfirmingDelete(false);
+        onClose();
     };
 
     const handleGridSettingsChange = (key: 'cols' | 'rows', value: string) => {

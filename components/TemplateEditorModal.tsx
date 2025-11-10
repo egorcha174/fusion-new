@@ -1,5 +1,4 @@
 
-
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot, ColorScheme } from '../types';
 import DeviceCard from './DeviceCard';
@@ -9,6 +8,8 @@ import { CSS } from '@dnd-kit/utilities';
 import ContextMenu from './ContextMenu';
 import { nanoid } from 'nanoid';
 import { Icon } from '@iconify/react';
+import { useAppStore } from '../store/appStore';
+import { useHAStore } from '../store/haStore';
 
 const SNAP_GRID_SIZE = 1; // pixels
 
@@ -175,10 +176,7 @@ const NumberInput: React.FC<{ value: number | undefined, onChange: (val?: number
 
 interface TemplateEditorModalProps {
   templateToEdit: CardTemplate;
-  onSave: (newTemplate: CardTemplate) => void;
   onClose: () => void;
-  allKnownDevices: Map<string, Device>;
-  colorScheme: ColorScheme['light'];
 }
 
 const ELEMENT_LABELS: Record<CardElementId, string> = {
@@ -219,7 +217,10 @@ const SortableLayerItem: React.FC<SortableLayerItemProps> = React.memo(({ elemen
     );
 });
 
-const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdit, onSave, onClose, allKnownDevices, colorScheme }) => {
+const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdit, onClose }) => {
+  const { handleSaveTemplate, colorScheme, theme } = useAppStore();
+  const { allKnownDevices } = useHAStore();
+  
   const [editedTemplate, setEditedTemplate] = useState<CardTemplate>({
     ...templateToEdit,
     width: templateToEdit.width || 1,
@@ -230,6 +231,11 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   
   const previewRef = useRef<HTMLDivElement>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  // FIX: Derive the correct color theme (light/dark) from the full color scheme object.
+  const isSystemDark = useMemo(() => window.matchMedia('(prefers-color-scheme: dark)').matches, []);
+  const isDark = useMemo(() => theme === 'night' || (theme === 'auto' && isSystemDark), [theme, isSystemDark]);
+  const currentColorScheme = useMemo(() => isDark ? colorScheme.dark : colorScheme.light, [isDark, colorScheme]);
 
   const handleHeightChange = (v?: number) => {
       setEditedTemplate(p => {
@@ -560,7 +566,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
           <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
             <main className="flex-1 flex flex-col items-center justify-center bg-gray-900/50 relative" onClick={() => handleSelect('element', '')}>
               <div ref={previewRef} className="w-[400px] transition-all duration-300 relative" style={{ aspectRatio: `${editedTemplate.width || 1} / ${editedTemplate.height || 1}`}}>
-                  <DeviceCard device={sampleDevice} allKnownDevices={sampleAllKnownDevices} customizations={{}} onDeviceToggle={() => {}} template={editedTemplate} isPreview={true} onTemperatureChange={()=>{}} onBrightnessChange={()=>{}} onHvacModeChange={()=>{}} onPresetChange={()=>{}} onCameraCardClick={()=>{}} isEditMode={false} onEditDevice={()=>{}} haUrl="" signPath={async()=>({path:''})} getCameraStreamUrl={async()=>''} colorScheme={colorScheme} />
+                  <DeviceCard device={sampleDevice} allKnownDevices={sampleAllKnownDevices} customizations={{}} onDeviceToggle={() => {}} template={editedTemplate} isPreview={true} onTemperatureChange={()=>{}} onBrightnessChange={()=>{}} onHvacModeChange={()=>{}} onPresetChange={()=>{}} onCameraCardClick={()=>{}} isEditMode={false} onEditDevice={()=>{}} haUrl="" signPath={async()=>({path:''})} getCameraStreamUrl={async()=>''} colorScheme={currentColorScheme} />
                   {editedTemplate.elements.map(element => <DraggableCanvasElement key={element.id} element={element} isSelected={selectedElementIds.includes(element.id)} onSelect={(id, multi) => handleSelect('element', id, multi)} showResizeHandles={selectedElementIds.length === 1 && selectedElementIds[0] === element.id}/>)}
                   {editedTemplate.deviceSlots?.map(slot => <DraggableIndicatorSlot key={slot.id} slot={slot} isSelected={selectedSlotId === slot.id} onSelect={() => handleSelect('slot', slot.id)} />)}
               </div>
@@ -828,7 +834,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
             </div>
             <div className="p-4 flex justify-end gap-4 bg-gray-900/50 rounded-b-2xl border-t border-gray-700/80">
                 <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">Отмена</button>
-                <button onClick={() => onSave(editedTemplate)} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Сохранить</button>
+                <button onClick={() => { handleSaveTemplate(editedTemplate); onClose(); }} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Сохранить</button>
             </div>
           </aside>
       </div>

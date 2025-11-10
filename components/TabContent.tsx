@@ -1,40 +1,26 @@
 
-
-
-
-
-
-
-import React from 'react';
+import React, { useMemo } from 'react';
 import DashboardGrid from './DashboardGrid';
 import { Tab, Device, GridLayoutItem, CardTemplates, DeviceCustomizations, ColorScheme } from '../types';
+import { useHAStore } from '../store/haStore';
+import { useAppStore } from '../store/appStore';
 
 interface TabContentProps {
   tab: Tab;
-  allKnownDevices: Map<string, Device>;
-  searchTerm: string;
-  onDeviceLayoutChange: (tabId: string, newLayout: GridLayoutItem[]) => void;
-  onDeviceToggle: (deviceId: string) => void;
-  onTemperatureChange: (deviceId: string, temperature: number, isDelta?: boolean) => void;
-  onBrightnessChange: (deviceId: string, brightness: number) => void;
-  onHvacModeChange: (deviceId: string, mode: string) => void;
-  onPresetChange: (deviceId: string, preset: string) => void;
-  onCameraCardClick: (device: Device) => void;
-  onShowHistory: (entityId: string) => void;
   isEditMode: boolean;
-  onEditDevice: (device: Device) => void;
   onDeviceContextMenu: (event: React.MouseEvent, deviceId: string, tabId: string) => void;
   onOpenColorPicker: (event: React.MouseEvent, baseKey: string, targetName: string, isTextElement: boolean, isOn: boolean) => void;
-  haUrl: string;
-  signPath: (path: string) => Promise<{ path: string }>;
-  getCameraStreamUrl: (entityId: string) => Promise<string>;
-  templates: CardTemplates;
-  customizations: DeviceCustomizations;
-  colorScheme: ColorScheme['light'];
 }
 
 const TabContent: React.FC<TabContentProps> = (props) => {
   const { tab } = props;
+  const { allKnownDevices, haUrl, signPath, getCameraStreamUrl, handleDeviceToggle, handleTemperatureChange, handleBrightnessChange, handleHvacModeChange, handlePresetChange } = useHAStore();
+  const { searchTerm, handleDeviceLayoutChange, setFloatingCamera, setHistoryModalEntityId, setEditingDevice, templates, customizations, colorScheme, theme } = useAppStore();
+
+  // FIX: Derive the correct color theme (light/dark) from the full color scheme object.
+  const isSystemDark = useMemo(() => window.matchMedia('(prefers-color-scheme: dark)').matches, []);
+  const isDark = useMemo(() => theme === 'night' || (theme === 'auto' && isSystemDark), [theme, isSystemDark]);
+  const currentColorScheme = useMemo(() => isDark ? colorScheme.dark : colorScheme.light, [isDark, colorScheme]);
 
   if (tab.layout.length === 0) {
       return (
@@ -45,7 +31,26 @@ const TabContent: React.FC<TabContentProps> = (props) => {
       )
   }
   
-  return <DashboardGrid {...props} />;
+  return <DashboardGrid 
+            {...props}
+            allKnownDevices={allKnownDevices}
+            searchTerm={searchTerm}
+            onDeviceLayoutChange={handleDeviceLayoutChange}
+            onDeviceToggle={handleDeviceToggle}
+            onTemperatureChange={handleTemperatureChange}
+            onBrightnessChange={handleBrightnessChange}
+            onHvacModeChange={handleHvacModeChange}
+            onPresetChange={handlePresetChange}
+            onCameraCardClick={setFloatingCamera}
+            onShowHistory={setHistoryModalEntityId}
+            onEditDevice={setEditingDevice}
+            haUrl={haUrl}
+            signPath={signPath}
+            getCameraStreamUrl={getCameraStreamUrl}
+            templates={templates}
+            customizations={customizations}
+            colorScheme={currentColorScheme}
+        />;
 };
 
 export default React.memo(TabContent);

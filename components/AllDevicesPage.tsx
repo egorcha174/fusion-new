@@ -1,21 +1,19 @@
+
+
 import React, { useState } from 'react';
 import { Room, DeviceCustomizations, Tab, Device } from '../types';
 import DeviceIcon from './DeviceIcon';
+import { useAppStore } from '../store/appStore';
 
 interface AllDevicesPageProps {
     rooms: Room[];
-    customizations: DeviceCustomizations;
-    onToggleVisibility: (deviceId: string, isHidden: boolean) => void;
-    tabs: Tab[];
-    onDeviceAddToTab: (deviceId: string, tabId: string) => void;
 }
 
 const AddToTabButton: React.FC<{
-    tabs: Tab[];
     device: Device;
-    onAddToTab: (tabId: string) => void;
-}> = ({ tabs, device, onAddToTab }) => {
+}> = ({ device }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const { tabs, handleDeviceAddToTab } = useAppStore();
 
     // Filter out tabs that already contain the device
     const availableTabs = tabs.filter(tab => !tab.layout.some(item => item.deviceId === device.id));
@@ -45,7 +43,7 @@ const AddToTabButton: React.FC<{
                             <button
                                 key={tab.id}
                                 onClick={() => {
-                                    onAddToTab(tab.id);
+                                    handleDeviceAddToTab(device, tab.id);
                                     setIsOpen(false);
                                 }}
                                 className="block w-full text-left px-4 py-2 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600"
@@ -61,7 +59,9 @@ const AddToTabButton: React.FC<{
 }
 
 
-const AllDevicesPage: React.FC<AllDevicesPageProps> = ({ rooms, customizations, onToggleVisibility, tabs, onDeviceAddToTab }) => {
+const AllDevicesPage: React.FC<AllDevicesPageProps> = ({ rooms }) => {
+    const { customizations, handleToggleVisibility } = useAppStore();
+
     return (
         <div className="container mx-auto">
             <h1 className="text-3xl font-bold mb-8">Все устройства</h1>
@@ -90,7 +90,7 @@ const AllDevicesPage: React.FC<AllDevicesPageProps> = ({ rooms, customizations, 
                                         </div>
                                         <div className="flex items-center gap-2 flex-shrink-0">
                                             <button
-                                                onClick={() => onToggleVisibility(device.id, !isHidden)}
+                                                onClick={() => handleToggleVisibility(device, !isHidden)}
                                                 title={isHidden ? 'Показать' : 'Скрыть'}
                                                 className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                                             >
@@ -106,7 +106,7 @@ const AllDevicesPage: React.FC<AllDevicesPageProps> = ({ rooms, customizations, 
                                                     </svg>
                                                 )}
                                             </button>
-                                            <AddToTabButton tabs={tabs} device={device} onAddToTab={(tabId) => onDeviceAddToTab(device.id, tabId)} />
+                                            <AddToTabButton device={device} />
                                         </div>
                                     </div>
                                 )

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Device, ColorScheme } from '../types';
 import LoadingSpinner from './LoadingSpinner';
 import HistoryChart from './HistoryChart';
-// FIX: Import date-fns helpers from their specific subpaths to resolve module resolution error.
+// FIX: Change date-fns imports to submodule paths to fix "no exported member" error.
 import subHours from 'date-fns/subHours';
 import subDays from 'date-fns/subDays';
 import { Icon } from '@iconify/react';
@@ -67,7 +67,6 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ entityId, onClose, getHisto
       const now = new Date();
       let startDate: Date;
 
-      // FIX: Use `subHours` and `subDays` as the `sub` function is not available in the project's date-fns version.
       switch (timeRange) {
         case '1h': startDate = subHours(now, 1); break;
         case '6h': startDate = subHours(now, 6); break;

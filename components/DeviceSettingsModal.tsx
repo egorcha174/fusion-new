@@ -3,28 +3,28 @@
 
 
 
+
 import React, { useState, useMemo } from 'react';
 import { Device, DeviceCustomization, DeviceType, CardTemplates, DeviceBinding, CardTemplate, ThresholdRule } from '../types';
 import DeviceIcon, { icons, getIconNameForDeviceType } from './DeviceIcon';
 import { Icon } from '@iconify/react';
+import { useAppStore } from '../store/appStore';
+import { useHAStore } from '../store/haStore';
 
 interface DeviceSettingsModalProps {
   device: Device;
-  customization: DeviceCustomization;
-  onSave: (deviceId: string, newValues: { name: string; type: DeviceType; icon: string; isHidden: boolean; templateId?: string; iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow'; deviceBindings?: DeviceBinding[], thresholds?: ThresholdRule[] }) => void;
   onClose: () => void;
-  templates: CardTemplates;
-  allKnownDevices: Map<string, Device>;
 }
 
 const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   device,
-  customization,
-  onSave,
   onClose,
-  templates,
-  allKnownDevices,
 }) => {
+  const { customizations, templates, handleSaveCustomization } = useAppStore();
+  const { allKnownDevices } = useHAStore();
+  
+  const customization = customizations[device.id] || {};
+
   const getDefaultIcon = () => {
     if (customization.icon) return customization.icon;
     // Use the 'off' state icon as the default representation.
@@ -48,7 +48,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   };
 
   const handleSave = () => {
-    onSave(device.id, {
+    handleSaveCustomization(device, {
       name: name.trim(),
       type,
       icon,
@@ -148,7 +148,8 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   const effectiveTemplate: CardTemplate | undefined = templates[effectiveTemplateId];
   const deviceSlots = effectiveTemplate?.deviceSlots;
 
-  const sortedEntities = useMemo(() => Array.from(allKnownDevices.values()).sort((a, b) => a.name.localeCompare(b.name)), [allKnownDevices]);
+  // FIX: Explicitly type `a` and `b` to `Device` to resolve sort callback error.
+  const sortedEntities = useMemo(() => Array.from(allKnownDevices.values()).sort((a: Device, b: Device) => a.name.localeCompare(b.name)), [allKnownDevices]);
 
 
   return (
@@ -204,9 +205,10 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                   className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
               >
                   <option value="">По умолчанию</option>
+                  {/* FIX: Add explicit type `CardTemplate` to fix type inference issue. */}
                   {Object.values(templates)
-                    .filter(template => template.deviceType === templateType)
-                    .map(template => (
+                    .filter((template: CardTemplate) => template.deviceType === templateType)
+                    .map((template: CardTemplate) => (
                       <option key={template.id} value={template.id}>
                           {template.name}
                       </option>
@@ -287,7 +289,8 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                                        className="w-full bg-white dark:bg-gray-900/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-sm"
                                    >
                                        <option value="">-- Выберите устройство --</option>
-                                       {sortedEntities.map(entity => (
+                                       {/* FIX: Add explicit type `Device` to fix type inference issue. */}
+                                       {sortedEntities.map((entity: Device) => (
                                            <option key={entity.id} value={entity.id}>{entity.name}</option>
                                        ))}
                                    </select>

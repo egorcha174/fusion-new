@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Tab, Page, ColorScheme } from '../types';
+import { Tab, Page, ColorScheme, ColorThemeSet } from '../types';
 import { Icon } from '@iconify/react';
+import { useAppStore } from '../store/appStore';
 
 
 interface SortableTabProps {
@@ -13,7 +14,7 @@ interface SortableTabProps {
     isEditMode: boolean;
     onSelect: () => void;
     onEdit: () => void;
-    colorScheme: ColorScheme['light'];
+    colorScheme: ColorThemeSet;
 }
 
 const SortableTab: React.FC<SortableTabProps> = ({ tab, isActive, isEditMode, onSelect, onEdit, colorScheme }) => {
@@ -58,57 +59,53 @@ const SortableTab: React.FC<SortableTabProps> = ({ tab, isActive, isEditMode, on
 };
 
 
-interface DashboardHeaderProps {
-    tabs: Tab[];
-    activeTabId: string | null;
-    onTabChange: (tabId: string) => void;
-    onTabOrderChange: (newTabs: Tab[]) => void;
-    isEditMode: boolean;
-    onToggleEditMode: () => void;
-    onNavigate: (page: Page) => void;
-    onAddTab: () => void;
-    onEditTab: (tab: Tab) => void;
-    currentPage: Page;
-    searchTerm: string;
-    onSearchChange: (term: string) => void;
-    theme: 'day' | 'night' | 'auto';
-    onThemeChange: (theme: 'day' | 'night' | 'auto') => void;
-    colorScheme: ColorScheme['light'];
-}
-
-const DashboardHeader: React.FC<DashboardHeaderProps> = ({
-    tabs, activeTabId, onTabChange, onTabOrderChange, isEditMode, onToggleEditMode, onNavigate, onAddTab, onEditTab, currentPage, searchTerm, onSearchChange, theme, onThemeChange, colorScheme
-}) => {
+const DashboardHeader: React.FC = () => {
+    const {
+        tabs, activeTabId, setActiveTabId, handleTabOrderChange,
+        isEditMode, setIsEditMode, setCurrentPage, handleAddTab, setEditingTab,
+        currentPage, searchTerm, setSearchTerm, theme, setTheme, colorScheme
+    } = useAppStore();
+    
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+    // FIX: Derive the correct color theme (light/dark) from the full color scheme object.
+    const isSystemDark = useMemo(() => window.matchMedia('(prefers-color-scheme: dark)').matches, []);
+    const isDark = useMemo(() => theme === 'night' || (theme === 'auto' && isSystemDark), [theme, isSystemDark]);
+    const currentColorScheme = useMemo(() => isDark ? colorScheme.dark : colorScheme.light, [isDark, colorScheme]);
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
         if (over && active.id !== over.id) {
             const oldIndex = tabs.findIndex((t) => t.id === active.id);
             const newIndex = tabs.findIndex((t) => t.id === over.id);
-            onTabOrderChange(arrayMove(tabs, oldIndex, newIndex));
+            handleTabOrderChange(arrayMove(tabs, oldIndex, newIndex));
         }
     };
+
+    const handleTabChange = (tabId: string) => {
+        setActiveTabId(tabId);
+        setCurrentPage('dashboard');
+    }
 
     const showSearchBar = currentPage === 'dashboard' || currentPage === 'all-devices';
 
     const renderMenuItems = () => (
         <div className="py-1">
-            <button onClick={() => { onToggleEditMode(); setIsMenuOpen(false); setIsMobileMenuOpen(false); }} className="flex items-center gap-3 w-full text-left px-4 py-2 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
+            <button onClick={() => { setIsEditMode(!isEditMode); setIsMenuOpen(false); setIsMobileMenuOpen(false); }} className="flex items-center gap-3 w-full text-left px-4 py-2 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
                 <span>{isEditMode ? 'Готово' : 'Редактировать'}</span>
             </button>
-            <button onClick={() => { onNavigate('all-devices'); setIsMenuOpen(false); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full text-left px-4 py-2 text-sm rounded-md transition-colors ${currentPage === 'all-devices' ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+            <button onClick={() => { setCurrentPage('all-devices'); setIsMenuOpen(false); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full text-left px-4 py-2 text-sm rounded-md transition-colors ${currentPage === 'all-devices' ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100 4m0-4a2 2 0 110 4m0-4v2m0 4v2m8-12a2 2 0 100 4m0-4a2 2 0 110 4m0 4v2m0-4v2m-8 4a2 2 0 100 4m0-4a2 2 0 110 4m0-4v2m0 4v2" />
                 </svg>
                 <span>Все устройства</span>
             </button>
-            <button onClick={() => { onNavigate('settings'); setIsMenuOpen(false); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full text-left px-4 py-2 text-sm rounded-md transition-colors ${currentPage === 'settings' ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+            <button onClick={() => { setCurrentPage('settings'); setIsMenuOpen(false); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full text-left px-4 py-2 text-sm rounded-md transition-colors ${currentPage === 'settings' ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0 3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -121,7 +118,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 const themeValue = themeOption.val as 'day' | 'night' | 'auto';
                 const isActive = theme === themeValue;
                 return (
-                    <button key={themeValue} onClick={() => { onThemeChange(themeValue); setIsMenuOpen(false); setIsMobileMenuOpen(false); }} className={`flex justify-between items-center w-full text-left px-4 py-2 text-sm rounded-md transition-colors ${isActive ? 'bg-blue-600 text-white' : 'text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                    <button key={themeValue} onClick={() => { setTheme(themeValue); setIsMenuOpen(false); setIsMobileMenuOpen(false); }} className={`flex justify-between items-center w-full text-left px-4 py-2 text-sm rounded-md transition-colors ${isActive ? 'bg-blue-600 text-white' : 'text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                         <span>{themeOption.name}</span>
                         {isActive && <Icon icon="mdi:check" className="w-5 h-5" />}
                     </button>
@@ -133,7 +130,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     return (
         <header 
             className="flex items-center justify-between p-4 border-b border-gray-300 dark:border-gray-700/50 gap-4"
-            style={{ backgroundColor: colorScheme.headerBackground }}
+            style={{ backgroundColor: currentColorScheme.headerBackground }}
             data-style-key="headerBackground"
             data-style-name="Фон заголовка"
         >
@@ -153,14 +150,14 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                                     tab={tab}
                                     isActive={tab.id === activeTabId}
                                     isEditMode={isEditMode}
-                                    onSelect={() => onTabChange(tab.id)}
-                                    onEdit={() => onEditTab(tab)}
-                                    colorScheme={colorScheme}
+                                    onSelect={() => handleTabChange(tab.id)}
+                                    onEdit={() => setEditingTab(tab)}
+                                    colorScheme={currentColorScheme}
                                 />
                             ))}
                              {isEditMode && (
                                 <div className="flex items-center flex-shrink-0">
-                                    <button onClick={onAddTab} className="ml-2 px-3 py-1 bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md text-sm hover:bg-gray-400 dark:hover:bg-gray-600">+</button>
+                                    <button onClick={handleAddTab} className="ml-2 px-3 py-1 bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md text-sm hover:bg-gray-400 dark:hover:bg-gray-600">+</button>
                                 </div>
                             )}
                             </nav>
@@ -181,7 +178,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                             type="search"
                             placeholder="Поиск устройств..."
                             value={searchTerm}
-                            onChange={(e) => onSearchChange(e.target.value)}
+                            onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-700 rounded-lg py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
                         />
                     </div>
