@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useState, useMemo } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
@@ -133,7 +135,9 @@ const DashboardHeader: React.FC = () => {
         </div>
     );
     
-    const headerBackgroundColor = isDark ? 'rgba(28, 28, 30, 0.75)' : 'rgba(240, 245, 255, 0.7)';
+    const headerBackgroundColor = isDark 
+    ? `rgba(28, 28, 30, ${currentColorScheme.panelOpacity ?? 0.75})` 
+    : `rgba(240, 245, 255, ${currentColorScheme.panelOpacity ?? 0.7})`;
 
     return (
         <header 

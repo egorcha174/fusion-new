@@ -2,6 +2,8 @@
 
 
 
+
+
 /**
  * Перечисление всех возможных типов устройств, используемых в приложении.
  * Это внутреннее представление, которое используется для определения иконки,
@@ -161,6 +163,7 @@ export interface ColorThemeSet {
   
   // Настройки карточек
   cardOpacity?: number; // 0-1
+  panelOpacity?: number; // 0-1
 
   cardBackground: string;
   cardBackgroundOn: string;

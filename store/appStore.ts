@@ -3,6 +3,7 @@
 
 
 
+
 import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
@@ -72,6 +73,7 @@ const DEFAULT_COLOR_SCHEME: ColorScheme = {
     dashboardBackgroundImageBlur: 0,
     dashboardBackgroundImageBrightness: 100,
     cardOpacity: 0.8,
+    panelOpacity: 0.7,
     cardBackground: 'rgba(255, 255, 255, 0.7)',
     cardBackgroundOn: 'rgba(255, 255, 255, 0.7)',
     tabTextColor: '#6A6A6A',
@@ -99,6 +101,7 @@ const DEFAULT_COLOR_SCHEME: ColorScheme = {
     dashboardBackgroundImageBlur: 0,
     dashboardBackgroundImageBrightness: 100,
     cardOpacity: 0.8,
+    panelOpacity: 0.75,
     nameTextColor: '#d1d5db', statusTextColor: '#9ca3af', valueTextColor: '#f9fafb', unitTextColor: '#9ca3af',
     cardBackground: 'rgba(31, 41, 55, 0.8)', cardBackgroundOn: '#374151',
     tabTextColor: '#9ca3af', activeTabTextColor: '#f9fafb', tabIndicatorColor: '#f9fafb', thermostatHandleColor: '#f9fafb', thermostatDialTextColor: '#f9fafb',

@@ -1,7 +1,4 @@
 
-
-
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ClockSettings, Device, ClockSize, CameraSettings, ColorScheme } from '../types';
 import { CameraStreamContent } from './CameraStreamContent';
@@ -205,7 +202,9 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, ca
         };
     }, [isResizing, handleMouseMove, handleMouseUp]);
     
-    const sidebarBackgroundColor = isDark ? 'rgba(28, 28, 30, 0.75)' : 'rgba(240, 245, 255, 0.7)';
+    const sidebarBackgroundColor = isDark 
+    ? `rgba(28, 28, 30, ${colorScheme.panelOpacity ?? 0.75})` 
+    : `rgba(240, 245, 255, ${colorScheme.panelOpacity ?? 0.7})`;
 
     return (
         <aside
@@ -220,6 +219,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, ca
                  <CameraWidget
                     cameras={cameras}
                     settings={cameraSettings}
+                    // FIX: The prop is called onSettingsChange in the component definition.
                     onSettingsChange={onCameraSettingsChange}
                     onCameraWidgetClick={onCameraWidgetClick}
                     haUrl={haUrl}

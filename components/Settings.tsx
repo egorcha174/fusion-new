@@ -25,7 +25,7 @@ interface SettingsProps {
  * Вспомогательный компонент для строки настройки цвета.
  */
 const ColorSettingRow: React.FC<{ label: string, value: string, onChange: (newColor: string) => void }> = ({ label, value, onChange }) => (
-  <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg">
+  <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
     <label className="text-sm font-medium text-gray-800 dark:text-gray-200">{label}</label>
     <input
       type="color"
@@ -330,6 +330,16 @@ const Settings: React.FC<SettingsProps> = (props) => {
                             </div>
                         ))}
                     </div>
+                     {/* Прозрачность панелей */}
+                     <div>
+                         <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Панели (Боковая и Шапка)</h3>
+                          {(['light', 'dark'] as const).map(themeKey => (
+                            <div key={themeKey} className="bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg mb-3">
+                                <label className="text-xs text-gray-500 dark:text-gray-400">Прозрачность ({themeKey === 'light' ? 'Светлая тема' : 'Темная тема'}): {Math.round((colorScheme[themeKey].panelOpacity ?? 1) * 100)}%</label>
+                                <input type="range" min="0.2" max="1" step="0.05" value={colorScheme[themeKey].panelOpacity ?? 1} onChange={e => updateColorSchemeField(themeKey, 'panelOpacity', parseFloat(e.target.value))} className="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"/>
+                            </div>
+                          ))}
+                    </div>
                     {/* Прозрачность карточек */}
                     <div>
                          <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Карточки</h3>
@@ -369,7 +379,7 @@ const Settings: React.FC<SettingsProps> = (props) => {
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
                                 <button onClick={() => setEditingTemplate(template)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" title="Редактировать"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg></button>
-                                <button onClick={() => setDeletingTemplate(template)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded-md hover:bg-red-500/10 dark:hover:bg-red-500/20 transition-colors" title="Удалить"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002 2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg></button>
+                                <button onClick={() => setDeletingTemplate(template)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded-md hover:bg-red-500/10 dark:hover:bg-red-500/20 transition-colors" title="Удалить"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg></button>
                             </div>
                         </div>
                     ))}
