@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Device, ColorScheme } from '../types';
 import LoadingSpinner from './LoadingSpinner';
 import HistoryChart from './HistoryChart';
-// FIX: Import subHours and subDays from their specific subpaths to resolve module export error.
+// FIX: Changed date-fns imports to use direct paths to resolve potential module resolution issues.
 import subHours from 'date-fns/subHours';
 import subDays from 'date-fns/subDays';
 import { Icon } from '@iconify/react';
