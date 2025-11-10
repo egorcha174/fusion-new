@@ -345,13 +345,13 @@ const checkCollision = (
     originalItem?: GridLayoutItem
 ): boolean => {
     const { col, row, width, height } = itemToPlace;
-    const ceilWidth = Math.ceil(width);
-    const ceilHeight = Math.ceil(height);
 
-    if (col < 0 || row < 0 || col + ceilWidth > gridSettings.cols || row + ceilHeight > gridSettings.rows) {
+    // Boundary check still uses Math.ceil because a 0.5 height item occupies one full grid cell.
+    if (col < 0 || row < 0 || col + Math.ceil(width) > gridSettings.cols || row + Math.ceil(height) > gridSettings.rows) {
         return true;
     }
 
+    // Check for unstacking: if resizing from 0.5 height to > 0.5, check for collision with a stacked partner.
     if (originalItem && (originalItem.height || 1) === 0.5 && height > 0.5) {
         const otherItemsInStack = layout.filter(item =>
             item.deviceId !== ignoreDeviceId &&
@@ -359,43 +359,54 @@ const checkCollision = (
             item.row === originalItem.row
         );
         if (otherItemsInStack.length > 0) {
-            return true;
+            return true; // Collision: trying to expand a stacked item.
         }
     }
 
+    // Check for collision with every other item.
     for (const existingItem of layout) {
         if (existingItem.deviceId === ignoreDeviceId) continue;
 
-        const existingWidth = Math.ceil(existingItem.width || 1);
-        const existingHeight = Math.ceil(existingItem.height || 1);
+        // Use raw width/height for accurate intersection check.
+        const existingWidth = existingItem.width || 1;
+        const existingHeight = existingItem.height || 1;
 
+        // Standard Axis-Aligned Bounding Box (AABB) intersection test.
         const intersects = (
             col < existingItem.col + existingWidth &&
-            col + ceilWidth > existingItem.col &&
+            col + width > existingItem.col &&
             row < existingItem.row + existingHeight &&
-            row + ceilHeight > existingItem.row
+            row + height > existingItem.row
         );
         
         if (intersects) {
+            // An intersection occurred. Check if it's a valid "stacking" non-collision.
             const isTargetStackable = width === 1 && height === 0.5;
-            const isExistingStackable = (existingItem.width || 1) === 1 && (existingItem.height || 1) === 0.5;
-            const areInSameCell = col === existingItem.col && row === existingItem.row;
+            const isExistingStackable = existingWidth === 1 && existingHeight === 0.5;
+            // Stacking can only happen in the same integer grid cell.
+            const areInSameCell = Math.floor(col) === existingItem.col && Math.floor(row) === existingItem.row;
 
             if (isTargetStackable && isExistingStackable && areInSameCell) {
+                // It's a potential stack. Count total items in that cell to see if there's room.
                 const itemsInTargetCell = layout.filter(item =>
                     item.deviceId !== ignoreDeviceId &&
-                    item.col === col &&
-                    item.row === row
+                    item.col === Math.floor(col) &&
+                    item.row === Math.floor(row)
                 );
+                
+                // A cell can hold a maximum of 2 stackable items.
+                // If there's 1 or less currently, we can add ours.
                 if (itemsInTargetCell.length < 2) {
-                    continue;
+                    continue; // It's a valid stack, not a collision. Check next item.
                 }
             }
+
+            // If it's not a valid stack, it's a real collision.
             return true;
         }
     }
 
-    return false;
+    return false; // No collisions found.
 }
 
 const App: React.FC = () => {
