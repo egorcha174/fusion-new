@@ -205,86 +205,86 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
     };
 
     const handleDragEnd = (event: DragEndEvent) => {
-      setActiveId(null);
-      setActiveDragItemRect(null);
-      const { active, over } = event;
-
-      if (!over || !isEditMode || active.id === over.id) {
-          return;
-      }
-
-      const currentLayout = tab.layout;
-      const draggedDeviceId = active.id as string;
-      const draggedItemIndex = currentLayout.findIndex(item => item.deviceId === draggedDeviceId);
-      if (draggedItemIndex === -1) return;
-
-      const draggedItem = currentLayout[draggedItemIndex];
-      const draggedWidth = draggedItem.width || 1;
-      const draggedHeight = draggedItem.height || 1;
-
-      let targetCol: number;
-      let targetRow: number;
-      let overDeviceId: string | null = null;
-
-      if (over.data.current?.type === 'cell') {
-          targetCol = over.data.current.col;
-          targetRow = over.data.current.row;
-      } else { // Dropped on another device
-          overDeviceId = over.id as string;
-          const overItem = currentLayout.find(item => item.deviceId === overDeviceId);
-          if (!overItem) return;
-          targetCol = overItem.col;
-          targetRow = overItem.row;
-      }
-      
-      // Boundary check
-      if (targetCol + draggedWidth > tab.gridSettings.cols || targetRow + draggedHeight > tab.gridSettings.rows) {
-          return; // Prevents moving item out of bounds
-      }
-
-      // Find all items that conflict with the new position
-      const conflictingItems = currentLayout.filter(item => {
-          if (item.deviceId === draggedDeviceId) return false; // Don't check against self
-
-          const itemWidth = item.width || 1;
-          const itemHeight = item.height || 1;
-
-          // Check for rectangle intersection
-          return (
-              targetCol < item.col + itemWidth &&
-              targetCol + draggedWidth > item.col &&
-              targetRow < item.row + itemHeight &&
-              targetRow + draggedHeight > item.row
-          );
-      });
-
-      let newLayout = [...currentLayout];
-
-      if (conflictingItems.length === 1) {
-          // Potential SWAP
-          const targetItem = conflictingItems[0];
-          const targetWidth = targetItem.width || 1;
-          const targetHeight = targetItem.height || 1;
-
-          // Only swap if sizes are identical
-          if (draggedWidth === targetWidth && draggedHeight === targetHeight) {
-              const targetItemIndex = newLayout.findIndex(item => item.deviceId === targetItem.deviceId);
-              
-              // Swap positions
-              newLayout[draggedItemIndex] = { ...draggedItem, col: targetItem.col, row: targetItem.row };
-              newLayout[targetItemIndex] = { ...targetItem, col: draggedItem.col, row: draggedItem.row };
-              
-              onDeviceLayoutChange(tab.id, newLayout);
-          }
-          // If sizes are different, do nothing (cancel drag)
-          return;
-
-      } else if (conflictingItems.length === 0) {
-          // MOVE to empty space
-          newLayout[draggedItemIndex] = { ...draggedItem, col: targetCol, row: targetRow };
-          onDeviceLayoutChange(tab.id, newLayout);
-      } 
-      // If more than one conflict, do nothing (cancel drag)
+        setActiveId(null);
+        setActiveDragItemRect(null);
+        const { active, over } = event;
+    
+        if (!over || !isEditMode || active.id === over.id) {
+            return;
+        }
+    
+        const currentLayout = tab.layout;
+        const draggedDeviceId = active.id as string;
+        const draggedItemIndex = currentLayout.findIndex(item => item.deviceId === draggedDeviceId);
+        if (draggedItemIndex === -1) return;
+    
+        const draggedItem = currentLayout[draggedItemIndex];
+        let newLayout = [...currentLayout];
+    
+        // Case 1: Dropped on an empty cell
+        if (over.data.current?.type === 'cell') {
+            const { col: targetCol, row: targetRow } = over.data.current;
+            const draggedWidth = draggedItem.width || 1;
+            const draggedHeight = draggedItem.height || 1;
+    
+            // Boundary check
+            if (targetCol + draggedWidth > tab.gridSettings.cols || targetRow + draggedHeight > tab.gridSettings.rows) {
+                return;
+            }
+    
+            // Check for collision with other items in the new location
+            const conflictingItems = currentLayout.filter(item => {
+                if (item.deviceId === draggedDeviceId) return false;
+                const itemWidth = item.width || 1;
+                const itemHeight = item.height || 1;
+                return (
+                    targetCol < item.col + itemWidth &&
+                    targetCol + draggedWidth > item.col &&
+                    targetRow < item.row + itemHeight &&
+                    targetRow + draggedHeight > item.row
+                );
+            });
+    
+            if (conflictingItems.length === 0) {
+                newLayout[draggedItemIndex] = { ...draggedItem, col: targetCol, row: targetRow };
+                onDeviceLayoutChange(tab.id, newLayout);
+            }
+            return;
+        }
+    
+        // Case 2: Dropped on another device
+        if (over.data.current?.type === 'device') {
+            const overDeviceId = over.id as string;
+            const overItemIndex = newLayout.findIndex(item => item.deviceId === overDeviceId);
+            if (overItemIndex === -1) return;
+    
+            const overItem = newLayout[overItemIndex];
+    
+            const isDraggedStackable = (draggedItem.width || 1) === 1 && (draggedItem.height || 1) === 0.5;
+            const isOverStackable = (overItem.width || 1) === 1 && (overItem.height || 1) === 0.5;
+            
+            const itemsInTargetCell = newLayout.filter(item => item.col === overItem.col && item.row === overItem.row);
+    
+            // STACK logic
+            if (isDraggedStackable && isOverStackable && itemsInTargetCell.length === 1) {
+                newLayout[draggedItemIndex] = { ...draggedItem, col: overItem.col, row: overItem.row };
+                onDeviceLayoutChange(tab.id, newLayout);
+                return;
+            }
+    
+            // SWAP logic
+            const draggedWidth = draggedItem.width || 1;
+            const draggedHeight = draggedItem.height || 1;
+            const overWidth = overItem.width || 1;
+            const overHeight = overItem.height || 1;
+            
+            if (draggedWidth === overWidth && draggedHeight === overHeight) {
+                const tempPos = { col: draggedItem.col, row: draggedItem.row };
+                newLayout[draggedItemIndex] = { ...draggedItem, col: overItem.col, row: overItem.row };
+                newLayout[overItemIndex] = { ...overItem, col: tempPos.col, row: tempPos.row };
+                onDeviceLayoutChange(tab.id, newLayout);
+            }
+        }
     };
     
     const occupiedCells = useMemo(() => {
@@ -407,15 +407,22 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                                         wrapperStyle.position = 'absolute';
                                         wrapperStyle.left = 0;
                                         wrapperStyle.right = 0;
-                                        wrapperStyle.height = 'calc(50% - 8px)'; // 16px total gap -> 8px per card from the middle
+                                        wrapperStyle.height = '50%'; // 16px total gap -> 8px per card from the middle
                                         if (index === 0) {
                                             wrapperStyle.top = 0;
                                         } else {
                                             wrapperStyle.bottom = 0;
                                         }
-                                    } else {
-                                        // A single item in the cell
-                                        wrapperStyle.height = item.height === 0.5 ? '50%' : '100%';
+                                    } else { // A single item in the cell
+                                        if (item.height === 0.5) {
+                                            wrapperStyle.position = 'absolute';
+                                            wrapperStyle.top = 0;
+                                            wrapperStyle.left = 0;
+                                            wrapperStyle.right = 0;
+                                            wrapperStyle.height = '50%';
+                                        } else {
+                                            wrapperStyle.height = '100%';
+                                        }
                                     }
 
 
