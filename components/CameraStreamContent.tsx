@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Hls from 'hls.js';
 import { constructHaUrl } from '../utils/url';
+import MjpegStreamer from './MjpegStreamer';
 
 interface VideoPlayerProps {
   src: string;
@@ -298,11 +299,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
         streamType === 'hls' ? (
           <VideoPlayer src={streamUrl} />
         ) : (
-          <img
-            src={streamUrl}
-            className="w-full h-full border-0 bg-black object-contain"
-            alt={altText}
-          />
+          <MjpegStreamer src={streamUrl} altText={altText} />
         )
       )}
     </div>
