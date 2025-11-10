@@ -2,9 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Device, ColorScheme } from '../types';
 import LoadingSpinner from './LoadingSpinner';
 import HistoryChart from './HistoryChart';
-// FIX: Change date-fns imports to submodule paths to fix "no exported member" error.
-import { subHours } from 'date-fns/subHours';
-import { subDays } from 'date-fns/subDays';
+// FIX: Import subHours and subDays from their specific subpaths to resolve module export error.
+import subHours from 'date-fns/subHours';
+import subDays from 'date-fns/subDays';
 import { Icon } from '@iconify/react';
 
 interface HistoryModalProps {
