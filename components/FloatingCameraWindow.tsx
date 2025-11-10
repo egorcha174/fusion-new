@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Device } from '../types';
-import { CameraStreamContent } from './DeviceCard';
+import { CameraStreamContent } from './CameraStreamContent';
 
 // --- Типы для пропсов ---
 interface FloatingCameraWindowProps {

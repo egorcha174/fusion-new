@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ClockSettings, Device, ClockSize, CameraSettings, ColorScheme } from '../types';
-import { CameraStreamContent } from './DeviceCard';
+import { CameraStreamContent } from './CameraStreamContent';
 import ContextMenu from './ContextMenu';
 import WeatherWidget from './WeatherWidget';
 import { useAppStore } from '../store/appStore';

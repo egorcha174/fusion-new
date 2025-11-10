@@ -253,8 +253,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
   if (!isPlaying) {
     return (
       <div 
-        className="relative w-full h-full bg-black flex items-center justify-center group cursor-pointer" 
-        onClick={() => { if (entityId) setIsPlaying(true); }}
+        className="relative w-full h-full bg-black flex items-center justify-center group" 
       >
         {loadState === 'loading' && <LoadingIndicator />}
         {loadState === 'error' && <ErrorIndicator />}
@@ -265,10 +264,16 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
               className="w-full h-full border-0 bg-black object-contain"
               alt={altText}
             />
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-[5]">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-white/80" style={{filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))'}} viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-              </svg>
+            <div className="absolute inset-0 flex items-end justify-start p-3 z-[5]">
+                <button 
+                    onClick={(e) => { e.stopPropagation(); if (entityId) setIsPlaying(true); }}
+                    className="bg-black/30 backdrop-blur-sm rounded-full p-2 hover:bg-black/50 transition-all opacity-0 group-hover:opacity-100"
+                    title="Воспроизвести"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white/90" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                    </svg>
+                </button>
             </div>
           </>
         )}
