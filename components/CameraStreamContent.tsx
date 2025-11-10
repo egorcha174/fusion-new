@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Hls from 'hls.js';
 import { constructHaUrl } from '../utils/url';
@@ -129,7 +130,7 @@ interface CameraStreamContentProps {
   entityId?: string | null;
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
-  getCameraStreamUrl: (entityId: string) => Promise<string>;
+  getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
   altText?: string;
 }
 
@@ -196,13 +197,15 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
       
       // First, try HLS
       try {
-        const hlsUrlPath = await getCameraStreamUrl(entityId);
-        if (isMounted) {
-          const finalUrl = constructHaUrl(haUrl, hlsUrlPath, 'http');
+        const streamData = await getCameraStreamUrl(entityId);
+        if (isMounted && streamData && streamData.url) {
+          const finalUrl = constructHaUrl(haUrl, streamData.url, 'http');
           setStreamUrl(finalUrl);
           setStreamType('hls');
           setLoadState('loaded'); // HLS player has its own internal loading state
           return;
+        } else if (isMounted) {
+          throw new Error('API returned no stream URL.');
         }
       } catch (err) {
         console.warn(`HLS stream failed for ${entityId}, falling back to MJPEG. Error:`, err);

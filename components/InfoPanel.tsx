@@ -72,7 +72,7 @@ interface CameraWidgetProps {
     onCameraWidgetClick: (device: Device) => void;
     haUrl: string;
     signPath: (path: string) => Promise<{ path: string }>;
-    getCameraStreamUrl: (entityId: string) => Promise<string>;
+    getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
 }
 
 const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettingsChange, onCameraWidgetClick, haUrl, signPath, getCameraStreamUrl }) => {
@@ -164,7 +164,7 @@ interface InfoPanelProps {
     onCameraWidgetClick: (device: Device) => void;
     haUrl: string;
     signPath: (path: string) => Promise<{ path: string }>;
-    getCameraStreamUrl: (entityId: string) => Promise<string>;
+    getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
     getConfig: () => Promise<any>;
     colorScheme: ColorScheme['light'];
 }

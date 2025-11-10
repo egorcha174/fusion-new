@@ -8,7 +8,7 @@ interface FloatingCameraWindowProps {
   onClose: () => void;
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
-  getCameraStreamUrl: (entityId: string) => Promise<string>;
+  getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
 }
 
 // --- Минимальные размеры окна ---

@@ -195,7 +195,7 @@ interface DashboardGridProps {
     onOpenColorPicker: (event: React.MouseEvent, baseKey: string, targetName: string, isTextElement: boolean, isOn: boolean) => void;
     haUrl: string;
     signPath: (path: string) => Promise<{ path: string }>;
-    getCameraStreamUrl: (entityId: string) => Promise<string>;
+    getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
     templates: CardTemplates;
     customizations: DeviceCustomizations;
     colorScheme: ColorScheme['light'];

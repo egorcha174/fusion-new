@@ -30,7 +30,7 @@ interface HAActions {
   disconnect: () => void;
   callService: (domain: string, service: string, service_data: object) => void;
   signPath: (path: string) => Promise<{ path: string }>;
-  getCameraStreamUrl: (entityId: string) => Promise<string>;
+  getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
   getConfig: () => Promise<any>;
   getHistory: (entityIds: string[], startTime: string, endTime?: string) => Promise<any>;
 
@@ -212,7 +212,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     getCameraStreamUrl: (entityId) => new Promise((resolve, reject) => {
         const id = messageIdRef++;
         cameraStreamCallbacks.set(id, { resolve, reject });
-        sendMessage({ id, type: 'camera/hls_path', entity_id: entityId });
+        sendMessage({ id, type: 'camera/stream', entity_id: entityId });
     }),
     getConfig: () => new Promise((resolve, reject) => {
         const id = messageIdRef++;

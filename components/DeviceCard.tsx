@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement, DeviceCustomizations, ColorScheme } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -105,7 +106,7 @@ interface DeviceCardProps {
   onRemoveFromTab?: () => void;
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
-  getCameraStreamUrl: (entityId: string) => Promise<string>;
+  getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
   template?: CardTemplate;
   openMenuDeviceId?: string | null;
   setOpenMenuDeviceId?: (id: string | null) => void;
