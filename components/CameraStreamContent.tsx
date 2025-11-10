@@ -217,7 +217,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
       try {
         const result = await signPath(`/api/camera_proxy/${entityId}`);
         if (isMounted) {
-          const pathWithCacheBuster = `${result.path}?t=${new Date().getTime()}`;
+          const pathWithCacheBuster = `${result.path}&t=${new Date().getTime()}`;
           const finalUrl = constructHaUrl(haUrl, pathWithCacheBuster, 'http');
           setStreamUrl(finalUrl);
           setStreamType('mjpeg');
