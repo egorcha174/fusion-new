@@ -216,7 +216,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
 
       // Fallback to MJPEG
       try {
-        const result = await signPath(`/api/camera_proxy/${entityId}`);
+        const result = await signPath(`/api/camera_proxy_stream/${entityId}`);
         if (isMounted) {
           const pathWithCacheBuster = `${result.path}&t=${new Date().getTime()}`;
           const finalUrl = constructHaUrl(haUrl, pathWithCacheBuster, 'http');
