@@ -370,7 +370,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                         const height = firstItem.height || 1;
                         const groupHasOpenMenu = group.some(item => item.deviceId === openMenuDeviceId);
                         const groupIsActive = group.some(item => item.deviceId === activeId);
-                        const isSingleHalf = group.length === 1 && firstItem.height === 0.5;
+                        
+                        const isStackedPair = group.length === 2 && group.every(item => item.height === 0.5);
 
                         return (
                              <div
@@ -380,7 +381,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                                     gridRow: `${firstItem.row + 1} / span ${Math.ceil(height)}`,
                                     zIndex: groupHasOpenMenu ? 40 : (groupIsActive ? 0 : 1),
                                 }}
-                                className={`flex flex-col ${group.length > 1 && group.every(item => item.height === 0.5) ? 'gap-2' : ''}`}
+                                className={`flex flex-col ${isStackedPair ? 'gap-4' : ''}`}
                             >
                                 {group.map(item => {
                                     const device = allKnownDevices.get(item.deviceId);
@@ -401,8 +402,16 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                                         templateToUse = templates[DEFAULT_CLIMATE_TEMPLATE_ID];
                                     }
                                     
+                                    const isSingleHalf = group.length === 1 && item.height === 0.5;
+
+                                    const wrapperClass = isStackedPair
+                                        ? 'h-[calc(50%-8px)]'
+                                        : isSingleHalf
+                                            ? 'h-1/2'
+                                            : 'h-full';
+
                                     return (
-                                        <div key={item.deviceId} className={isSingleHalf ? 'h-1/2' : 'flex-1 min-h-0'}>
+                                        <div key={item.deviceId} className={wrapperClass}>
                                             <DraggableDevice 
                                               device={device} 
                                               template={templateToUse}
