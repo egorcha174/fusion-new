@@ -1,4 +1,5 @@
 
+
 import React, { useRef, useState, useLayoutEffect, useMemo } from 'react';
 import {
   DndContext,
@@ -292,8 +293,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         tab.layout.forEach(item => {
             const width = item.width || 1;
             const height = item.height || 1;
-            for (let r = 0; r < height; r++) {
-                for (let c = 0; c < width; c++) {
+            for (let r = 0; r < Math.ceil(height); r++) {
+                for (let c = 0; c < Math.ceil(width); c++) {
                     cells.add(`${item.col + c},${item.row + r}`);
                 }
             }
@@ -374,8 +375,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                              <div
                                 key={`${firstItem.col}-${firstItem.row}`}
                                 style={{
-                                    gridColumn: `${firstItem.col + 1} / span ${width}`,
-                                    gridRow: `${firstItem.row + 1} / span ${height}`,
+                                    gridColumn: `${firstItem.col + 1} / span ${Math.ceil(width)}`,
+                                    gridRow: `${firstItem.row + 1} / span ${Math.ceil(height)}`,
                                     zIndex: groupHasOpenMenu ? 40 : (groupIsActive ? 0 : 1),
                                 }}
                                 className={`flex flex-col ${group.length > 1 ? 'gap-2' : ''}`}

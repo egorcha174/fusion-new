@@ -1,4 +1,5 @@
 
+
 import React, { useMemo, useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import useHomeAssistant from './hooks/useHomeAssistant';
@@ -698,10 +699,10 @@ const handleOpenColorPicker = useCallback((
         if (tab.id === tabId && !tab.layout.some(item => item.deviceId === deviceId)) {
             const device = allKnownDevices.get(deviceId)!;
             const template = getTemplateForDeviceCallback(device);
-            const templateHeight = template?.height || 1;
             const templateWidth = template?.width || 1;
+            const templateHeight = template?.height || 1;
             
-            if (templateHeight === 0.5 && templateWidth === 1) {
+            if (templateWidth === 1 && templateHeight === 0.5) {
                 const layoutByCell = new Map<string, GridLayoutItem[]>();
                 tab.layout.forEach(item => {
                     const key = `${item.col},${item.row}`;
@@ -711,39 +712,59 @@ const handleOpenColorPicker = useCallback((
 
                 for (const [key, itemsInCell] of layoutByCell.entries()) {
                     if (itemsInCell.length === 1) {
-                        const existingItemDevice = allKnownDevices.get(itemsInCell[0].deviceId)!;
+                        const existingItem = itemsInCell[0];
+                        const existingItemDevice = allKnownDevices.get(existingItem.deviceId)!;
                         const existingItemTemplate = getTemplateForDeviceCallback(existingItemDevice);
-                        if (existingItemTemplate?.height === 0.5 && existingItemTemplate?.width === 1) {
+                        if (existingItemTemplate?.width === 1 && existingItemTemplate?.height === 0.5) {
                             const [col, row] = key.split(',').map(Number);
-                            const newLayoutItem: GridLayoutItem = { deviceId, col, row, width: 1, height: 1 };
+                            const newLayoutItem: GridLayoutItem = { deviceId, col, row, width: 1, height: 0.5 };
                             return { ...tab, layout: [...tab.layout, newLayoutItem] };
                         }
                     }
                 }
             }
-
-            // Find the first empty cell
+            
             const { cols, rows } = tab.gridSettings;
             let emptyCell: { col: number, row: number } | null = null;
             
-            const occupiedCells = new Set(tab.layout.map(item => `${item.col},${item.row}`));
+            const occupiedCells = new Set<string>();
+            tab.layout.forEach(item => {
+                const w = Math.ceil(item.width || 1);
+                const h = Math.ceil(item.height || 1);
+                for (let r_offset = 0; r_offset < h; r_offset++) {
+                    for (let c_offset = 0; c_offset < w; c_offset++) {
+                        occupiedCells.add(`${item.col + c_offset},${item.row + r_offset}`);
+                    }
+                }
+            });
 
-            for (let r = 0; r < rows; r++) {
-                for (let c = 0; c < cols; c++) {
-                    if (!occupiedCells.has(`${c},${r}`)) {
+            const requiredWidth = Math.ceil(templateWidth);
+            const requiredHeight = Math.ceil(templateHeight);
+
+            for (let r = 0; r <= rows - requiredHeight; r++) {
+                for (let c = 0; c <= cols - requiredWidth; c++) {
+                    let isBlockFree = true;
+                    for (let r_offset = 0; r_offset < requiredHeight; r_offset++) {
+                        for (let c_offset = 0; c_offset < requiredWidth; c_offset++) {
+                            if (occupiedCells.has(`${c + c_offset},${r + r_offset}`)) {
+                                isBlockFree = false;
+                                break;
+                            }
+                        }
+                        if (!isBlockFree) break;
+                    }
+
+                    if (isBlockFree) {
                         emptyCell = { col: c, row: r };
                         break;
                     }
                 }
                 if (emptyCell) break;
             }
-            
+
             if (emptyCell) {
-                const newLayoutItem: GridLayoutItem = { deviceId, col: emptyCell.col, row: emptyCell.row, width: 1, height: 1 };
-                return { 
-                    ...tab, 
-                    layout: [...tab.layout, newLayoutItem]
-                };
+                const newLayoutItem: GridLayoutItem = { deviceId, col: emptyCell.col, row: emptyCell.row, width: templateWidth, height: templateHeight };
+                return { ...tab, layout: [...tab.layout, newLayoutItem] };
             } else {
                 console.warn(`Tab "${tab.name}" is full. Cannot add device "${deviceId}".`);
             }
@@ -880,6 +901,8 @@ const handleOpenColorPicker = useCallback((
     const originalDevice = allKnownDevices.get(deviceId);
     if (!originalDevice) return;
     
+    const oldCustomization = customizations[deviceId] || {};
+
     setCustomizations(prev => {
         const newCustomizations = { ...prev };
         const currentCustomization: Partial<DeviceCustomization> = { ...newCustomizations[deviceId] };
@@ -935,8 +958,32 @@ const handleOpenColorPicker = useCallback((
         
         return newCustomizations;
     });
+
+    const newTemplateId = newValues.templateId;
+    const oldTemplateId = oldCustomization.templateId;
+
+    if (newTemplateId !== oldTemplateId) {
+      const template = templates[newTemplateId || ''];
+      if (template && (template.width || template.height)) {
+        const newWidth = template.width || 1;
+        const newHeight = template.height || 1;
+        setTabs(prevTabs =>
+          prevTabs.map(tab => {
+            const layout = tab.layout;
+            const itemIndex = layout.findIndex(item => item.deviceId === deviceId);
+            if (itemIndex > -1) {
+              const newLayout = [...layout];
+              newLayout[itemIndex] = { ...newLayout[itemIndex], width: newWidth, height: newHeight };
+              return { ...tab, layout: newLayout };
+            }
+            return tab;
+          })
+        );
+      }
+    }
+    
     setEditingDevice(null);
-  }, [allKnownDevices, setCustomizations]);
+  }, [allKnownDevices, setCustomizations, customizations, templates, setTabs]);
   
    const handleToggleVisibility = useCallback((deviceId: string, isHidden: boolean) => {
     const currentCustomization = customizations[deviceId] || {};
