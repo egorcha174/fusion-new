@@ -1,5 +1,7 @@
 
-import { Tab, GridLayoutItem, CardTemplates, CardElement, CardTemplate } from '../types';
+
+
+import { Tab, GridLayoutItem, CardTemplates, CardElement, CardTemplate, ColorScheme } from '../types';
 
 /**
  * Загружает данные из localStorage и применяет миграции, если структура данных устарела.
@@ -50,6 +52,26 @@ export function loadAndMigrate<T>(key: string, initialValue: T): T {
 
         return tab;
       });
+    }
+
+    if (key === 'ha-color-scheme') {
+        const defaultScheme = initialValue as ColorScheme;
+        
+        const migrateSchemeSet = (loadedSet: any, defaultSet: any): any => {
+            if (!loadedSet || typeof loadedSet !== 'object') {
+                return defaultSet;
+            }
+            // Переименовываем старое свойство
+            if (loadedSet.dashboardBackground && !loadedSet.dashboardBackgroundColor1) {
+                loadedSet.dashboardBackgroundColor1 = loadedSet.dashboardBackground;
+                delete loadedSet.dashboardBackground;
+            }
+            // Объединяем, чтобы добавить новые свойства из default
+            return { ...defaultSet, ...loadedSet };
+        };
+
+        parsedItem.light = migrateSchemeSet(parsedItem.light, defaultScheme.light);
+        parsedItem.dark = migrateSchemeSet(parsedItem.dark, defaultScheme.dark);
     }
     
     // Миграция для шаблонов карточек ('ha-card-templates')

@@ -5,10 +5,12 @@
 
 
 import React, { useRef, useState } from 'react';
-import { ClockSettings, ClockSize, CardTemplates, CardTemplate, ColorScheme, DeviceType } from '../types';
+import { ClockSettings, ClockSize, CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet } from '../types';
 import ConfirmDialog from './ConfirmDialog';
 import { useAppStore } from '../store/appStore';
 import { useHAStore } from '../store/haStore';
+import JSZip from 'jszip';
+import { Icon } from '@iconify/react';
 
 // Тип для статуса WebSocket-соединения
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'failed';
@@ -54,7 +56,7 @@ const Settings: React.FC<SettingsProps> = (props) => {
       templates, setEditingTemplate, handleDeleteTemplate,
       colorScheme, setColorScheme, onResetColorScheme,
       isSidebarVisible, setIsSidebarVisible, createNewBlankTemplate,
-      openWeatherMapKey, setOpenWeatherMapKey
+      openWeatherMapKey, setOpenWeatherMapKey, theme
   } = useAppStore();
     
   // Локальное состояние для полей URL и токена. Инициализируется из localStorage.
@@ -67,6 +69,8 @@ const Settings: React.FC<SettingsProps> = (props) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const themeFileInputRef = useRef<HTMLInputElement>(null);
   const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
+  const bgImageLightInputRef = useRef<HTMLInputElement>(null);
+  const bgImageDarkInputRef = useRef<HTMLInputElement>(null);
 
 
   // Обработчик нажатия на кнопку "Подключиться".
@@ -164,58 +168,82 @@ const Settings: React.FC<SettingsProps> = (props) => {
     reader.readAsText(file);
   };
 
-  const handleExportTheme = () => {
+  const handleExportTheme = async () => {
     try {
-      const themeToExport = {
-        'ha-dashboard-theme-version': 1,
-        'exported-at': new Date().toISOString(),
-        colorScheme,
-      };
-      const blob = new Blob([JSON.stringify(themeToExport, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const date = new Date().toISOString().slice(0, 10);
-      a.download = `ha-dashboard-theme-${date}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+        const zip = new JSZip();
+        const themeToExport = {
+            'ha-dashboard-theme-version': 2,
+            'exported-at': new Date().toISOString(),
+            colorScheme,
+        };
+
+        zip.file("theme.json", JSON.stringify(themeToExport, null, 2));
+
+        const blob = await zip.generateAsync({ type: "blob" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const date = new Date().toISOString().slice(0, 10);
+        a.download = `ha-dashboard-theme-${date}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     } catch (err) {
-      console.error("Failed to export theme:", err);
-      alert("Не удалось экспортировать тему.");
+        console.error("Failed to export theme:", err);
+        alert("Не удалось экспортировать тему.");
     }
   };
 
-  const handleImportTheme = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
+  const handleImportTheme = async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
       try {
-        const text = e.target?.result;
-        if (typeof text !== 'string') throw new Error("File content is not a string.");
-        const importedData = JSON.parse(text);
+          const zip = await JSZip.loadAsync(file);
+          const themeFile = zip.file("theme.json");
 
-        const importedScheme = importedData.colorScheme;
-        if (!importedScheme || !importedScheme.light || !importedScheme.dark || !importedScheme.light.dashboardBackground || !importedScheme.dark.dashboardBackground) {
-          throw new Error("Неверный формат файла темы. Отсутствуют необходимые ключи.");
-        }
+          if (!themeFile) {
+              throw new Error("Неверный архив темы: отсутствует файл theme.json.");
+          }
 
-        if (window.confirm("Вы уверены, что хотите импортировать новую цветовую схему? Это перезапишет текущие настройки цветов.")) {
-          setColorScheme(importedScheme);
-          alert("Цветовая схема успешно импортирована.");
-        }
+          const text = await themeFile.async("string");
+          const importedData = JSON.parse(text);
+
+          const importedScheme = importedData.colorScheme;
+          if (!importedScheme || !importedScheme.light || !importedScheme.dark) {
+              throw new Error("Неверный формат файла темы.");
+          }
+
+          if (window.confirm("Вы уверены, что хотите импортировать новую тему? Это перезапишет текущие настройки цветов и фона.")) {
+              setColorScheme(importedScheme);
+              alert("Тема успешно импортирована.");
+          }
       } catch (err: any) {
-        console.error("Failed to import theme:", err);
-        alert(`Не удалось импортировать тему: ${err.message}`);
+          console.error("Failed to import theme:", err);
+          alert(`Не удалось импортировать тему: ${err.message}`);
       } finally {
-        if (themeFileInputRef.current) {
-          themeFileInputRef.current.value = "";
-        }
+          if (themeFileInputRef.current) {
+              themeFileInputRef.current.value = "";
+          }
       }
-    };
-    reader.readAsText(file);
+  };
+
+  const updateColorSchemeField = (theme: 'light' | 'dark', field: keyof ColorThemeSet, value: any) => {
+    const newScheme = JSON.parse(JSON.stringify(colorScheme));
+    newScheme[theme][field] = value;
+    setColorScheme(newScheme);
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, theme: 'light' | 'dark') => {
+      const file = e.target.files?.[0];
+      if (file && file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+              const base64 = event.target?.result as string;
+              updateColorSchemeField(theme, 'dashboardBackgroundImage', base64);
+          };
+          reader.readAsDataURL(file);
+      }
   };
 
   const isLoading = connectionStatus === 'connecting';
@@ -257,19 +285,60 @@ const Settings: React.FC<SettingsProps> = (props) => {
 
             {/* Секция настроек цветовой схемы */}
             <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Цветовая схема</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Внешний вид</h2>
                 <div className="space-y-4">
+                   {/* Фон дашборда */}
                     <div>
-                        <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Светлая тема</h3>
-                        <div className="space-y-2">
-                           {/* ... UI для настройки цветов светлой темы ... */}
-                        </div>
+                        <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Фон дашборда</h3>
+                        {([ 'light', 'dark'] as const).map(themeKey => (
+                            <div key={themeKey} className="bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg mb-3">
+                                <p className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-3">{themeKey === 'light' ? 'Светлая тема' : 'Темная тема'}</p>
+                                <div className="flex gap-1 bg-gray-200 dark:bg-gray-900/50 p-1 rounded-lg mb-3">
+                                    {(['color', 'gradient', 'image'] as const).map(type => (
+                                        <button key={type} onClick={() => updateColorSchemeField(themeKey, 'dashboardBackgroundType', type)}
+                                            className={`flex-1 text-xs font-semibold py-1 rounded-md transition-colors ${colorScheme[themeKey].dashboardBackgroundType === type ? 'bg-white dark:bg-gray-700 shadow-sm' : 'hover:bg-white/50 dark:hover:bg-gray-800/50'}`}>
+                                            {type === 'color' ? 'Цвет' : type === 'gradient' ? 'Градиент' : 'Изображение'}
+                                        </button>
+                                    ))}
+                                </div>
+                                {colorScheme[themeKey].dashboardBackgroundType === 'color' && (
+                                    <ColorSettingRow label="Цвет фона" value={colorScheme[themeKey].dashboardBackgroundColor1} onChange={v => updateColorSchemeField(themeKey, 'dashboardBackgroundColor1', v)} />
+                                )}
+                                {colorScheme[themeKey].dashboardBackgroundType === 'gradient' && (
+                                    <div className="space-y-2">
+                                        <ColorSettingRow label="Цвет 1" value={colorScheme[themeKey].dashboardBackgroundColor1} onChange={v => updateColorSchemeField(themeKey, 'dashboardBackgroundColor1', v)} />
+                                        <ColorSettingRow label="Цвет 2" value={colorScheme[themeKey].dashboardBackgroundColor2 || '#ffffff'} onChange={v => updateColorSchemeField(themeKey, 'dashboardBackgroundColor2', v)} />
+                                    </div>
+                                )}
+                                {colorScheme[themeKey].dashboardBackgroundType === 'image' && (
+                                    <div className="space-y-3">
+                                        <div className="flex gap-2">
+                                            {colorScheme[themeKey].dashboardBackgroundImage && <img src={colorScheme[themeKey].dashboardBackgroundImage} className="w-16 h-10 object-cover rounded-md" />}
+                                            <button onClick={() => (themeKey === 'light' ? bgImageLightInputRef : bgImageDarkInputRef).current?.click()} className="flex-1 text-center bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm p-2 rounded-lg">Загрузить...</button>
+                                            <input type="file" accept="image/*" ref={themeKey === 'light' ? bgImageLightInputRef : bgImageDarkInputRef} onChange={(e) => handleImageUpload(e, themeKey)} className="hidden"/>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-gray-500 dark:text-gray-400">Размытие: {colorScheme[themeKey].dashboardBackgroundImageBlur || 0}px</label>
+                                            <input type="range" min="0" max="20" value={colorScheme[themeKey].dashboardBackgroundImageBlur || 0} onChange={e => updateColorSchemeField(themeKey, 'dashboardBackgroundImageBlur', parseInt(e.target.value))} className="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"/>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-gray-500 dark:text-gray-400">Яркость: {colorScheme[themeKey].dashboardBackgroundImageBrightness || 100}%</label>
+                                            <input type="range" min="20" max="150" value={colorScheme[themeKey].dashboardBackgroundImageBrightness || 100} onChange={e => updateColorSchemeField(themeKey, 'dashboardBackgroundImageBrightness', parseInt(e.target.value))} className="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"/>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
                     </div>
-                     <div>
-                        <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Темная тема</h3>
-                        <div className="space-y-2">
-                           {/* ... UI для настройки цветов темной темы ... */}
-                        </div>
+                    {/* Прозрачность карточек */}
+                    <div>
+                         <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Карточки</h3>
+                          {(['light', 'dark'] as const).map(themeKey => (
+                            <div key={themeKey} className="bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg mb-3">
+                                <label className="text-xs text-gray-500 dark:text-gray-400">Прозрачность ({themeKey === 'light' ? 'Светлая тема' : 'Темная тема'}): {Math.round((colorScheme[themeKey].cardOpacity ?? 1) * 100)}%</label>
+                                <input type="range" min="0.2" max="1" step="0.05" value={colorScheme[themeKey].cardOpacity ?? 1} onChange={e => updateColorSchemeField(themeKey, 'cardOpacity', parseFloat(e.target.value))} className="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"/>
+                            </div>
+                          ))}
                     </div>
                     <button onClick={onResetColorScheme} className="w-full text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600/80 rounded-md py-2 transition-colors">
                         Сбросить цвета
@@ -322,11 +391,11 @@ const Settings: React.FC<SettingsProps> = (props) => {
             <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Управление темами</h2>
                 <div className="space-y-4">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Экспортируйте вашу текущую цветовую схему, чтобы поделиться ей, или импортируйте новую.</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Экспортируйте вашу текущую тему, чтобы поделиться ей, или импортируйте новую. Темы включают настройки цветов и фона.</p>
                     <div className="flex gap-4">
                         <button onClick={handleExportTheme} className="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Экспорт темы</button>
                         <button onClick={() => themeFileInputRef.current?.click()} className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Импорт темы</button>
-                        <input type="file" ref={themeFileInputRef} onChange={handleImportTheme} accept="application/json" className="hidden" />
+                        <input type="file" ref={themeFileInputRef} onChange={handleImportTheme} accept=".zip" className="hidden" />
                     </div>
                 </div>
             </div>

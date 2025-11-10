@@ -1,9 +1,14 @@
 {
-  "ha-dashboard-theme-version": 1,
+  "ha-dashboard-theme-version": 2,
   "exported-at": "2024-07-26T12:00:00.000Z",
   "colorScheme": {
     "light": {
-      "dashboardBackground": "#E9EEF6",
+      "dashboardBackgroundType": "gradient",
+      "dashboardBackgroundColor1": "#E9EEF6",
+      "dashboardBackgroundColor2": "#DDE6F1",
+      "dashboardBackgroundImageBlur": 0,
+      "dashboardBackgroundImageBrightness": 100,
+      "cardOpacity": 0.85,
       "sidebarBackground": "rgba(240, 245, 255, 0.7)",
       "cardBackground": "rgba(233, 239, 246, 0.8)",
       "cardBackgroundOn": "rgba(255, 255, 255, 0.85)",
@@ -43,7 +48,12 @@
       "unitTextFontSizeOn": 52
     },
     "dark": {
-      "dashboardBackground": "#0D1117",
+      "dashboardBackgroundType": "color",
+      "dashboardBackgroundColor1": "#0D1117",
+      "dashboardBackgroundColor2": "#1F2937",
+      "dashboardBackgroundImageBlur": 0,
+      "dashboardBackgroundImageBrightness": 100,
+      "cardOpacity": 0.8,
       "sidebarBackground": "rgba(23, 30, 46, 0.75)",
       "cardBackground": "rgba(42, 53, 77, 0.8)",
       "cardBackgroundOn": "rgba(87, 102, 133, 0.8)",

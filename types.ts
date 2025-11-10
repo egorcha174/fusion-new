@@ -1,5 +1,6 @@
 
 
+
 /**
  * Перечисление всех возможных типов устройств, используемых в приложении.
  * Это внутреннее представление, которое используется для определения иконки,
@@ -149,7 +150,17 @@ export interface CameraSettings {
  * Определяет все цвета, используемые в интерфейсе.
  */
 export interface ColorThemeSet {
-  dashboardBackground: string;
+  // Настройки фона
+  dashboardBackgroundType: 'color' | 'gradient' | 'image';
+  dashboardBackgroundColor1: string;
+  dashboardBackgroundColor2?: string;
+  dashboardBackgroundImage?: string; // base64 data URL
+  dashboardBackgroundImageBlur?: number; // в пикселях
+  dashboardBackgroundImageBrightness?: number; // в процентах
+  
+  // Настройки карточек
+  cardOpacity?: number; // 0-1
+
   sidebarBackground: string;
   cardBackground: string;
   cardBackgroundOn: string;

@@ -194,6 +194,27 @@ const App: React.FC = () => {
     const isDark = useMemo(() => theme === 'night' || (theme === 'auto' && isSystemDark), [theme, isSystemDark]);
     const currentColorScheme = useMemo(() => isDark ? colorScheme.dark : colorScheme.light, [isDark, colorScheme]);
 
+    // Мемоизированный стиль для фона дашборда
+    const backgroundStyle = useMemo(() => {
+        const scheme = currentColorScheme;
+        const style: React.CSSProperties = {};
+        switch (scheme.dashboardBackgroundType) {
+            case 'gradient':
+                style.backgroundImage = `linear-gradient(160deg, ${scheme.dashboardBackgroundColor1}, ${scheme.dashboardBackgroundColor2 || scheme.dashboardBackgroundColor1})`;
+                break;
+            case 'image':
+                style.backgroundImage = `url(${scheme.dashboardBackgroundImage})`;
+                style.backgroundSize = 'cover';
+                style.backgroundPosition = 'center';
+                style.filter = `blur(${scheme.dashboardBackgroundImageBlur || 0}px) brightness(${scheme.dashboardBackgroundImageBrightness || 100}%)`;
+                break;
+            case 'color':
+            default:
+                style.backgroundColor = scheme.dashboardBackgroundColor1;
+                break;
+        }
+        return style;
+    }, [currentColorScheme]);
 
   // --- Обработчики Контекстного Меню ---
 
@@ -451,176 +472,179 @@ const handleOpenColorPicker = useCallback((
 
   // Основная JSX-разметка приложения.
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: currentColorScheme.dashboardBackground }} onContextMenu={handleGlobalContextMenu} data-style-key="dashboardBackground" data-style-name="Фон дашборда" data-style-origin="scheme">
-      {isSidebarVisible && (
-      <Suspense fallback={<div className="bg-gray-900" style={{ width: `${sidebarWidth}px` }} />}>
-        <InfoPanel 
-          sidebarWidth={sidebarWidth} 
-          setSidebarWidth={setSidebarWidth}
-          cameras={allCameras}
-          cameraSettings={cameraSettings}
-          onCameraSettingsChange={setCameraSettings}
-          onCameraWidgetClick={setFloatingCamera}
-          haUrl={haUrl}
-          signPath={signPath}
-          getCameraStreamUrl={getCameraStreamUrl}
-          getConfig={getConfig}
-          colorScheme={currentColorScheme}
-        />
-      </Suspense>
-      )}
-      <div className="flex flex-col flex-1" style={{ marginLeft: isLg && isSidebarVisible ? `${sidebarWidth}px` : '0px' }}>
-        <Suspense fallback={<div className="h-[73px] bg-gray-900 border-b border-gray-700/50" />}>
-            <DashboardHeader />
-        </Suspense>
-        <main className="flex-1 overflow-y-auto">
-          <Suspense fallback={<div className="flex h-full w-full items-center justify-center"><LoadingSpinner /></div>}>
-            <div className="container mx-auto h-full">
-              <div key={currentPage + (activeTab?.id || '')} className="fade-in h-full">
-                {renderPage()}
-              </div>
-            </div>
-          </Suspense>
-        </main>
-      </div>
-      
-      {/* Секция для модальных окон и оверлеев. Они рендерятся здесь, чтобы быть поверх всего контента. */}
-      <Suspense fallback={null}>
-        {editingDevice && (
-          <DeviceSettingsModal 
-            device={editingDevice} 
-            onClose={() => setEditingDevice(null)}
-          />
-        )}
-        {editingTab && (
-          <TabSettingsModal 
-            tab={editingTab} 
-            onClose={() => setEditingTab(null)}
-          />
-        )}
-        {editingTemplate && (
-          <TemplateEditorModal
-              templateToEdit={editingTemplate === 'new' ? createNewBlankTemplate(DeviceType.Sensor) : editingTemplate}
-              onClose={() => setEditingTemplate(null)}
-          />
-        )}
-        
-        {historyModalEntityId && (
-          <HistoryModal
-            entityId={historyModalEntityId}
-            onClose={() => setHistoryModalEntityId(null)}
-            getHistory={getHistory}
-            allKnownDevices={allKnownDevices}
-            colorScheme={currentColorScheme}
-            decimalPlaces={historyDecimalPlaces}
-          />
-        )}
-
-        {contextMenu && (
-          <ContextMenu
-            x={contextMenu.x}
-            y={contextMenu.y}
-            isOpen={!!contextMenu}
-            onClose={handleCloseContextMenu}
-          >
-              {/* Рендеринг пунктов контекстного меню для карточки устройства */}
-              {otherTabs.length > 0 && <div className="h-px bg-gray-300 dark:bg-gray-600/50 my-1" />}
-
-              {otherTabs.length > 0 && (
-                  <>
-                      <SubMenuItem title="Копировать в...">
-                          {otherTabs.map(tab => (
-                              <div key={tab.id} onClick={() => { if (contextMenuDevice) useAppStore.getState().handleDeviceAddToTab(contextMenuDevice, tab.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80">{tab.name}</div>
-                          ))}
-                      </SubMenuItem>
-
-                      <SubMenuItem title="Переместить в...">
-                           {otherTabs.map(tab => (
-                              <div key={tab.id} onClick={() => { if (contextMenuDevice) useAppStore.getState().handleDeviceMoveToTab(contextMenuDevice, contextMenu.tabId, tab.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80">{tab.name}</div>
-                          ))}
-                      </SubMenuItem>
-                  </>
-              )}
-
-              <div className="h-px bg-gray-300 dark:bg-gray-600/50 my-1" />
-              
-              <SubMenuItem title="Размер">
-                  {[
-                      {w: 1, h: 1},
-                      {w: 1, h: 0.5},
-                      {w: 2, h: 1},
-                      {w: 2, h: 2}, 
-                      {w: 3, h: 3},
-                      {w: 2, h: 3},
-                      {w: 3, h: 2}
-                  ].map(size => (
-                      <div 
-                          key={`${size.w}x${size.h}`} 
-                          onClick={() => { 
-                              useAppStore.getState().handleDeviceResizeOnTab(contextMenu.tabId, contextMenu.deviceId, size.w, size.h); 
-                              handleCloseContextMenu(); 
-                          }} 
-                          className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80"
-                      >
-                          {`${size.w} x ${String(size.h).replace('.', ',')}`}
-                      </div>
-                  ))}
-              </SubMenuItem>
-
-              <div className="h-px bg-gray-300 dark:bg-gray-600/50 my-1" />
-              
-              <div 
-                onClick={() => { 
-                  const deviceToEdit = allKnownDevices.get(contextMenu.deviceId);
-                  if (deviceToEdit) setEditingDevice(deviceToEdit);
-                  handleCloseContextMenu(); 
-                }} 
-                className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80"
-              >
-                  Редактировать
-              </div>
-
-              {isTemplateable && currentTemplate && (
-                <div 
-                    onClick={() => { 
-                        setEditingTemplate(currentTemplate);
-                        handleCloseContextMenu(); 
-                    }} 
-                    className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80"
-                >
-                    Редактировать шаблон
-                </div>
-              )}
-
-               <div 
-                  onClick={() => { useAppStore.getState().handleDeviceRemoveFromTab(contextMenu.deviceId, contextMenu.tabId); handleCloseContextMenu(); }} 
-                  className="px-3 py-1.5 rounded-md text-red-500 dark:text-red-400 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-300 cursor-pointer"
-              >
-                  Удалить с вкладки
-              </div>
-
-          </ContextMenu>
-        )}
-
-        {colorPickerMenu && (
-            <ColorPickerContextMenu
-                data={colorPickerMenu}
-                onClose={() => setColorPickerMenu(null)}
-            />
-        )}
-
-        {floatingCamera && haUrl && (
-          <FloatingCameraWindow
-            device={floatingCamera}
-            onClose={() => setFloatingCamera(null)}
+    <>
+      <div className="fixed inset-0 -z-10 transition-all duration-500" style={backgroundStyle} />
+      <div className="flex min-h-screen relative" onContextMenu={handleGlobalContextMenu}>
+        {isSidebarVisible && (
+        <Suspense fallback={<div className="bg-gray-900" style={{ width: `${sidebarWidth}px` }} />}>
+          <InfoPanel 
+            sidebarWidth={sidebarWidth} 
+            setSidebarWidth={setSidebarWidth}
+            cameras={allCameras}
+            cameraSettings={cameraSettings}
+            onCameraSettingsChange={setCameraSettings}
+            onCameraWidgetClick={setFloatingCamera}
             haUrl={haUrl}
             signPath={signPath}
             getCameraStreamUrl={getCameraStreamUrl}
+            getConfig={getConfig}
+            colorScheme={currentColorScheme}
           />
+        </Suspense>
         )}
-      </Suspense>
+        <div className="flex flex-col flex-1" style={{ marginLeft: isLg && isSidebarVisible ? `${sidebarWidth}px` : '0px' }}>
+          <Suspense fallback={<div className="h-[73px] bg-gray-900 border-b border-gray-700/50" />}>
+              <DashboardHeader />
+          </Suspense>
+          <main className="flex-1 overflow-y-auto">
+            <Suspense fallback={<div className="flex h-full w-full items-center justify-center"><LoadingSpinner /></div>}>
+              <div className="container mx-auto h-full">
+                <div key={currentPage + (activeTab?.id || '')} className="fade-in h-full">
+                  {renderPage()}
+                </div>
+              </div>
+            </Suspense>
+          </main>
+        </div>
+        
+        {/* Секция для модальных окон и оверлеев. Они рендерятся здесь, чтобы быть поверх всего контента. */}
+        <Suspense fallback={null}>
+          {editingDevice && (
+            <DeviceSettingsModal 
+              device={editingDevice} 
+              onClose={() => setEditingDevice(null)}
+            />
+          )}
+          {editingTab && (
+            <TabSettingsModal 
+              tab={editingTab} 
+              onClose={() => setEditingTab(null)}
+            />
+          )}
+          {editingTemplate && (
+            <TemplateEditorModal
+                templateToEdit={editingTemplate === 'new' ? createNewBlankTemplate(DeviceType.Sensor) : editingTemplate}
+                onClose={() => setEditingTemplate(null)}
+            />
+          )}
+          
+          {historyModalEntityId && (
+            <HistoryModal
+              entityId={historyModalEntityId}
+              onClose={() => setHistoryModalEntityId(null)}
+              getHistory={getHistory}
+              allKnownDevices={allKnownDevices}
+              colorScheme={currentColorScheme}
+              decimalPlaces={historyDecimalPlaces}
+            />
+          )}
 
-    </div>
+          {contextMenu && (
+            <ContextMenu
+              x={contextMenu.x}
+              y={contextMenu.y}
+              isOpen={!!contextMenu}
+              onClose={handleCloseContextMenu}
+            >
+                {/* Рендеринг пунктов контекстного меню для карточки устройства */}
+                {otherTabs.length > 0 && <div className="h-px bg-gray-300 dark:bg-gray-600/50 my-1" />}
+
+                {otherTabs.length > 0 && (
+                    <>
+                        <SubMenuItem title="Копировать в...">
+                            {otherTabs.map(tab => (
+                                <div key={tab.id} onClick={() => { if (contextMenuDevice) useAppStore.getState().handleDeviceAddToTab(contextMenuDevice, tab.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80">{tab.name}</div>
+                            ))}
+                        </SubMenuItem>
+
+                        <SubMenuItem title="Переместить в...">
+                             {otherTabs.map(tab => (
+                                <div key={tab.id} onClick={() => { if (contextMenuDevice) useAppStore.getState().handleDeviceMoveToTab(contextMenuDevice, contextMenu.tabId, tab.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80">{tab.name}</div>
+                            ))}
+                        </SubMenuItem>
+                    </>
+                )}
+
+                <div className="h-px bg-gray-300 dark:bg-gray-600/50 my-1" />
+                
+                <SubMenuItem title="Размер">
+                    {[
+                        {w: 1, h: 1},
+                        {w: 1, h: 0.5},
+                        {w: 2, h: 1},
+                        {w: 2, h: 2}, 
+                        {w: 3, h: 3},
+                        {w: 2, h: 3},
+                        {w: 3, h: 2}
+                    ].map(size => (
+                        <div 
+                            key={`${size.w}x${size.h}`} 
+                            onClick={() => { 
+                                useAppStore.getState().handleDeviceResizeOnTab(contextMenu.tabId, contextMenu.deviceId, size.w, size.h); 
+                                handleCloseContextMenu(); 
+                            }} 
+                            className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80"
+                        >
+                            {`${size.w} x ${String(size.h).replace('.', ',')}`}
+                        </div>
+                    ))}
+                </SubMenuItem>
+
+                <div className="h-px bg-gray-300 dark:bg-gray-600/50 my-1" />
+                
+                <div 
+                  onClick={() => { 
+                    const deviceToEdit = allKnownDevices.get(contextMenu.deviceId);
+                    if (deviceToEdit) setEditingDevice(deviceToEdit);
+                    handleCloseContextMenu(); 
+                  }} 
+                  className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80"
+                >
+                    Редактировать
+                </div>
+
+                {isTemplateable && currentTemplate && (
+                  <div 
+                      onClick={() => { 
+                          setEditingTemplate(currentTemplate);
+                          handleCloseContextMenu(); 
+                      }} 
+                      className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80"
+                  >
+                      Редактировать шаблон
+                  </div>
+                )}
+
+                 <div 
+                    onClick={() => { useAppStore.getState().handleDeviceRemoveFromTab(contextMenu.deviceId, contextMenu.tabId); handleCloseContextMenu(); }} 
+                    className="px-3 py-1.5 rounded-md text-red-500 dark:text-red-400 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-300 cursor-pointer"
+                >
+                    Удалить с вкладки
+                </div>
+
+            </ContextMenu>
+          )}
+
+          {colorPickerMenu && (
+              <ColorPickerContextMenu
+                  data={colorPickerMenu}
+                  onClose={() => setColorPickerMenu(null)}
+              />
+          )}
+
+          {floatingCamera && haUrl && (
+            <FloatingCameraWindow
+              device={floatingCamera}
+              onClose={() => setFloatingCamera(null)}
+              haUrl={haUrl}
+              signPath={signPath}
+              getCameraStreamUrl={getCameraStreamUrl}
+            />
+          )}
+        </Suspense>
+
+      </div>
+    </>
   );
 };
 

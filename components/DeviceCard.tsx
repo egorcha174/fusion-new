@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement, DeviceCustomizations, ColorScheme } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -7,6 +8,38 @@ import SparklineChart from './SparklineChart';
 import ThermostatDial from './ThermostatDial';
 import { Icon } from '@iconify/react';
 import { CameraStreamContent } from './CameraStreamContent';
+
+/**
+ * Применяет заданную прозрачность к строке цвета.
+ * @param color - Строка цвета (HEX или RGB).
+ * @param opacity - Прозрачность от 0 до 1.
+ * @returns - Строка цвета в формате RGBA.
+ */
+const applyOpacity = (color: string | undefined, opacity: number | undefined): string | undefined => {
+    if (color === undefined || opacity === undefined || opacity >= 1) return color;
+    if (opacity < 0) opacity = 0;
+
+    let r: number, g: number, b: number;
+
+    if (color.startsWith('#')) {
+        const hex = color.length === 4 ? `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}` : color;
+        if (hex.length !== 7) return color; // Invalid hex
+        r = parseInt(hex.slice(1, 3), 16);
+        g = parseInt(hex.slice(3, 5), 16);
+        b = parseInt(hex.slice(5, 7), 16);
+    } else if (color.startsWith('rgb')) {
+        const parts = color.match(/(\d+)/g);
+        if (!parts || parts.length < 3) return color;
+        [r, g, b] = parts.map(Number);
+    } else {
+        return color; // Can't parse, return as is
+    }
+
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return color;
+
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+};
+
 
 /**
  * Компонент для автоматического подбора размера шрифта текста, чтобы он помещался в контейнер.
@@ -581,7 +614,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
     return (
       <div
         className={`w-full h-full relative rounded-2xl transition-all duration-200 ease-in-out select-none ${hoverClass} ${cursorClass} shadow-lg ring-1 ring-black/5 dark:ring-white/10`}
-        style={{ backgroundColor: dynamicBackgroundColor, backdropFilter: 'blur(16px)' }}
+        style={{ backgroundColor: applyOpacity(dynamicBackgroundColor, colorScheme.cardOpacity), backdropFilter: 'blur(16px)' }}
         onContextMenu={onContextMenu}
         data-style-key="cardBackground" data-style-name="Фон карточки" data-style-origin="scheme" data-is-on={String(isOn)}
       >
@@ -757,7 +790,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
   const getCardStyle = (): React.CSSProperties => {
       if(template) return {};
       return { 
-          backgroundColor: isOn ? colorScheme.cardBackgroundOn : colorScheme.cardBackground,
+          backgroundColor: applyOpacity(isOn ? colorScheme.cardBackgroundOn : colorScheme.cardBackground, colorScheme.cardOpacity),
           backdropFilter: 'blur(16px)',
       };
   }
