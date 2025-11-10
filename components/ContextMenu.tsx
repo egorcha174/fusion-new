@@ -1,5 +1,6 @@
 
 
+
 import React, { useEffect, useRef, useState } from 'react';
 
 interface ContextMenuProps {
@@ -39,17 +40,26 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, isOpen, onClose, childr
       const menuRect = menuRef.current.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
+      const margin = 10; // Отступ от края экрана
 
       let newX = x;
       // Если меню выходит за правый край, сдвигаем его влево.
-      if (x + menuRect.width > viewportWidth) {
-        newX = viewportWidth - menuRect.width - 10;
+      if (x + menuRect.width > viewportWidth - margin) {
+        newX = viewportWidth - menuRect.width - margin;
+      }
+      // Если меню выходит за левый край, сдвигаем его вправо.
+      if (newX < margin) {
+          newX = margin;
       }
 
       let newY = y;
       // Если меню выходит за нижний край, сдвигаем его вверх.
-      if (y + menuRect.height > viewportHeight) {
-        newY = viewportHeight - menuRect.height - 10;
+      if (y + menuRect.height > viewportHeight - margin) {
+        newY = viewportHeight - menuRect.height - margin;
+      }
+       // Если меню выходит за верхний край, сдвигаем его вниз.
+      if (newY < margin) {
+          newY = margin;
       }
       
       setAdjustedX(newX);
@@ -65,18 +75,11 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, isOpen, onClose, childr
   return (
     <div
       ref={menuRef}
+      role="menu"
       className="fixed z-50 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-2xl ring-1 ring-black/10 dark:ring-white/10 p-1 text-sm text-gray-800 dark:text-gray-200 min-w-[180px] fade-in"
       style={{ top: adjustedY, left: adjustedX }}
     >
-      {/* Проходим по дочерним элементам, чтобы добавить им общий стиль при наведении */}
-      {React.Children.map(children, child => {
-        if (React.isValidElement<{ className?: string }>(child) && child.props.className) {
-          return React.cloneElement(child, {
-            className: `${child.props.className} hover:bg-gray-200 dark:hover:bg-gray-700/80`
-          });
-        }
-        return child;
-      })}
+      {children}
     </div>
   );
 };

@@ -27,6 +27,70 @@ const TemplateEditorModal = lazy(() => import('./components/TemplateEditorModal'
 const ColorPickerContextMenu = lazy(() => import('./components/ColorPickerContextMenu'));
 const HistoryModal = lazy(() => import('./components/HistoryModal'));
 
+/**
+ * Вспомогательный компонент для пунктов меню с выпадающими подменю.
+ * Динамически определяет, в какую сторону открывать подменю, чтобы оно не вышло за пределы экрана.
+ */
+const SubMenuItem: React.FC<{
+    children: React.ReactNode;
+    title: string;
+}> = ({ children, title }) => {
+    const itemRef = useRef<HTMLDivElement>(null);
+    // State to hold the dynamic classes for positioning.
+    const [submenuClasses, setSubmenuClasses] = useState('left-full top-[-5px]');
+
+    const handleMouseEnter = () => {
+        if (!itemRef.current) return;
+        
+        // Find the main context menu container to check its boundaries
+        const parentMenu = itemRef.current.closest('[role="menu"]');
+        if (!parentMenu) return;
+        const parentRect = parentMenu.getBoundingClientRect();
+        
+        // Estimate submenu width. A more precise way would be to render and measure, but this is often sufficient.
+        const SUBMENU_WIDTH_ESTIMATE = 160; 
+        
+        const itemRect = itemRef.current.getBoundingClientRect();
+        // A rough estimate for height based on number of children.
+        const SUBMENU_HEIGHT_ESTIMATE = (React.Children.count(children) * 32) + 16; 
+
+        let classes = '';
+
+        // Horizontal positioning: if not enough space on the right, open to the left.
+        if (parentRect.right + SUBMENU_WIDTH_ESTIMATE > window.innerWidth) {
+            classes += 'right-full ';
+        } else {
+            classes += 'left-full ';
+        }
+
+        // Vertical positioning: if not enough space at the bottom, align to the bottom of the item.
+        if (itemRect.top + SUBMENU_HEIGHT_ESTIMATE > window.innerHeight) {
+            classes += 'bottom-0 ';
+        } else {
+            // Default position relative to the item.
+            classes += 'top-[-5px] ';
+        }
+
+        setSubmenuClasses(classes);
+    };
+
+    return (
+        <div
+            ref={itemRef}
+            className="relative group/menu"
+            onMouseEnter={handleMouseEnter}
+        >
+            <div className="px-3 py-1.5 rounded-md cursor-default flex justify-between items-center hover:bg-gray-200 dark:hover:bg-gray-700/80">
+                {title}
+                <span className="text-xs ml-4">▶</span>
+            </div>
+            <div className={`absolute z-10 hidden group-hover/menu:block bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-1 min-w-[150px] ${submenuClasses}`}>
+                {children}
+            </div>
+        </div>
+    );
+};
+
 
 /**
  * Хук для определения, является ли экран большим (lg breakpoint в Tailwind CSS).
@@ -464,62 +528,44 @@ const handleOpenColorPicker = useCallback((
 
               {otherTabs.length > 0 && (
                   <>
-                      {/* Подменю для копирования */}
-                      <div className="relative group/menu">
-                          <div className="px-3 py-1.5 rounded-md cursor-default flex justify-between items-center">
-                              Копировать в... <span className="text-xs ml-4">▶</span>
-                          </div>
-                          <div className="absolute left-full top-[-5px] z-10 hidden group-hover/menu:block bg-white dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-1 min-w-[150px]">
-                              {otherTabs.map(tab => (
-                                  <div key={tab.id} onClick={() => { if (contextMenuDevice) useAppStore.getState().handleDeviceAddToTab(contextMenuDevice, tab.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md cursor-pointer">{tab.name}</div>
-                              ))}
-                          </div>
-                      </div>
+                      <SubMenuItem title="Копировать в...">
+                          {otherTabs.map(tab => (
+                              <div key={tab.id} onClick={() => { if (contextMenuDevice) useAppStore.getState().handleDeviceAddToTab(contextMenuDevice, tab.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80">{tab.name}</div>
+                          ))}
+                      </SubMenuItem>
 
-                      {/* Подменю для перемещения */}
-                      <div className="relative group/menu">
-                          <div className="px-3 py-1.5 rounded-md cursor-default flex justify-between items-center">
-                              Переместить в... <span className="text-xs ml-4">▶</span>
-                          </div>
-                          <div className="absolute left-full top-[-5px] z-10 hidden group-hover/menu:block bg-white dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-1 min-w-[150px]">
-                               {otherTabs.map(tab => (
-                                  <div key={tab.id} onClick={() => { if (contextMenuDevice) useAppStore.getState().handleDeviceMoveToTab(contextMenuDevice, contextMenu.tabId, tab.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md cursor-pointer">{tab.name}</div>
-                              ))}
-                          </div>
-                      </div>
+                      <SubMenuItem title="Переместить в...">
+                           {otherTabs.map(tab => (
+                              <div key={tab.id} onClick={() => { if (contextMenuDevice) useAppStore.getState().handleDeviceMoveToTab(contextMenuDevice, contextMenu.tabId, tab.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80">{tab.name}</div>
+                          ))}
+                      </SubMenuItem>
                   </>
               )}
 
               <div className="h-px bg-gray-300 dark:bg-gray-600/50 my-1" />
               
-              {/* Подменю для изменения размера */}
-              <div className="relative group/menu">
-                  <div className="px-3 py-1.5 rounded-md cursor-default flex justify-between items-center">
-                      Размер <span className="text-xs ml-4">▶</span>
-                  </div>
-                  <div className="absolute left-full top-[-5px] z-10 hidden group-hover/menu:block bg-white dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-1 min-w-[120px]">
-                      {[
-                          {w: 1, h: 1},
-                          {w: 1, h: 0.5},
-                          {w: 2, h: 1},
-                          {w: 2, h: 2}, 
-                          {w: 3, h: 3},
-                          {w: 2, h: 3},
-                          {w: 3, h: 2}
-                      ].map(size => (
-                          <div 
-                              key={`${size.w}x${size.h}`} 
-                              onClick={() => { 
-                                  useAppStore.getState().handleDeviceResizeOnTab(contextMenu.tabId, contextMenu.deviceId, size.w, size.h); 
-                                  handleCloseContextMenu(); 
-                              }} 
-                              className="px-3 py-1.5 rounded-md cursor-pointer"
-                          >
-                              {`${size.w} x ${String(size.h).replace('.', ',')}`}
-                          </div>
-                      ))}
-                  </div>
-              </div>
+              <SubMenuItem title="Размер">
+                  {[
+                      {w: 1, h: 1},
+                      {w: 1, h: 0.5},
+                      {w: 2, h: 1},
+                      {w: 2, h: 2}, 
+                      {w: 3, h: 3},
+                      {w: 2, h: 3},
+                      {w: 3, h: 2}
+                  ].map(size => (
+                      <div 
+                          key={`${size.w}x${size.h}`} 
+                          onClick={() => { 
+                              useAppStore.getState().handleDeviceResizeOnTab(contextMenu.tabId, contextMenu.deviceId, size.w, size.h); 
+                              handleCloseContextMenu(); 
+                          }} 
+                          className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80"
+                      >
+                          {`${size.w} x ${String(size.h).replace('.', ',')}`}
+                      </div>
+                  ))}
+              </SubMenuItem>
 
               <div className="h-px bg-gray-300 dark:bg-gray-600/50 my-1" />
               
@@ -529,7 +575,7 @@ const handleOpenColorPicker = useCallback((
                   if (deviceToEdit) setEditingDevice(deviceToEdit);
                   handleCloseContextMenu(); 
                 }} 
-                className="px-3 py-1.5 rounded-md cursor-pointer"
+                className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80"
               >
                   Редактировать
               </div>
@@ -540,7 +586,7 @@ const handleOpenColorPicker = useCallback((
                         setEditingTemplate(currentTemplate);
                         handleCloseContextMenu(); 
                     }} 
-                    className="px-3 py-1.5 rounded-md cursor-pointer"
+                    className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80"
                 >
                     Редактировать шаблон
                 </div>
