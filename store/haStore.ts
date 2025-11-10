@@ -212,7 +212,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     getCameraStreamUrl: (entityId) => new Promise((resolve, reject) => {
         const id = messageIdRef++;
         cameraStreamCallbacks.set(id, { resolve, reject });
-        sendMessage({ id, type: 'camera/stream', entity_id: entityId });
+        sendMessage({ id, type: 'camera/hls_path', entity_id: entityId });
     }),
     getConfig: () => new Promise((resolve, reject) => {
         const id = messageIdRef++;

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement, DeviceCustomizations, ColorScheme } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -266,7 +267,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
       }
 
       try {
-        const result = await signPath(`/api/camera_proxy_stream/${entityId}`);
+        const result = await signPath(`/api/camera_proxy/${entityId}`);
         if (isMounted) {
           const finalUrl = constructHaUrl(haUrl, result.path, 'http');
           setStreamUrl(finalUrl);
