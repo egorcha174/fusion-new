@@ -2,7 +2,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Hls from 'hls.js';
 import { constructHaUrl } from '../utils/url';
-import MjpegStreamer from './MjpegStreamer';
 
 interface VideoPlayerProps {
   src: string;
@@ -152,8 +151,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
   useEffect(() => {
     let isMounted = true;
     const getPreview = async () => {
-      if (!isMounted) return;
-      if (!entityId || !haUrl) {
+      if (!isMounted || !entityId || !haUrl) {
         setLoadState('idle');
         return;
       }
@@ -178,8 +176,6 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
     };
 
     getPreview();
-    
-    // When entityId changes, reset the playing state
     setIsPlaying(false);
 
     return () => { isMounted = false; };
@@ -198,23 +194,19 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
       setLoadState('loading');
       setStreamType('none');
       
-      // Try HLS first
       try {
-        if (getCameraStreamUrl) {
-          const hlsUrlPath = await getCameraStreamUrl(entityId);
-          if (isMounted) {
-            const finalUrl = constructHaUrl(haUrl, hlsUrlPath, 'http');
-            setStreamUrl(finalUrl);
-            setStreamType('hls');
-            setLoadState('loaded');
-            return;
-          }
+        const hlsUrlPath = await getCameraStreamUrl(entityId);
+        if (isMounted) {
+          const finalUrl = constructHaUrl(haUrl, hlsUrlPath, 'http');
+          setStreamUrl(finalUrl);
+          setStreamType('hls');
+          setLoadState('loaded'); // HLS player has its own internal loading state
+          return;
         }
       } catch (err) {
-        console.warn(`Failed to get HLS stream for ${entityId}, falling back to MJPEG. Error:`, err);
+        console.warn(`HLS stream failed for ${entityId}, falling back to MJPEG. Error:`, err);
       }
 
-      // Fallback to MJPEG
       try {
         const result = await signPath(`/api/camera_proxy_stream/${entityId}`);
         if (isMounted) {
@@ -222,7 +214,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
           const finalUrl = constructHaUrl(haUrl, pathWithCacheBuster, 'http');
           setStreamUrl(finalUrl);
           setStreamType('mjpeg');
-          setLoadState('loaded');
+          // For MJPEG, loadState will remain 'loading' until the <img>'s onLoad event fires.
         }
       } catch (err) {
         if (isMounted) {
@@ -253,9 +245,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
 
   if (!isPlaying) {
     return (
-      <div 
-        className="relative w-full h-full bg-black flex items-center justify-center group" 
-      >
+      <div className="relative w-full h-full bg-black flex items-center justify-center group">
         {loadState === 'loading' && <LoadingIndicator />}
         {loadState === 'error' && <ErrorIndicator />}
         {loadState === 'loaded' && previewUrl && (
@@ -295,12 +285,22 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
     <div className="relative w-full h-full bg-black flex items-center justify-center">
       {loadState === 'loading' && <LoadingIndicator />}
       {loadState === 'error' && <ErrorIndicator />}
-      {loadState === 'loaded' && streamUrl && (
+      
+      {streamUrl && (
         streamType === 'hls' ? (
           <VideoPlayer src={streamUrl} />
-        ) : (
-          <MjpegStreamer src={streamUrl} altText={altText} />
-        )
+        ) : streamType === 'mjpeg' ? (
+          <img 
+            src={streamUrl} 
+            className="w-full h-full border-0 bg-black object-contain" 
+            alt={altText}
+            onLoad={() => setLoadState('loaded')}
+            onError={() => {
+              setLoadState('error');
+              setError('Не удалось загрузить MJPEG поток. Проверьте конфигурацию камеры в Home Assistant.');
+            }}
+          />
+        ) : null
       )}
     </div>
   );
