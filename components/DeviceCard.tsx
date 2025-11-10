@@ -307,7 +307,8 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
       try {
         const result = await signPath(`/api/camera_proxy/${entityId}`);
         if (isMounted) {
-          const finalUrl = constructHaUrl(haUrl, result.path, 'http');
+          const pathWithCacheBuster = `${result.path}?t=${new Date().getTime()}`;
+          const finalUrl = constructHaUrl(haUrl, pathWithCacheBuster, 'http');
           setStreamUrl(finalUrl);
           setStreamType('mjpeg');
           setLoadState('loaded');
@@ -1004,14 +1005,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
             return <div>Ошибка: Требуется haUrl, signPath и getCameraStreamUrl для камеры.</div>
         }
         return (
-            <div 
-              className="w-full h-full bg-black group relative"
-              onClick={(e) => { 
-                  if (isEditMode || isPreview) return;
-                  e.stopPropagation(); 
-                  onCameraCardClick(device); 
-              }}
-            >
+            <div className="w-full h-full bg-black group relative">
                 <CameraStreamContent 
                     entityId={device.id}
                     haUrl={haUrl}
@@ -1020,11 +1014,18 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                     altText={device.name}
                 />
                 {!isEditMode && !isPreview && (
-                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" viewBox="0 0 20 20" fill="currentColor">
+                  <button 
+                    onClick={(e) => { 
+                        e.stopPropagation(); 
+                        onCameraCardClick(device); 
+                    }}
+                    className="absolute top-2 right-2 z-10 p-1.5 bg-black/40 hover:bg-black/70 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Открыть в отдельном окне"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5zM5 5a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V11a1 1 0 10-2 0v6H5V7h6a1 1 0 000-2H5z" />
                     </svg>
-                  </div>
+                  </button>
                 )}
             </div>
         )
