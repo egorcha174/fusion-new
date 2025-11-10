@@ -381,7 +381,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                                     gridRow: `${firstItem.row + 1} / span ${Math.ceil(height)}`,
                                     zIndex: groupHasOpenMenu ? 40 : (groupIsActive ? 0 : 1),
                                 }}
-                                className={`flex flex-col ${isStackedPair ? 'gap-4' : ''}`}
+                                className={isStackedPair ? 'grid grid-rows-2 gap-4' : 'flex flex-col'}
                             >
                                 {group.map(item => {
                                     const device = allKnownDevices.get(item.deviceId);
@@ -405,7 +405,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                                     const isSingleHalf = group.length === 1 && item.height === 0.5;
 
                                     const wrapperClass = isStackedPair
-                                        ? 'h-[calc(50%-8px)]'
+                                        ? 'min-h-0' // Let the grid container control the height.
                                         : isSingleHalf
                                             ? 'h-1/2'
                                             : 'h-full';
