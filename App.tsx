@@ -1,9 +1,4 @@
 
-
-
-
-
-
 import React, { useMemo, useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import useHomeAssistant from './hooks/useHomeAssistant';
@@ -327,6 +322,19 @@ interface StyleUpdateInfo {
     elementId?: CardElementId;
     styleProperty?: string;
 }
+
+const getTemplateForDevice = (device: Device | null, customizations: DeviceCustomizations, templates: CardTemplates): CardTemplate | null => {
+    if (!device) return null;
+    const customization = customizations[device.id];
+    let templateId: string | undefined = customization?.templateId;
+    if (!templateId) {
+        if (device.type === DeviceType.Sensor) templateId = DEFAULT_SENSOR_TEMPLATE_ID;
+        if (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight) templateId = DEFAULT_LIGHT_TEMPLATE_ID;
+        if (device.type === DeviceType.Switch) templateId = DEFAULT_SWITCH_TEMPLATE_ID;
+        if (device.type === DeviceType.Thermostat) templateId = DEFAULT_CLIMATE_TEMPLATE_ID;
+    }
+    return templateId ? templates[templateId] : null;
+};
 
 const App: React.FC = () => {
   const {
@@ -679,11 +687,41 @@ const handleOpenColorPicker = useCallback((
     setTabs(newTabs);
   }, [setTabs]);
 
+  const getTemplateForDeviceCallback = useCallback((device: Device | null) => {
+    return getTemplateForDevice(device, customizations, templates);
+  }, [customizations, templates]);
+
 
   // --- Device Management on Tabs ---
   const handleDeviceAddToTab = useCallback((deviceId: string, tabId: string) => {
     setTabs(prevTabs => prevTabs.map(tab => {
         if (tab.id === tabId && !tab.layout.some(item => item.deviceId === deviceId)) {
+            const device = allKnownDevices.get(deviceId)!;
+            const template = getTemplateForDeviceCallback(device);
+            const templateHeight = template?.height || 1;
+            const templateWidth = template?.width || 1;
+            
+            if (templateHeight === 0.5 && templateWidth === 1) {
+                const layoutByCell = new Map<string, GridLayoutItem[]>();
+                tab.layout.forEach(item => {
+                    const key = `${item.col},${item.row}`;
+                    if (!layoutByCell.has(key)) layoutByCell.set(key, []);
+                    layoutByCell.get(key)!.push(item);
+                });
+
+                for (const [key, itemsInCell] of layoutByCell.entries()) {
+                    if (itemsInCell.length === 1) {
+                        const existingItemDevice = allKnownDevices.get(itemsInCell[0].deviceId)!;
+                        const existingItemTemplate = getTemplateForDeviceCallback(existingItemDevice);
+                        if (existingItemTemplate?.height === 0.5 && existingItemTemplate?.width === 1) {
+                            const [col, row] = key.split(',').map(Number);
+                            const newLayoutItem: GridLayoutItem = { deviceId, col, row, width: 1, height: 1 };
+                            return { ...tab, layout: [...tab.layout, newLayoutItem] };
+                        }
+                    }
+                }
+            }
+
             // Find the first empty cell
             const { cols, rows } = tab.gridSettings;
             let emptyCell: { col: number, row: number } | null = null;
@@ -712,7 +750,7 @@ const handleOpenColorPicker = useCallback((
         }
         return tab;
     }));
-  }, [setTabs]);
+  }, [setTabs, allKnownDevices, getTemplateForDeviceCallback]);
 
   const handleDeviceRemoveFromTab = useCallback((deviceId: string, tabId: string) => {
      setTabs(prevTabs => prevTabs.map(tab => {
@@ -1003,23 +1041,10 @@ const handleOpenColorPicker = useCallback((
   const contextMenuDevice = contextMenu ? allKnownDevices.get(contextMenu.deviceId) : null;
   const isTemplateable = contextMenuDevice?.type === DeviceType.Sensor || contextMenuDevice?.type === DeviceType.DimmableLight || contextMenuDevice?.type === DeviceType.Light || contextMenuDevice?.type === DeviceType.Switch || contextMenuDevice?.type === DeviceType.Thermostat;
 
-  const getTemplateForDevice = (device: Device | null) => {
-    if (!device) return null;
-    const customization = customizations[device.id];
-    let templateId: string | undefined = customization?.templateId;
-    if (!templateId) {
-        if (device.type === DeviceType.Sensor) templateId = DEFAULT_SENSOR_TEMPLATE_ID;
-        if (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight) templateId = DEFAULT_LIGHT_TEMPLATE_ID;
-        if (device.type === DeviceType.Switch) templateId = DEFAULT_SWITCH_TEMPLATE_ID;
-        if (device.type === DeviceType.Thermostat) templateId = DEFAULT_CLIMATE_TEMPLATE_ID;
-    }
-    return templateId ? templates[templateId] : null;
-  };
-
-  const currentTemplate = getTemplateForDevice(contextMenuDevice);
+  const currentTemplate = getTemplateForDeviceCallback(contextMenuDevice);
 
   const historyDevice = historyModalEntityId ? allKnownDevices.get(historyModalEntityId) : null;
-  const historyDeviceTemplate = getTemplateForDevice(historyDevice);
+  const historyDeviceTemplate = getTemplateForDeviceCallback(historyDevice);
   const valueElement = historyDeviceTemplate?.elements.find(el => el.id === 'value' || el.id === 'temperature');
   const historyDecimalPlaces = valueElement?.styles?.decimalPlaces;
 
@@ -1225,6 +1250,7 @@ const handleOpenColorPicker = useCallback((
                   <div className="absolute left-full top-[-5px] z-10 hidden group-hover/menu:block bg-white dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-1 min-w-[120px]">
                       {[
                           {w: 1, h: 1}, 
+                          {w: 2, h: 1},
                           {w: 2, h: 2}, 
                           {w: 3, h: 3},
                           {w: 2, h: 3},

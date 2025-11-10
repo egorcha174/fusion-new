@@ -158,11 +158,12 @@ const LabeledInput: React.FC<{ label: string, children: React.ReactNode, suffix?
     </div>
 );
 
-const NumberInput: React.FC<{ value: number | undefined, onChange: (val?: number) => void, min?: number, max?: number, placeholder?: string }> = ({ value, onChange, min, max, placeholder }) => (
+const NumberInput: React.FC<{ value: number | undefined, onChange: (val?: number) => void, min?: number, max?: number, placeholder?: string, step?: number }> = ({ value, onChange, min, max, placeholder, step }) => (
     <input
         type="number"
         min={min}
         max={max}
+        step={step}
         placeholder={placeholder}
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
@@ -561,8 +562,8 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                   <LabeledInput label="Название"><input type="text" value={editedTemplate.name} onChange={e => setEditedTemplate(p => ({...p, name: e.target.value}))} className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"/></LabeledInput>
                 </Section>
                 <Section title="Размеры карточки">
-                    <LabeledInput label="Ширина" suffix="колонок"><NumberInput value={editedTemplate.width} onChange={v => setEditedTemplate(p => ({...p, width: v}))} min={1} max={10}/></LabeledInput>
-                    <LabeledInput label="Высота" suffix="рядов"><NumberInput value={editedTemplate.height} onChange={v => setEditedTemplate(p => ({...p, height: v}))} min={1} max={10}/></LabeledInput>
+                    <LabeledInput label="Ширина" suffix="колонок"><NumberInput value={editedTemplate.width} onChange={v => setEditedTemplate(p => ({...p, width: v}))} min={0.5} max={10} step={0.5} /></LabeledInput>
+                    <LabeledInput label="Высота" suffix="рядов"><NumberInput value={editedTemplate.height} onChange={v => setEditedTemplate(p => ({...p, height: v}))} min={0.5} max={10} step={0.5} /></LabeledInput>
                 </Section>
                 <Section title="Стили фона">
                     <LabeledInput label="Цвет (Выкл.)"><input type="color" value={editedTemplate.styles.backgroundColor} onChange={e => setEditedTemplate(p => ({...p, styles: {...p.styles, backgroundColor: e.target.value}}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>

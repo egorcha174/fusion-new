@@ -1,7 +1,4 @@
 
-
-
-
 import React, { useRef, useState, useLayoutEffect, useMemo } from 'react';
 import {
   DndContext,
@@ -321,6 +318,18 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         }
     }
 
+    const groupedLayout = useMemo(() => {
+        const groups = new Map<string, GridLayoutItem[]>();
+        if (!tab.layout) return [];
+        tab.layout.forEach(item => {
+            const key = `${item.col},${item.row}`;
+            if (!groups.has(key)) {
+                groups.set(key, []);
+            }
+            groups.get(key)!.push(item);
+        });
+        return Array.from(groups.values());
+    }, [tab.layout]);
 
     return (
         <div ref={viewportRef} className="w-full h-full flex items-start justify-start p-4">
@@ -342,57 +351,72 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                         return null;
                     })}
 
-                    {tab.layout.map(item => {
-                        const device = allKnownDevices.get(item.deviceId);
-                        if (!device) return null;
+                    {groupedLayout.map((group) => {
+                        const firstItem = group[0];
+                        if (!firstItem) return null;
 
                         if (searchTerm) {
-                            const lowercasedFilter = searchTerm.toLowerCase();
-                            if (!device.name.toLowerCase().includes(lowercasedFilter) && !device.id.toLowerCase().includes(lowercasedFilter)) {
-                                return null;
-                            }
+                            const groupMatches = group.some(item => {
+                                const d = allKnownDevices.get(item.deviceId);
+                                if (!d) return false;
+                                const lowercasedFilter = searchTerm.toLowerCase();
+                                return d.name.toLowerCase().includes(lowercasedFilter) || d.id.toLowerCase().includes(lowercasedFilter);
+                            });
+                            if (!groupMatches) return null;
                         }
-                        
-                        const width = item.width || 1;
-                        const height = item.height || 1;
 
-                        let templateToUse: CardTemplate | undefined;
-                        const deviceCustomization = customizations[device.id];
-                        const templateId = deviceCustomization?.templateId;
-                        if (templateId && templates[templateId]) {
-                            templateToUse = templates[templateId];
-                        } else if (device.type === DeviceType.Sensor) {
-                            templateToUse = templates[DEFAULT_SENSOR_TEMPLATE_ID];
-                        } else if (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight) {
-                            templateToUse = templates[DEFAULT_LIGHT_TEMPLATE_ID];
-                        } else if (device.type === DeviceType.Switch) {
-                            templateToUse = templates[DEFAULT_SWITCH_TEMPLATE_ID];
-                        } else if (device.type === DeviceType.Thermostat) {
-                            templateToUse = templates[DEFAULT_CLIMATE_TEMPLATE_ID];
-                        }
+                        const width = firstItem.width || 1;
+                        const height = firstItem.height || 1;
+                        const groupHasOpenMenu = group.some(item => item.deviceId === openMenuDeviceId);
+                        const groupIsActive = group.some(item => item.deviceId === activeId);
 
                         return (
-                            <div
-                                key={item.deviceId}
+                             <div
+                                key={`${firstItem.col}-${firstItem.row}`}
                                 style={{
-                                    gridColumn: `${item.col + 1} / span ${width}`,
-                                    gridRow: `${item.row + 1} / span ${height}`,
-                                    zIndex: openMenuDeviceId === item.deviceId ? 40 : (activeId === item.deviceId ? 0 : 1),
+                                    gridColumn: `${firstItem.col + 1} / span ${width}`,
+                                    gridRow: `${firstItem.row + 1} / span ${height}`,
+                                    zIndex: groupHasOpenMenu ? 40 : (groupIsActive ? 0 : 1),
                                 }}
+                                className={`flex flex-col ${group.length > 1 ? 'gap-2' : ''}`}
                             >
-                                <DraggableDevice 
-                                  device={device} 
-                                  template={templateToUse}
-                                  allKnownDevices={allKnownDevices}
-                                  customizations={customizations}
-                                  onDeviceToggle={onDeviceToggle}
-                                  onShowHistory={onShowHistory}
-                                  {...props} 
-                                  openMenuDeviceId={openMenuDeviceId}
-                                  setOpenMenuDeviceId={setOpenMenuDeviceId}
-                                />
+                                {group.map(item => {
+                                    const device = allKnownDevices.get(item.deviceId);
+                                    if (!device) return null;
+
+                                    let templateToUse: CardTemplate | undefined;
+                                    const deviceCustomization = customizations[device.id];
+                                    const templateId = deviceCustomization?.templateId;
+                                    if (templateId && templates[templateId]) {
+                                        templateToUse = templates[templateId];
+                                    } else if (device.type === DeviceType.Sensor) {
+                                        templateToUse = templates[DEFAULT_SENSOR_TEMPLATE_ID];
+                                    } else if (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight) {
+                                        templateToUse = templates[DEFAULT_LIGHT_TEMPLATE_ID];
+                                    } else if (device.type === DeviceType.Switch) {
+                                        templateToUse = templates[DEFAULT_SWITCH_TEMPLATE_ID];
+                                    } else if (device.type === DeviceType.Thermostat) {
+                                        templateToUse = templates[DEFAULT_CLIMATE_TEMPLATE_ID];
+                                    }
+                                    
+                                    return (
+                                        <div key={item.deviceId} className="flex-1 min-h-0">
+                                            <DraggableDevice 
+                                              device={device} 
+                                              template={templateToUse}
+                                              allKnownDevices={allKnownDevices}
+                                              customizations={customizations}
+                                              onDeviceToggle={onDeviceToggle}
+                                              onShowHistory={onShowHistory}
+                                              {...props} 
+                                              openMenuDeviceId={openMenuDeviceId}
+                                              setOpenMenuDeviceId={setOpenMenuDeviceId}
+                                            />
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        );
+                        )
                     })}
                 </div>
                  <DragOverlay dropAnimation={null} modifiers={[snapCenterToCursor]}>
