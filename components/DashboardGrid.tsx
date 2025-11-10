@@ -381,9 +381,9 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                                     gridRow: `${firstItem.row + 1} / span ${Math.ceil(height)}`,
                                     zIndex: groupHasOpenMenu ? 40 : (groupIsActive ? 0 : 1),
                                 }}
-                                className={isStackedPair ? 'grid grid-rows-2 gap-4' : 'flex flex-col'}
+                                className="relative"
                             >
-                                {group.map(item => {
+                                {group.map((item, index) => {
                                     const device = allKnownDevices.get(item.deviceId);
                                     if (!device) return null;
 
@@ -402,16 +402,25 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                                         templateToUse = templates[DEFAULT_CLIMATE_TEMPLATE_ID];
                                     }
                                     
-                                    const isSingleHalf = group.length === 1 && item.height === 0.5;
+                                    const wrapperStyle: React.CSSProperties = { width: '100%' };
+                                    if (isStackedPair) {
+                                        wrapperStyle.position = 'absolute';
+                                        wrapperStyle.left = 0;
+                                        wrapperStyle.right = 0;
+                                        wrapperStyle.height = 'calc(50% - 8px)'; // 16px total gap -> 8px per card from the middle
+                                        if (index === 0) {
+                                            wrapperStyle.top = 0;
+                                        } else {
+                                            wrapperStyle.bottom = 0;
+                                        }
+                                    } else {
+                                        // A single item in the cell
+                                        wrapperStyle.height = item.height === 0.5 ? '50%' : '100%';
+                                    }
 
-                                    const wrapperClass = isStackedPair
-                                        ? 'min-h-0' // Let the grid container control the height.
-                                        : isSingleHalf
-                                            ? 'h-1/2'
-                                            : 'h-full';
 
                                     return (
-                                        <div key={item.deviceId} className={wrapperClass}>
+                                        <div key={item.deviceId} style={wrapperStyle}>
                                             <DraggableDevice 
                                               device={device} 
                                               template={templateToUse}
