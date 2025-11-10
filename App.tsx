@@ -809,30 +809,59 @@ const handleOpenColorPicker = useCallback((
       if (!deviceItem) return tab;
 
       const { col, row } = deviceItem;
+      const newCeilWidth = Math.ceil(newWidth);
+      const newCeilHeight = Math.ceil(newHeight);
+
 
       // Boundary check
-      if (col + newWidth > tab.gridSettings.cols || row + newHeight > tab.gridSettings.rows) {
+      if (col + newCeilWidth > tab.gridSettings.cols || row + newCeilHeight > tab.gridSettings.rows) {
           console.warn('Cannot resize: Exceeds grid boundaries.');
           return tab;
       }
 
       // Collision check
-      for (let r = row; r < row + newHeight; r++) {
-        for (let c = col; c < col + newWidth; c++) {
-          const conflictingItem = currentLayout.find(item => {
-            if (item.deviceId === deviceId) return false; // Don't check against self
-            const itemWidth = item.width || 1;
-            const itemHeight = item.height || 1;
-            return c >= item.col && c < item.col + itemWidth && r >= item.row && r < item.row + itemHeight;
-          });
-          if (conflictingItem) {
-            console.warn(`Cannot resize: Conflict with device ${conflictingItem.deviceId}`);
-            return tab; // Abort resize
+      // Special case for stacking 1x0.5 items
+      if (newWidth === 1 && newHeight === 0.5) {
+          const itemsInSameCell = currentLayout.filter(item => 
+              item.deviceId !== deviceId && item.col === col && item.row === row
+          );
+          if (itemsInSameCell.length >= 1 && itemsInSameCell.some(i => (i.height || 1) !== 0.5)) {
+              console.warn('Cannot resize to 1x0.5: Cell contains non-stackable item.');
+              return tab;
           }
-        }
+           if (itemsInSameCell.filter(i => (i.height || 1) === 0.5).length >= 1) {
+              console.warn('Cannot resize to 1x0.5: Cell is already full with two half-height items.');
+              return tab;
+          }
+      } else { // Generic collision for all other resizes
+          for (let r = row; r < row + newCeilHeight; r++) {
+            for (let c = col; c < col + newCeilWidth; c++) {
+              const conflictingItem = currentLayout.find(item => {
+                if (item.deviceId === deviceId) return false;
+                const itemCeilWidth = Math.ceil(item.width || 1);
+                const itemCeilHeight = Math.ceil(item.height || 1);
+                return c >= item.col && c < item.col + itemCeilWidth && r >= item.row && r < item.row + itemCeilHeight;
+              });
+              if (conflictingItem) {
+                console.warn(`Cannot resize: Conflict with device ${conflictingItem.deviceId}`);
+                return tab;
+              }
+            }
+          }
+      }
+      
+      // If a 1x0.5 is resized to something larger, check if it was part of a stack
+      if ((deviceItem.height || 1) === 0.5 && newHeight > 0.5) {
+          const itemsInSameCell = currentLayout.filter(item => 
+              item.deviceId !== deviceId && item.col === col && item.row === row
+          );
+          if (itemsInSameCell.length > 0) {
+              console.warn('Cannot resize from 1x0.5: Other items are stacked in this cell.');
+              return tab;
+          }
       }
 
-      // If no collision and within boundaries, update layout
+
       const newLayout = currentLayout.map(item =>
         item.deviceId === deviceId ? { ...item, width: newWidth, height: newHeight } : item
       );
@@ -964,19 +993,47 @@ const handleOpenColorPicker = useCallback((
 
     if (newTemplateId !== oldTemplateId) {
       const template = templates[newTemplateId || ''];
-      if (template && (template.width || template.height)) {
-        const newWidth = template.width || 1;
-        const newHeight = template.height || 1;
+      if (template && (template.width !== undefined || template.height !== undefined)) {
+        const newWidth = template.width ?? 1;
+        const newHeight = template.height ?? 1;
         setTabs(prevTabs =>
           prevTabs.map(tab => {
-            const layout = tab.layout;
-            const itemIndex = layout.findIndex(item => item.deviceId === deviceId);
-            if (itemIndex > -1) {
-              const newLayout = [...layout];
-              newLayout[itemIndex] = { ...newLayout[itemIndex], width: newWidth, height: newHeight };
-              return { ...tab, layout: newLayout };
+            const currentLayout = tab.layout;
+            const deviceItem = currentLayout.find(item => item.deviceId === deviceId);
+            if (!deviceItem) return tab;
+
+            const { col, row } = deviceItem;
+            const newCeilWidth = Math.ceil(newWidth);
+            const newCeilHeight = Math.ceil(newHeight);
+
+            if (col + newCeilWidth > tab.gridSettings.cols || row + newCeilHeight > tab.gridSettings.rows) return tab;
+
+            if (newWidth === 1 && newHeight === 0.5) {
+                const itemsInSameCell = currentLayout.filter(item => item.deviceId !== deviceId && item.col === col && item.row === row);
+                if (itemsInSameCell.length >= 1 && itemsInSameCell.some(i => (i.height || 1) !== 0.5)) return tab;
+                if (itemsInSameCell.filter(i => (i.height || 1) === 0.5).length >= 1) return tab;
+            } else {
+                for (let r = row; r < row + newCeilHeight; r++) {
+                    for (let c = col; c < col + newCeilWidth; c++) {
+                        const conflictingItem = currentLayout.find(item => {
+                            if (item.deviceId === deviceId) return false;
+                            const itemCeilWidth = Math.ceil(item.width || 1);
+                            const itemCeilHeight = Math.ceil(item.height || 1);
+                            return c >= item.col && c < item.col + itemCeilWidth && r >= item.row && r < item.row + itemCeilHeight;
+                        });
+                        if (conflictingItem) return tab;
+                    }
+                }
             }
-            return tab;
+            if ((deviceItem.height || 1) === 0.5 && newHeight > 0.5) {
+                const itemsInSameCell = currentLayout.filter(item => item.deviceId !== deviceId && item.col === col && item.row === row);
+                if (itemsInSameCell.length > 0) return tab;
+            }
+
+            const newLayout = currentLayout.map(item =>
+              item.deviceId === deviceId ? { ...item, width: newWidth, height: newHeight } : item
+            );
+            return { ...tab, layout: newLayout };
           })
         );
       }
@@ -1296,7 +1353,8 @@ const handleOpenColorPicker = useCallback((
                   </div>
                   <div className="absolute left-full top-[-5px] z-10 hidden group-hover/menu:block bg-white dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-1 min-w-[120px]">
                       {[
-                          {w: 1, h: 1}, 
+                          {w: 1, h: 1},
+                          {w: 1, h: 0.5},
                           {w: 2, h: 1},
                           {w: 2, h: 2}, 
                           {w: 3, h: 3},
