@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement, DeviceCustomizations, ColorScheme } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -21,10 +22,10 @@ const AutoFitText: React.FC<{
   pStyle?: React.CSSProperties;
   dataAttrs?: { [key: string]: string | undefined };
 }> = ({ text, className, pClassName, maxFontSize = 48, mode = 'multi-line', maxLines = 2, fontSize, textAlign, pStyle, dataAttrs }) => {
-  const containerRef = React.useRef<HTMLDivElement>(null);
-  const pRef = React.useRef<HTMLParagraphElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const pRef = useRef<HTMLParagraphElement>(null);
 
-  React.useLayoutEffect(() => {
+  useLayoutEffect(() => {
     const container = containerRef.current;
     const p = pRef.current;
     if (!container || !p) return;
