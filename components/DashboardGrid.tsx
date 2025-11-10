@@ -373,6 +373,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
             if (!groups.has(key)) groups.set(key, []);
             groups.get(key)!.push(item);
         });
+        // Сортируем каждую группу, чтобы обеспечить стабильный порядок рендеринга для стеков
+        groups.forEach(group => group.sort((a, b) => a.deviceId.localeCompare(b.deviceId)));
         return Array.from(groups.values());
     }, [tab.layout]);
 
@@ -394,7 +396,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                         const firstItem = group[0];
                         if (!firstItem) return null;
 
-                        const isStackedPair = group.length === 2 && group.every(item => item.height === 0.5);
+                        const isStackedPair = group.length === 2 && group.every(item => item.height === 0.5 && (item.width || 1) === 1);
+                        const isSingleHalf = group.length === 1 && group[0].height === 0.5;
                         
                         return (
                              <OccupiedCellWrapper key={`${firstItem.col}-${firstItem.row}`} group={group} isEditMode={isEditMode} activeId={activeId} openMenuDeviceId={openMenuDeviceId}>
@@ -420,13 +423,21 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                                     };
 
                                     if (isStackedPair) {
-                                        const offset = 10; // pixels
-                                        wrapperStyle.top = index === 0 ? `-${offset}px` : `${offset}px`;
-                                        wrapperStyle.left = index === 0 ? `-${offset}px` : `${offset}px`;
-                                        wrapperStyle.right = index === 0 ? `-${offset}px` : `${offset}px`;
-                                        wrapperStyle.bottom = index === 0 ? `${offset}px` : `-${offset}px`;
-                                        wrapperStyle.transition = 'all 0.2s ease-in-out';
-                                        wrapperStyle.boxShadow = '0 10px 15px -3px rgb(0 0 0 / 0.2), 0 4px 6px -4px rgb(0 0 0 / 0.2)';
+                                        wrapperStyle.height = 'calc(50% - 4px)'; // 4px для половины зазора
+                                        wrapperStyle.inset = 'auto';
+                                        wrapperStyle.left = '0';
+                                        wrapperStyle.right = '0';
+                                        if (index === 0) {
+                                            wrapperStyle.top = '0';
+                                        } else { // index === 1
+                                            wrapperStyle.bottom = '0';
+                                        }
+                                    } else if (isSingleHalf) {
+                                        wrapperStyle.height = '50%';
+                                        wrapperStyle.bottom = 'auto'; // Позиционируем в верхней половине
+                                        wrapperStyle.top = '0';
+                                        wrapperStyle.left = '0';
+                                        wrapperStyle.right = '0';
                                     }
 
                                     return (
