@@ -105,9 +105,15 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
     let hls: Hls;
 
     if (Hls.isSupported()) {
+      const token = localStorage.getItem('ha-token');
       hls = new Hls({
           lowLatencyMode: true,
           backBufferLength: 90,
+          xhrSetup: (xhr) => {
+              if (token) {
+                  xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+              }
+          }
       });
       hls.loadSource(src);
       hls.attachMedia(video);

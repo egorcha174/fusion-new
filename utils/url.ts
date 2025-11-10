@@ -8,19 +8,28 @@
  * @returns A full, well-formed URL.
  */
 export const constructHaUrl = (haUrl: string, path: string, protocolType: 'ws' | 'http'): string => {
-  // 1. Sanitize the base URL: remove any existing protocol and trailing slashes.
-  const cleanUrl = haUrl.replace(/^(https?|wss?):\/\//, '').replace(/\/$/, '');
-  
-  // 2. Determine the correct protocol based on the window's current protocol and the desired type.
-  const isSecure = window.location.protocol === 'https:';
-  let protocol: string;
+  let protocol;
+  let cleanUrl = haUrl;
 
-  if (protocolType === 'ws') {
-    protocol = isSecure ? 'wss://' : 'ws://';
-  } else { // 'http'
-    protocol = isSecure ? 'https://' : 'http://';
+  // Check if haUrl already has a protocol
+  if (haUrl.startsWith('https://')) {
+    protocol = protocolType === 'ws' ? 'wss://' : 'https://';
+    cleanUrl = haUrl.substring(8);
+  } else if (haUrl.startsWith('http://')) {
+    protocol = protocolType === 'ws' ? 'ws://' : 'http://';
+    cleanUrl = haUrl.substring(7);
+  } else {
+    // Fallback for URLs without a protocol specified, based on the current page's protocol
+    const isSecure = window.location.protocol === 'https:';
+    if (protocolType === 'ws') {
+      protocol = isSecure ? 'wss://' : 'ws://';
+    } else { // 'http'
+      protocol = isSecure ? 'https://' : 'http://';
+    }
   }
 
-  // 3. Combine the parts into a final, valid URL.
+  // Sanitize the rest of the URL: remove trailing slashes
+  cleanUrl = cleanUrl.replace(/\/$/, '');
+
   return `${protocol}${cleanUrl}${path}`;
 };
