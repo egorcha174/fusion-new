@@ -384,14 +384,14 @@ const checkCollision = (
             const isTargetStackable = width === 1 && height === 0.5;
             const isExistingStackable = existingWidth === 1 && existingHeight === 0.5;
             // Stacking can only happen in the same integer grid cell.
-            const areInSameCell = Math.floor(col) === existingItem.col && Math.floor(row) === existingItem.row;
+            const areInSameCell = Math.floor(col) === Math.floor(existingItem.col) && Math.floor(row) === Math.floor(existingItem.row);
 
             if (isTargetStackable && isExistingStackable && areInSameCell) {
                 // It's a potential stack. Count total items in that cell to see if there's room.
                 const itemsInTargetCell = layout.filter(item =>
                     item.deviceId !== ignoreDeviceId &&
-                    item.col === Math.floor(col) &&
-                    item.row === Math.floor(row)
+                    Math.floor(item.col) === Math.floor(col) &&
+                    Math.floor(item.row) === Math.floor(row)
                 );
                 
                 // A cell can hold a maximum of 2 stackable items.
