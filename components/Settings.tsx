@@ -4,7 +4,6 @@
 
 
 
-
 import React, { useRef, useState } from 'react';
 import { ClockSettings, ClockSize, CardTemplates, CardTemplate, ColorScheme, DeviceType } from '../types';
 import ConfirmDialog from './ConfirmDialog';
@@ -66,6 +65,7 @@ const Settings: React.FC<SettingsProps> = (props) => {
   const [localError, setLocalError] = useState('');
   const [deletingTemplate, setDeletingTemplate] = useState<CardTemplate | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const themeFileInputRef = useRef<HTMLInputElement>(null);
   const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
 
 
@@ -164,6 +164,60 @@ const Settings: React.FC<SettingsProps> = (props) => {
     reader.readAsText(file);
   };
 
+  const handleExportTheme = () => {
+    try {
+      const themeToExport = {
+        'ha-dashboard-theme-version': 1,
+        'exported-at': new Date().toISOString(),
+        colorScheme,
+      };
+      const blob = new Blob([JSON.stringify(themeToExport, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const date = new Date().toISOString().slice(0, 10);
+      a.download = `ha-dashboard-theme-${date}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to export theme:", err);
+      alert("Не удалось экспортировать тему.");
+    }
+  };
+
+  const handleImportTheme = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result;
+        if (typeof text !== 'string') throw new Error("File content is not a string.");
+        const importedData = JSON.parse(text);
+
+        const importedScheme = importedData.colorScheme;
+        if (!importedScheme || !importedScheme.light || !importedScheme.dark || !importedScheme.light.dashboardBackground || !importedScheme.dark.dashboardBackground) {
+          throw new Error("Неверный формат файла темы. Отсутствуют необходимые ключи.");
+        }
+
+        if (window.confirm("Вы уверены, что хотите импортировать новую цветовую схему? Это перезапишет текущие настройки цветов.")) {
+          setColorScheme(importedScheme);
+          alert("Цветовая схема успешно импортирована.");
+        }
+      } catch (err: any) {
+        console.error("Failed to import theme:", err);
+        alert(`Не удалось импортировать тему: ${err.message}`);
+      } finally {
+        if (themeFileInputRef.current) {
+          themeFileInputRef.current.value = "";
+        }
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const isLoading = connectionStatus === 'connecting';
 
   // --- Рендеринг страницы настроек (когда соединение установлено) ---
@@ -246,7 +300,7 @@ const Settings: React.FC<SettingsProps> = (props) => {
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
                                 <button onClick={() => setEditingTemplate(template)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" title="Редактировать"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg></button>
-                                <button onClick={() => setDeletingTemplate(template)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded-md hover:bg-red-500/10 dark:hover:bg-red-500/20 transition-colors" title="Удалить"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg></button>
+                                <button onClick={() => setDeletingTemplate(template)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded-md hover:bg-red-500/10 dark:hover:bg-red-500/20 transition-colors" title="Удалить"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002 2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg></button>
                             </div>
                         </div>
                     ))}
@@ -262,6 +316,19 @@ const Settings: React.FC<SettingsProps> = (props) => {
                         </div>
                     )}
                  </div>
+            </div>
+
+            {/* Секция управления темами */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Управление темами</h2>
+                <div className="space-y-4">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Экспортируйте вашу текущую цветовую схему, чтобы поделиться ей, или импортируйте новую.</p>
+                    <div className="flex gap-4">
+                        <button onClick={handleExportTheme} className="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Экспорт темы</button>
+                        <button onClick={() => themeFileInputRef.current?.click()} className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Импорт темы</button>
+                        <input type="file" ref={themeFileInputRef} onChange={handleImportTheme} accept="application/json" className="hidden" />
+                    </div>
+                </div>
             </div>
 
             {/* Секция резервного копирования */}
