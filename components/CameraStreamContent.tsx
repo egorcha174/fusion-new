@@ -194,6 +194,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
       setLoadState('loading');
       setStreamType('none');
       
+      // First, try HLS
       try {
         const hlsUrlPath = await getCameraStreamUrl(entityId);
         if (isMounted) {
@@ -207,18 +208,28 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
         console.warn(`HLS stream failed for ${entityId}, falling back to MJPEG. Error:`, err);
       }
 
+      // Fallback to MJPEG using LLAT
       try {
-        const result = await signPath(`/api/camera_proxy_stream/${entityId}`);
+        const token = localStorage.getItem('ha-token');
+        if (!token) {
+          throw new Error("Auth token not found in localStorage.");
+        }
+        
+        const path = `/api/camera_proxy_stream/${entityId}`;
+        const baseUrl = constructHaUrl(haUrl, path, 'http');
+        
+        const url = new URL(baseUrl);
+        url.searchParams.set('token', token);
+        url.searchParams.set('t', String(new Date().getTime())); // cache buster
+        
         if (isMounted) {
-          const pathWithCacheBuster = `${result.path}&t=${new Date().getTime()}`;
-          const finalUrl = constructHaUrl(haUrl, pathWithCacheBuster, 'http');
-          setStreamUrl(finalUrl);
+          setStreamUrl(url.toString());
           setStreamType('mjpeg');
           // For MJPEG, loadState will remain 'loading' until the <img>'s onLoad event fires.
         }
       } catch (err) {
         if (isMounted) {
-          console.error(`Failed to get signed MJPEG URL for ${entityId}:`, err);
+          console.error(`Failed to construct MJPEG URL for ${entityId}:`, err);
           setError("Не удалось получить URL для камеры от Home Assistant.");
           setLoadState('error');
         }
@@ -228,7 +239,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
     setupStream();
 
     return () => { isMounted = false; };
-  }, [isPlaying, entityId, haUrl, signPath, getCameraStreamUrl]);
+  }, [isPlaying, entityId, haUrl, getCameraStreamUrl]);
 
   const LoadingIndicator = () => (
     <div className="absolute inset-0 flex items-center justify-center">
