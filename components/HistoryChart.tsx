@@ -1,119 +1,84 @@
 import React from 'react';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  TimeScale,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-} from 'chart.js';
-import { Line } from 'react-chartjs-2';
-import 'chartjs-adapter-date-fns';
-// FIX: Locales must be imported from their own subpath in date-fns.
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { format } from 'date-fns';
+// FIX: Module '"date-fns/locale"' has no exported member 'ru'. The correct import is from the specific sub-path.
 import { ru } from 'date-fns/locale/ru';
 
-ChartJS.register(
-  CategoryScale, LinearScale, PointElement, LineElement, TimeScale, Title, Tooltip, Legend, Filler
-);
-
 interface HistoryChartProps {
-  data: any; // Chart.js data object
+  data: { x: number; y: number }[];
   unit: string;
   decimalPlaces?: number;
+  deviceName: string;
 }
 
-const HistoryChart: React.FC<HistoryChartProps> = ({ data, unit, decimalPlaces }) => {
+const HistoryChart: React.FC<HistoryChartProps> = ({ data, unit, decimalPlaces, deviceName }) => {
     const isDark = document.documentElement.classList.contains('dark');
     const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
     const textColor = isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)';
 
-    const options = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'bottom' as const,
-                labels: {
-                  color: textColor,
-                  usePointStyle: true,
-                  boxWidth: 8,
-                }
-            },
-            tooltip: {
-                mode: 'index' as const,
-                intersect: false,
-                callbacks: {
-                    label: function(context: any) {
-                        let label = context.dataset.label || '';
-                        if (label) {
-                            label += ': ';
-                        }
-                        if (context.parsed.y !== null) {
-                            const value = typeof decimalPlaces === 'number'
-                                ? context.parsed.y.toFixed(decimalPlaces)
-                                : context.parsed.y.toFixed(1);
-                            label += `${value} ${unit}`;
-                        }
-                        return label;
-                    }
-                }
-            },
-        },
-        interaction: {
-            mode: 'index' as const,
-            intersect: false,
-        },
-        scales: {
-            x: {
-                type: 'time' as const,
-                time: {
-                    unit: 'hour' as const,
-                    tooltipFormat: 'dd MMM, HH:mm',
-                    displayFormats: {
-                        hour: 'HH:mm',
-                        day: 'dd MMM',
-                    },
-                },
-                adapters: {
-                    date: {
-                        locale: ru,
-                    },
-                },
-                grid: {
-                    color: gridColor,
-                },
-                ticks: {
-                    color: textColor,
-                },
-            },
-            y: {
-                grid: {
-                    color: gridColor,
-                },
-                ticks: {
-                    color: textColor,
-                    callback: function(value: number | string) {
-                        const numericValue = typeof value === 'string' ? parseFloat(value) : value;
-                        const formattedValue = typeof decimalPlaces === 'number'
-                            ? numericValue.toFixed(decimalPlaces)
-                            : numericValue.toFixed(1);
-                        return `${formattedValue}${unit ? ` ${unit}` : ''}`;
-                    },
-                },
-                title: {
-                    display: true,
-                    text: unit,
-                    color: textColor,
-                }
-            },
-        },
+    const tickFormatter = (timestamp: number) => {
+        return format(new Date(timestamp), 'HH:mm');
     };
 
-    return <Line options={options as any} data={data} />;
+    const tooltipFormatter = (value: number, name: string, props: any) => {
+        const dp = typeof decimalPlaces === 'number' && decimalPlaces >= 0 ? decimalPlaces : 1;
+        return [`${value.toFixed(dp)} ${unit}`, deviceName];
+    };
+    
+    const tooltipLabelFormatter = (label: number) => {
+        return format(new Date(label), 'dd MMM, HH:mm', { locale: ru });
+    }
+
+    return (
+        <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                <defs>
+                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="rgb(59, 130, 246)" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="rgb(59, 130, 246)" stopOpacity={0}/>
+                    </linearGradient>
+                </defs>
+                <CartesianGrid stroke={gridColor} strokeDasharray="3 3" vertical={false} />
+                <XAxis
+                    dataKey="x"
+                    type="number"
+                    scale="time"
+                    domain={['dataMin', 'dataMax']}
+                    tickFormatter={tickFormatter}
+                    stroke={textColor}
+                    tick={{ fontSize: 12 }}
+                />
+                <YAxis
+                    tickFormatter={(value) => `${value.toFixed(typeof decimalPlaces === 'number' && decimalPlaces >= 0 ? decimalPlaces : 1)}`}
+                    stroke={textColor}
+                    tick={{ fontSize: 12 }}
+                    domain={['auto', 'auto']}
+                    width={50}
+                />
+                <Tooltip
+                    formatter={tooltipFormatter}
+                    labelFormatter={tooltipLabelFormatter}
+                    contentStyle={{
+                        backgroundColor: isDark ? 'rgba(31, 41, 55, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                        borderColor: gridColor,
+                        backdropFilter: 'blur(4px)',
+                    }}
+                    labelStyle={{ color: textColor }}
+                    cursor={{ stroke: 'rgb(59, 130, 246)', strokeWidth: 1, strokeDasharray: '3 3' }}
+                />
+                <Area
+                    type="monotone"
+                    dataKey="y"
+                    name={deviceName}
+                    stroke="rgb(59, 130, 246)"
+                    strokeWidth={2}
+                    dot={false}
+                    fillOpacity={1}
+                    fill="url(#colorValue)"
+                />
+            </AreaChart>
+        </ResponsiveContainer>
+    );
 };
 
 export default React.memo(HistoryChart);

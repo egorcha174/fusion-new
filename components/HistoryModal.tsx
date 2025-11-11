@@ -131,20 +131,12 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ entityId, onClose, getHisto
       ? smoothData(rawProcessedData, 5) // Окно сглаживания - 5 точек
       : rawProcessedData;
 
-    return {
-      datasets: [{
-        label: device?.name || entityId,
-        data: dataToRender,
-        borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.2)',
-        borderWidth: 2,
-        pointRadius: 0,
-        pointHoverRadius: 5,
-        fill: true,
-        tension: 0.3,
-      }]
-    };
-  }, [rawProcessedData, isSmoothed, device?.name, entityId]);
+    // Format for Recharts: { x: timestamp, y: value }
+    return dataToRender.map(p => ({
+        x: p.x.getTime(),
+        y: p.y,
+    }));
+  }, [rawProcessedData, isSmoothed]);
 
   return (
     <div
@@ -205,7 +197,12 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ entityId, onClose, getHisto
                 </div>
             )}
             {chartData && !loading && !error && (
-                <HistoryChart data={chartData} unit={device?.unit || ''} decimalPlaces={decimalPlaces} />
+                <HistoryChart 
+                    data={chartData} 
+                    unit={device?.unit || ''} 
+                    decimalPlaces={decimalPlaces} 
+                    deviceName={device?.name || entityId} 
+                />
             )}
         </main>
       </div>

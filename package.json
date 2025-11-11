@@ -18,12 +18,10 @@
     "@dnd-kit/modifiers": "6.0.1",
     "@iconify/react": "latest",
     "hls.js": "1.5.8",
-    "chart.js": "4.4.2",
-    "react-chartjs-2": "5.2.0",
     "date-fns": "3.6.0",
-    "chartjs-adapter-date-fns": "3.0.0",
     "zustand": "4.5.2",
-    "jszip": "3.10.1"
+    "jszip": "3.10.1",
+    "recharts": "2.12.7"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
