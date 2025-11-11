@@ -3,6 +3,7 @@
 
 
 
+
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import { Device, DeviceCustomization, DeviceCustomizations, Tab, Room, ClockSettings, DeviceType, CameraSettings, GridLayoutItem, CardTemplates, CardTemplate, DeviceBinding, ThresholdRule, ColorScheme, ColorPickerContextData, CardElementId, CardElement } from './types';
@@ -223,143 +224,66 @@ const App: React.FC = () => {
     setContextMenu(null);
   }, [setContextMenu]);
 
-  // Структура для передачи информации о стиле в обработчик
-  interface StyleUpdateInfo {
-    origin: 'scheme' | 'template'; // Откуда пришло изменение: из общей схемы или из шаблона
-    baseKey: string;              // Базовый ключ стиля (например, 'nameTextColor')
-    theme: 'light' | 'dark';      // Для какой темы
-    isOn: boolean;                // Включено ли устройство (для стилей On/Off)
-    templateId?: string;          // ID шаблона, если origin='template'
-    elementId?: CardElementId;    // ID элемента в шаблоне
-    styleProperty?: string;       // Конкретное свойство CSS (например, 'textColor', 'fontSize')
-  }
-  
   /**
-   * Универсальный обработчик обновления стилей.
-   * Может обновлять как глобальную цветовую схему, так и стили конкретного элемента в шаблоне.
+   * Обработчик обновления стилей глобальной темы.
    */
-  const handleStyleUpdate = useCallback((updateInfo: StyleUpdateInfo, value: any) => {
-    const { origin, theme: themeKey, baseKey, isOn, templateId, elementId, styleProperty } = updateInfo;
+  const handleStyleUpdate = useCallback((themeKey: 'light' | 'dark', baseKey: string, isOn: boolean, value: any) => {
     const currentScheme = useAppStore.getState().colorScheme;
-    const currentTemplates = useAppStore.getState().templates;
-
-    if (origin === 'scheme') {
-        const onSuffix = isOn ? 'On' : '';
-        const key = `${themeKey}.${baseKey}${onSuffix}`;
-        
-        const newScheme = JSON.parse(JSON.stringify(currentScheme));
-        if (value === undefined || value === '') {
-            // Удаляем ключ, чтобы сбросить на значение по умолчанию из CSS
-            const pathParts = key.split('.');
-            const lastKey = pathParts.pop()!;
-            let parent: any = newScheme;
-            for (const part of pathParts) {
-                if (!parent || typeof parent !== 'object') break;
-                parent = parent[part];
-            }
-            if (parent && typeof parent === 'object' && lastKey in parent) {
-                delete parent[lastKey];
-            }
-        } else {
-            set(newScheme, key, value); // Используем утилиту set для установки значения по пути
+    const onSuffix = isOn ? 'On' : '';
+    const key = `${themeKey}.${baseKey}${onSuffix}`;
+    
+    const newScheme = JSON.parse(JSON.stringify(currentScheme));
+    if (value === undefined || value === '') {
+        const pathParts = key.split('.');
+        const lastKey = pathParts.pop()!;
+        let parent: any = newScheme;
+        for (const part of pathParts) {
+            if (!parent || typeof parent !== 'object') break;
+            parent = parent[part];
         }
-        setColorScheme(newScheme);
-    } else if (origin === 'template') {
-        if (!templateId || !elementId || !styleProperty) return;
-
-        const newTemplates = JSON.parse(JSON.stringify(currentTemplates));
-        const template = newTemplates[templateId];
-        if (!template) return;
-
-        const elementIndex = template.elements.findIndex((el: CardElement) => el.id === elementId);
-        if (elementIndex === -1) return;
-        
-        const styles = template.elements[elementIndex].styles as Record<string, any>;
-        if (value === undefined || value === '') {
-            delete styles[styleProperty]; // Удаляем для сброса
-        } else {
-            styles[styleProperty] = value;
+        if (parent && typeof parent === 'object' && lastKey in parent) {
+            delete parent[lastKey];
         }
-        
-        setTemplates(newTemplates);
+    } else {
+        set(newScheme, key, value);
     }
-  }, [setColorScheme, setTemplates]);
+    setColorScheme(newScheme);
+  }, [setColorScheme]);
 
 
 /**
  * Открывает контекстное меню для выбора цвета и шрифта.
  * Собирает всю необходимую информацию о кликнутом элементе и передает в состояние.
  */
-const handleOpenColorPicker = useCallback((
-    event: React.MouseEvent,
-    styleInfoFromClick: any 
-  ) => {
-    setContextMenu(null); // Закрываем обычное контекстное меню
-    const { baseKey, targetName, isTextElement, isOn, origin, templateId, elementId, styleProperty } = styleInfoFromClick;
+const handleOpenColorPicker = useCallback((event: React.MouseEvent, styleInfoFromClick: any) => {
+    setContextMenu(null);
+    const { baseKey, targetName, isTextElement, isOn } = styleInfoFromClick;
     const themeKey = isDark ? 'dark' : 'light';
-    const currentScheme = useAppStore.getState().colorScheme;
-    const currentTemplates = useAppStore.getState().templates;
-    const scheme = isDark ? currentScheme.dark : currentScheme.light;
-    const template = templateId ? currentTemplates[templateId] : null;
-    const element = template ? template.elements.find((el: CardElement) => el.id === elementId) : null;
+    const scheme = useAppStore.getState().colorScheme[themeKey];
     const onSuffix = isOn ? 'On' : '';
 
-    // Определяем начальные значения для пикера (цвет, шрифт, размер)
-    let initialValue = isDark ? '#FFFFFF' : '#000000'; // Цвет по умолчанию
-    if (origin === 'template' && element) {
-        initialValue = (element.styles as any)[styleProperty || 'textColor'] || initialValue;
-    } else if (origin === 'scheme') {
-        initialValue = (scheme as any)[`${baseKey}${onSuffix}`] || initialValue;
-    }
-
-    let initialFontFamily: string | undefined;
+    const initialValue = (scheme as any)[`${baseKey}${onSuffix}`] || (isDark ? '#FFFFFF' : '#000000');
     const fontFamilyKey = baseKey.replace('Color', 'FontFamily');
-    if (origin === 'template' && element?.styles.fontFamily) {
-        initialFontFamily = element.styles.fontFamily;
-    } else if (origin === 'scheme') {
-        initialFontFamily = (scheme as any)[`${fontFamilyKey}${onSuffix}`];
-    }
-
-    let initialFontSize: number | undefined;
+    const initialFontFamily = (scheme as any)[`${fontFamilyKey}${onSuffix}`];
     const fontSizeKey = baseKey.replace('Color', 'FontSize');
-    if (origin === 'template' && element?.styles.fontSize) {
-        initialFontSize = element.styles.fontSize;
-    } else if (origin === 'scheme') {
-        initialFontSize = (scheme as any)[`${fontSizeKey}${onSuffix}`];
-    }
+    const initialFontSize = (scheme as any)[`${fontSizeKey}${onSuffix}`];
     
-    // Функция обратного вызова для ColorPicker, которая будет обновлять стили
     const onUpdate = (property: 'color' | 'fontFamily' | 'fontSize', value: any) => {
-        const baseUpdateInfo: Omit<StyleUpdateInfo, 'baseKey' | 'styleProperty'> = {
-            origin, theme: themeKey, isOn, templateId, elementId,
-        };
-        let finalUpdateInfo: StyleUpdateInfo;
+        let finalBaseKey = baseKey;
+        if (property === 'fontFamily') finalBaseKey = fontFamilyKey;
+        if (property === 'fontSize') finalBaseKey = fontSizeKey;
 
-        // Определяем, какое свойство обновляется, и формируем правильный ключ
-        if (property === 'color') {
-            finalUpdateInfo = { ...baseUpdateInfo, baseKey, styleProperty: styleProperty || 'textColor' };
-        } else if (property === 'fontFamily') {
-            finalUpdateInfo = { ...baseUpdateInfo, baseKey: fontFamilyKey, styleProperty: 'fontFamily' };
-        } else { // fontSize
-            finalUpdateInfo = { ...baseUpdateInfo, baseKey: fontSizeKey, styleProperty: 'fontSize' };
-        }
-        handleStyleUpdate(finalUpdateInfo, value);
+        handleStyleUpdate(themeKey, finalBaseKey, isOn, value);
         
-        // Обновляем состояние самого пикера, чтобы он тут же показал новое значение
         const prev = useAppStore.getState().colorPickerMenu;
         if (!prev) return;
         const newMenuData = { ...prev };
-        if (property === 'fontSize') {
-            newMenuData.initialFontSize = value;
-        } else if (property === 'fontFamily') {
-            newMenuData.initialFontFamily = value;
-        } else if (property === 'color') {
-            newMenuData.initialValue = value;
-        }
+        if (property === 'fontSize') newMenuData.initialFontSize = value;
+        else if (property === 'fontFamily') newMenuData.initialFontFamily = value;
+        else if (property === 'color') newMenuData.initialValue = value;
         setColorPickerMenu(newMenuData);
     };
     
-    // Устанавливаем состояние, чтобы открыть ColorPicker
     setColorPickerMenu({
         x: event.clientX,
         y: event.clientY,
@@ -374,49 +298,53 @@ const handleOpenColorPicker = useCallback((
   
   const handleDeviceContextMenu = useCallback((event: React.MouseEvent, deviceId: string, tabId: string) => {
     event.preventDefault();
+    event.stopPropagation();
+    setColorPickerMenu(null); // Закрываем другое меню
     setContextMenu({ x: event.clientX, y: event.clientY, deviceId, tabId });
-  }, [setContextMenu]);
+  }, [setContextMenu, setColorPickerMenu]);
   
   /**
    * Глобальный обработчик контекстного меню (правый клик на всем приложении).
-   * Если клик был по элементу с data-атрибутами для стилизации, открывает ColorPicker,
-   * иначе просто закрывает все открытые меню.
+   * Определяет, был ли клик по элементу для стилизации или по карточке устройства,
+   * и открывает соответствующее меню.
    */
   const handleGlobalContextMenu = useCallback((event: React.MouseEvent) => {
-    setContextMenu(null);
-    setColorPickerMenu(null);
-
     const target = event.target as HTMLElement;
-    const styleTarget = target.closest('[data-style-origin]') as HTMLElement | null;
-    
-    if (styleTarget) {
+    const styleTarget = target.closest('[data-style-key]') as HTMLElement | null;
+    const deviceTarget = target.closest('[data-device-id]') as HTMLElement | null;
+
+    if (styleTarget && !isEditMode) {
       event.preventDefault();
+      setContextMenu(null);
+      setColorPickerMenu(null);
       
       const { 
-        styleOrigin: origin, 
         styleKey: baseKey, 
         styleName: targetName,
         isText: isTextStr,
         isOn: isOnStr,
-        templateId,
-        templateElementId: elementId,
-        styleProperty,
       } = styleTarget.dataset;
 
       const styleInfo = {
-          origin,
           baseKey,
           targetName: targetName || 'Элемент',
           isTextElement: isTextStr === 'true',
           isOn: isOnStr === 'true',
-          templateId,
-          elementId,
-          styleProperty,
       };
 
       handleOpenColorPicker(event, styleInfo);
+    } else if (deviceTarget && isEditMode) {
+        // В режиме редактирования, ПКМ на карточке открывает меню действий
+        const { deviceId, tabId } = deviceTarget.dataset;
+        if (deviceId && tabId) {
+            handleDeviceContextMenu(event, deviceId, tabId);
+        }
+    } else {
+        // В остальных случаях просто закрываем все меню
+        setContextMenu(null);
+        setColorPickerMenu(null);
     }
-  }, [handleOpenColorPicker, setContextMenu, setColorPickerMenu]);
+  }, [isEditMode, handleOpenColorPicker, handleDeviceContextMenu, setContextMenu, setColorPickerMenu]);
 
   // --- ЛОГИКА РЕНДЕРИНГА ---
 

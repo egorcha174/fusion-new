@@ -264,14 +264,6 @@ const Settings: React.FC<SettingsProps> = (props) => {
                 </button>
             </div>
             
-            {/* Секция настроек часов */}
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Настройки часов</h2>
-                <div className="space-y-4">
-                    {/* ... UI для формата, секунд, размера ... */}
-                </div>
-            </div>
-
             {/* Секция настроек интерфейса */}
             <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Интерфейс</h2>
@@ -283,9 +275,10 @@ const Settings: React.FC<SettingsProps> = (props) => {
                 </div>
             </div>
 
-            {/* Секция настроек цветовой схемы */}
+            {/* Секция настроек внешнего вида */}
             <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Внешний вид</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Для детальной настройки цветов и шрифтов используйте правый клик мыши на элементах дашборда.</p>
                 <div className="space-y-4">
                    {/* Фон дашборда */}
                     <div>
