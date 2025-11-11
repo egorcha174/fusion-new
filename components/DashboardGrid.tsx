@@ -138,10 +138,6 @@ const DroppableCell: React.FC<{
   );
 };
 
-/**
- * Обертка для занятых ячеек, чтобы сделать их зоной для сброса.
- * Это нужно, чтобы можно было сбросить карточку на ячейку, уже занятую другой карточкой.
- */
 const OccupiedCellWrapper: React.FC<{
     group: GridLayoutItem[];
     children: React.ReactNode;
@@ -155,15 +151,16 @@ const OccupiedCellWrapper: React.FC<{
         id: `cell-${firstItem.col}-${firstItem.row}`,
         data: { type: 'cell', col: firstItem.col, row: firstItem.row }
     });
-    
-    const isStackedPair = group.length === 2 && group.every(item => item.height === 0.5);
+
+    const isStackedPair = group.length === 2 && group.every(item => item.height === 0.5 && (item.width || 1) === 1);
     
     const width = firstItem.width || 1;
+    // Если это пара карточек 1x0.5, контейнер должен быть высотой в 1 ячейку.
     const containerHeight = isStackedPair ? 1 : (firstItem.height || 1);
     const groupHasOpenMenu = group.some(item => item.deviceId === openMenuDeviceId);
     const groupIsActive = group.some(item => item.deviceId === activeId);
 
-    const overClasses = (isEditMode && isOver) ? 'bg-blue-500/20 ring-2 ring-blue-400' : '';
+    const overClasses = (isEditMode && isOver && !groupIsActive) ? 'bg-blue-500/20 ring-2 ring-blue-400' : '';
     
     const style: React.CSSProperties = {
         position: 'absolute',
@@ -172,7 +169,7 @@ const OccupiedCellWrapper: React.FC<{
         left: `${firstItem.col * (metrics.cellSize + metrics.gap)}px`,
         top: `${firstItem.row * (metrics.cellSize + metrics.gap)}px`,
         zIndex: groupHasOpenMenu ? 40 : (groupIsActive ? 0 : 1),
-        transition: 'all 350ms cubic-bezier(0.4, 0, 0.2, 1)', // Animation for position and size
+        transition: 'all 350ms cubic-bezier(0.4, 0, 0.2, 1)',
     };
 
     return (
@@ -407,8 +404,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                     {groupedLayout.map((group) => {
                         const firstItem = group[0];
                         if (!firstItem) return null;
-
-                        const isStackedPair = group.length === 2 && group.every(item => item.height === 0.5 && (item.width || 1) === 1);
                         
                         return (
                              <OccupiedCellWrapper key={`${firstItem.col}-${firstItem.row}`} group={group} isEditMode={isEditMode} activeId={activeId} openMenuDeviceId={openMenuDeviceId} metrics={gridMetrics}>
@@ -427,22 +422,24 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                                     }
                                     const templateToUse = templateId ? templates[templateId] : undefined;
                                     
+                                    const isStackedPair = group.length === 2 && group.every(i => i.height === 0.5 && (i.width || 1) === 1);
+
                                     const wrapperStyle: React.CSSProperties = {
                                         position: 'absolute',
-                                        inset: 0,
                                         zIndex: group.length - index,
                                     };
 
                                     if (isStackedPair) {
                                         wrapperStyle.height = `calc(50% - ${gridMetrics.gap / 2}px)`;
-                                        wrapperStyle.inset = 'auto';
                                         wrapperStyle.left = '0';
                                         wrapperStyle.right = '0';
                                         if (index === 0) {
                                             wrapperStyle.top = '0';
-                                        } else { // index === 1
+                                        } else {
                                             wrapperStyle.bottom = '0';
                                         }
+                                    } else {
+                                        wrapperStyle.inset = 0;
                                     }
 
                                     return (
