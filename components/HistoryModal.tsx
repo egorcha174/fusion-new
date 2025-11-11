@@ -85,7 +85,8 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ entityId, onClose, getHisto
           throw new Error("Нет данных истории за выбранный период.");
         }
 
-        const processedData = historyPoints
+        // Cначала сортируем, чтобы гарантировать правильный порядок
+        const sortedPoints = historyPoints
           .filter((point: any) => point && !isNaN(parseFloat(point.s)))
           .map((point: any) => ({
             x: new Date(point.lu * 1000), // last_updated in seconds
@@ -93,7 +94,19 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ entityId, onClose, getHisto
           }))
           .sort((a, b) => a.x.getTime() - b.x.getTime());
         
-
+        // Затем фильтруем, чтобы обеспечить строгое возрастание временных меток
+        // и удалить точки с некорректным временем или дубликатами.
+        const processedData: { x: Date, y: number }[] = [];
+        if (sortedPoints.length > 0) {
+            processedData.push(sortedPoints[0]);
+            for (let i = 1; i < sortedPoints.length; i++) {
+                // Добавляем точку, только если ее временная метка строго больше предыдущей.
+                if (sortedPoints[i].x.getTime() > processedData[processedData.length - 1].x.getTime()) {
+                    processedData.push(sortedPoints[i]);
+                }
+            }
+        }
+        
         if (processedData.length < 2) {
           throw new Error("Недостаточно данных для построения графика.");
         }
