@@ -1,9 +1,4 @@
 
-
-
-
-
-
 import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
@@ -169,7 +164,7 @@ interface AppActions {
     handleDeviceAddToTab: (device: Device, tabId: string) => void;
     handleDeviceRemoveFromTab: (deviceId: string, tabId: string) => void;
     handleDeviceMoveToTab: (device: Device, fromTabId: string, toTabId: string) => void;
-    checkCollision: (layout: GridLayoutItem[], itemToPlace: { col: number; row: number; width: number; height: number; }, gridSettings: { cols: number; rows: number; }, ignoreDeviceId: string, originalItem?: GridLayoutItem) => boolean;
+    checkCollision: (layout: GridLayoutItem[], itemToPlace: { col: number; row: number; width: number; height: number; }, gridSettings: { cols: number; rows: number; }, ignoreDeviceId: string) => boolean;
     handleDeviceLayoutChange: (tabId: string, newLayout: GridLayoutItem[]) => void;
     handleDeviceResizeOnTab: (tabId: string, deviceId: string, newWidth: number, newHeight: number) => void;
 
@@ -358,16 +353,55 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         get().handleDeviceAddToTab(device, toTabId);
         get().handleDeviceRemoveFromTab(device.id, fromTabId);
     },
-    checkCollision: (layout, itemToPlace, gridSettings, ignoreDeviceId, originalItem) => {
+    checkCollision: (layout, itemToPlace, gridSettings, ignoreDeviceId) => {
         const { col, row, width, height } = itemToPlace;
-        if (col < 0 || row < 0 || col + Math.ceil(width) > gridSettings.cols || row + Math.ceil(height) > gridSettings.rows) return true;
+        if (col < 0 || row < 0 || col + Math.ceil(width) > gridSettings.cols || row + Math.ceil(height) > gridSettings.rows) {
+            return true;
+        }
+
         for (const existingItem of layout) {
-            if (existingItem.deviceId === ignoreDeviceId) continue;
+            if (existingItem.deviceId === ignoreDeviceId) {
+                continue;
+            }
+
             const existingWidth = existingItem.width || 1;
             const existingHeight = existingItem.height || 1;
-            if (col < existingItem.col + existingWidth && col + width > existingItem.col && row < existingItem.row + existingHeight && row + height > existingItem.row) return true;
+            
+            // Standard BBox check for overlap
+            const isOverlapping = (
+                col < existingItem.col + existingWidth &&
+                col + width > existingItem.col &&
+                row < existingItem.row + existingHeight &&
+                row + height > existingItem.row
+            );
+
+            if (isOverlapping) {
+                // It's an overlap. Now, check if it's a valid stacking exception.
+                const isPlacingStackable = width === 1 && height === 0.5;
+                const isExistingStackable = existingWidth === 1 && existingHeight === 0.5;
+                const isAtSameOrigin = col === existingItem.col && row === existingItem.row;
+
+                if (isPlacingStackable && isExistingStackable && isAtSameOrigin) {
+                    // We are placing a 1x0.5 on another 1x0.5 at the same origin.
+                    // This is allowed only if there's currently only one item there.
+                    const itemsAtOrigin = layout.filter(item => 
+                        item.col === col && 
+                        item.row === row &&
+                        item.deviceId !== ignoreDeviceId // Exclude the item being manipulated from the count
+                    );
+                    
+                    // If there's already one item, placing another is OK (creates a stack of 2).
+                    // If there are 2 or more, it's a collision.
+                    if (itemsAtOrigin.length < 2) {
+                        continue; // This is a valid stack formation, not a collision. Continue checking against other items.
+                    }
+                }
+                
+                // If it's an overlap but not an allowed exception, it's a collision.
+                return true;
+            }
         }
-        return false;
+        return false; // No collisions found
     },
     handleDeviceLayoutChange: (tabId, newLayout) => {
         const newTabs = get().tabs.map(tab => (tab.id === tabId) ? { ...tab, layout: newLayout } : tab);
@@ -379,7 +413,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             const deviceItem = tab.layout.find(item => item.deviceId === deviceId);
             if (!deviceItem) return tab;
             const newItemLayout = { ...deviceItem, width: newWidth, height: newHeight };
-            if (get().checkCollision(tab.layout, newItemLayout, tab.gridSettings, deviceId, deviceItem)) return tab;
+            if (get().checkCollision(tab.layout, newItemLayout, tab.gridSettings, deviceId)) {
+                return tab;
+            }
             return { ...tab, layout: tab.layout.map(item => item.deviceId === deviceId ? newItemLayout : item) };
         });
         get().setTabs(newTabs);
