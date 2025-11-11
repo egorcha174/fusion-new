@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement, DeviceCustomizations, ColorScheme } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -305,8 +303,19 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         };
     };
 
-    // Динамический фон карточки, зависящий от состояния и пороговых правил.
-    let dynamicBackgroundColor = isOn ? colorScheme.cardBackgroundOn : colorScheme.cardBackground;
+    // Динамический фон карточки, зависящий от состояния, темы, шаблона и пороговых правил.
+    let dynamicBackgroundColor: string;
+    if (isOn) {
+        // Приоритет: специфичный для темы цвет из шаблона -> общий цвет "вкл" из шаблона -> цвет из глобальной схемы
+        dynamicBackgroundColor = isDark
+            ? template.styles.onBackgroundColor || colorScheme.cardBackgroundOn
+            : template.styles.lightOnBackgroundColor || template.styles.onBackgroundColor || colorScheme.cardBackgroundOn;
+    } else {
+        dynamicBackgroundColor = isDark
+            ? template.styles.backgroundColor || colorScheme.cardBackground
+            : template.styles.lightBackgroundColor || template.styles.backgroundColor || colorScheme.cardBackground;
+    }
+    
     let dynamicValueColor: string | undefined = undefined;
 
     // Проверяем правила пороговых значений для сенсоров.
