@@ -168,9 +168,10 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({ entity
         {loadState === 'loaded' && previewUrl && (
           <>
             <img src={previewUrl} className="w-full h-full border-0 bg-black object-contain" alt={altText} />
-            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer pointer-events-none">
-                <button onClick={(e) => { e.stopPropagation(); if (entityId) setIsPlaying(true); }} className="bg-black/50 backdrop-blur-sm rounded-full p-4 hover:bg-black/70 transition-all opacity-100 pointer-events-auto" title="Воспроизвести">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white/90" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-start p-3 pointer-events-none">
+                <button onClick={(e) => { e.stopPropagation(); if (entityId) setIsPlaying(true); }} className="flex items-center gap-2 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1.5 text-sm font-semibold text-white hover:bg-black/70 transition-colors pointer-events-auto" title="Смотреть трансляцию">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
+                    <span>Смотреть</span>
                 </button>
             </div>
           </>
