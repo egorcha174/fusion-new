@@ -111,19 +111,28 @@ const DroppableCell: React.FC<{
   col: number;
   row: number;
   isEditMode: boolean;
-}> = ({ col, row, isEditMode }) => {
+  metrics: { cellSize: number; gap: number; };
+}> = ({ col, row, isEditMode, metrics }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: `cell-${col}-${row}`,
     data: { type: 'cell', col, row }
   });
 
-  const baseClasses = 'w-full h-full transition-colors duration-200 rounded-xl';
+  const baseClasses = 'absolute transition-colors duration-200 rounded-xl';
   const editModeClasses = isEditMode ? 'bg-gray-800/50 border-2 border-dashed border-gray-700/50' : '';
   const overClasses = isOver ? 'bg-blue-500/20 border-solid border-blue-400' : '';
+  
+  const style: React.CSSProperties = {
+    width: `${metrics.cellSize}px`,
+    height: `${metrics.cellSize}px`,
+    left: `${col * (metrics.cellSize + metrics.gap)}px`,
+    top: `${row * (metrics.cellSize + metrics.gap)}px`,
+  };
 
   return (
     <div
       ref={setNodeRef}
+      style={style}
       className={`${baseClasses} ${isOver ? overClasses : editModeClasses}`}
     />
   );
@@ -139,7 +148,8 @@ const OccupiedCellWrapper: React.FC<{
     isEditMode: boolean;
     activeId: string | null;
     openMenuDeviceId: string | null;
-}> = ({ group, children, isEditMode, activeId, openMenuDeviceId }) => {
+    metrics: { cellSize: number; gap: number; };
+}> = ({ group, children, isEditMode, activeId, openMenuDeviceId, metrics }) => {
     const firstItem = group[0];
     const { setNodeRef, isOver } = useDroppable({
         id: `cell-${firstItem.col}-${firstItem.row}`,
@@ -153,14 +163,20 @@ const OccupiedCellWrapper: React.FC<{
 
     const overClasses = (isEditMode && isOver) ? 'bg-blue-500/20 ring-2 ring-blue-400' : '';
     
+    const style: React.CSSProperties = {
+        position: 'absolute',
+        width: `${width * metrics.cellSize + (Math.ceil(width) - 1) * metrics.gap}px`,
+        height: `${height * metrics.cellSize + (Math.ceil(height) - 1) * metrics.gap}px`,
+        left: `${firstItem.col * (metrics.cellSize + metrics.gap)}px`,
+        top: `${firstItem.row * (metrics.cellSize + metrics.gap)}px`,
+        zIndex: groupHasOpenMenu ? 40 : (groupIsActive ? 0 : 1),
+        transition: 'all 350ms cubic-bezier(0.4, 0, 0.2, 1)', // Animation for position and size
+    };
+
     return (
         <div
             ref={setNodeRef}
-            style={{
-                gridColumn: `${firstItem.col + 1} / span ${Math.ceil(width)}`,
-                gridRow: `${firstItem.row + 1} / span ${Math.ceil(height)}`,
-                zIndex: groupHasOpenMenu ? 40 : (groupIsActive ? 0 : 1),
-            }}
+            style={style}
             className={`relative rounded-xl transition-colors duration-200 ${overClasses}`}
         >
             {children}
@@ -199,7 +215,7 @@ interface DashboardGridProps {
 const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
     const { tab, allKnownDevices, isEditMode, onDeviceLayoutChange, searchTerm, templates, customizations, onDeviceToggle, onShowHistory } = props;
     const viewportRef = useRef<HTMLDivElement>(null);
-    const [gridStyle, setGridStyle] = useState<React.CSSProperties>({});
+    const [gridMetrics, setGridMetrics] = useState({ containerWidth: 0, containerHeight: 0, cellSize: 0, gap: 16 });
     const [activeId, setActiveId] = useState<string | null>(null);
     const [activeDragItemRect, setActiveDragItemRect] = useState<{ width: number; height: number } | null>(null);
     const [openMenuDeviceId, setOpenMenuDeviceId] = useState<string | null>(null);
@@ -211,23 +227,24 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
             const { width, height } = viewportRef.current.getBoundingClientRect();
             const { cols, rows } = tab.gridSettings;
             const gap = 16;
+            // Рассчитываем размер ячейки, чтобы сетка вписалась в контейнер
             const cellWidth = (width - (cols + 1) * gap) / cols;
             const cellHeight = (height - (rows + 1) * gap) / rows;
             const cellSize = Math.floor(Math.min(cellWidth, cellHeight));
             if (cellSize <= 0) return;
             
-            const newStyle = {
-                gridTemplateColumns: `repeat(${cols}, ${cellSize}px)`,
-                gridTemplateRows: `repeat(${rows}, ${cellSize}px)`,
-                gap: `${gap}px`,
-            };
-            setGridStyle(newStyle);
+            setGridMetrics({
+                containerWidth: cols * cellSize + (cols - 1) * gap,
+                containerHeight: rows * cellSize + (rows - 1) * gap,
+                cellSize: cellSize,
+                gap: gap
+            });
         };
         const resizeObserver = new ResizeObserver(calculateGrid);
         if (viewportRef.current) resizeObserver.observe(viewportRef.current);
         calculateGrid();
         return () => resizeObserver.disconnect();
-    }, [tab.gridSettings, isEditMode]);
+    }, [tab.gridSettings]);
 
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -374,15 +391,15 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
     }, [tab.layout]);
 
     return (
-        <div ref={viewportRef} className="w-full h-full flex items-start justify-start p-4">
+        <div ref={viewportRef} className="w-full h-full flex items-center justify-center p-4">
             <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={pointerWithin}>
-                <div className="grid relative" style={gridStyle}>
+                <div className="relative" style={{ width: gridMetrics.containerWidth, height: gridMetrics.containerHeight }}>
                     {isEditMode && Array.from({ length: tab.gridSettings.cols * tab.gridSettings.rows }).map((_, index) => {
                         const col = index % tab.gridSettings.cols;
                         const row = Math.floor(index / tab.gridSettings.cols);
                         const isOccupied = occupiedCells.has(`${col},${row}`);
                         if (isOccupied) return null;
-                        return <DroppableCell key={`cell-${col}-${row}`} col={col} row={row} isEditMode={isEditMode} />;
+                        return <DroppableCell key={`cell-${col}-${row}`} col={col} row={row} isEditMode={isEditMode} metrics={gridMetrics} />;
                     })}
 
                     {groupedLayout.map((group) => {
@@ -393,7 +410,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                         const isSingleHalf = group.length === 1 && group[0].height === 0.5;
                         
                         return (
-                             <OccupiedCellWrapper key={`${firstItem.col}-${firstItem.row}`} group={group} isEditMode={isEditMode} activeId={activeId} openMenuDeviceId={openMenuDeviceId}>
+                             <OccupiedCellWrapper key={`${firstItem.col}-${firstItem.row}`} group={group} isEditMode={isEditMode} activeId={activeId} openMenuDeviceId={openMenuDeviceId} metrics={gridMetrics}>
                                 {group.map((item, index) => {
                                     const device = allKnownDevices.get(item.deviceId);
                                     if (!device) return null;
@@ -416,7 +433,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                                     };
 
                                     if (isStackedPair) {
-                                        wrapperStyle.height = 'calc(50% - 4px)'; // 4px для половины зазора
+                                        wrapperStyle.height = `calc(50% - ${gridMetrics.gap / 2}px)`;
                                         wrapperStyle.inset = 'auto';
                                         wrapperStyle.left = '0';
                                         wrapperStyle.right = '0';
@@ -446,7 +463,15 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                 {/* DragOverlay показывает "призрачный" элемент во время перетаскивания для лучшего UX. */}
                  <DragOverlay dropAnimation={null} modifiers={[snapCenterToCursor]}>
                     {activeDevice && activeDragItemRect ? (
-                      <div className="opacity-80 shadow-2xl rounded-2xl" style={{ width: activeDragItemRect.width, height: activeDragItemRect.height }}>
+                      <div 
+                        className="rounded-2xl" 
+                        style={{ 
+                          width: activeDragItemRect.width, 
+                          height: activeDragItemRect.height,
+                          transform: 'scale(1.05)',
+                          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.45)',
+                        }}
+                      >
                         <DeviceCard
                           device={activeDevice}
                           template={activeDeviceTemplate}
