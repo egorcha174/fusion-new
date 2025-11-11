@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot, ColorScheme } from '../types';
 import DeviceCard from './DeviceCard';
@@ -235,24 +234,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   const isSystemDark = useMemo(() => window.matchMedia('(prefers-color-scheme: dark)').matches, []);
   const isDark = useMemo(() => theme === 'night' || (theme === 'auto' && isSystemDark), [theme, isSystemDark]);
   const currentColorScheme = useMemo(() => isDark ? colorScheme.dark : colorScheme.light, [isDark, colorScheme]);
-
-  const handleHeightChange = (v?: number) => {
-      setEditedTemplate(p => {
-          if (v === undefined || isNaN(v)) {
-              return { ...p, height: 1 };
-          }
-          let newHeight = v;
-          if (newHeight < 0.5) newHeight = 0.5;
-  
-          // Allow 0.5, but round any other fractional value.
-          if (newHeight !== 0.5 && newHeight % 1 !== 0) {
-              newHeight = Math.round(newHeight);
-              if (newHeight === 0) newHeight = 1; // Cannot be 0.
-          }
-  
-          return { ...p, height: newHeight };
-      });
-  };
 
   const FONT_FAMILIES = [
     { name: 'Системный', value: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"` },
@@ -586,8 +567,38 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                   <LabeledInput label="Название"><input type="text" value={editedTemplate.name} onChange={e => setEditedTemplate(p => ({...p, name: e.target.value}))} className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"/></LabeledInput>
                 </Section>
                 <Section title="Размеры карточки">
-                    <LabeledInput label="Ширина" suffix="колонок"><NumberInput value={editedTemplate.width} onChange={v => setEditedTemplate(p => ({...p, width: v ? Math.max(1, Math.round(v)) : 1}))} min={1} max={10} step={1} /></LabeledInput>
-                    <LabeledInput label="Высота" suffix="рядов"><NumberInput value={editedTemplate.height} onChange={handleHeightChange} min={0.5} max={10} step={0.1} /></LabeledInput>
+                    <LabeledInput label="Ширина" suffix="колонок">
+                        <div className="relative w-full">
+                            <select
+                                value={editedTemplate.width}
+                                onChange={e => setEditedTemplate(p => ({ ...p, width: parseInt(e.target.value, 10) }))}
+                                className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none pr-6"
+                            >
+                                {Array.from({ length: 10 }, (_, i) => i + 1).map(w => (
+                                    <option key={w} value={w}>{w}</option>
+                                ))}
+                            </select>
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                                <Icon icon="mdi:chevron-down" className="w-4 h-4 text-gray-400"/>
+                            </div>
+                        </div>
+                    </LabeledInput>
+                    <LabeledInput label="Высота" suffix="рядов">
+                       <div className="relative w-full">
+                            <select
+                                value={editedTemplate.height}
+                                onChange={e => setEditedTemplate(p => ({ ...p, height: parseFloat(e.target.value) }))}
+                                className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none pr-6"
+                            >
+                                {[0.5, ...Array.from({ length: 10 }, (_, i) => i + 1)].map(h => (
+                                    <option key={h} value={h}>{String(h).replace('.', ',')}</option>
+                                ))}
+                            </select>
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                                <Icon icon="mdi:chevron-down" className="w-4 h-4 text-gray-400"/>
+                            </div>
+                        </div>
+                    </LabeledInput>
                 </Section>
                 <Section title="Стили фона">
                     <LabeledInput label="Цвет (Выкл.)"><input type="color" value={editedTemplate.styles.backgroundColor} onChange={e => setEditedTemplate(p => ({...p, styles: {...p.styles, backgroundColor: e.target.value}}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
