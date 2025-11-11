@@ -503,17 +503,17 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
             return (
                 <div key={element.id} style={style} onClick={e => { if (!isPreview) e.stopPropagation(); }} ref={dropdownRef}>
                     <div className="relative w-full h-full flex items-center justify-center">
-                        <button onClick={handleButtonClick} disabled={isPreview} className="w-full h-full flex flex-col items-center justify-center bg-black/10 dark:bg-gray-500/20 hover:bg-black/20 dark:hover:bg-gray-500/30 rounded-xl transition-all p-1">
-                            <Icon icon={activeConfig.icon} className="w-auto h-[55%] text-black dark:text-white" />
-                            <span className="text-[10px] font-bold text-black dark:text-white mt-auto leading-tight text-center">{activeConfig.label}</span>
+                        <button onClick={handleButtonClick} disabled={isPreview} className="w-full h-full flex flex-col items-center justify-center bg-black/5 dark:bg-black/25 hover:bg-black/10 dark:hover:bg-black/40 rounded-xl transition-all p-1 ring-1 ring-black/5 dark:ring-white/10">
+                            <Icon icon={activeConfig.icon} className="w-auto h-[55%] text-gray-700 dark:text-gray-300" />
+                            <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 mt-auto leading-tight text-center">{activeConfig.label}</span>
                         </button>
         
                         {isDropdownOpen && !isPreview && (
-                            <div className="absolute top-full right-0 mt-2 min-w-[150px] w-max bg-gray-100 dark:bg-gray-800/80 backdrop-blur-lg rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-1 z-20 fade-in">
+                            <div className="absolute top-full right-0 mt-2 min-w-[150px] w-max bg-gray-200/80 dark:bg-gray-900/80 backdrop-blur-lg rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-1 z-20 fade-in">
                                 {modes.map(mode => {
                                     const config = getConfig(mode);
                                     return (
-                                        <button key={mode} onClick={() => handleModeClick(mode)} className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left rounded-lg transition-colors ${activeMode?.toLowerCase() === mode.toLowerCase() ? 'bg-blue-600/60 text-white' : 'text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600/60'}`}>
+                                        <button key={mode} onClick={() => handleModeClick(mode)} className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left rounded-lg transition-colors ${activeMode?.toLowerCase() === mode.toLowerCase() ? 'bg-blue-600/80 text-white' : 'text-gray-800 dark:text-gray-200 hover:bg-black/10 dark:hover:bg-white/10'}`}>
                                             <Icon icon={config.icon} className="w-5 h-5 flex-shrink-0" />
                                             <span>{config.label}</span>
                                         </button>

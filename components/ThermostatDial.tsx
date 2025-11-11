@@ -1,5 +1,3 @@
-
-
 import React, { useRef, useCallback, useState, useEffect, useLayoutEffect } from 'react';
 import { ColorScheme } from '../types';
 
@@ -96,17 +94,14 @@ const GradientArc: React.FC<{
     );
 };
 
+// FIX: Add pStyle prop to allow inline styling of the text element, resolving TypeScript errors.
 const AutoFitText: React.FC<{
   text: string;
   className?: string;
   pClassName?: string;
   maxFontSize?: number;
-  mode?: 'single-line' | 'multi-line';
-  maxLines?: number;
-  fontSize?: number;
-  textAlign?: 'left' | 'center' | 'right';
   pStyle?: React.CSSProperties;
-}> = ({ text, className, pClassName, maxFontSize = 48, mode = 'multi-line', maxLines = 2, fontSize, textAlign, pStyle }) => {
+}> = ({ text, className, pClassName, maxFontSize = 48, pStyle }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const pRef = useRef<HTMLParagraphElement>(null);
 
@@ -115,22 +110,12 @@ const AutoFitText: React.FC<{
     const p = pRef.current;
     if (!container || !p) return;
 
-    if (fontSize) {
-      p.style.fontSize = `${fontSize}px`;
-      p.style.whiteSpace = mode === 'multi-line' ? 'normal' : 'nowrap';
-      return;
-    }
-
     const fitText = () => {
       let currentSize = maxFontSize;
-      const tolerance = 1;
-
       p.style.fontSize = `${currentSize}px`;
-      p.style.whiteSpace = mode === 'multi-line' ? 'normal' : 'nowrap';
-      
       while (
         currentSize > 8 &&
-        (p.scrollWidth > container.clientWidth + tolerance || p.scrollHeight > container.clientHeight + tolerance)
+        (p.scrollWidth > container.clientWidth || p.scrollHeight > container.clientHeight)
       ) {
         currentSize -= 1;
         p.style.fontSize = `${currentSize}px`;
@@ -138,34 +123,19 @@ const AutoFitText: React.FC<{
     };
     
     const resizeObserver = new ResizeObserver(fitText);
-    if (container) {
-        resizeObserver.observe(container);
-    }
+    resizeObserver.observe(container);
     fitText();
 
     return () => {
-        if(container) {
-            resizeObserver.unobserve(container);
-        }
+      if (container) {
+        resizeObserver.unobserve(container);
+      }
     };
-  }, [text, maxFontSize, mode, fontSize, pStyle]);
-
-  const multiLineStyles: React.CSSProperties = mode === 'multi-line' ? {
-      display: '-webkit-box',
-      WebkitLineClamp: maxLines,
-      WebkitBoxOrient: 'vertical',
-      overflow: 'hidden',
-  } : {};
-  
-  const textAlignClass = {
-    left: 'justify-start',
-    center: 'justify-center',
-    right: 'justify-end',
-  }[textAlign || 'left'];
+  }, [text, maxFontSize, pStyle]);
 
   return (
-    <div ref={containerRef} className={`${className} flex items-center ${textAlignClass}`}>
-      <p ref={pRef} className={pClassName} style={{ lineHeight: 1.15, wordBreak: 'break-word', ...multiLineStyles, ...pStyle }}>
+    <div ref={containerRef} className={`${className} flex items-center justify-center overflow-hidden`}>
+      <p ref={pRef} className={pClassName} style={{ lineHeight: 1.1, whiteSpace: 'nowrap', ...pStyle }}>
         {text}
       </p>
     </div>
@@ -378,8 +348,6 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
             pClassName="font-bold"
             pStyle={activeStyle}
             maxFontSize={14}
-            mode="single-line"
-            textAlign="center"
           />
           <AutoFitText 
             text={value.toFixed(1).replace('.', ',')}
@@ -387,8 +355,6 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
             pClassName="font-light"
             pStyle={{ color: colorScheme.thermostatDialTextColor }}
             maxFontSize={80}
-            mode="single-line"
-            textAlign="center"
           />
       </div>
       
