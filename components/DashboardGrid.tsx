@@ -152,12 +152,14 @@ const OccupiedCellWrapper: React.FC<{
         id: `cell-${firstItem.col}-${firstItem.row}`,
         data: { type: 'cell', col: firstItem.col, row: firstItem.row }
     });
-
+    
+    // Определяем, является ли группа одиночной карточкой 1x0.5, чтобы сделать ее контейнер 1x1 для drop-зоны.
+    const isSingleStackable = group.length === 1 && firstItem.height === 0.5 && (firstItem.width || 1) === 1;
     const isStackedPair = group.length === 2 && group.every(item => item.height === 0.5 && (item.width || 1) === 1);
     
     const width = firstItem.width || 1;
-    // Если это пара карточек 1x0.5, контейнер должен быть высотой в 1 ячейку.
-    const containerHeight = isStackedPair ? 1 : (firstItem.height || 1);
+    // Если это одиночная карточка 1x0.5 или уже стопка, контейнер должен быть высотой в 1 ячейку.
+    const containerHeight = (isSingleStackable || isStackedPair) ? 1 : (firstItem.height || 1);
     const groupHasOpenMenu = group.some(item => item.deviceId === openMenuDeviceId);
     const groupIsActive = group.some(item => item.deviceId === activeId);
 
@@ -414,6 +416,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                                     const templateToUse = templateId ? templates[templateId] : undefined;
                                     
                                     const isStackedPair = group.length === 2 && group.every(i => i.height === 0.5 && (i.width || 1) === 1);
+                                    const isSingleStackableItem = group.length === 1 && item.height === 0.5 && (item.width || 1) === 1;
 
                                     const wrapperStyle: React.CSSProperties = {
                                         position: 'absolute',
@@ -421,15 +424,23 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                                     };
 
                                     if (isStackedPair) {
+                                        // Пара карточек 1x0.5. Позиционируем их сверху и снизу.
                                         wrapperStyle.height = `calc(50% - ${gridMetrics.gap / 2}px)`;
                                         wrapperStyle.left = '0';
                                         wrapperStyle.right = '0';
-                                        if (index === 0) {
+                                        if (index === 0) { // Стабильная сортировка гарантирует, что первый элемент всегда будет одним и тем же
                                             wrapperStyle.top = '0';
                                         } else {
                                             wrapperStyle.bottom = '0';
                                         }
+                                    } else if (isSingleStackableItem) {
+                                        // Одиночная карточка 1x0.5. Ее контейнер 1x1. Размещаем ее вверху.
+                                        wrapperStyle.height = `calc(50% - ${gridMetrics.gap / 2}px)`;
+                                        wrapperStyle.top = '0';
+                                        wrapperStyle.left = '0';
+                                        wrapperStyle.right = '0';
                                     } else {
+                                        // Обычная, не "стопочная" карточка. Заполняет свой контейнер.
                                         wrapperStyle.inset = 0;
                                     }
 
