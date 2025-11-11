@@ -446,7 +446,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
 
                                     return (
                                         <div key={item.deviceId} style={wrapperStyle}>
-                                            <DraggableDevice device={device} template={templateToUse} {...props} />
+                                            <DraggableDevice device={device} template={templateToUse} {...props} openMenuDeviceId={openMenuDeviceId} setOpenMenuDeviceId={setOpenMenuDeviceId} />
                                         </div>
                                     );
                                 })}
