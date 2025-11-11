@@ -90,7 +90,8 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ entityId, onClose, getHisto
           .map((point: any) => ({
             x: new Date(point.lu * 1000), // last_updated in seconds
             y: parseFloat(point.s),
-          }));
+          }))
+          .sort((a, b) => a.x.getTime() - b.x.getTime());
         
         if (processedData.length < 2) {
           throw new Error("Недостаточно данных для построения графика.");
