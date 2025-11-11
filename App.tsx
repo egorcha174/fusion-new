@@ -6,7 +6,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
-import { Device, DeviceCustomization, DeviceCustomizations, Tab, Room, ClockSettings, DeviceType, CameraSettings, GridLayoutItem, CardTemplates, CardTemplate, DeviceBinding, ThresholdRule, ColorScheme, ColorPickerContextData, CardElementId, CardElement } from './types';
+import { Device, DeviceCustomization, DeviceCustomizations, Tab, Room, ClockSettings, DeviceType, CameraSettings, GridLayoutItem, CardTemplates, CardTemplate, DeviceBinding, ThresholdRule, ColorScheme, CardElementId, CardElement } from './types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from './components/DeviceIcon';
 import { set } from './utils/obj-path';
@@ -26,7 +26,6 @@ const TabSettingsModal = lazy(() => import('./components/TabSettingsModal'));
 const ContextMenu = lazy(() => import('./components/ContextMenu'));
 const FloatingCameraWindow = lazy(() => import('./components/FloatingCameraWindow'));
 const TemplateEditorModal = lazy(() => import('./components/TemplateEditorModal'));
-const ColorPickerContextMenu = lazy(() => import('./components/ColorPickerContextMenu'));
 const HistoryModal = lazy(() => import('./components/HistoryModal'));
 
 /**
@@ -126,7 +125,7 @@ const App: React.FC = () => {
     const {
         currentPage, setCurrentPage, isEditMode, setIsEditMode, editingDevice, setEditingDevice,
         editingTab, setEditingTab, editingTemplate, setEditingTemplate, searchTerm, setSearchTerm,
-        contextMenu, setContextMenu, colorPickerMenu, setColorPickerMenu, floatingCamera, setFloatingCamera,
+        contextMenu, setContextMenu, floatingCamera, setFloatingCamera,
         historyModalEntityId, setHistoryModalEntityId,
         tabs, setTabs, activeTabId, setActiveTabId, customizations, setCustomizations,
         templates, setTemplates, clockSettings, setClockSettings, cameraSettings, setCameraSettings,
@@ -223,128 +222,32 @@ const App: React.FC = () => {
   const handleCloseContextMenu = useCallback(() => {
     setContextMenu(null);
   }, [setContextMenu]);
-
-  /**
-   * Обработчик обновления стилей глобальной темы.
-   */
-  const handleStyleUpdate = useCallback((themeKey: 'light' | 'dark', baseKey: string, isOn: boolean, value: any) => {
-    const currentScheme = useAppStore.getState().colorScheme;
-    const onSuffix = isOn ? 'On' : '';
-    const key = `${themeKey}.${baseKey}${onSuffix}`;
-    
-    const newScheme = JSON.parse(JSON.stringify(currentScheme));
-    if (value === undefined || value === '') {
-        const pathParts = key.split('.');
-        const lastKey = pathParts.pop()!;
-        let parent: any = newScheme;
-        for (const part of pathParts) {
-            if (!parent || typeof parent !== 'object') break;
-            parent = parent[part];
-        }
-        if (parent && typeof parent === 'object' && lastKey in parent) {
-            delete parent[lastKey];
-        }
-    } else {
-        set(newScheme, key, value);
-    }
-    setColorScheme(newScheme);
-  }, [setColorScheme]);
-
-
-/**
- * Открывает контекстное меню для выбора цвета и шрифта.
- * Собирает всю необходимую информацию о кликнутом элементе и передает в состояние.
- */
-const handleOpenColorPicker = useCallback((event: React.MouseEvent, styleInfoFromClick: any) => {
-    setContextMenu(null);
-    const { baseKey, targetName, isTextElement, isOn } = styleInfoFromClick;
-    const themeKey = isDark ? 'dark' : 'light';
-    const scheme = useAppStore.getState().colorScheme[themeKey];
-    const onSuffix = isOn ? 'On' : '';
-
-    const initialValue = (scheme as any)[`${baseKey}${onSuffix}`] || (isDark ? '#FFFFFF' : '#000000');
-    const fontFamilyKey = baseKey.replace('Color', 'FontFamily');
-    const initialFontFamily = (scheme as any)[`${fontFamilyKey}${onSuffix}`];
-    const fontSizeKey = baseKey.replace('Color', 'FontSize');
-    const initialFontSize = (scheme as any)[`${fontSizeKey}${onSuffix}`];
-    
-    const onUpdate = (property: 'color' | 'fontFamily' | 'fontSize', value: any) => {
-        let finalBaseKey = baseKey;
-        if (property === 'fontFamily') finalBaseKey = fontFamilyKey;
-        if (property === 'fontSize') finalBaseKey = fontSizeKey;
-
-        handleStyleUpdate(themeKey, finalBaseKey, isOn, value);
-        
-        const prev = useAppStore.getState().colorPickerMenu;
-        if (!prev) return;
-        const newMenuData = { ...prev };
-        if (property === 'fontSize') newMenuData.initialFontSize = value;
-        else if (property === 'fontFamily') newMenuData.initialFontFamily = value;
-        else if (property === 'color') newMenuData.initialValue = value;
-        setColorPickerMenu(newMenuData);
-    };
-    
-    setColorPickerMenu({
-        x: event.clientX,
-        y: event.clientY,
-        targetName,
-        isTextElement,
-        onUpdate,
-        initialValue,
-        initialFontFamily,
-        initialFontSize,
-    });
-}, [isDark, handleStyleUpdate, setColorPickerMenu, setContextMenu]);
   
   const handleDeviceContextMenu = useCallback((event: React.MouseEvent, deviceId: string, tabId: string) => {
     event.preventDefault();
     event.stopPropagation();
-    setColorPickerMenu(null); // Закрываем другое меню
     setContextMenu({ x: event.clientX, y: event.clientY, deviceId, tabId });
-  }, [setContextMenu, setColorPickerMenu]);
+  }, [setContextMenu]);
   
   /**
    * Глобальный обработчик контекстного меню (правый клик на всем приложении).
-   * Определяет, был ли клик по элементу для стилизации или по карточке устройства,
-   * и открывает соответствующее меню.
+   * Открывает меню действий для карточки устройства, если включен режим редактирования.
    */
   const handleGlobalContextMenu = useCallback((event: React.MouseEvent) => {
     const target = event.target as HTMLElement;
-    const styleTarget = target.closest('[data-style-key]') as HTMLElement | null;
     const deviceTarget = target.closest('[data-device-id]') as HTMLElement | null;
 
-    if (styleTarget && !isEditMode) {
-      event.preventDefault();
-      setContextMenu(null);
-      setColorPickerMenu(null);
-      
-      const { 
-        styleKey: baseKey, 
-        styleName: targetName,
-        isText: isTextStr,
-        isOn: isOnStr,
-      } = styleTarget.dataset;
-
-      const styleInfo = {
-          baseKey,
-          targetName: targetName || 'Элемент',
-          isTextElement: isTextStr === 'true',
-          isOn: isOnStr === 'true',
-      };
-
-      handleOpenColorPicker(event, styleInfo);
-    } else if (deviceTarget && isEditMode) {
+    if (deviceTarget && isEditMode) {
         // В режиме редактирования, ПКМ на карточке открывает меню действий
         const { deviceId, tabId } = deviceTarget.dataset;
         if (deviceId && tabId) {
             handleDeviceContextMenu(event, deviceId, tabId);
         }
-    } else {
-        // В остальных случаях просто закрываем все меню
+    } else if (!deviceTarget) {
+        // Если клик был не на карточке, закрываем любое открытое меню
         setContextMenu(null);
-        setColorPickerMenu(null);
     }
-  }, [isEditMode, handleOpenColorPicker, handleDeviceContextMenu, setContextMenu, setColorPickerMenu]);
+  }, [isEditMode, handleDeviceContextMenu, setContextMenu]);
 
   // --- ЛОГИКА РЕНДЕРИНГА ---
 
@@ -391,7 +294,6 @@ const handleOpenColorPicker = useCallback((event: React.MouseEvent, styleInfoFro
             tab={activeTab}
             isEditMode={isEditMode}
             onDeviceContextMenu={handleDeviceContextMenu}
-            onOpenColorPicker={handleOpenColorPicker}
           />
         ) : (
           <div className="text-center text-gray-500">Выберите или создайте вкладку</div>
@@ -553,13 +455,6 @@ const handleOpenColorPicker = useCallback((event: React.MouseEvent, styleInfoFro
                 </div>
 
             </ContextMenu>
-          )}
-
-          {colorPickerMenu && (
-              <ColorPickerContextMenu
-                  data={colorPickerMenu}
-                  onClose={() => setColorPickerMenu(null)}
-              />
           )}
 
           {floatingCamera && haUrl && (

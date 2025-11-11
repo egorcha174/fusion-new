@@ -216,20 +216,6 @@ export interface ColorScheme {
   dark: ColorThemeSet;
 }
 
-/**
- * Данные для контекстного меню выбора цвета и шрифта.
- */
-export interface ColorPickerContextData {
-  x: number;
-  y: number;
-  targetName: string; // Название элемента для отображения (например, "Фон карточки")
-  isTextElement: boolean; // Является ли элемент текстовым (для показа настроек шрифта)
-  onUpdate: (property: 'color' | 'fontFamily' | 'fontSize', value: any) => void; // Callback для обновления стиля
-  initialValue: string; // Начальный цвет
-  initialFontFamily?: string; // Начальный шрифт
-  initialFontSize?: number; // Начальный размер шрифта
-}
-
 
 // --- Система шаблонов карточек ---
 

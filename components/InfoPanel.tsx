@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ClockSettings, Device, ClockSize, CameraSettings, ColorScheme } from '../types';
 import { CameraStreamContent } from './CameraStreamContent';
@@ -59,10 +60,6 @@ const Clock: React.FC<ClockProps> = ({ settings, sidebarWidth, color }) => {
         <div 
             className="font-mono font-bold tracking-tighter whitespace-nowrap"
             style={finalStyle}
-            data-style-key="clockTextColor"
-            data-style-name="Цвет часов"
-            data-style-origin="scheme"
-            data-is-text="true"
         >
             {time.toLocaleTimeString('ru-RU', options)}
         </div>

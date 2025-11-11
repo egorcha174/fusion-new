@@ -40,9 +40,6 @@ const SortableTab: React.FC<SortableTabProps> = ({ tab, isActive, isEditMode, on
                 onClick={onSelect}
                 className={`relative group whitespace-nowrap px-4 py-2 text-lg font-semibold transition-colors`}
                 style={{ color: isActive ? colorScheme.activeTabTextColor : colorScheme.tabTextColor }}
-                data-style-key={isActive ? 'activeTabTextColor' : 'tabTextColor'}
-                data-style-name={isActive ? 'Активная вкладка' : 'Вкладка'}
-                data-is-text="true"
             >
                 {/* В режиме редактирования, `listeners` вешается на текст, чтобы сделать его "ручкой" для перетаскивания */}
                 {isEditMode ? <span {...listeners} className="cursor-move">{tab.name}</span> : tab.name}
@@ -50,8 +47,6 @@ const SortableTab: React.FC<SortableTabProps> = ({ tab, isActive, isEditMode, on
                     <div 
                         className="absolute bottom-0 left-4 right-4 h-0.5 rounded-full" 
                         style={{ backgroundColor: colorScheme.tabIndicatorColor }}
-                        data-style-key="tabIndicatorColor"
-                        data-style-name="Индикатор вкладки"
                     />
                 )}
                 {isEditMode && (

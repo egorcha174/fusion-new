@@ -169,12 +169,10 @@ const OccupiedCellWrapper: React.FC<{
 };
 
 
-// Fix: Define the props interface for DashboardGrid to accept all required properties.
 interface DashboardGridProps {
   tab: Tab;
   isEditMode: boolean;
   onDeviceContextMenu: (event: React.MouseEvent, deviceId: string, tabId: string) => void;
-  onOpenColorPicker: (event: React.MouseEvent, baseKey: string, targetName: string, isTextElement: boolean, isOn: boolean) => void;
   allKnownDevices: Map<string, Device>;
   searchTerm: string;
   onDeviceLayoutChange: (tabId: string, newLayout: GridLayoutItem[]) => void;
@@ -199,7 +197,6 @@ interface DashboardGridProps {
  * Отвечает за рендеринг сетки, обработку Drag-and-Drop и позиционирование карточек.
  */
 const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
-    // Fix: Destructure all required props.
     const { tab, allKnownDevices, isEditMode, onDeviceLayoutChange, searchTerm, templates, customizations, onDeviceToggle, onShowHistory } = props;
     const viewportRef = useRef<HTMLDivElement>(null);
     const [gridStyle, setGridStyle] = useState<React.CSSProperties>({});
@@ -334,7 +331,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         }
     };
     
-    // Fix: Implement the logic for `occupiedCells` to track which grid cells are filled.
     const occupiedCells = useMemo(() => {
       const cells = new Set<string>();
       tab.layout.forEach(item => {
@@ -349,7 +345,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
       return cells;
     }, [tab.layout]);
 
-    // Fix: Implement logic to find the active device and its template for the drag overlay.
     const activeDevice = activeId ? allKnownDevices.get(activeId) : null;
     let activeDeviceTemplate: CardTemplate | undefined;
     if (activeDevice) {
@@ -382,7 +377,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         <div ref={viewportRef} className="w-full h-full flex items-start justify-start p-4">
             <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={pointerWithin}>
                 <div className="grid relative" style={gridStyle}>
-                    {/* Fix: Re-implement the logic for rendering empty droppable cells in edit mode. */}
                     {isEditMode && Array.from({ length: tab.gridSettings.cols * tab.gridSettings.rows }).map((_, index) => {
                         const col = index % tab.gridSettings.cols;
                         const row = Math.floor(index / tab.gridSettings.cols);
@@ -391,7 +385,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                         return <DroppableCell key={`cell-${col}-${row}`} col={col} row={row} isEditMode={isEditMode} />;
                     })}
 
-                    {/* Fix: Re-implement the logic for rendering devices, including stacked cards. */}
                     {groupedLayout.map((group) => {
                         const firstItem = group[0];
                         if (!firstItem) return null;
@@ -454,9 +447,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                  <DragOverlay dropAnimation={null} modifiers={[snapCenterToCursor]}>
                     {activeDevice && activeDragItemRect ? (
                       <div className="opacity-80 shadow-2xl rounded-2xl" style={{ width: activeDragItemRect.width, height: activeDragItemRect.height }}>
-                        {/* Fix: Pass down all required props to DeviceCard within the DragOverlay. */}
-                        {/* FIX: The {...props} spread was causing a type error due to callback signature mismatches.
-                            The overlay is non-interactive, so providing dummy callbacks is the safest fix. */}
                         <DeviceCard
                           device={activeDevice}
                           template={activeDeviceTemplate}
@@ -468,7 +458,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                           getCameraStreamUrl={props.getCameraStreamUrl}
                           isEditMode={true}
                           isPreview={true}
-                          // The DragOverlay is not interactive, so we provide dummy callbacks to satisfy types.
                           onDeviceToggle={() => {}}
                           onTemperatureChange={() => {}}
                           onBrightnessChange={() => {}}

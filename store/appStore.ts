@@ -8,7 +8,7 @@ import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
   CameraSettings, ColorScheme, CardTemplate, DeviceType, GridLayoutItem, DeviceCustomization,
-  CardElementId, ColorPickerContextData
+  CardElementId
 } from '../types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from '../components/DeviceIcon';
@@ -119,7 +119,6 @@ interface AppState {
     editingTemplate: CardTemplate | 'new' | null;
     searchTerm: string;
     contextMenu: { x: number, y: number, deviceId: string, tabId: string } | null;
-    colorPickerMenu: ColorPickerContextData | null;
     floatingCamera: Device | null;
     historyModalEntityId: string | null;
 
@@ -145,7 +144,6 @@ interface AppActions {
     setEditingTemplate: (template: CardTemplate | 'new' | null) => void;
     setSearchTerm: (term: string) => void;
     setContextMenu: (menu: AppState['contextMenu']) => void;
-    setColorPickerMenu: (menu: AppState['colorPickerMenu']) => void;
     setFloatingCamera: (device: Device | null) => void;
     setHistoryModalEntityId: (id: string | null) => void;
 
@@ -192,7 +190,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     editingTemplate: null,
     searchTerm: '',
     contextMenu: null,
-    colorPickerMenu: null,
     floatingCamera: null,
     historyModalEntityId: null,
     
@@ -222,7 +219,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     setEditingTemplate: (template) => set({ editingTemplate: template }),
     setSearchTerm: (term) => set({ searchTerm: term }),
     setContextMenu: (menu) => set({ contextMenu: menu }),
-    setColorPickerMenu: (menu) => set({ colorPickerMenu: menu }),
     setFloatingCamera: (device) => set({ floatingCamera: device }),
     setHistoryModalEntityId: (id) => set({ historyModalEntityId: id }),
 
