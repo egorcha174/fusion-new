@@ -235,20 +235,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   const isDark = useMemo(() => theme === 'night' || (theme === 'auto' && isSystemDark), [theme, isSystemDark]);
   const currentColorScheme = useMemo(() => isDark ? colorScheme.dark : colorScheme.light, [isDark, colorScheme]);
 
-  const FONT_FAMILIES = [
-    { name: 'Системный', value: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"` },
-    { name: 'San Francisco (SF Pro)', value: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' },
-    { name: 'Arial', value: 'Arial, Helvetica, sans-serif' },
-    { name: 'Calibri', value: 'Calibri, Candara, Segoe, "Segoe UI", Optima, Arial, sans-serif' },
-    { name: 'Roboto', value: 'Roboto, sans-serif' },
-    { name: 'Tahoma', value: 'Tahoma, Verdana, Segoe, sans-serif' },
-    { name: 'Verdana', value: 'Verdana, Geneva, sans-serif' },
-    { name: 'Times New Roman', value: '"Times New Roman", Times, serif' },
-    { name: 'Georgia', value: 'Georgia, serif' },
-    { name: 'Courier New', value: '"Courier New", Courier, monospace' },
-    { name: 'Lucida Console', value: '"Lucida Console", Monaco, monospace' }
-  ];
-
   const sampleDevice = useMemo(() => {
     if (templateToEdit.deviceType === 'climate') return { id: 'climate.living_room', name: 'Гостиная', status: 'Охлаждение до 22°', type: DeviceType.Thermostat, temperature: 24, targetTemperature: 22, minTemp: 16, maxTemp: 30, hvacModes: ['off', 'cool', 'heat', 'auto'], hvacAction: 'cooling', presetMode: 'comfort', presetModes: ['none', 'away', 'comfort', 'eco', 'sleep'], state: 'cool', haDomain: 'climate' };
     if (templateToEdit.deviceType === 'light') return { id: 'light.sample_dimmable', name: 'Лампа в гостиной', status: 'Включено', type: DeviceType.DimmableLight, brightness: 80, state: 'on', haDomain: 'light' };
@@ -600,10 +586,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                         </div>
                     </LabeledInput>
                 </Section>
-                <Section title="Стили фона">
-                    <LabeledInput label="Цвет (Выкл.)"><input type="color" value={editedTemplate.styles.backgroundColor} onChange={e => setEditedTemplate(p => ({...p, styles: {...p.styles, backgroundColor: e.target.value}}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
-                    <LabeledInput label="Цвет (Вкл.)"><input type="color" value={editedTemplate.styles.onBackgroundColor || ''} onChange={e => setEditedTemplate(p => ({...p, styles: {...p.styles, onBackgroundColor: e.target.value}}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
-                </Section>
               </>)}
               { selectedElement && (<>
                 <Section title="Положение и размер">
@@ -636,78 +618,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                     </div>
                 </Section>
                 
-                 {['name', 'status', 'value', 'unit', 'temperature'].includes(selectedElement.id) && (
-                    <Section title="Текст">
-                        <LabeledInput label="Размер шрифта" suffix="px"><NumberInput value={selectedElement.styles.fontSize} onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === selectedElement.id ? {...e, styles: {...e.styles, fontSize: v}} : e)}))} min={8} max={100} placeholder="Авто" /></LabeledInput>
-                        <LabeledInput label="Цвет текста">
-                            <div className="flex items-center gap-2">
-                                <input 
-                                    type="color" 
-                                    value={selectedElement.styles.textColor || '#ffffff'} 
-                                    onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, textColor: e.target.value}} : el)}))}
-                                    className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"
-                                />
-                                <button 
-                                    onClick={() => setEditedTemplate(p => {
-                                        const newElements = [...p.elements];
-                                        const elIndex = newElements.findIndex(el => el.id === selectedElement.id);
-                                        if (elIndex > -1) {
-                                            const newStyles = { ...newElements[elIndex].styles };
-                                            delete newStyles.textColor;
-                                            newElements[elIndex] = { ...newElements[elIndex], styles: newStyles };
-                                        }
-                                        return {...p, elements: newElements};
-                                    })}
-                                    title="Сбросить" 
-                                    className="p-1 text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-md transition-colors"
-                                >
-                                    <Icon icon="mdi:close" className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </LabeledInput>
-                        <LabeledInput label="Шрифт">
-                           <div className="flex items-center gap-2 w-full">
-                               <div className="relative w-full">
-                                   <select
-                                       value={selectedElement.styles.fontFamily || ''}
-                                       onChange={e => setEditedTemplate(p => ({
-                                           ...p, 
-                                           elements: p.elements.map(el => el.id === selectedElement.id ? {
-                                               ...el, 
-                                               styles: { ...el.styles, fontFamily: e.target.value || undefined }
-                                           } : el)
-                                       }))}
-                                       className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none pr-6"
-                                   >
-                                       <option value="">По умолчанию</option>
-                                       {FONT_FAMILIES.map(font => (
-                                           <option key={font.name} value={font.value}>{font.name}</option>
-                                       ))}
-                                   </select>
-                                   <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
-                                        <Icon icon="mdi:chevron-down" className="w-4 h-4 text-gray-400"/>
-                                   </div>
-                               </div>
-                                <button 
-                                   onClick={() => setEditedTemplate(p => {
-                                       const newElements = [...p.elements];
-                                       const elIndex = newElements.findIndex(el => el.id === selectedElement.id);
-                                       if (elIndex > -1) {
-                                           const newStyles = { ...newElements[elIndex].styles };
-                                           delete newStyles.fontFamily;
-                                           newElements[elIndex] = { ...newElements[elIndex], styles: newStyles };
-                                       }
-                                       return {...p, elements: newElements};
-                                   })}
-                                   title="Сбросить" 
-                                   className="p-1 text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-md transition-colors flex-shrink-0"
-                               >
-                                   <Icon icon="mdi:close" className="w-4 h-4" />
-                               </button>
-                           </div>
-                        </LabeledInput>
-                    </Section>
-                 )}
                  {['value', 'temperature'].includes(selectedElement.id) && (
                      <Section title="Данные">
                         <LabeledInput label="Знаков после ," ><NumberInput value={selectedElement.styles.decimalPlaces} onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === selectedElement.id ? {...e, styles: {...e.styles, decimalPlaces: v}} : e)}))} min={0} max={5} /></LabeledInput>

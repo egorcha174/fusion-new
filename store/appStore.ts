@@ -16,7 +16,7 @@ const DEFAULT_CLIMATE_TEMPLATE_ID = 'default-climate';
 
 const defaultSensorTemplate: CardTemplate = {
   id: DEFAULT_SENSOR_TEMPLATE_ID, name: 'Стандартный сенсор', deviceType: 'sensor',
-  styles: { backgroundColor: 'rgb(31 41 55 / 0.8)', lightBackgroundColor: 'rgb(243 244 246 / 0.9)' },
+  styles: { },
   elements: [
     { id: 'name', visible: true, position: { x: 8, y: 7 }, size: { width: 65, height: 22 }, zIndex: 2, styles: {} },
     { id: 'icon', visible: true, position: { x: 80, y: 7 }, size: { width: 15, height: 15 }, zIndex: 2, styles: {} },
@@ -28,7 +28,7 @@ const defaultSensorTemplate: CardTemplate = {
 };
 const defaultLightTemplate: CardTemplate = {
     id: DEFAULT_LIGHT_TEMPLATE_ID, name: 'Стандартный светильник', deviceType: 'light',
-    styles: { backgroundColor: 'rgb(55 65 81 / 0.8)', lightBackgroundColor: 'rgb(229 231 235 / 0.9)', onBackgroundColor: 'rgb(75 85 99 / 0.9)', lightOnBackgroundColor: 'rgb(255 255 255 / 1)' },
+    styles: { },
     elements: [
       { id: 'icon', visible: true, position: { x: 8, y: 8 }, size: { width: 20, height: 20 }, zIndex: 2, styles: { onColor: 'rgb(59 130 246 / 1)' } },
       { id: 'name', visible: true, position: { x: 8, y: 35 }, size: { width: 84, height: 22 }, zIndex: 2, styles: {} },
@@ -38,7 +38,7 @@ const defaultLightTemplate: CardTemplate = {
 };
 const defaultSwitchTemplate: CardTemplate = {
     id: DEFAULT_SWITCH_TEMPLATE_ID, name: 'Стандартный переключатель', deviceType: 'switch',
-    styles: { backgroundColor: 'rgb(55 65 81 / 0.8)', lightBackgroundColor: 'rgb(229 231 235 / 0.9)', onBackgroundColor: 'rgb(75 85 99 / 0.9)', lightOnBackgroundColor: 'rgb(255 255 255 / 1)' },
+    styles: { },
     elements: [
       { id: 'icon', visible: true, position: { x: 8, y: 8 }, size: { width: 20, height: 20 }, zIndex: 2, styles: { onColor: 'rgb(59 130 246 / 1)' } },
       { id: 'name', visible: true, position: { x: 8, y: 35 }, size: { width: 84, height: 22 }, zIndex: 2, styles: {} },
@@ -47,11 +47,11 @@ const defaultSwitchTemplate: CardTemplate = {
 };
 const defaultClimateTemplate: CardTemplate = {
   id: DEFAULT_CLIMATE_TEMPLATE_ID, name: 'Стандартный климат', deviceType: 'climate',
-  styles: { backgroundColor: 'rgba(30, 30, 30, 0.5)', lightBackgroundColor: 'rgba(240, 240, 240, 0.8)' },
+  styles: { },
   elements: [
-    { id: 'temperature', visible: true, position: { x: 8, y: 15 }, size: { width: 40, height: 15 }, zIndex: 2, styles: { fontSize: 32, decimalPlaces: 0 } },
-    { id: 'name', visible: true, position: { x: 8, y: 32 }, size: { width: 40, height: 10 }, zIndex: 2, styles: { fontSize: 18 } },
-    { id: 'status', visible: true, position: { x: 8, y: 44 }, size: { width: 40, height: 8 }, zIndex: 2, styles: { fontSize: 12 } },
+    { id: 'temperature', visible: true, position: { x: 8, y: 15 }, size: { width: 40, height: 15 }, zIndex: 2, styles: { decimalPlaces: 0 } },
+    { id: 'name', visible: true, position: { x: 8, y: 32 }, size: { width: 40, height: 10 }, zIndex: 2, styles: {} },
+    { id: 'status', visible: true, position: { x: 8, y: 44 }, size: { width: 40, height: 8 }, zIndex: 2, styles: {} },
     { id: 'target-temperature', visible: true, position: { x: 25, y: 5 }, size: { width: 90, height: 90 }, zIndex: 1, styles: {} },
     { id: 'hvac-modes', visible: true, position: { x: 80, y: 25 }, size: { width: 15, height: 50 }, zIndex: 2, styles: {} },
     { id: 'linked-entity', visible: false, position: { x: 8, y: 8 }, size: { width: 10, height: 10 }, zIndex: 2, styles: { linkedEntityId: '', showValue: false } },

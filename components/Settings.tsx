@@ -1,32 +1,35 @@
 
 
-
-
-
-
-import React, { useRef, useState } from 'react';
-import { ClockSettings, ClockSize, CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet } from '../types';
+import React, { useRef, useState, useMemo } from 'react';
+import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet } from '../types';
 import ConfirmDialog from './ConfirmDialog';
 import { useAppStore } from '../store/appStore';
 import { useHAStore } from '../store/haStore';
 import JSZip from 'jszip';
 import { Icon } from '@iconify/react';
 
-// Тип для статуса WebSocket-соединения
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'failed';
+type SettingsTab = 'appearance' | 'interface' | 'templates' | 'connection' | 'backup';
 
-interface SettingsProps {
-  onConnect: (url: string, token: string) => void;
-  connectionStatus: ConnectionStatus;
-  error: string | null;
-}
+const FONT_FAMILIES = [
+    { name: 'Системный', value: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"` },
+    { name: 'San Francisco (SF Pro)', value: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' },
+    { name: 'Roboto', value: 'Roboto, sans-serif' },
+    { name: 'Verdana', value: 'Verdana, Geneva, sans-serif' },
+    { name: 'Tahoma', value: 'Tahoma, Verdana, Segoe, sans-serif' },
+    { name: 'Arial', value: 'Arial, Helvetica, sans-serif' },
+    { name: 'Times New Roman', value: '"Times New Roman", Times, serif' },
+];
 
-/**
- * Вспомогательный компонент для строки настройки цвета.
- */
-const ColorSettingRow: React.FC<{ label: string, value: string, onChange: (newColor: string) => void }> = ({ label, value, onChange }) => (
-  <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
-    <label className="text-sm font-medium text-gray-800 dark:text-gray-200">{label}</label>
+const LOCAL_STORAGE_KEYS = [
+  'ha-url', 'ha-token', 'ha-tabs', 'ha-active-tab', 'ha-device-customizations',
+  'ha-clock-settings', 'ha-card-templates', 'ha-sidebar-width', 'ha-openweathermap-key',
+  'ha-camera-settings', 'ha-theme', 'ha-color-scheme', 'ha-sidebar-visible',
+];
+
+const ColorSettingRow: React.FC<{ label: string, value: string, onChange: (newColor: string) => void }> = React.memo(({ label, value, onChange }) => (
+  <div className="flex items-center justify-between">
+    <label className="text-sm text-gray-800 dark:text-gray-300">{label}</label>
     <input
       type="color"
       value={value}
@@ -34,424 +37,383 @@ const ColorSettingRow: React.FC<{ label: string, value: string, onChange: (newCo
       className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"
     />
   </div>
-);
+));
 
-// Список ключей в localStorage, которые будут сохранены при экспорте.
-const LOCAL_STORAGE_KEYS = [
-  'ha-url', 'ha-token', 'ha-tabs', 'ha-active-tab', 'ha-device-customizations',
-  'ha-clock-settings', 'ha-card-templates', 'ha-sidebar-width', 'ha-openweathermap-key',
-  'ha-camera-settings', 'ha-theme', 'ha-color-scheme', 'ha-sidebar-visible',
-];
-
-/**
- * Компонент страницы настроек.
- * Отображает форму подключения, если соединение не установлено,
- * или различные настройки приложения, если соединение активно.
- */
-const Settings: React.FC<SettingsProps> = (props) => {
-  const { onConnect, connectionStatus, error } = props;
-  const { disconnect, haUrl } = useHAStore();
-  const {
-      clockSettings, setClockSettings,
-      templates, setEditingTemplate, handleDeleteTemplate,
-      colorScheme, setColorScheme, onResetColorScheme,
-      isSidebarVisible, setIsSidebarVisible, createNewBlankTemplate,
-      openWeatherMapKey, setOpenWeatherMapKey, theme
-  } = useAppStore();
-    
-  // Локальное состояние для полей URL и токена. Инициализируется из localStorage.
-  // Это не в Zustand, так как эти данные нужны до установления соединения.
-  const [url, setUrl] = useState(() => localStorage.getItem('ha-url') || '');
-  const [token, setToken] = useState(() => localStorage.getItem('ha-token') || '');
-
-  const [localError, setLocalError] = useState('');
-  const [deletingTemplate, setDeletingTemplate] = useState<CardTemplate | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const themeFileInputRef = useRef<HTMLInputElement>(null);
-  const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
-  const bgImageLightInputRef = useRef<HTMLInputElement>(null);
-  const bgImageDarkInputRef = useRef<HTMLInputElement>(null);
+const FontSettingRow: React.FC<{
+    label: string;
+    fontFamily: string | undefined;
+    fontSize: number | undefined;
+    onFontFamilyChange: (font: string) => void;
+    onFontSizeChange: (size: number) => void;
+}> = React.memo(({ label, fontFamily, fontSize, onFontFamilyChange, onFontSizeChange }) => (
+    <div className="space-y-2">
+        <label className="text-sm font-medium text-gray-800 dark:text-gray-200">{label}</label>
+        <div className="grid grid-cols-2 gap-2">
+            <select
+                value={fontFamily || ''}
+                onChange={e => onFontFamilyChange(e.target.value)}
+                className="w-full bg-gray-200 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
+            >
+                <option value="">По умолчанию</option>
+                {FONT_FAMILIES.map(f => <option key={f.value} value={f.value}>{f.name}</option>)}
+            </select>
+             <input
+                type="number"
+                value={fontSize || ''}
+                onChange={e => onFontSizeChange(parseInt(e.target.value))}
+                placeholder="Авто"
+                className="w-full bg-gray-200 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+        </div>
+    </div>
+));
 
 
-  // Обработчик нажатия на кнопку "Подключиться".
-  const handleConnect = () => {
-    if (!url || !token) {
-      setLocalError('Please provide both URL and Access Token.');
-      return;
-    }
-    setLocalError('');
-    // Сохраняем учетные данные в localStorage при попытке подключения.
-    localStorage.setItem('ha-url', url);
-    localStorage.setItem('ha-token', token);
-    onConnect(url, token);
-  };
+const ThemeEditor: React.FC<{
+    themeKey: 'light' | 'dark';
+    themeSet: ColorThemeSet;
+    onUpdate: (field: keyof ColorThemeSet, value: any) => void;
+    onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}> = React.memo(({ themeKey, themeSet, onUpdate, onImageUpload }) => {
+    const bgImageInputRef = useRef<HTMLInputElement>(null);
 
-  // Обработчик экспорта настроек в JSON-файл.
-  const handleExportSettings = () => {
-    try {
-      const settings: Record<string, any> = {};
-      LOCAL_STORAGE_KEYS.forEach(key => {
-        const item = localStorage.getItem(key);
-        if (item) {
-          try {
-             settings[key] = JSON.parse(item);
-          } catch(e) {
-            // Некоторые значения (как theme) не являются JSON, сохраняем как есть.
-            settings[key] = item;
-          }
-        }
-      });
-
-      const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      const date = new Date().toISOString().slice(0, 10);
-      a.download = `ha-dashboard-backup-${date}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
-    } catch (err) {
-      console.error("Failed to export settings:", err);
-      alert("Не удалось экспортировать настройки.");
-    }
-  };
-
-  // Обработчик импорта настроек из файла.
-  const handleImportSettings = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const text = e.target?.result;
-        if (typeof text !== 'string') throw new Error("File content is not a string.");
-        const settings = JSON.parse(text);
-
-        const importedKeys = Object.keys(settings);
-        const hasRequiredKeys = LOCAL_STORAGE_KEYS.some(key => importedKeys.includes(key));
-
-        if (!hasRequiredKeys) {
-            alert("Неверный файл резервной копии. Отсутствуют необходимые ключи настроек.");
-            return;
-        }
-        
-        if (!window.confirm("Вы уверены, что хотите импортировать настройки? Это перезапишет все текущие настройки и перезагрузит страницу.")) {
-            return;
-        }
-
-        // Очищаем существующие ключи перед импортом.
-        LOCAL_STORAGE_KEYS.forEach(key => localStorage.removeItem(key));
-
-        // Импортируем новые настройки.
-        importedKeys.forEach(key => {
-            if (LOCAL_STORAGE_KEYS.includes(key)) {
-                const value = settings[key];
-                localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
-            }
-        });
-
-        alert("Настройки успешно импортированы. Приложение будет перезагружено.");
-        window.location.reload();
-
-      } catch (err) {
-        console.error("Failed to import settings:", err);
-        alert("Не удалось импортировать настройки. Убедитесь, что это действительный файл резервной копии JSON.");
-      } finally {
-        if (fileInputRef.current) {
-            fileInputRef.current.value = ""; // Сбрасываем input, чтобы можно было выбрать тот же файл снова.
-        }
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const handleExportTheme = async () => {
-    try {
-        const zip = new JSZip();
-        const themeToExport = {
-            'ha-dashboard-theme-version': 2,
-            'exported-at': new Date().toISOString(),
-            colorScheme,
-        };
-
-        zip.file("theme.json", JSON.stringify(themeToExport, null, 2));
-
-        const blob = await zip.generateAsync({ type: "blob" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const date = new Date().toISOString().slice(0, 10);
-        a.download = `ha-dashboard-theme-${date}.zip`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    } catch (err) {
-        console.error("Failed to export theme:", err);
-        alert("Не удалось экспортировать тему.");
-    }
-  };
-
-  const handleImportTheme = async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-      try {
-          const zip = await JSZip.loadAsync(file);
-          const themeFile = zip.file("theme.json");
-
-          if (!themeFile) {
-              throw new Error("Неверный архив темы: отсутствует файл theme.json.");
-          }
-
-          const text = await themeFile.async("string");
-          const importedData = JSON.parse(text);
-
-          const importedScheme = importedData.colorScheme;
-          if (!importedScheme || !importedScheme.light || !importedScheme.dark) {
-              throw new Error("Неверный формат файла темы.");
-          }
-
-          if (window.confirm("Вы уверены, что хотите импортировать новую тему? Это перезапишет текущие настройки цветов и фона.")) {
-              setColorScheme(importedScheme);
-              alert("Тема успешно импортирована.");
-          }
-      } catch (err: any) {
-          console.error("Failed to import theme:", err);
-          alert(`Не удалось импортировать тему: ${err.message}`);
-      } finally {
-          if (themeFileInputRef.current) {
-              themeFileInputRef.current.value = "";
-          }
-      }
-  };
-
-  const updateColorSchemeField = (theme: 'light' | 'dark', field: keyof ColorThemeSet, value: any) => {
-    const newScheme = JSON.parse(JSON.stringify(colorScheme));
-    newScheme[theme][field] = value;
-    setColorScheme(newScheme);
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, theme: 'light' | 'dark') => {
-      const file = e.target.files?.[0];
-      if (file && file.type.startsWith('image/')) {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-              const base64 = event.target?.result as string;
-              updateColorSchemeField(theme, 'dashboardBackgroundImage', base64);
-          };
-          reader.readAsDataURL(file);
-      }
-  };
-
-  const isLoading = connectionStatus === 'connecting';
-
-  // --- Рендеринг страницы настроек (когда соединение установлено) ---
-  if (connectionStatus === 'connected') {
     return (
-        <>
-        <div className="w-full max-w-md bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 space-y-8">
-            <div>
-                <h1 className="text-3xl font-bold text-center text-gray-900 dark:text-gray-100 mb-6">Настройки</h1>
-                <p className="text-center text-gray-500 dark:text-gray-400 mb-6">Вы подключены к {haUrl}.</p>
-                <button
-                    onClick={disconnect}
-                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200"
-                >
-                    Отключиться
-                </button>
-            </div>
-            
-            {/* Секция настроек интерфейса */}
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Интерфейс</h2>
-                <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg">
-                    <label htmlFor="showSidebar" className="text-sm font-medium text-gray-800 dark:text-gray-200">Показывать боковую панель</label>
-                    <button onClick={() => setIsSidebarVisible(!isSidebarVisible)} className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${isSidebarVisible ? 'bg-blue-600' : 'bg-gray-500 dark:bg-gray-600'}`}>
-                        <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${isSidebarVisible ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
-                </div>
-            </div>
-
-            {/* Секция настроек внешнего вида */}
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Внешний вид</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Для детальной настройки цветов и шрифтов используйте правый клик мыши на элементах дашборда.</p>
-                <div className="space-y-4">
-                   {/* Фон дашборда */}
-                    <div>
-                        <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Фон дашборда</h3>
-                        {([ 'light', 'dark'] as const).map(themeKey => (
-                            <div key={themeKey} className="bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg mb-3">
-                                <p className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-3">{themeKey === 'light' ? 'Светлая тема' : 'Темная тема'}</p>
-                                <div className="flex gap-1 bg-gray-200 dark:bg-gray-900/50 p-1 rounded-lg mb-3">
-                                    {(['color', 'gradient', 'image'] as const).map(type => (
-                                        <button key={type} onClick={() => updateColorSchemeField(themeKey, 'dashboardBackgroundType', type)}
-                                            className={`flex-1 text-xs font-semibold py-1 rounded-md transition-colors ${colorScheme[themeKey].dashboardBackgroundType === type ? 'bg-white dark:bg-gray-700 shadow-sm' : 'hover:bg-white/50 dark:hover:bg-gray-800/50'}`}>
-                                            {type === 'color' ? 'Цвет' : type === 'gradient' ? 'Градиент' : 'Изображение'}
-                                        </button>
-                                    ))}
-                                </div>
-                                {colorScheme[themeKey].dashboardBackgroundType === 'color' && (
-                                    <ColorSettingRow label="Цвет фона" value={colorScheme[themeKey].dashboardBackgroundColor1} onChange={v => updateColorSchemeField(themeKey, 'dashboardBackgroundColor1', v)} />
-                                )}
-                                {colorScheme[themeKey].dashboardBackgroundType === 'gradient' && (
-                                    <div className="space-y-2">
-                                        <ColorSettingRow label="Цвет 1" value={colorScheme[themeKey].dashboardBackgroundColor1} onChange={v => updateColorSchemeField(themeKey, 'dashboardBackgroundColor1', v)} />
-                                        <ColorSettingRow label="Цвет 2" value={colorScheme[themeKey].dashboardBackgroundColor2 || '#ffffff'} onChange={v => updateColorSchemeField(themeKey, 'dashboardBackgroundColor2', v)} />
-                                    </div>
-                                )}
-                                {colorScheme[themeKey].dashboardBackgroundType === 'image' && (
-                                    <div className="space-y-3">
-                                        <div className="flex gap-2">
-                                            {colorScheme[themeKey].dashboardBackgroundImage && <img src={colorScheme[themeKey].dashboardBackgroundImage} className="w-16 h-10 object-cover rounded-md" />}
-                                            <button onClick={() => (themeKey === 'light' ? bgImageLightInputRef : bgImageDarkInputRef).current?.click()} className="flex-1 text-center bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm p-2 rounded-lg">Загрузить...</button>
-                                            <input type="file" accept="image/*" ref={themeKey === 'light' ? bgImageLightInputRef : bgImageDarkInputRef} onChange={(e) => handleImageUpload(e, themeKey)} className="hidden"/>
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-gray-500 dark:text-gray-400">Размытие: {colorScheme[themeKey].dashboardBackgroundImageBlur || 0}px</label>
-                                            <input type="range" min="0" max="20" value={colorScheme[themeKey].dashboardBackgroundImageBlur || 0} onChange={e => updateColorSchemeField(themeKey, 'dashboardBackgroundImageBlur', parseInt(e.target.value))} className="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"/>
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-gray-500 dark:text-gray-400">Яркость: {colorScheme[themeKey].dashboardBackgroundImageBrightness || 100}%</label>
-                                            <input type="range" min="20" max="150" value={colorScheme[themeKey].dashboardBackgroundImageBrightness || 100} onChange={e => updateColorSchemeField(themeKey, 'dashboardBackgroundImageBrightness', parseInt(e.target.value))} className="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"/>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                     {/* Прозрачность панелей */}
-                     <div>
-                         <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Панели (Боковая и Шапка)</h3>
-                          {(['light', 'dark'] as const).map(themeKey => (
-                            <div key={themeKey} className="bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg mb-3">
-                                <label className="text-xs text-gray-500 dark:text-gray-400">Прозрачность ({themeKey === 'light' ? 'Светлая тема' : 'Темная тема'}): {Math.round((colorScheme[themeKey].panelOpacity ?? 1) * 100)}%</label>
-                                <input type="range" min="0.2" max="1" step="0.05" value={colorScheme[themeKey].panelOpacity ?? 1} onChange={e => updateColorSchemeField(themeKey, 'panelOpacity', parseFloat(e.target.value))} className="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"/>
-                            </div>
-                          ))}
-                    </div>
-                    {/* Прозрачность карточек */}
-                    <div>
-                         <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Карточки</h3>
-                          {(['light', 'dark'] as const).map(themeKey => (
-                            <div key={themeKey} className="bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg mb-3">
-                                <label className="text-xs text-gray-500 dark:text-gray-400">Прозрачность ({themeKey === 'light' ? 'Светлая тема' : 'Темная тема'}): {Math.round((colorScheme[themeKey].cardOpacity ?? 1) * 100)}%</label>
-                                <input type="range" min="0.2" max="1" step="0.05" value={colorScheme[themeKey].cardOpacity ?? 1} onChange={e => updateColorSchemeField(themeKey, 'cardOpacity', parseFloat(e.target.value))} className="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"/>
-                            </div>
-                          ))}
-                    </div>
-                    <button onClick={onResetColorScheme} className="w-full text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600/80 rounded-md py-2 transition-colors">
-                        Сбросить цвета
-                    </button>
-                </div>
-            </div>
-            
-            {/* Секция API ключей */}
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">API Ключи</h2>
-                <div>
-                    <label htmlFor="owmKey" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">OpenWeatherMap API Key</label>
-                    <input id="owmKey" type="password" value={openWeatherMapKey} onChange={(e) => setOpenWeatherMapKey(e.target.value)} placeholder="Введите ваш API ключ" className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">Необходим для виджета погоды.</p>
-                </div>
-            </div>
-            
-            {/* Секция управления шаблонами */}
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Шаблоны карточек</h2>
-                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Создавайте и управляйте шаблонами для различных типов устройств.</p>
-                 <div className="space-y-2 mb-4">
-                    {Object.values(templates).map((template: CardTemplate) => (
-                        <div key={template.id} className="flex items-center justify-between bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg">
-                            <div className="flex items-center gap-2 overflow-hidden">
-                                <span className="text-xs font-mono bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded">{template.deviceType}</span>
-                                <p className="text-sm text-gray-800 dark:text-gray-200 font-medium truncate pr-2">{template.name}</p>
-                            </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                                <button onClick={() => setEditingTemplate(template)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" title="Редактировать"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg></button>
-                                <button onClick={() => setDeletingTemplate(template)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded-md hover:bg-red-500/10 dark:hover:bg-red-500/20 transition-colors" title="Удалить"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg></button>
-                            </div>
-                        </div>
+        <div className="space-y-6">
+             {/* Фон дашборда */}
+            <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg space-y-3">
+                <h4 className="font-semibold text-gray-900 dark:text-gray-100">Фон дашборда</h4>
+                <div className="flex gap-1 bg-gray-200 dark:bg-gray-900/50 p-1 rounded-lg">
+                    {(['color', 'gradient', 'image'] as const).map(type => (
+                        <button key={type} onClick={() => onUpdate('dashboardBackgroundType', type)}
+                            className={`flex-1 text-xs font-semibold py-1 rounded-md transition-colors ${themeSet.dashboardBackgroundType === type ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-50' : 'text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-gray-800/50'}`}>
+                            {type === 'color' ? 'Цвет' : type === 'gradient' ? 'Градиент' : 'Изображение'}
+                        </button>
                     ))}
-                 </div>
-                 <div className="relative">
-                    <button onClick={() => setIsCreateMenuOpen(prev => !prev)} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Создать шаблон</button>
-                    {isCreateMenuOpen && (
-                         <div onMouseLeave={() => setIsCreateMenuOpen(false)} className="absolute bottom-full left-0 right-0 mb-2 w-full bg-gray-200 dark:bg-gray-700 rounded-lg shadow-lg z-10 ring-1 ring-black/5 dark:ring-black ring-opacity-5 overflow-hidden fade-in">
-                            <button onClick={() => { setEditingTemplate(createNewBlankTemplate(DeviceType.Sensor)); setIsCreateMenuOpen(false); }} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для сенсора</button>
-                            <button onClick={() => { setEditingTemplate(createNewBlankTemplate(DeviceType.Light)); setIsCreateMenuOpen(false); }} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для светильника</button>
-                            <button onClick={() => { setEditingTemplate(createNewBlankTemplate(DeviceType.Switch)); setIsCreateMenuOpen(false); }} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для переключателя</button>
-                            <button onClick={() => { setEditingTemplate(createNewBlankTemplate(DeviceType.Thermostat)); setIsCreateMenuOpen(false); }} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для климата</button>
-                        </div>
-                    )}
-                 </div>
-            </div>
-
-            {/* Секция управления темами */}
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Управление темами</h2>
-                <div className="space-y-4">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Экспортируйте вашу текущую тему, чтобы поделиться ей, или импортируйте новую. Темы включают настройки цветов и фона.</p>
-                    <div className="flex gap-4">
-                        <button onClick={handleExportTheme} className="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Экспорт темы</button>
-                        <button onClick={() => themeFileInputRef.current?.click()} className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Импорт темы</button>
-                        <input type="file" ref={themeFileInputRef} onChange={handleImportTheme} accept=".zip" className="hidden" />
-                    </div>
                 </div>
+                {themeSet.dashboardBackgroundType === 'color' && <ColorSettingRow label="Цвет фона" value={themeSet.dashboardBackgroundColor1} onChange={v => onUpdate('dashboardBackgroundColor1', v)} />}
+                {themeSet.dashboardBackgroundType === 'gradient' && (
+                    <div className="space-y-2">
+                        <ColorSettingRow label="Цвет 1" value={themeSet.dashboardBackgroundColor1} onChange={v => onUpdate('dashboardBackgroundColor1', v)} />
+                        <ColorSettingRow label="Цвет 2" value={themeSet.dashboardBackgroundColor2 || '#ffffff'} onChange={v => onUpdate('dashboardBackgroundColor2', v)} />
+                    </div>
+                )}
+                {themeSet.dashboardBackgroundType === 'image' && (
+                    <div className="space-y-3">
+                        <div className="flex gap-2">
+                            {themeSet.dashboardBackgroundImage && <img src={themeSet.dashboardBackgroundImage} className="w-16 h-10 object-cover rounded-md" />}
+                            <button onClick={() => bgImageInputRef.current?.click()} className="flex-1 text-center bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm p-2 rounded-lg">Загрузить...</button>
+                            <input type="file" accept="image/*" ref={bgImageInputRef} onChange={onImageUpload} className="hidden"/>
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-500 dark:text-gray-400">Размытие: {themeSet.dashboardBackgroundImageBlur || 0}px</label>
+                            <input type="range" min="0" max="20" value={themeSet.dashboardBackgroundImageBlur || 0} onChange={e => onUpdate('dashboardBackgroundImageBlur', parseInt(e.target.value))} className="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"/>
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-500 dark:text-gray-400">Яркость: {themeSet.dashboardBackgroundImageBrightness || 100}%</label>
+                            <input type="range" min="20" max="150" value={themeSet.dashboardBackgroundImageBrightness || 100} onChange={e => onUpdate('dashboardBackgroundImageBrightness', parseInt(e.target.value))} className="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"/>
+                        </div>
+                    </div>
+                )}
             </div>
+             {/* Прозрачность */}
+             <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg space-y-3">
+                <h4 className="font-semibold text-gray-900 dark:text-gray-100">Прозрачность</h4>
+                <div>
+                    <label className="text-xs text-gray-500 dark:text-gray-400">Панели (Боковая и Шапка): {Math.round((themeSet.panelOpacity ?? 1) * 100)}%</label>
+                    <input type="range" min="0.2" max="1" step="0.05" value={themeSet.panelOpacity ?? 1} onChange={e => onUpdate('panelOpacity', parseFloat(e.target.value))} className="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"/>
+                </div>
+                 <div>
+                    <label className="text-xs text-gray-500 dark:text-gray-400">Карточки: {Math.round((themeSet.cardOpacity ?? 1) * 100)}%</label>
+                    <input type="range" min="0.2" max="1" step="0.05" value={themeSet.cardOpacity ?? 1} onChange={e => onUpdate('cardOpacity', parseFloat(e.target.value))} className="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"/>
+                </div>
+             </div>
 
-            {/* Секция резервного копирования */}
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Резервное копирование</h2>
-              <div className="space-y-4">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Сохраните все ваши настройки в файл или восстановите их из ранее созданной резервной копии.</p>
-                <div className="flex gap-4">
-                  <button onClick={handleExportSettings} className="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Экспорт</button>
-                  <button onClick={() => fileInputRef.current?.click()} className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Импорт</button>
-                  <input type="file" ref={fileInputRef} onChange={handleImportSettings} accept="application/json" className="hidden" />
+             {/* Цвета карточек */}
+             <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg space-y-3">
+                <h4 className="font-semibold text-gray-900 dark:text-gray-100">Карточки</h4>
+                <ColorSettingRow label="Фон (Выкл.)" value={themeSet.cardBackground} onChange={v => onUpdate('cardBackground', v)} />
+                <ColorSettingRow label="Фон (Вкл.)" value={themeSet.cardBackgroundOn} onChange={v => onUpdate('cardBackgroundOn', v)} />
+             </div>
+
+              {/* Стили текста */}
+            <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg space-y-4">
+                <h4 className="font-semibold text-gray-900 dark:text-gray-100">Текст (состояние Выкл.)</h4>
+                <ColorSettingRow label="Название" value={themeSet.nameTextColor} onChange={v => onUpdate('nameTextColor', v)} />
+                <ColorSettingRow label="Статус" value={themeSet.statusTextColor} onChange={v => onUpdate('statusTextColor', v)} />
+                <ColorSettingRow label="Значение" value={themeSet.valueTextColor} onChange={v => onUpdate('valueTextColor', v)} />
+                <FontSettingRow label="Шрифт (Название)" fontFamily={themeSet.nameTextFontFamily} fontSize={themeSet.nameTextFontSize} onFontFamilyChange={v => onUpdate('nameTextFontFamily', v)} onFontSizeChange={v => onUpdate('nameTextFontSize', v)} />
+                <FontSettingRow label="Шрифт (Статус)" fontFamily={themeSet.statusTextFontFamily} fontSize={themeSet.statusTextFontSize} onFontFamilyChange={v => onUpdate('statusTextFontFamily', v)} onFontSizeChange={v => onUpdate('statusTextFontSize', v)} />
+                <FontSettingRow label="Шрифт (Значение)" fontFamily={themeSet.valueTextFontFamily} fontSize={themeSet.valueTextFontSize} onFontFamilyChange={v => onUpdate('valueTextFontFamily', v)} onFontSizeChange={v => onUpdate('valueTextFontSize', v)} />
+            </div>
+             <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg space-y-4">
+                <h4 className="font-semibold text-gray-900 dark:text-gray-100">Текст (состояние Вкл.)</h4>
+                <ColorSettingRow label="Название" value={themeSet.nameTextColorOn} onChange={v => onUpdate('nameTextColorOn', v)} />
+                <ColorSettingRow label="Статус" value={themeSet.statusTextColorOn} onChange={v => onUpdate('statusTextColorOn', v)} />
+                <ColorSettingRow label="Значение" value={themeSet.valueTextColorOn} onChange={v => onUpdate('valueTextColorOn', v)} />
+                <FontSettingRow label="Шрифт (Название)" fontFamily={themeSet.nameTextFontFamilyOn} fontSize={themeSet.nameTextFontSizeOn} onFontFamilyChange={v => onUpdate('nameTextFontFamilyOn', v)} onFontSizeChange={v => onUpdate('nameTextFontSizeOn', v)} />
+                <FontSettingRow label="Шрифт (Статус)" fontFamily={themeSet.statusTextFontFamilyOn} fontSize={themeSet.statusTextFontSizeOn} onFontFamilyChange={v => onUpdate('statusTextFontFamilyOn', v)} onFontSizeChange={v => onUpdate('statusTextFontSizeOn', v)} />
+                <FontSettingRow label="Шрифт (Значение)" fontFamily={themeSet.valueTextFontFamilyOn} fontSize={themeSet.valueTextFontSizeOn} onFontFamilyChange={v => onUpdate('valueTextFontFamilyOn', v)} onFontSizeChange={v => onUpdate('valueTextFontSizeOn', v)} />
+            </div>
+        </div>
+    );
+});
+
+const Settings: React.FC<{
+    onConnect: (url: string, token: string) => void;
+    connectionStatus: ConnectionStatus;
+    error: string | null;
+}> = ({ onConnect, connectionStatus, error }) => {
+    const { disconnect, haUrl } = useHAStore();
+    const {
+        templates, setEditingTemplate, handleDeleteTemplate,
+        colorScheme, setColorScheme, onResetColorScheme,
+        isSidebarVisible, setIsSidebarVisible, createNewBlankTemplate,
+        openWeatherMapKey, setOpenWeatherMapKey
+    } = useAppStore();
+    
+    const [activeTab, setActiveTab] = useState<SettingsTab>('appearance');
+    const [url, setUrl] = useState(() => localStorage.getItem('ha-url') || '');
+    const [token, setToken] = useState(() => localStorage.getItem('ha-token') || '');
+    const [localError, setLocalError] = useState('');
+    const [deletingTemplate, setDeletingTemplate] = useState<CardTemplate | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const themeFileInputRef = useRef<HTMLInputElement>(null);
+    const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
+    const [activeThemeEditor, setActiveThemeEditor] = useState<'light' | 'dark'>('light');
+
+    const isLoading = connectionStatus === 'connecting';
+
+    const handleConnect = () => {
+        if (!url || !token) { setLocalError('Пожалуйста, укажите URL и токен доступа.'); return; }
+        setLocalError('');
+        localStorage.setItem('ha-url', url);
+        localStorage.setItem('ha-token', token);
+        onConnect(url, token);
+    };
+
+    const handleExportSettings = () => {
+        try {
+            const settings: Record<string, any> = {};
+            LOCAL_STORAGE_KEYS.forEach(key => {
+                const item = localStorage.getItem(key);
+                if (item) { try { settings[key] = JSON.parse(item); } catch(e) { settings[key] = item; } }
+            });
+            const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
+            const blobUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = `ha-dashboard-backup-${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(blobUrl);
+        } catch (err) { alert("Не удалось экспортировать настройки."); }
+    };
+
+    const handleImportSettings = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const settings = JSON.parse(e.target?.result as string);
+                if (!window.confirm("Вы уверены? Это перезапишет все текущие настройки и перезагрузит страницу.")) return;
+                LOCAL_STORAGE_KEYS.forEach(key => localStorage.removeItem(key));
+                Object.keys(settings).forEach(key => { if (LOCAL_STORAGE_KEYS.includes(key)) localStorage.setItem(key, typeof settings[key] === 'string' ? settings[key] : JSON.stringify(settings[key])); });
+                alert("Настройки импортированы. Приложение будет перезагружено.");
+                window.location.reload();
+            } catch (err) { alert("Не удалось импортировать настройки."); }
+        };
+        reader.readAsText(file);
+    };
+
+    const handleExportTheme = async () => {
+        try {
+            const zip = new JSZip();
+            zip.file("theme.json", JSON.stringify({ 'ha-dashboard-theme-version': 2, 'exported-at': new Date().toISOString(), colorScheme }, null, 2));
+            const blob = await zip.generateAsync({ type: "blob" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ha-dashboard-theme-${new Date().toISOString().slice(0, 10)}.zip`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (err) { alert("Не удалось экспортировать тему."); }
+    };
+
+    const handleImportTheme = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        try {
+            const zip = await JSZip.loadAsync(file);
+            const themeFile = zip.file("theme.json");
+            if (!themeFile) throw new Error("Отсутствует theme.json.");
+            const importedData = JSON.parse(await themeFile.async("string"));
+            if (!importedData.colorScheme?.light || !importedData.colorScheme?.dark) throw new Error("Неверный формат файла темы.");
+            if (window.confirm("Импортировать новую тему? Это перезапишет текущие настройки цветов и фона.")) {
+                setColorScheme(importedData.colorScheme);
+                alert("Тема импортирована.");
+            }
+        } catch (err: any) { alert(`Не удалось импортировать тему: ${err.message}`); }
+    };
+
+    const updateColorSchemeField = (theme: 'light' | 'dark', field: keyof ColorThemeSet, value: any) => {
+        const newScheme = JSON.parse(JSON.stringify(colorScheme));
+        newScheme[theme][field] = value;
+        setColorScheme(newScheme);
+    };
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, theme: 'light' | 'dark') => {
+        const file = e.target.files?.[0];
+        if (file?.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (event) => updateColorSchemeField(theme, 'dashboardBackgroundImage', event.target?.result as string);
+            reader.readAsDataURL(file);
+        }
+    };
+    
+    const TAB_CONFIG = [
+        { id: 'appearance', label: 'Внешний вид', icon: 'mdi:palette-outline' },
+        { id: 'interface', label: 'Интерфейс', icon: 'mdi:application-cog-outline' },
+        { id: 'templates', label: 'Шаблоны', icon: 'mdi:view-dashboard-edit-outline' },
+        { id: 'connection', label: 'Подключение и API', icon: 'mdi:lan-connect' },
+        { id: 'backup', label: 'Резервное копирование', icon: 'mdi:archive-arrow-down-outline' },
+    ];
+
+    if (connectionStatus !== 'connected') {
+        return (
+            <div className="min-h-screen bg-gray-200 dark:bg-gray-900 flex items-center justify-center p-4">
+              <div className="w-full max-w-md bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg ring-1 ring-black/5 dark:ring-white/10">
+                <h1 className="text-3xl font-bold text-center text-gray-900 dark:text-gray-100 mb-6">Home Assistant</h1>
+                <div className="space-y-6">
+                  <div>
+                    <label htmlFor="url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Home Assistant URL</label>
+                    <input id="url" type="text" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="e.g., 192.168.1.100:8123" className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" disabled={isLoading} />
+                  </div>
+                  <div>
+                    <label htmlFor="token" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Long-Lived Access Token</label>
+                    <input id="token" type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder="Paste your token here" className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" disabled={isLoading} />
+                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Вы можете создать токен на странице своего профиля в Home Assistant.</p>
+                  </div>
+                   {(error || localError) && <p className="text-red-400 text-sm text-center">{error || localError}</p>}
+                  <button onClick={handleConnect} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 disabled:bg-gray-500 disabled:cursor-not-allowed" disabled={isLoading}>
+                    {isLoading ? 'Подключение...' : 'Подключиться'}
+                  </button>
                 </div>
               </div>
             </div>
-        </div>
-        {/* Диалог подтверждения удаления шаблона */}
-         <ConfirmDialog
-            isOpen={!!deletingTemplate}
-            title="Удалить шаблон?"
-            message={<>Вы уверены, что хотите удалить шаблон <strong className="text-black dark:text-white">"{deletingTemplate?.name}"</strong>?<br />Это действие нельзя отменить.</>}
-            onConfirm={() => { if (deletingTemplate) handleDeleteTemplate(deletingTemplate.id); setDeletingTemplate(null); }}
-            onCancel={() => setDeletingTemplate(null)}
-            confirmText="Удалить"
-        />
+          );
+    }
+    
+    return (
+        <>
+            <div className="w-full max-w-5xl h-[90vh] bg-white/80 dark:bg-gray-800/80 backdrop-blur-2xl rounded-2xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 flex overflow-hidden">
+                {/* Sidebar Navigation */}
+                <nav className="w-56 flex-shrink-0 bg-gray-200/50 dark:bg-gray-900/30 p-4 border-r border-black/5 dark:border-white/5 space-y-2">
+                    <h1 className="text-xl font-bold px-2 pb-4 text-gray-900 dark:text-gray-100">Настройки</h1>
+                    {TAB_CONFIG.map(tab => (
+                        <button key={tab.id} onClick={() => setActiveTab(tab.id as SettingsTab)}
+                            className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-semibold rounded-lg text-left transition-colors ${activeTab === tab.id ? 'bg-blue-600 text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-300/50 dark:hover:bg-gray-700/50'}`}>
+                            <Icon icon={tab.icon} className="w-5 h-5 flex-shrink-0" />
+                            <span>{tab.label}</span>
+                        </button>
+                    ))}
+                </nav>
+
+                {/* Content Area */}
+                <div className="flex-1 p-8 overflow-y-auto no-scrollbar">
+                    {activeTab === 'appearance' && (
+                        <div className="space-y-6">
+                            <div className="flex justify-between items-center">
+                                 <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Внешний вид</h2>
+                                 <button onClick={onResetColorScheme} className="text-sm text-blue-600 dark:text-blue-400 hover:underline">Сбросить</button>
+                            </div>
+                            <div className="flex gap-1 bg-gray-200 dark:bg-gray-900/50 p-1 rounded-lg self-start">
+                                <button onClick={() => setActiveThemeEditor('light')} className={`px-4 py-1 text-sm font-semibold rounded-md transition-colors ${activeThemeEditor === 'light' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-50' : 'text-gray-600 dark:text-gray-400'}`}>Светлая тема</button>
+                                <button onClick={() => setActiveThemeEditor('dark')} className={`px-4 py-1 text-sm font-semibold rounded-md transition-colors ${activeThemeEditor === 'dark' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-50' : 'text-gray-600 dark:text-gray-400'}`}>Темная тема</button>
+                            </div>
+                            {useMemo(() => (
+                                <ThemeEditor
+                                    themeKey={activeThemeEditor}
+                                    themeSet={colorScheme[activeThemeEditor]}
+                                    onUpdate={(field, value) => updateColorSchemeField(activeThemeEditor, field, value)}
+                                    onImageUpload={(e) => handleImageUpload(e, activeThemeEditor)}
+                                />
+                            ), [activeThemeEditor, colorScheme])}
+                        </div>
+                    )}
+                    {activeTab === 'interface' && (
+                         <div className="space-y-6">
+                             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Интерфейс</h2>
+                            <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg">
+                                <label htmlFor="showSidebar" className="text-sm font-medium text-gray-800 dark:text-gray-200">Показывать боковую панель</label>
+                                <button onClick={() => setIsSidebarVisible(!isSidebarVisible)} className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${isSidebarVisible ? 'bg-blue-600' : 'bg-gray-500 dark:bg-gray-600'}`}>
+                                    <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${isSidebarVisible ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                     {activeTab === 'templates' && (
+                         <div className="space-y-6">
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Шаблоны карточек</h2>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Создавайте и управляйте шаблонами для различных типов устройств.</p>
+                             <div className="space-y-2 mb-4">
+                                {Object.values(templates).map((template: CardTemplate) => (
+                                    <div key={template.id} className="flex items-center justify-between bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg">
+                                        <div className="flex items-center gap-2 overflow-hidden"><span className="text-xs font-mono bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded">{template.deviceType}</span><p className="text-sm text-gray-800 dark:text-gray-200 font-medium truncate pr-2">{template.name}</p></div>
+                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                            <button onClick={() => setEditingTemplate(template)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" title="Редактировать"><Icon icon="mdi:pencil-outline" className="h-4 w-4" /></button>
+                                            <button onClick={() => setDeletingTemplate(template)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded-md hover:bg-red-500/10 dark:hover:bg-red-500/20 transition-colors" title="Удалить"><Icon icon="mdi:trash-can-outline" className="h-4 w-4" /></button>
+                                        </div>
+                                    </div>
+                                ))}
+                             </div>
+                             <div className="relative">
+                                <button onClick={() => setIsCreateMenuOpen(prev => !prev)} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Создать шаблон</button>
+                                {isCreateMenuOpen && (<div onMouseLeave={() => setIsCreateMenuOpen(false)} className="absolute bottom-full left-0 right-0 mb-2 w-full bg-gray-200 dark:bg-gray-700 rounded-lg shadow-lg z-10 ring-1 ring-black/5 dark:ring-black ring-opacity-5 overflow-hidden fade-in"><button onClick={()=>{setEditingTemplate(createNewBlankTemplate(DeviceType.Sensor)); setIsCreateMenuOpen(false);}} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для сенсора</button><button onClick={()=>{setEditingTemplate(createNewBlankTemplate(DeviceType.Light)); setIsCreateMenuOpen(false);}} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для светильника</button><button onClick={()=>{setEditingTemplate(createNewBlankTemplate(DeviceType.Switch)); setIsCreateMenuOpen(false);}} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для переключателя</button><button onClick={()=>{setEditingTemplate(createNewBlankTemplate(DeviceType.Thermostat)); setIsCreateMenuOpen(false);}} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для климата</button></div>)}
+                             </div>
+                        </div>
+                    )}
+                    {activeTab === 'connection' && (
+                        <div className="space-y-6">
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Подключение и API</h2>
+                            <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg space-y-3">
+                                <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Вы подключены к {haUrl}.</p>
+                                <button onClick={disconnect} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Отключиться</button>
+                            </div>
+                            <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg space-y-3">
+                                <label htmlFor="owmKey" className="block text-sm font-medium text-gray-700 dark:text-gray-300">OpenWeatherMap API Key</label>
+                                <input id="owmKey" type="password" value={openWeatherMapKey} onChange={(e) => setOpenWeatherMapKey(e.target.value)} placeholder="Введите ваш API ключ" className="w-full bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                <p className="text-xs text-gray-500 dark:text-gray-500">Необходим для виджета погоды.</p>
+                            </div>
+                        </div>
+                    )}
+                     {activeTab === 'backup' && (
+                        <div className="space-y-6">
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Резервное копирование</h2>
+                            <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg space-y-3">
+                                <h4 className="font-semibold text-gray-900 dark:text-gray-100">Настройки приложения</h4>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Сохраните все ваши настройки, включая вкладки, шаблоны, API ключи и внешний вид.</p>
+                                <div className="flex gap-4">
+                                    <button onClick={handleExportSettings} className="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Экспорт</button>
+                                    <button onClick={() => fileInputRef.current?.click()} className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Импорт</button>
+                                    <input type="file" ref={fileInputRef} onChange={handleImportSettings} accept="application/json" className="hidden" />
+                                </div>
+                            </div>
+                             <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg space-y-3">
+                                <h4 className="font-semibold text-gray-900 dark:text-gray-100">Тема</h4>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Экспортируйте вашу текущую тему, чтобы поделиться ей, или импортируйте новую.</p>
+                                <div className="flex gap-4">
+                                    <button onClick={handleExportTheme} className="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Экспорт</button>
+                                    <button onClick={() => themeFileInputRef.current?.click()} className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Импорт</button>
+                                    <input type="file" ref={themeFileInputRef} onChange={handleImportTheme} accept=".zip" className="hidden" />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+             <ConfirmDialog isOpen={!!deletingTemplate} title="Удалить шаблон?" message={<>Вы уверены, что хотите удалить шаблон <strong className="text-black dark:text-white">"{deletingTemplate?.name}"</strong>?<br/>Это действие нельзя отменить.</>} onConfirm={() => { if (deletingTemplate) handleDeleteTemplate(deletingTemplate.id); setDeletingTemplate(null); }} onCancel={() => setDeletingTemplate(null)} confirmText="Удалить"/>
         </>
     );
-  }
-
-  // --- Рендеринг формы подключения (когда соединения нет) ---
-  return (
-    <div className="min-h-screen bg-gray-200 dark:bg-gray-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg ring-1 ring-black/5 dark:ring-white/10">
-        <h1 className="text-3xl font-bold text-center text-gray-900 dark:text-gray-100 mb-6">Home Assistant</h1>
-        <div className="space-y-6">
-          <div>
-            <label htmlFor="url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Home Assistant URL</label>
-            <input id="url" type="text" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="e.g., 192.168.1.100:8123" className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" disabled={isLoading} />
-          </div>
-          <div>
-            <label htmlFor="token" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Long-Lived Access Token</label>
-            <input id="token" type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder="Paste your token here" className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" disabled={isLoading} />
-             <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Вы можете создать токен на странице своего профиля в Home Assistant.</p>
-          </div>
-           {(error || localError) && <p className="text-red-400 text-sm text-center">{error || localError}</p>}
-          <button onClick={handleConnect} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 disabled:bg-gray-500 disabled:cursor-not-allowed" disabled={isLoading}>
-            {isLoading ? 'Подключение...' : 'Подключиться'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 };
 
 export default Settings;

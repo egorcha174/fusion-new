@@ -235,10 +235,7 @@ export interface CardElement {
     decimalPlaces?: number; // Для 'value', 'temperature'
     onColor?: string; // Для 'icon'
     offColor?: string; // для 'icon'
-    fontSize?: number; // Для текстовых элементов
-    fontFamily?: string; // Для текстовых элементов
     textAlign?: 'left' | 'center' | 'right'; // Для текстовых элементов
-    textColor?: string; // Для текстовых элементов
     linkedEntityId?: string; // для 'linked-entity'
     showValue?: boolean; // для 'linked-entity'
     chartTimeRange?: number; // для 'chart'
@@ -297,10 +294,7 @@ export interface CardTemplate {
   deviceType: 'sensor' | 'light' | 'switch' | 'climate'; // Для какого типа устройств этот шаблон
   elements: CardElement[]; // Элементы внутри карточки
   styles: { // Общие стили для карточки
-    backgroundColor: string; // Фон в темной теме (выкл)
-    lightBackgroundColor: string; // Фон в светлой теме (выкл)
-    onBackgroundColor?: string; // Фон в темной теме (вкл)
-    lightOnBackgroundColor?: string; // Фон в светлой теме (вкл)
+    // Стили фона перенесены в глобальную ColorScheme
   };
   width?: number; // Ширина по умолчанию в ячейках
   height?: number; // Высота по умолчанию в ячейках

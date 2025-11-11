@@ -174,17 +174,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
   // Определяем, включено ли устройство. В режиме превью используем isOnPreview.
   const isOn = isPreview ? (isOnPreview ?? true) : (device.status.toLowerCase() === 'включено' || device.state === 'on');
 
-  // Отслеживание текущей темы (светлая/темная) для применения правильных стилей.
-  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
-  useEffect(() => {
-        setIsDark(document.documentElement.classList.contains('dark'));
-        const observer = new MutationObserver(() => {
-            setIsDark(document.documentElement.classList.contains('dark'));
-        });
-        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-        return () => observer.disconnect();
-  }, []);
-
   // Моковые данные для спарклайн-графика в режиме превью.
   const mockHistory = useMemo(() => {
     if (device.type !== DeviceType.Sensor) return [];
@@ -252,41 +241,26 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
   if (template) {
      /**
       * Хелпер для получения динамических стилей (цвет, шрифт) для текстовых элементов.
-      * Определяет, брать стиль из самого шаблона (приоритет) или из глобальной цветовой схемы.
+      * Определяет, какой стиль из глобальной цветовой схемы использовать.
       */
-     const getStyleProps = (element: CardElement, baseKey: string) => {
+     const getStyleProps = (baseKey: string) => {
         const onSuffix = isOn ? 'On' : '';
         const colorProp = `${baseKey}Color${onSuffix}`;
         const familyProp = `${baseKey}FontFamily${onSuffix}`;
         const sizeProp = `${baseKey}FontSize${onSuffix}`;
     
-        const color = element.styles.textColor || (colorScheme as any)[colorProp];
-        const fontFamily = element.styles.fontFamily || (colorScheme as any)[familyProp];
-        const fontSize = element.styles.fontSize || (colorScheme as any)[sizeProp];
+        const color = (colorScheme as any)[colorProp];
+        const fontFamily = (colorScheme as any)[familyProp];
+        const fontSize = (colorScheme as any)[sizeProp];
     
         return {
-            style: { 
-                color, 
-                fontFamily, 
-                fontSize: fontSize ? `${fontSize}px` : undefined 
-            },
+            style: { color, fontFamily, fontSize: fontSize ? `${fontSize}px` : undefined },
             fontSize,
         };
     };
 
-    // Динамический фон карточки, зависящий от состояния, темы, шаблона и пороговых правил.
-    let dynamicBackgroundColor: string;
-    if (isOn) {
-        // Приоритет: специфичный для темы цвет из шаблона -> общий цвет "вкл" из шаблона -> цвет из глобальной схемы
-        dynamicBackgroundColor = isDark
-            ? template.styles.onBackgroundColor || colorScheme.cardBackgroundOn
-            : template.styles.lightOnBackgroundColor || template.styles.onBackgroundColor || colorScheme.cardBackgroundOn;
-    } else {
-        dynamicBackgroundColor = isDark
-            ? template.styles.backgroundColor || colorScheme.cardBackground
-            : template.styles.lightBackgroundColor || template.styles.backgroundColor || colorScheme.cardBackground;
-    }
-    
+    // Динамический фон карточки, зависящий от состояния, темы и пороговых правил.
+    let dynamicBackgroundColor = isOn ? colorScheme.cardBackgroundOn : colorScheme.cardBackground;
     let dynamicValueColor: string | undefined = undefined;
 
     // Проверяем правила пороговых значений для сенсоров.
@@ -334,7 +308,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
       // `switch` по `id` элемента для определения, что и как рендерить.
       switch(element.id) {
         case 'name': {
-            const nameProps = getStyleProps(element, 'nameText');
+            const nameProps = getStyleProps('nameText');
             return (
                 <div key={element.id} style={style}>
                     <AutoFitText text={device.name} className="w-full h-full" pClassName="font-medium leading-tight" pStyle={nameProps.style} maxFontSize={100} mode="multi-line" maxLines={2} fontSize={nameProps.fontSize} textAlign={element.styles.textAlign} />
@@ -355,7 +329,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
           );
         }
         case 'status': {
-            const statusProps = getStyleProps(element, 'statusText');
+            const statusProps = getStyleProps('statusText');
             return (
                 <div key={element.id} style={style}>
                     <AutoFitText text={device.status} className="w-full h-full" pClassName="text-sm" pStyle={statusProps.style} maxFontSize={100} mode="single-line" fontSize={statusProps.fontSize} textAlign={element.styles.textAlign} />
@@ -370,7 +344,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
           if (!isNaN(numericStatus) && typeof decimalPlaces === 'number' && decimalPlaces >= 0) {
             valueText = numericStatus.toFixed(decimalPlaces);
           }
-           const valueProps = getStyleProps(element, 'valueText');
+           const valueProps = getStyleProps('valueText');
            // Применяем цвет из порогового правила, если он есть.
            if (dynamicValueColor) {
                valueProps.style.color = dynamicValueColor;
@@ -384,7 +358,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         case 'unit': {
           const isNumericStatus = !isNaN(parseFloat(device.status));
           if (!device.unit || !isNumericStatus) return null;
-          const unitProps = getStyleProps(element, 'unitText');
+          const unitProps = getStyleProps('unitText');
           return (
             <div key={element.id} style={style}>
               <AutoFitText text={device.unit} className="w-full h-full" pClassName="font-medium" pStyle={unitProps.style} maxFontSize={100} mode="single-line" fontSize={unitProps.fontSize} textAlign={element.styles.textAlign}/>
@@ -396,7 +370,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
             <div key={element.id} style={style}>
               <SparklineChart
                 data={device.history || mockHistory}
-                strokeColor={isDark ? "#4B5563" : "#D1D5DB"}
+                strokeColor={isOn ? colorScheme.activeTabTextColor : colorScheme.tabTextColor}
                 styleType={element.styles.chartType || 'gradient'}
               />
             </div>
@@ -425,7 +399,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                ? device.temperature.toFixed(decimalPlaces)
                : device.temperature.toFixed(0);
            }
-           const tempProps = getStyleProps(element, 'valueText');
+           const tempProps = getStyleProps('valueText');
            return (
              <div key={element.id} style={style} className="pointer-events-none">
                <AutoFitText text={`${tempText}°`} className="w-full h-full" pClassName="font-bold" pStyle={tempProps.style} maxFontSize={100} mode="single-line" fontSize={tempProps.fontSize} textAlign={element.styles.textAlign}/>
