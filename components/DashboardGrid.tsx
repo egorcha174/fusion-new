@@ -156,8 +156,10 @@ const OccupiedCellWrapper: React.FC<{
         data: { type: 'cell', col: firstItem.col, row: firstItem.row }
     });
     
+    const isStackedPair = group.length === 2 && group.every(item => item.height === 0.5);
+    
     const width = firstItem.width || 1;
-    const height = firstItem.height || 1;
+    const containerHeight = isStackedPair ? 1 : (firstItem.height || 1);
     const groupHasOpenMenu = group.some(item => item.deviceId === openMenuDeviceId);
     const groupIsActive = group.some(item => item.deviceId === activeId);
 
@@ -166,7 +168,7 @@ const OccupiedCellWrapper: React.FC<{
     const style: React.CSSProperties = {
         position: 'absolute',
         width: `${width * metrics.cellSize + (Math.ceil(width) - 1) * metrics.gap}px`,
-        height: `${height * metrics.cellSize + (Math.ceil(height) - 1) * metrics.gap}px`,
+        height: `${containerHeight * metrics.cellSize + (Math.ceil(containerHeight) - 1) * metrics.gap}px`,
         left: `${firstItem.col * (metrics.cellSize + metrics.gap)}px`,
         top: `${firstItem.row * (metrics.cellSize + metrics.gap)}px`,
         zIndex: groupHasOpenMenu ? 40 : (groupIsActive ? 0 : 1),
@@ -407,7 +409,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                         if (!firstItem) return null;
 
                         const isStackedPair = group.length === 2 && group.every(item => item.height === 0.5 && (item.width || 1) === 1);
-                        const isSingleHalf = group.length === 1 && group[0].height === 0.5;
                         
                         return (
                              <OccupiedCellWrapper key={`${firstItem.col}-${firstItem.row}`} group={group} isEditMode={isEditMode} activeId={activeId} openMenuDeviceId={openMenuDeviceId} metrics={gridMetrics}>
@@ -442,12 +443,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                                         } else { // index === 1
                                             wrapperStyle.bottom = '0';
                                         }
-                                    } else if (isSingleHalf) {
-                                        wrapperStyle.height = '50%';
-                                        wrapperStyle.bottom = 'auto'; // Позиционируем в верхней половине
-                                        wrapperStyle.top = '0';
-                                        wrapperStyle.left = '0';
-                                        wrapperStyle.right = '0';
                                     }
 
                                     return (
