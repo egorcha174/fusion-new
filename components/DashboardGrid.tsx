@@ -1,4 +1,4 @@
-import React, { useRef, useState, useLayoutEffect, useMemo } from 'react';
+import React, { useRef, useState, useLayoutEffect, useMemo, useCallback } from 'react';
 import {
   DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent,
   useDraggable, useDroppable, DragOverlay, pointerWithin,
@@ -14,6 +14,7 @@ const DEFAULT_LIGHT_TEMPLATE_ID = 'default-light';
 const DEFAULT_SWITCH_TEMPLATE_ID = 'default-switch';
 const DEFAULT_CLIMATE_TEMPLATE_ID = 'default-climate';
 
+
 /**
  * Обертка над DeviceCard, делающая его перетаскиваемым (Draggable) и зоной для сброса (Droppable).
  * Это позволяет как перетаскивать карточку, так и сбрасывать другую карточку на нее для замены.
@@ -28,7 +29,7 @@ const DraggableDevice: React.FC<{
   customizations: DeviceCustomizations;
   colorScheme: ColorScheme['light'];
   [key: string]: any; // Прочие пропсы для DeviceCard
-}> = ({ device, isEditMode, onDeviceToggle, onShowHistory, template, allKnownDevices, customizations, colorScheme, ...cardProps }) => {
+}> = React.memo(({ device, isEditMode, onDeviceToggle, onShowHistory, template, allKnownDevices, customizations, colorScheme, ...cardProps }) => {
   const { attributes, listeners, setNodeRef: setDraggableNodeRef, isDragging } = useDraggable({
     id: device.id,
     disabled: !isEditMode,
@@ -46,7 +47,7 @@ const DraggableDevice: React.FC<{
       setDroppableNodeRef(node);
   };
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = useCallback((e: React.MouseEvent) => {
     if (isEditMode) { e.preventDefault(); e.stopPropagation(); return; }
     
     // Для сенсоров клик открывает историю
@@ -60,12 +61,12 @@ const DraggableDevice: React.FC<{
     if (isTogglable) {
       onDeviceToggle(device.id);
     }
-  };
+  }, [isEditMode, device.type, device.id, onShowHistory, onDeviceToggle]);
 
-  const handleContextMenu = (e: React.MouseEvent) => {
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     cardProps.onDeviceContextMenu(e, device.id, cardProps.tab.id);
-  };
+  }, [cardProps.onDeviceContextMenu, device.id, cardProps.tab.id]);
 
   return (
     <div
@@ -101,7 +102,7 @@ const DraggableDevice: React.FC<{
       />
     </div>
   );
-};
+});
 
 
 /**
@@ -113,7 +114,7 @@ const DroppableCell: React.FC<{
   row: number;
   isEditMode: boolean;
   metrics: { cellSize: number; gap: number; };
-}> = ({ col, row, isEditMode, metrics }) => {
+}> = React.memo(({ col, row, isEditMode, metrics }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: `cell-${col}-${row}`,
     data: { type: 'cell', col, row }
@@ -137,7 +138,7 @@ const DroppableCell: React.FC<{
       className={`${baseClasses} ${isOver ? overClasses : editModeClasses}`}
     />
   );
-};
+});
 
 const OccupiedCellWrapper: React.FC<{
     group: GridLayoutItem[];
@@ -146,7 +147,7 @@ const OccupiedCellWrapper: React.FC<{
     activeId: string | null;
     openMenuDeviceId: string | null;
     metrics: { cellSize: number; gap: number; };
-}> = ({ group, children, isEditMode, activeId, openMenuDeviceId, metrics }) => {
+}> = React.memo(({ group, children, isEditMode, activeId, openMenuDeviceId, metrics }) => {
     const firstItem = group[0];
     const { setNodeRef, isOver } = useDroppable({
         id: `cell-${firstItem.col}-${firstItem.row}`,
@@ -184,7 +185,7 @@ const OccupiedCellWrapper: React.FC<{
             {children}
         </div>
     );
-};
+});
 
 
 interface DashboardGridProps {

@@ -1,13 +1,8 @@
 
-
 import React, { useState } from 'react';
 import { Room, DeviceCustomizations, Tab, Device } from '../types';
 import DeviceIcon from './DeviceIcon';
 import { useAppStore } from '../store/appStore';
-
-interface AllDevicesPageProps {
-    rooms: Room[];
-}
 
 /**
  * Компонент-кнопка с выпадающим списком для добавления устройства на вкладку.
@@ -15,7 +10,7 @@ interface AllDevicesPageProps {
  */
 const AddToTabButton: React.FC<{
     device: Device;
-}> = ({ device }) => {
+}> = React.memo(({ device }) => {
     const [isOpen, setIsOpen] = useState(false);
     const { tabs, handleDeviceAddToTab } = useAppStore();
 
@@ -62,6 +57,11 @@ const AddToTabButton: React.FC<{
             )}
         </div>
     );
+});
+
+// FIX: Define the props interface for the component.
+interface AllDevicesPageProps {
+  rooms: Room[];
 }
 
 /**

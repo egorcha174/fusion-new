@@ -16,7 +16,7 @@ interface ClockProps {
 /**
  * Компонент, отображающий текущее время с учетом настроек.
  */
-const Clock: React.FC<ClockProps> = ({ settings, sidebarWidth, color }) => {
+const Clock: React.FC<ClockProps> = React.memo(({ settings, sidebarWidth, color }) => {
     const [time, setTime] = useState(new Date());
 
     // Обновляем время каждую секунду.
@@ -64,7 +64,7 @@ const Clock: React.FC<ClockProps> = ({ settings, sidebarWidth, color }) => {
             {time.toLocaleTimeString('ru-RU', options)}
         </div>
     );
-};
+});
 
 interface CameraWidgetProps {
     cameras: Device[];
@@ -80,7 +80,7 @@ interface CameraWidgetProps {
  * Виджет для отображения видео с камеры.
  * Позволяет выбирать камеру для отображения через контекстное меню (правый клик).
  */
-const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettingsChange, onCameraWidgetClick, haUrl, signPath, getCameraStreamUrl }) => {
+const CameraWidget: React.FC<CameraWidgetProps> = React.memo(({ cameras, settings, onSettingsChange, onCameraWidgetClick, haUrl, signPath, getCameraStreamUrl }) => {
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number } | null>(null);
     const selectedCamera = useMemo(() => cameras.find(c => c.id === settings.selectedEntityId), [cameras, settings.selectedEntityId]);
 
@@ -144,7 +144,7 @@ const CameraWidget: React.FC<CameraWidgetProps> = ({ cameras, settings, onSettin
             )}
         </div>
     );
-};
+});
 
 
 interface InfoPanelProps {

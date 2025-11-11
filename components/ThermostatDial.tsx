@@ -66,7 +66,7 @@ const GradientArc: React.FC<{
     startAngle: number;
     endAngle: number;
     steps?: number;
-}> = ({ center, radius, strokeWidth, startAngle, endAngle, steps = 300 }) => {
+}> = React.memo(({ center, radius, strokeWidth, startAngle, endAngle, steps = 300 }) => {
     const angleRange = endAngle - startAngle;
     const angleStep = angleRange / steps;
     
@@ -92,7 +92,7 @@ const GradientArc: React.FC<{
             })}
         </g>
     );
-};
+});
 
 // FIX: Add pStyle prop to allow inline styling of the text element, resolving TypeScript errors.
 const AutoFitText: React.FC<{
