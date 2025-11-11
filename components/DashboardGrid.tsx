@@ -275,75 +275,86 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         const draggedItem = currentLayout[draggedItemIndex];
         let newLayout = [...currentLayout];
     
-        // Случай 1: Сброс на ячейку (пустую или занятую)
-        if (over.data.current?.type === 'cell') {
-            const { col: targetCol, row: targetRow } = over.data.current;
-            const draggedWidth = draggedItem.width || 1;
-            const draggedHeight = draggedItem.height || 1;
-            
-            if (targetCol + Math.ceil(draggedWidth) > tab.gridSettings.cols || targetRow + Math.ceil(draggedHeight) > tab.gridSettings.rows) return;
-            
-            const isDraggedStackable = draggedWidth === 1 && draggedHeight === 0.5;
-            const itemsInTargetCell = currentLayout.filter(item => item.deviceId !== draggedDeviceId && item.col === targetCol && item.row === targetRow);
-            
-            // A: Ячейка пуста. Проверяем коллизии с многоячеичными элементами.
-            if (itemsInTargetCell.length === 0) {
-                const multiCellConflicts = currentLayout.filter(item => {
-                    if (item.deviceId === draggedDeviceId) return false;
-                    const itemWidth = item.width || 1;
-                    const itemHeight = item.height || 1;
-                    return (targetCol < item.col + itemWidth && targetCol + draggedWidth > item.col && targetRow < item.row + itemHeight && targetRow + draggedHeight > item.row);
-                });
-                if (multiCellConflicts.length === 0) {
-                    newLayout[draggedItemIndex] = { ...draggedItem, col: targetCol, row: targetRow };
-                    onDeviceLayoutChange(tab.id, newLayout);
-                }
-                return;
-            }
-            
-            // B: В ячейке уже есть один элемент, проверяем, можно ли объединить в стопку.
-            if (itemsInTargetCell.length === 1 && isDraggedStackable) {
-                const existingItem = itemsInTargetCell[0];
-                const isExistingStackable = (existingItem.width || 1) === 1 && (existingItem.height || 1) === 0.5;
-                if (isExistingStackable) {
-                    newLayout[draggedItemIndex] = { ...draggedItem, col: targetCol, row: targetRow };
-                    onDeviceLayoutChange(tab.id, newLayout);
-                }
-                return;
-            }
+        let targetCol: number | undefined;
+        let targetRow: number | undefined;
+        let overItem: GridLayoutItem | undefined;
     
-            return; // Коллизия
+        // 1. Определяем целевые координаты (col, row) независимо от типа цели.
+        if (over.data.current?.type === 'cell') {
+            targetCol = over.data.current.col;
+            targetRow = over.data.current.row;
+        } else if (over.data.current?.type === 'device') {
+            overItem = currentLayout.find(item => item.deviceId === over.id);
+            if (!overItem) return;
+            targetCol = overItem.col;
+            targetRow = overItem.row;
+        } else {
+            return; // Неизвестная цель.
         }
     
-        // Случай 2: Сброс прямо на другую карточку
-        if (over.data.current?.type === 'device') {
-            const overDeviceId = over.id as string;
-            const overItemIndex = newLayout.findIndex(item => item.deviceId === overDeviceId);
-            if (overItemIndex === -1) return;
+        if (targetCol === undefined || targetRow === undefined) return;
     
-            const overItem = newLayout[overItemIndex];
-            const isDraggedStackable = (draggedItem.width || 1) === 1 && (draggedItem.height || 1) === 0.5;
-            const isOverStackable = (overItem.width || 1) === 1 && (overItem.height || 1) === 0.5;
-            const itemsInTargetCell = newLayout.filter(item => item.col === overItem.col && item.row === overItem.row);
+        const draggedWidth = draggedItem.width || 1;
+        const draggedHeight = draggedItem.height || 1;
     
-            // Логика объединения в стопку
-            if (isDraggedStackable && isOverStackable && itemsInTargetCell.length === 1) {
-                newLayout[draggedItemIndex] = { ...draggedItem, col: overItem.col, row: overItem.row };
+        // 2. Проверка выхода за границы сетки.
+        if (targetCol + Math.ceil(draggedWidth) > tab.gridSettings.cols || targetRow + Math.ceil(draggedHeight) > tab.gridSettings.rows) {
+            return;
+        }
+    
+        const itemsAtTargetOrigin = currentLayout.filter(item => 
+            item.deviceId !== draggedDeviceId && item.col === targetCol && item.row === targetRow
+        );
+        
+        const isDraggedStackable = draggedWidth === 1 && draggedHeight === 0.5;
+    
+        // 3. Логика действий.
+    
+        // Сценарий 1: Объединение в стопку.
+        // Это происходит, если мы тащим карточку 1x0.5 в ячейку, где уже есть одна карточка 1x0.5.
+        if (isDraggedStackable && itemsAtTargetOrigin.length === 1) {
+            const existingItem = itemsAtTargetOrigin[0];
+            const isExistingStackable = (existingItem.width || 1) === 1 && existingItem.height === 0.5;
+            if (isExistingStackable) {
+                newLayout[draggedItemIndex] = { ...draggedItem, col: targetCol, row: targetRow };
                 onDeviceLayoutChange(tab.id, newLayout);
                 return;
             }
+        }
     
-            // Логика замены (swap)
-            const draggedWidth = draggedItem.width || 1;
-            const draggedHeight = draggedItem.height || 1;
-            const overWidth = overItem.width || 1;
-            const overHeight = overItem.height || 1;
-            if (draggedWidth === overWidth && draggedHeight === overHeight) {
+        // Сценарий 2: Перемещение в "пустую" ячейку.
+        // Ячейка считается пустой, если в ее левом верхнем углу нет других карточек.
+        if (itemsAtTargetOrigin.length === 0) {
+            // Проверяем, не пересекается ли новая позиция с большими карточками, которые занимают эту ячейку.
+            const conflicts = currentLayout.filter(item => {
+                if (item.deviceId === draggedDeviceId) return false;
+                const itemWidth = item.width || 1;
+                const itemHeight = item.height || 1;
+                return (targetCol! < item.col + itemWidth && targetCol! + draggedWidth > item.col &&
+                        targetRow! < item.row + itemHeight && targetRow! + draggedHeight > item.row);
+            });
+    
+            if (conflicts.length === 0) {
+                newLayout[draggedItemIndex] = { ...draggedItem, col: targetCol, row: targetRow };
+                onDeviceLayoutChange(tab.id, newLayout);
+                return;
+            }
+        }
+        
+        // Сценарий 3: Замена (swap).
+        // Происходит, если мы сбросили на другую карточку (`overItem` определен) и это не случай объединения.
+        if (overItem) {
+             const overItemIndex = currentLayout.findIndex(i => i.deviceId === overItem.deviceId);
+             const overWidth = overItem.width || 1;
+             const overHeight = overItem.height || 1;
+             if (draggedWidth === overWidth && draggedHeight === overHeight) {
                 const tempPos = { col: draggedItem.col, row: draggedItem.row };
+                // Просто меняем координаты. Более сложная проверка коллизий для swap пока не требуется.
                 newLayout[draggedItemIndex] = { ...draggedItem, col: overItem.col, row: overItem.row };
                 newLayout[overItemIndex] = { ...overItem, col: tempPos.col, row: tempPos.row };
                 onDeviceLayoutChange(tab.id, newLayout);
-            }
+                return;
+             }
         }
     };
     
