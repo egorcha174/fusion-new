@@ -7,6 +7,7 @@ import { snapCenterToCursor } from '@dnd-kit/modifiers';
 import DeviceCard from './DeviceCard';
 import { Tab, Device, DeviceType, GridLayoutItem, CardTemplates, DeviceCustomizations, CardTemplate, ColorScheme, ColorThemeSet } from '../types';
 import { useAppStore } from '../store/appStore';
+import LoadingSpinner from './LoadingSpinner';
 
 // ID шаблонов по умолчанию
 const DEFAULT_SENSOR_TEMPLATE_ID = 'default-sensor';
@@ -382,6 +383,15 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         groups.forEach(group => group.sort((a, b) => a.deviceId.localeCompare(b.deviceId)));
         return Array.from(groups.values());
     }, [tab.layout]);
+
+    // Не рендерим сетку, пока ее размеры не будут вычислены, чтобы избежать "схлопывания" в углу.
+    if (gridMetrics.cellSize <= 0) {
+        return (
+            <div ref={viewportRef} className="w-full h-full flex items-center justify-center">
+                <LoadingSpinner />
+            </div>
+        );
+    }
 
     return (
         <div ref={viewportRef} className="w-full h-full flex items-center justify-center p-4">
