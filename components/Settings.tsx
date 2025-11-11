@@ -1,5 +1,4 @@
 
-
 import React, { useRef, useState, useMemo } from 'react';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet } from '../types';
 import ConfirmDialog from './ConfirmDialog';
@@ -270,6 +269,16 @@ const Settings: React.FC<{
         }
     };
     
+    // FIX: The useMemo hook is moved outside the conditional rendering block to respect the Rules of Hooks.
+    const themeEditorComponent = useMemo(() => (
+        <ThemeEditor
+            themeKey={activeThemeEditor}
+            themeSet={colorScheme[activeThemeEditor]}
+            onUpdate={(field, value) => updateColorSchemeField(activeThemeEditor, field, value)}
+            onImageUpload={(e) => handleImageUpload(e, activeThemeEditor)}
+        />
+    ), [activeThemeEditor, colorScheme]);
+
     const TAB_CONFIG = [
         { id: 'appearance', label: 'Внешний вид', icon: 'mdi:palette-outline' },
         { id: 'interface', label: 'Интерфейс', icon: 'mdi:application-cog-outline' },
@@ -330,14 +339,7 @@ const Settings: React.FC<{
                                 <button onClick={() => setActiveThemeEditor('light')} className={`px-4 py-1 text-sm font-semibold rounded-md transition-colors ${activeThemeEditor === 'light' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-50' : 'text-gray-600 dark:text-gray-400'}`}>Светлая тема</button>
                                 <button onClick={() => setActiveThemeEditor('dark')} className={`px-4 py-1 text-sm font-semibold rounded-md transition-colors ${activeThemeEditor === 'dark' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-50' : 'text-gray-600 dark:text-gray-400'}`}>Темная тема</button>
                             </div>
-                            {useMemo(() => (
-                                <ThemeEditor
-                                    themeKey={activeThemeEditor}
-                                    themeSet={colorScheme[activeThemeEditor]}
-                                    onUpdate={(field, value) => updateColorSchemeField(activeThemeEditor, field, value)}
-                                    onImageUpload={(e) => handleImageUpload(e, activeThemeEditor)}
-                                />
-                            ), [activeThemeEditor, colorScheme])}
+                            {themeEditorComponent}
                         </div>
                     )}
                     {activeTab === 'interface' && (
