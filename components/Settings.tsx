@@ -6,6 +6,7 @@ import { useAppStore } from '../store/appStore';
 import { useHAStore } from '../store/haStore';
 import JSZip from 'jszip';
 import { Icon } from '@iconify/react';
+import appleTheme from '../apple-inspired-light.theme.json';
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'failed';
 type SettingsTab = 'appearance' | 'interface' | 'templates' | 'connection' | 'backup';
@@ -189,6 +190,12 @@ const Settings: React.FC<{
         localStorage.setItem('ha-token', token);
         onConnect(url, token);
     };
+    
+    const handleLoadAppleTheme = () => {
+        if (window.confirm("Загрузить тему 'Apple Home (Light)'? Это перезапишет текущие настройки внешнего вида.")) {
+            setColorScheme(appleTheme.colorScheme);
+        }
+    };
 
     const handleExportSettings = () => {
         try {
@@ -269,7 +276,6 @@ const Settings: React.FC<{
         }
     };
     
-    // FIX: The useMemo hook is moved outside the conditional rendering block to respect the Rules of Hooks.
     const themeEditorComponent = useMemo(() => (
         <ThemeEditor
             themeKey={activeThemeEditor}
@@ -334,6 +340,18 @@ const Settings: React.FC<{
                             <div className="flex justify-between items-center">
                                  <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Внешний вид</h2>
                                  <button onClick={onResetColorScheme} className="text-sm text-blue-600 dark:text-blue-400 hover:underline">Сбросить</button>
+                            </div>
+                            <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg space-y-3">
+                                <h4 className="font-semibold text-gray-900 dark:text-gray-100">Готовые темы</h4>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Выберите готовую тему для быстрого старта.</p>
+                                <div className="flex gap-2">
+                                    <button 
+                                        onClick={handleLoadAppleTheme} 
+                                        className="flex-1 text-center bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm p-2 rounded-lg"
+                                    >
+                                        Apple Home (Light)
+                                    </button>
+                                </div>
                             </div>
                             <div className="flex gap-1 bg-gray-200 dark:bg-gray-900/50 p-1 rounded-lg self-start">
                                 <button onClick={() => setActiveThemeEditor('light')} className={`px-4 py-1 text-sm font-semibold rounded-md transition-colors ${activeThemeEditor === 'light' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-50' : 'text-gray-600 dark:text-gray-400'}`}>Светлая тема</button>
@@ -402,7 +420,7 @@ const Settings: React.FC<{
                             </div>
                              <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg space-y-3">
                                 <h4 className="font-semibold text-gray-900 dark:text-gray-100">Тема</h4>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Экспортируйте вашу текущую тему, чтобы поделиться ей, или импортируйте новую.</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Экспортируйте вашу текущую тему (цвета, шрифты, фон), чтобы поделиться ей, или импортируйте новую.</p>
                                 <div className="flex gap-4">
                                     <button onClick={handleExportTheme} className="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Экспорт</button>
                                     <button onClick={() => themeFileInputRef.current?.click()} className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Импорт</button>
