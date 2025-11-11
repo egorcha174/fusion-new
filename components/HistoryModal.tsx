@@ -85,7 +85,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ entityId, onClose, getHisto
           throw new Error("Нет данных истории за выбранный период.");
         }
 
-        const processedData = historyPoints
+        const sortedData = historyPoints
           .filter((point: any) => point && !isNaN(parseFloat(point.s)))
           .map((point: any) => ({
             x: new Date(point.lu * 1000), // last_updated in seconds
@@ -93,6 +93,15 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ entityId, onClose, getHisto
           }))
           .sort((a, b) => a.x.getTime() - b.x.getTime());
         
+        // Фильтруем точки, которые нарушают хронологический порядок, чтобы избежать "гребенки" на графике.
+        // Это гарантирует, что каждая следующая точка новее предыдущей.
+        const processedData = sortedData.reduce((acc, currentPoint) => {
+            if (acc.length === 0 || currentPoint.x.getTime() > acc[acc.length - 1].x.getTime()) {
+                acc.push(currentPoint);
+            }
+            return acc;
+        }, [] as { x: Date; y: number }[]);
+
         if (processedData.length < 2) {
           throw new Error("Недостаточно данных для построения графика.");
         }
