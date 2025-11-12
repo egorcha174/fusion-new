@@ -5,6 +5,7 @@ import SparklineChart from './SparklineChart';
 import ThermostatDial from './ThermostatDial';
 import { Icon } from '@iconify/react';
 import { CameraStreamContent } from './CameraStreamContent';
+import BatteryWidgetCard from './BatteryWidgetCard';
 
 /**
  * Применяет заданную прозрачность к строке цвета.
@@ -663,6 +664,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                 )}
             </div>
         )
+      case DeviceType.BatteryWidget:
+        return <BatteryWidgetCard />;
       case DeviceType.DimmableLight:
         return (
           <div className="flex flex-col h-full">
@@ -745,7 +748,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
   const getCardClasses = () => {
     const baseClasses = "w-full h-full rounded-2xl flex flex-col transition-all duration-200 ease-in-out select-none relative shadow-lg ring-1 ring-black/5 dark:ring-white/10";
     if (template) return baseClasses;
-    const layoutClasses = isCamera ? 'p-0' : styles.padding;
+    const layoutClasses = (isCamera || device.type === DeviceType.BatteryWidget) ? 'p-0' : styles.padding;
     const cursorClass = (isTogglable || isCamera) && !isEditMode && !isPreview ? 'cursor-pointer' : '';
     const hoverClass = !isEditMode && !isPreview ? 'hover:brightness-95 dark:hover:brightness-110' : '';
     return `${baseClasses} ${layoutClasses} ${cursorClass} ${hoverClass}`;

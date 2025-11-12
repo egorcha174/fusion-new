@@ -177,7 +177,6 @@ interface AppState {
     cameraSettings: CameraSettings;
     sidebarWidth: number;
     isSidebarVisible: boolean;
-    isBatteryWidgetVisible: boolean;
     theme: 'day' | 'night' | 'auto';
     colorScheme: ColorScheme;
     weatherProvider: 'openweathermap' | 'yandex';
@@ -206,7 +205,6 @@ interface AppActions {
     setCameraSettings: (settings: CameraSettings) => void;
     setSidebarWidth: (width: number) => void;
     setIsSidebarVisible: (isVisible: boolean) => void;
-    setIsBatteryWidgetVisible: (isVisible: boolean) => void;
     setTheme: (theme: AppState['theme']) => void;
     setColorScheme: (scheme: ColorScheme) => void;
     setWeatherProvider: (provider: AppState['weatherProvider']) => void;
@@ -264,7 +262,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     cameraSettings: loadAndMigrate<CameraSettings>('ha-camera-settings', { selectedEntityId: null }),
     sidebarWidth: loadAndMigrate<number>('ha-sidebar-width', 320),
     isSidebarVisible: loadAndMigrate<boolean>('ha-sidebar-visible', true),
-    isBatteryWidgetVisible: loadAndMigrate<boolean>('ha-is-battery-widget-visible', true),
     theme: loadAndMigrate<'day' | 'night' | 'auto'>('ha-theme', 'auto'),
     colorScheme: loadAndMigrate<ColorScheme>('ha-color-scheme', DEFAULT_COLOR_SCHEME),
     weatherProvider: loadAndMigrate<'openweathermap' | 'yandex'>('ha-weather-provider', 'openweathermap'),
@@ -316,10 +313,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     setIsSidebarVisible: (isVisible) => {
         set({ isSidebarVisible: isVisible });
         localStorage.setItem('ha-sidebar-visible', JSON.stringify(isVisible));
-    },
-    setIsBatteryWidgetVisible: (isVisible) => {
-        set({ isBatteryWidgetVisible: isVisible });
-        localStorage.setItem('ha-is-battery-widget-visible', JSON.stringify(isVisible));
     },
     setTheme: (theme) => {
         set({ theme });

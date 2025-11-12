@@ -1,7 +1,7 @@
 
 
 import { create } from 'zustand';
-import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device, Room, RoomWithPhysicalDevices, PhysicalDevice } from '../types';
+import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device, Room, RoomWithPhysicalDevices, PhysicalDevice, DeviceType } from '../types';
 import { constructHaUrl } from '../utils/url';
 import { mapEntitiesToRooms } from '../utils/ha-data-mapper';
 import { useAppStore } from './appStore';
@@ -68,7 +68,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   };
   
   const updateDerivedState = (entities: HassEntities, areas: HassArea[], devices: HassDevice[], entityRegistry: HassEntityRegistryEntry[]) => {
-      const { customizations } = useAppStore.getState();
+      const { customizations, lowBatteryThreshold } = useAppStore.getState();
       const rooms = mapEntitiesToRooms(Object.values(entities), areas, devices, entityRegistry, customizations, true);
       const deviceMap = new Map<string, Device>();
       rooms.forEach(room => {
@@ -137,6 +137,28 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         }
       });
       
+      if (batteryDevicesList.length > 0) {
+        const lowBatteryCount = batteryDevicesList.filter(d => d.batteryLevel <= lowBatteryThreshold).length;
+        const batteryWidgetDevice: Device = {
+          id: 'internal::battery_widget',
+          name: 'Уровень заряда',
+          status: lowBatteryCount > 0 ? `${lowBatteryCount} устр. с низким зарядом` : 'Все устройства заряжены',
+          type: DeviceType.BatteryWidget,
+          state: String(batteryDevicesList.length), // Total device count
+          haDomain: 'internal',
+        };
+        deviceMap.set(batteryWidgetDevice.id, batteryWidgetDevice);
+
+        let widgetsRoom = rooms.find(r => r.id === 'internal::widgets');
+        if (!widgetsRoom) {
+          widgetsRoom = { id: 'internal::widgets', name: 'Виджеты', devices: [] };
+          rooms.push(widgetsRoom);
+        }
+        if (!widgetsRoom.devices.some(d => d.id === batteryWidgetDevice.id)) {
+            widgetsRoom.devices.push(batteryWidgetDevice);
+        }
+      }
+
       const cameras = Array.from(deviceMap.values()).filter((d: Device) => d.haDomain === 'camera');
       // Сортируем список физических устройств по уровню заряда
       batteryDevicesList.sort((a, b) => a.batteryLevel - b.batteryLevel);
@@ -190,7 +212,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   // Re-compute derived state whenever customizations change
   useAppStore.subscribe(
     (state, prevState) => {
-        if (state.customizations !== prevState.customizations) {
+        if (state.customizations !== prevState.customizations || state.lowBatteryThreshold !== prevState.lowBatteryThreshold) {
             const { entities, areas, devices, entityRegistry } = get();
             updateDerivedState(entities, areas, devices, entityRegistry);
         }

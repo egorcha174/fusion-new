@@ -25,6 +25,7 @@ export enum DeviceType {
   Fan,
   DoorSensor,
   Camera,
+  BatteryWidget,
   Unknown, // Резервный тип для неопознанных устройств
 }
 

@@ -24,7 +24,7 @@ const LOCAL_STORAGE_KEYS = [
   'ha-url', 'ha-token', 'ha-tabs', 'ha-active-tab', 'ha-device-customizations',
   'ha-clock-settings', 'ha-card-templates', 'ha-sidebar-width', 'ha-openweathermap-key',
   'ha-camera-settings', 'ha-theme', 'ha-color-scheme', 'ha-sidebar-visible', 'ha-low-battery-threshold',
-  'ha-is-battery-widget-visible', 'ha-weather-provider', 'ha-yandex-weather-key',
+  'ha-weather-provider', 'ha-yandex-weather-key',
 ];
 
 const ColorSettingRow: React.FC<{ label: string, value: string, onChange: (newColor: string) => void }> = React.memo(({ label, value, onChange }) => (
@@ -220,7 +220,6 @@ const Settings: React.FC<{
         openWeatherMapKey, setOpenWeatherMapKey,
         yandexWeatherKey, setYandexWeatherKey,
         lowBatteryThreshold, setLowBatteryThreshold,
-        isBatteryWidgetVisible, setIsBatteryWidgetVisible
     } = useAppStore();
     
     const [activeTab, setActiveTab] = useState<SettingsTab>('appearance');
@@ -422,12 +421,6 @@ const Settings: React.FC<{
                                         <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${isSidebarVisible ? 'translate-x-6' : 'translate-x-1'}`} />
                                     </button>
                                 </div>
-                                <div className="flex items-center justify-between">
-                                    <label htmlFor="showBatteryWidget" className="text-sm font-medium text-gray-800 dark:text-gray-200">Показывать виджет заряда батарей</label>
-                                    <button onClick={() => setIsBatteryWidgetVisible(!isBatteryWidgetVisible)} className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${isBatteryWidgetVisible ? 'bg-blue-600' : 'bg-gray-500 dark:bg-gray-600'}`}>
-                                        <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${isBatteryWidgetVisible ? 'translate-x-6' : 'translate-x-1'}`} />
-                                    </button>
-                                </div>
                             </div>
                             <Section title="Уровень заряда батарей">
                                 <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">Настройте оповещения о низком заряде батарей для ваших беспроводных устройств.</p>
@@ -459,7 +452,7 @@ const Settings: React.FC<{
                              </div>
                              <div className="relative">
                                 <button onClick={() => setIsCreateMenuOpen(prev => !prev)} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Создать шаблон</button>
-                                {isCreateMenuOpen && (<div onMouseLeave={() => setIsCreateMenuOpen(false)} className="absolute bottom-full left-0 right-0 mb-2 w-full bg-gray-200 dark:bg-gray-700 rounded-lg shadow-lg z-10 ring-1 ring-black/5 dark:ring-black ring-opacity-5 overflow-hidden fade-in"><button onClick={()=>{setEditingTemplate(createNewBlankTemplate(DeviceType.Sensor)); setIsCreateMenuOpen(false);}} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для сенсора</button><button onClick={()=>{setEditingTemplate(createNewBlankTemplate(DeviceType.Light)); setIsCreateMenuOpen(false);}} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для светильника</button><button onClick={()=>{setEditingTemplate(createNewBlankTemplate(DeviceType.Switch)); setIsCreateMenuOpen(false);}} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для переключателя</button><button onClick={()=>{setEditingTemplate(createNewBlankTemplate(DeviceType.Thermostat)); setIsCreateMenuOpen(false);}} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для климата</button></div>)}
+                                {isCreateMenuOpen && (<div onMouseLeave={() => setIsCreateMenuOpen(false)} className="absolute bottom-full left-0 right-0 mb-2 w-full bg-gray-200 dark:bg-gray-700 rounded-lg shadow-lg z-10 ring-1 ring-black/5 dark:ring-black ring-opacity-5 overflow-hidden fade-in max-h-48 overflow-y-auto"><button onClick={()=>{setEditingTemplate(createNewBlankTemplate(DeviceType.Sensor)); setIsCreateMenuOpen(false);}} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для сенсора</button><button onClick={()=>{setEditingTemplate(createNewBlankTemplate(DeviceType.Light)); setIsCreateMenuOpen(false);}} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для светильника</button><button onClick={()=>{setEditingTemplate(createNewBlankTemplate(DeviceType.Switch)); setIsCreateMenuOpen(false);}} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для переключателя</button><button onClick={()=>{setEditingTemplate(createNewBlankTemplate(DeviceType.Thermostat)); setIsCreateMenuOpen(false);}} className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Для климата</button></div>)}
                              </div>
                         </div>
                     )}

@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { DeviceType } from '../types';
 import { Icon } from '@iconify/react';
@@ -33,6 +34,7 @@ const iconMap: Record<DeviceType, { on: string; off: string; animation?: 'spin' 
   [DeviceType.Outlet]: { on: 'mdi:power-socket-eu', off: 'mdi:power-socket-eu' },
   [DeviceType.Weather]: { on: 'mdi:weather-partly-cloudy', off: 'mdi:weather-partly-cloudy' },
   [DeviceType.Camera]: { on: 'mdi:cctv', off: 'mdi:cctv' },
+  [DeviceType.BatteryWidget]: { on: 'mdi:battery-heart-variant-outline', off: 'mdi:battery-heart-variant-outline' },
   [DeviceType.Unknown]: { on: 'mdi:help-rhombus-outline', off: 'mdi:help-rhombus-outline' },
 };
 
