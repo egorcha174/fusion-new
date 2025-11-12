@@ -68,6 +68,20 @@ const FontSettingRow: React.FC<{
     </div>
 ));
 
+// Локальный компонент секции для лучшей организации настроек
+const Section: React.FC<{ title: string, children: React.ReactNode, defaultOpen?: boolean }> = ({ title, children, defaultOpen = false }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  return (
+    <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg">
+      <button onClick={() => setIsOpen(!isOpen)} className="w-full flex justify-between items-center text-left font-semibold text-gray-900 dark:text-gray-100">
+        <span>{title}</span>
+        <Icon icon="mdi:chevron-down" className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+      {isOpen && <div className="pt-4 space-y-3 border-t border-gray-300 dark:border-gray-600 mt-3">{children}</div>}
+    </div>
+  );
+};
+
 
 const ThemeEditor: React.FC<{
     themeKey: 'light' | 'dark';
@@ -78,10 +92,8 @@ const ThemeEditor: React.FC<{
     const bgImageInputRef = useRef<HTMLInputElement>(null);
 
     return (
-        <div className="space-y-6">
-             {/* Фон дашборда */}
-            <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg space-y-3">
-                <h4 className="font-semibold text-gray-900 dark:text-gray-100">Фон дашборда</h4>
+        <div className="space-y-4">
+            <Section title="Фон дашборда" defaultOpen={true}>
                 <div className="flex gap-1 bg-gray-200 dark:bg-gray-900/50 p-1 rounded-lg">
                     {(['color', 'gradient', 'image'] as const).map(type => (
                         <button key={type} onClick={() => onUpdate('dashboardBackgroundType', type)}
@@ -114,10 +126,9 @@ const ThemeEditor: React.FC<{
                         </div>
                     </div>
                 )}
-            </div>
-             {/* Прозрачность */}
-             <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg space-y-3">
-                <h4 className="font-semibold text-gray-900 dark:text-gray-100">Прозрачность</h4>
+            </Section>
+            
+            <Section title="Панели и прозрачность">
                 <div>
                     <label className="text-xs text-gray-500 dark:text-gray-400">Панели (Боковая и Шапка): {Math.round((themeSet.panelOpacity ?? 1) * 100)}%</label>
                     <input type="range" min="0.2" max="1" step="0.05" value={themeSet.panelOpacity ?? 1} onChange={e => onUpdate('panelOpacity', parseFloat(e.target.value))} className="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"/>
@@ -126,34 +137,48 @@ const ThemeEditor: React.FC<{
                     <label className="text-xs text-gray-500 dark:text-gray-400">Карточки: {Math.round((themeSet.cardOpacity ?? 1) * 100)}%</label>
                     <input type="range" min="0.2" max="1" step="0.05" value={themeSet.cardOpacity ?? 1} onChange={e => onUpdate('cardOpacity', parseFloat(e.target.value))} className="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"/>
                 </div>
-             </div>
-
-             {/* Цвета карточек */}
-             <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg space-y-3">
-                <h4 className="font-semibold text-gray-900 dark:text-gray-100">Карточки</h4>
+             </Section>
+             
+             <Section title="Карточки (общие)">
                 <ColorSettingRow label="Фон (Выкл.)" value={themeSet.cardBackground} onChange={v => onUpdate('cardBackground', v)} />
                 <ColorSettingRow label="Фон (Вкл.)" value={themeSet.cardBackgroundOn} onChange={v => onUpdate('cardBackgroundOn', v)} />
-             </div>
+             </Section>
 
-              {/* Стили текста */}
-            <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg space-y-4">
-                <h4 className="font-semibold text-gray-900 dark:text-gray-100">Текст (состояние Выкл.)</h4>
+            <Section title="Вкладки">
+                <ColorSettingRow label="Текст (неактивная)" value={themeSet.tabTextColor} onChange={v => onUpdate('tabTextColor', v)} />
+                <ColorSettingRow label="Текст (активная)" value={themeSet.activeTabTextColor} onChange={v => onUpdate('activeTabTextColor', v)} />
+                <ColorSettingRow label="Индикатор (активная)" value={themeSet.tabIndicatorColor} onChange={v => onUpdate('tabIndicatorColor', v)} />
+            </Section>
+
+            <Section title="Термостат">
+                <ColorSettingRow label="Ручка" value={themeSet.thermostatHandleColor} onChange={v => onUpdate('thermostatHandleColor', v)} />
+                <ColorSettingRow label="Целевая температура" value={themeSet.thermostatDialTextColor} onChange={v => onUpdate('thermostatDialTextColor', v)} />
+                <ColorSettingRow label="Подпись (Цель/Нагрев)" value={themeSet.thermostatDialLabelColor} onChange={v => onUpdate('thermostatDialLabelColor', v)} />
+                <ColorSettingRow label="Режим нагрева" value={themeSet.thermostatHeatingColor} onChange={v => onUpdate('thermostatHeatingColor', v)} />
+                <ColorSettingRow label="Режим охлаждения" value={themeSet.thermostatCoolingColor} onChange={v => onUpdate('thermostatCoolingColor', v)} />
+            </Section>
+
+            <Section title="Часы">
+                 <ColorSettingRow label="Цвет текста" value={themeSet.clockTextColor} onChange={v => onUpdate('clockTextColor', v)} />
+            </Section>
+            
+            <Section title="Текст карточки (Выкл.)">
                 <ColorSettingRow label="Название" value={themeSet.nameTextColor} onChange={v => onUpdate('nameTextColor', v)} />
                 <ColorSettingRow label="Статус" value={themeSet.statusTextColor} onChange={v => onUpdate('statusTextColor', v)} />
                 <ColorSettingRow label="Значение" value={themeSet.valueTextColor} onChange={v => onUpdate('valueTextColor', v)} />
                 <FontSettingRow label="Шрифт (Название)" fontFamily={themeSet.nameTextFontFamily} fontSize={themeSet.nameTextFontSize} onFontFamilyChange={v => onUpdate('nameTextFontFamily', v)} onFontSizeChange={v => onUpdate('nameTextFontSize', v)} />
                 <FontSettingRow label="Шрифт (Статус)" fontFamily={themeSet.statusTextFontFamily} fontSize={themeSet.statusTextFontSize} onFontFamilyChange={v => onUpdate('statusTextFontFamily', v)} onFontSizeChange={v => onUpdate('statusTextFontSize', v)} />
                 <FontSettingRow label="Шрифт (Значение)" fontFamily={themeSet.valueTextFontFamily} fontSize={themeSet.valueTextFontSize} onFontFamilyChange={v => onUpdate('valueTextFontFamily', v)} onFontSizeChange={v => onUpdate('valueTextFontSize', v)} />
-            </div>
-             <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg space-y-4">
-                <h4 className="font-semibold text-gray-900 dark:text-gray-100">Текст (состояние Вкл.)</h4>
+            </Section>
+
+             <Section title="Текст карточки (Вкл.)">
                 <ColorSettingRow label="Название" value={themeSet.nameTextColorOn} onChange={v => onUpdate('nameTextColorOn', v)} />
                 <ColorSettingRow label="Статус" value={themeSet.statusTextColorOn} onChange={v => onUpdate('statusTextColorOn', v)} />
                 <ColorSettingRow label="Значение" value={themeSet.valueTextColorOn} onChange={v => onUpdate('valueTextColorOn', v)} />
                 <FontSettingRow label="Шрифт (Название)" fontFamily={themeSet.nameTextFontFamilyOn} fontSize={themeSet.nameTextFontSizeOn} onFontFamilyChange={v => onUpdate('nameTextFontFamilyOn', v)} onFontSizeChange={v => onUpdate('nameTextFontSizeOn', v)} />
                 <FontSettingRow label="Шрифт (Статус)" fontFamily={themeSet.statusTextFontFamilyOn} fontSize={themeSet.statusTextFontSizeOn} onFontFamilyChange={v => onUpdate('statusTextFontFamilyOn', v)} onFontSizeChange={v => onUpdate('statusTextFontSizeOn', v)} />
                 <FontSettingRow label="Шрифт (Значение)" fontFamily={themeSet.valueTextFontFamilyOn} fontSize={themeSet.valueTextFontSizeOn} onFontFamilyChange={v => onUpdate('valueTextFontFamilyOn', v)} onFontSizeChange={v => onUpdate('valueTextFontSizeOn', v)} />
-            </div>
+            </Section>
         </div>
     );
 });

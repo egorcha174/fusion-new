@@ -1,9 +1,4 @@
 
-
-
-
-
-
 /**
  * Перечисление всех возможных типов устройств, используемых в приложении.
  * Это внутреннее представление, которое используется для определения иконки,
@@ -153,51 +148,95 @@ export interface CameraSettings {
  * Определяет все цвета, используемые в интерфейсе.
  */
 export interface ColorThemeSet {
-  // Настройки фона
+  // --- Фон ---
+  /** Тип фона дашборда: сплошной цвет, градиент или изображение. */
   dashboardBackgroundType: 'color' | 'gradient' | 'image';
+  /** Основной цвет фона или первый цвет градиента. */
   dashboardBackgroundColor1: string;
+  /** Второй цвет градиента (если используется). */
   dashboardBackgroundColor2?: string;
-  dashboardBackgroundImage?: string; // base64 data URL
-  dashboardBackgroundImageBlur?: number; // в пикселях
-  dashboardBackgroundImageBrightness?: number; // в процентах
+  /** Фоновое изображение в формате Data URL (base64). */
+  dashboardBackgroundImage?: string;
+  /** Уровень размытия фонового изображения в пикселях. */
+  dashboardBackgroundImageBlur?: number;
+  /** Яркость фонового изображения в процентах. */
+  dashboardBackgroundImageBrightness?: number;
   
-  // Настройки карточек
-  cardOpacity?: number; // 0-1
-  panelOpacity?: number; // 0-1
+  // --- Панели и Прозрачность ---
+  /** Прозрачность карточек устройств (от 0 до 1). */
+  cardOpacity?: number;
+  /** Прозрачность боковой панели и шапки (от 0 до 1). */
+  panelOpacity?: number;
 
+  // --- Карточки (Общие) ---
+  /** Цвет фона карточки в выключенном состоянии. */
   cardBackground: string;
+  /** Цвет фона карточки во включенном состоянии. */
   cardBackgroundOn: string;
+
+  // --- Вкладки ---
+  /** Цвет текста неактивных вкладок. */
   tabTextColor: string;
+  /** Цвет текста активной вкладки. */
   activeTabTextColor: string;
+  /** Цвет индикатора под активной вкладкой. */
   tabIndicatorColor: string;
+  
+  // --- Термостат ---
+  /** Цвет перетаскиваемой ручки на диске термостата. */
   thermostatHandleColor: string;
+  /** Цвет текста целевой температуры в центре диска. */
   thermostatDialTextColor: string;
+  /** Цвет подписи над целевой температурой (например, "ЦЕЛЬ"). */
   thermostatDialLabelColor: string;
+  /** Цвет, указывающий на режим нагрева. */
   thermostatHeatingColor: string;
+  /** Цвет, указывающий на режим охлаждения. */
   thermostatCoolingColor: string;
+  
+  // --- Часы ---
+  /** Цвет текста часов на боковой панели. */
   clockTextColor: string;
 
-  // Цвета текста - состояние "Выкл"
+  // --- Текст карточки (Выкл.) ---
+  /** Цвет названия устройства. */
   nameTextColor: string;
+  /** Цвет статуса устройства (например, "Выключено"). */
   statusTextColor: string;
+  /** Цвет значения сенсора или состояния. */
   valueTextColor: string;
+  /** Цвет единицы измерения (например, "°C"). */
   unitTextColor: string;
-  // Цвета текста - состояние "Вкл"
+
+  // --- Текст карточки (Вкл.) ---
+  /** Цвет названия устройства. */
   nameTextColorOn: string;
+  /** Цвет статуса устройства (например, "Включено"). */
   statusTextColorOn: string;
+  /** Цвет значения сенсора или состояния. */
   valueTextColorOn: string;
+  /** Цвет единицы измерения (например, "°C"). */
   unitTextColorOn: string;
 
-  // --- Свойства шрифтов ---
+  // --- Шрифты карточки (Выкл.) ---
+  /** Семейство шрифта для названия. */
   nameTextFontFamily?: string;
+  /** Размер шрифта для названия (в px). Если не указан, подбирается автоматически. */
   nameTextFontSize?: number;
+  /** Семейство шрифта для статуса. */
   statusTextFontFamily?: string;
+  /** Размер шрифта для статуса (в px). */
   statusTextFontSize?: number;
+  /** Семейство шрифта для значения. */
   valueTextFontFamily?: string;
+  /** Размер шрифта для значения (в px). */
   valueTextFontSize?: number;
+  /** Семейство шрифта для единицы измерения. */
   unitTextFontFamily?: string;
+  /** Размер шрифта для единицы измерения (в px). */
   unitTextFontSize?: number;
 
+  // --- Шрифты карточки (Вкл.) ---
   nameTextFontFamilyOn?: string;
   nameTextFontSizeOn?: number;
   statusTextFontFamilyOn?: string;
