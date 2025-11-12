@@ -22,7 +22,6 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
     case 'sensor': return DeviceType.Sensor;
     case 'climate': return DeviceType.Thermostat;
     case 'fan': return DeviceType.Fan;
-    case 'humidifier': return DeviceType.Climate; // Увлажнители часто управляются как климатические устройства
   }
 
   // --- Приоритет 2: Домен + Атрибуты/Класс устройства ---
@@ -74,18 +73,17 @@ const getStatusText = (entity: HassEntity): string => {
     const attributes = entity.attributes || {};
 
     // Специальная логика для климата (термостатов)
-    if (domain === 'climate' || domain === 'humidifier') {
+    if (domain === 'climate') {
         const hvacAction = attributes.hvac_action; // 'heating', 'cooling', 'idle'
         const state = entity.state; // 'heat', 'cool', 'off'
 
         const stateTranslations: Record<string, string> = {
             'cool': 'Охлаждение', 'heat': 'Нагрев', 'fan_only': 'Вентилятор',
             'dry': 'Осушение', 'auto': 'Авто', 'heat_cool': 'Авто', 'off': 'Выключено',
-            'on': 'Включено', 'humidifying': 'Увлажнение', 'drying': 'Осушение', 'idle': 'Ожидание'
         };
         const actionTranslations: Record<string, string> = {
             'cooling': 'Охлаждение', 'heating': 'Нагрев', 'fan': 'Вентилятор',
-            'drying': 'Осушение', 'off': 'Выключено', 'humidifying': 'Увлажнение', 'idle': 'Ожидание'
+            'drying': 'Осушение', 'off': 'Выключено',
         };
 
         // Если устройство активно что-то делает, показываем действие (приоритет).
@@ -224,8 +222,6 @@ export const mapEntitiesToRooms = (
     showHidden: boolean = false
 ): Room[] => {
   const roomsMap: Map<string, Room> = new Map();
-  const allEntities = Object.values(entities);
-  const processedEntityIds = new Set<string>();
 
   // Инициализируем карту комнат
   areas.forEach(area => {
@@ -233,77 +229,37 @@ export const mapEntitiesToRooms = (
   });
   roomsMap.set('no_area', { id: 'no_area', name: 'Без пространства', devices: []});
 
-  // Создаем карту для быстрой связи device_id -> entity_id[]
-  const deviceToEntitiesMap = new Map<string, string[]>();
+  // Создаем карты для быстрого поиска связей
+  const entityIdToAreaIdMap = new Map<string, string>();
   entityRegistry.forEach(entry => {
-    if (entry.device_id) {
-        if (!deviceToEntitiesMap.has(entry.device_id)) {
-            deviceToEntitiesMap.set(entry.device_id, []);
-        }
-        deviceToEntitiesMap.get(entry.device_id)!.push(entry.entity_id);
-    }
+      if (entry.area_id) entityIdToAreaIdMap.set(entry.entity_id, entry.area_id);
   });
-  
-  // --- Проход 1: Группируем сущности по физическим устройствам ---
-  haDevices.forEach(haDevice => {
-    const associatedEntityIds = deviceToEntitiesMap.get(haDevice.id);
-    if (!associatedEntityIds || associatedEntityIds.length === 0) return;
+  const deviceIdToAreaIdMap = new Map<string, string>();
+  haDevices.forEach(d => {
+      if(d.area_id) deviceIdToAreaIdMap.set(d.id, d.area_id);
+  })
 
-    const associatedEntities = associatedEntityIds.map(id => allEntities.find(e => e.entity_id === id)).filter((e): e is HassEntity => !!e);
-
-    // Выбираем "главную" сущность для представления устройства.
-    // Приоритет отдаем не-сенсорам.
-    let primaryEntity = associatedEntities.find(e => {
-        const domain = e.entity_id.split('.')[0];
-        return !['sensor', 'binary_sensor', 'diagnostics', 'config', 'button', 'select'].includes(domain);
-    });
-
-    // Если не нашли, берем первую попавшуюся.
-    if (!primaryEntity) primaryEntity = associatedEntities[0];
-    if (!primaryEntity) return;
-
-    const customization = customizations[primaryEntity.entity_id] || {};
-    if (customization.isHidden && !showHidden) {
-        // Если главная сущность скрыта, скрываем всё устройство.
-        associatedEntityIds.forEach(id => processedEntityIds.add(id));
-        return;
-    }
-    
-    const device = entityToDevice(primaryEntity, customization);
-    
-    if (device && device.type !== DeviceType.Unknown) {
-        // Используем имя физического устройства - оно более надежное.
-        device.name = haDevice.name;
-        // ID устройства - это ID главной сущности, т.к. она используется для управления.
-        device.id = primaryEntity.entity_id;
-
-        const targetRoom = roomsMap.get(haDevice.area_id || 'no_area') || roomsMap.get('no_area');
-        targetRoom?.devices.push(device);
-    }
-    
-    // Помечаем все связанные сущности как обработанные.
-    associatedEntityIds.forEach(id => processedEntityIds.add(id));
-  });
-
-
-  // --- Проход 2: Обрабатываем оставшиеся "одиночные" сущности ---
-  allEntities.forEach(entity => {
-    if (processedEntityIds.has(entity.entity_id) || !entity) return;
+  // Проходим по всем сущностям
+  entities.forEach(entity => {
+    if (!entity) return;
 
     const customization = customizations[entity.entity_id] || {};
-    if (customization.isHidden && !showHidden) return;
+    if (customization.isHidden && !showHidden) return; // Пропускаем скрытые
 
     const device = entityToDevice(entity, customization);
-    
+    // Добавляем только успешно преобразованные и не "неизвестные" устройства
     if (device && device.type !== DeviceType.Unknown) {
-        const registryEntry = entityRegistry.find(e => e.entity_id === entity.entity_id);
-        const areaId = registryEntry?.area_id;
+        // Определяем, к какой комнате принадлежит устройство
+        let areaId: string | undefined | null = entityIdToAreaIdMap.get(entity.entity_id);
+        if (!areaId && entity.attributes?.device_id) {
+            const haDevice = haDevices.find(d => d.id === entity.attributes.device_id);
+            if (haDevice?.area_id) areaId = haDevice.area_id;
+        }
 
         const targetRoom = roomsMap.get(areaId || 'no_area') || roomsMap.get('no_area');
         targetRoom?.devices.push(device);
     }
   });
-
 
   // Возвращаем массив комнат, отфильтровывая пустые.
   return Array.from(roomsMap.values()).filter(room => room.devices.length > 0);
