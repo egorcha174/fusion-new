@@ -1,5 +1,3 @@
-
-
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement, DeviceCustomizations, ColorScheme } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -536,6 +534,37 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                             />
                         </div>
                     )}
+                </div>
+            );
+        }
+        case 'battery': {
+            if (device.batteryLevel === undefined) return null;
+        
+            const getBatteryIcon = (level: number) => {
+                if (level <= 20) return 'mdi:battery-alert-variant-outline';
+                if (level <= 30) return 'mdi:battery-30-outline';
+                if (level <= 60) return 'mdi:battery-60-outline';
+                if (level <= 90) return 'mdi:battery-90-outline';
+                return 'mdi:battery-outline';
+            };
+    
+            const batteryText = `${device.batteryLevel}%`;
+            const valueProps = getStyleProps('valueText');
+            const iconColor = device.batteryLevel <= 20 ? '#ef4444' : valueProps.style.color;
+    
+            return (
+                <div key={element.id} style={style} className="flex items-center justify-center gap-1 p-1 overflow-hidden pointer-events-none">
+                    <Icon icon={getBatteryIcon(device.batteryLevel)} className="w-auto h-[60%] flex-shrink-0" style={{ color: iconColor }}/>
+                    <div className="flex-grow h-full min-w-0">
+                        <AutoFitText
+                            text={batteryText}
+                            className="w-full h-full"
+                            pClassName="font-semibold"
+                            pStyle={{ color: iconColor, fontFamily: element.styles.fontFamily }}
+                            fontSize={element.styles.fontSize}
+                            maxFontSize={100} mode="single-line" textAlign={element.styles.textAlign || 'left'}
+                        />
+                    </div>
                 </div>
             );
         }

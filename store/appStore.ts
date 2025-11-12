@@ -125,10 +125,10 @@ interface AppState {
     cameraSettings: CameraSettings;
     sidebarWidth: number;
     isSidebarVisible: boolean;
+    isBatteryWidgetVisible: boolean;
     theme: 'day' | 'night' | 'auto';
     colorScheme: ColorScheme;
     openWeatherMapKey: string;
-    // FIX: Added lowBatteryThreshold to the state.
     lowBatteryThreshold: number;
     DEFAULT_COLOR_SCHEME: ColorScheme;
 }
@@ -152,10 +152,10 @@ interface AppActions {
     setCameraSettings: (settings: CameraSettings) => void;
     setSidebarWidth: (width: number) => void;
     setIsSidebarVisible: (isVisible: boolean) => void;
+    setIsBatteryWidgetVisible: (isVisible: boolean) => void;
     setTheme: (theme: AppState['theme']) => void;
     setColorScheme: (scheme: ColorScheme) => void;
     setOpenWeatherMapKey: (key: string) => void;
-    // FIX: Added setLowBatteryThreshold to the actions.
     setLowBatteryThreshold: (threshold: number) => void;
 
     onResetColorScheme: () => void;
@@ -205,10 +205,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     cameraSettings: loadAndMigrate<CameraSettings>('ha-camera-settings', { selectedEntityId: null }),
     sidebarWidth: loadAndMigrate<number>('ha-sidebar-width', 320),
     isSidebarVisible: loadAndMigrate<boolean>('ha-sidebar-visible', true),
+    isBatteryWidgetVisible: loadAndMigrate<boolean>('ha-is-battery-widget-visible', true),
     theme: loadAndMigrate<'day' | 'night' | 'auto'>('ha-theme', 'auto'),
     colorScheme: loadAndMigrate<ColorScheme>('ha-color-scheme', DEFAULT_COLOR_SCHEME),
     openWeatherMapKey: loadAndMigrate<string>('ha-openweathermap-key', ''),
-    // FIX: Initialized lowBatteryThreshold state from local storage.
     lowBatteryThreshold: loadAndMigrate<number>('ha-low-battery-threshold', 20),
     DEFAULT_COLOR_SCHEME: DEFAULT_COLOR_SCHEME,
     
@@ -256,6 +256,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         set({ isSidebarVisible: isVisible });
         localStorage.setItem('ha-sidebar-visible', JSON.stringify(isVisible));
     },
+    setIsBatteryWidgetVisible: (isVisible) => {
+        set({ isBatteryWidgetVisible: isVisible });
+        localStorage.setItem('ha-is-battery-widget-visible', JSON.stringify(isVisible));
+    },
     setTheme: (theme) => {
         set({ theme });
         localStorage.setItem('ha-theme', theme);
@@ -268,7 +272,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         set({ openWeatherMapKey: key });
         localStorage.setItem('ha-openweathermap-key', key);
     },
-    // FIX: Implemented the setLowBatteryThreshold action.
     setLowBatteryThreshold: (threshold) => {
         set({ lowBatteryThreshold: threshold });
         localStorage.setItem('ha-low-battery-threshold', JSON.stringify(threshold));

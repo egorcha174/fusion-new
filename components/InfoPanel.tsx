@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ClockSettings, Device, ClockSize, CameraSettings, ColorScheme } from '../types';
 import { CameraStreamContent } from './CameraStreamContent';
@@ -149,12 +148,14 @@ const CameraWidget: React.FC<CameraWidgetProps> = React.memo(({ cameras, setting
 
 const BatteryLevelsWidget: React.FC = () => {
     const { batteryDevices } = useHAStore();
-    // FIX: Add lowBatteryThreshold to the app store to resolve this error.
     const { lowBatteryThreshold } = useAppStore();
+    const [isExpanded, setIsExpanded] = useState(false);
 
     if (batteryDevices.length === 0) {
         return null;
     }
+
+    const devicesToShow = isExpanded ? batteryDevices : batteryDevices.slice(0, 4);
 
     const getBatteryIcon = (level: number) => {
         if (level <= lowBatteryThreshold) return 'mdi:battery-alert-variant-outline';
@@ -174,7 +175,7 @@ const BatteryLevelsWidget: React.FC = () => {
         <div className="bg-gray-200/50 dark:bg-gray-800/70 p-3 rounded-lg">
             <h3 className="text-xs font-bold uppercase text-gray-500 dark:text-gray-400 tracking-wider mb-2">Уровень заряда</h3>
             <div className="space-y-2">
-                {batteryDevices.map(({ deviceId, deviceName, batteryLevel }) => {
+                {devicesToShow.map(({ deviceId, deviceName, batteryLevel }) => {
                     const isLow = batteryLevel <= lowBatteryThreshold;
                     return (
                         <div key={deviceId} className="flex items-center justify-between text-sm">
@@ -187,6 +188,14 @@ const BatteryLevelsWidget: React.FC = () => {
                     );
                 })}
             </div>
+             {batteryDevices.length > 4 && (
+                <button 
+                    onClick={() => setIsExpanded(!isExpanded)} 
+                    className="w-full text-center text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline mt-2 pt-1"
+                >
+                    {isExpanded ? 'Свернуть' : `Показать еще ${batteryDevices.length - 4}`}
+                </button>
+            )}
         </div>
     );
 };
@@ -213,7 +222,7 @@ interface InfoPanelProps {
  */
 const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, cameras, cameraSettings, onCameraSettingsChange, onCameraWidgetClick, haUrl, signPath, getCameraStreamUrl, getConfig, colorScheme, isDark }) => {
     const [isResizing, setIsResizing] = useState(false);
-    const { clockSettings, openWeatherMapKey } = useAppStore();
+    const { clockSettings, openWeatherMapKey, isBatteryWidgetVisible } = useAppStore();
 
     // Обработчик начала перетаскивания для изменения размера
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -274,7 +283,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, ca
                     colorScheme={colorScheme}
                 />
 
-                <BatteryLevelsWidget />
+                {isBatteryWidgetVisible && <BatteryLevelsWidget />}
             </div>
 
             {/* Невидимый элемент для захвата мыши при изменении размера */}

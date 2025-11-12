@@ -1,5 +1,3 @@
-
-
 import React, { useRef, useState, useMemo } from 'react';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet } from '../types';
 import ConfirmDialog from './ConfirmDialog';
@@ -26,6 +24,7 @@ const LOCAL_STORAGE_KEYS = [
   'ha-url', 'ha-token', 'ha-tabs', 'ha-active-tab', 'ha-device-customizations',
   'ha-clock-settings', 'ha-card-templates', 'ha-sidebar-width', 'ha-openweathermap-key',
   'ha-camera-settings', 'ha-theme', 'ha-color-scheme', 'ha-sidebar-visible', 'ha-low-battery-threshold',
+  'ha-is-battery-widget-visible',
 ];
 
 const ColorSettingRow: React.FC<{ label: string, value: string, onChange: (newColor: string) => void }> = React.memo(({ label, value, onChange }) => (
@@ -218,7 +217,8 @@ const Settings: React.FC<{
         colorScheme, setColorScheme, onResetColorScheme,
         isSidebarVisible, setIsSidebarVisible, createNewBlankTemplate,
         openWeatherMapKey, setOpenWeatherMapKey,
-        lowBatteryThreshold, setLowBatteryThreshold
+        lowBatteryThreshold, setLowBatteryThreshold,
+        isBatteryWidgetVisible, setIsBatteryWidgetVisible
     } = useAppStore();
     
     const [activeTab, setActiveTab] = useState<SettingsTab>('appearance');
@@ -413,11 +413,19 @@ const Settings: React.FC<{
                     {activeTab === 'interface' && (
                          <div className="space-y-6">
                              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Интерфейс</h2>
-                            <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg">
-                                <label htmlFor="showSidebar" className="text-sm font-medium text-gray-800 dark:text-gray-200">Показывать боковую панель</label>
-                                <button onClick={() => setIsSidebarVisible(!isSidebarVisible)} className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${isSidebarVisible ? 'bg-blue-600' : 'bg-gray-500 dark:bg-gray-600'}`}>
-                                    <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${isSidebarVisible ? 'translate-x-6' : 'translate-x-1'}`} />
-                                </button>
+                            <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <label htmlFor="showSidebar" className="text-sm font-medium text-gray-800 dark:text-gray-200">Показывать боковую панель</label>
+                                    <button onClick={() => setIsSidebarVisible(!isSidebarVisible)} className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${isSidebarVisible ? 'bg-blue-600' : 'bg-gray-500 dark:bg-gray-600'}`}>
+                                        <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${isSidebarVisible ? 'translate-x-6' : 'translate-x-1'}`} />
+                                    </button>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <label htmlFor="showBatteryWidget" className="text-sm font-medium text-gray-800 dark:text-gray-200">Показывать виджет заряда батарей</label>
+                                    <button onClick={() => setIsBatteryWidgetVisible(!isBatteryWidgetVisible)} className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${isBatteryWidgetVisible ? 'bg-blue-600' : 'bg-gray-500 dark:bg-gray-600'}`}>
+                                        <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${isBatteryWidgetVisible ? 'translate-x-6' : 'translate-x-1'}`} />
+                                    </button>
+                                </div>
                             </div>
                             <Section title="Уровень заряда батарей">
                                 <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">Настройте оповещения о низком заряде батарей для ваших беспроводных устройств.</p>

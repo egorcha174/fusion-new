@@ -236,6 +236,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   });
   const [selectedElementIds, setSelectedElementIds] = useState<CardElementId[]>([]);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+  const [isAddLayerMenuOpen, setIsAddLayerMenuOpen] = useState(false);
   
   const previewRef = useRef<HTMLDivElement>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -245,10 +246,13 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   const currentColorScheme = useMemo(() => isDark ? colorScheme.dark : colorScheme.light, [isDark, colorScheme]);
 
   const sampleDevice = useMemo(() => {
-    if (templateToEdit.deviceType === 'climate') return { id: 'climate.living_room', name: 'Гостиная', status: 'Охлаждение до 22°', type: DeviceType.Thermostat, temperature: 24, targetTemperature: 22, minTemp: 16, maxTemp: 30, hvacModes: ['off', 'cool', 'heat', 'auto'], hvacAction: 'cooling', presetMode: 'comfort', presetModes: ['none', 'away', 'comfort', 'eco', 'sleep'], state: 'cool', haDomain: 'climate' };
-    if (templateToEdit.deviceType === 'light') return { id: 'light.sample_dimmable', name: 'Лампа в гостиной', status: 'Включено', type: DeviceType.DimmableLight, brightness: 80, state: 'on', haDomain: 'light' };
-    if (templateToEdit.deviceType === 'switch') return { id: 'switch.sample_outlet', name: 'Розетка на кухне', status: 'Включено', type: DeviceType.Switch, state: 'on', haDomain: 'switch' };
-    return { id: 'sensor.sample_temperature', name: 'Температура в кабинете', status: '25.9', type: DeviceType.Sensor, unit: '°C', history: Array.from({ length: 20 }, (_, i) => 25 + Math.sin(i / 3) + (Math.random() - 0.5)), state: '25.9', haDomain: 'sensor' };
+    const baseDevice = {
+      batteryLevel: 48, // Add battery level to sample device
+    };
+    if (templateToEdit.deviceType === 'climate') return { ...baseDevice, id: 'climate.living_room', name: 'Гостиная', status: 'Охлаждение до 22°', type: DeviceType.Thermostat, temperature: 24, targetTemperature: 22, minTemp: 16, maxTemp: 30, hvacModes: ['off', 'cool', 'heat', 'auto'], hvacAction: 'cooling', presetMode: 'comfort', presetModes: ['none', 'away', 'comfort', 'eco', 'sleep'], state: 'cool', haDomain: 'climate' };
+    if (templateToEdit.deviceType === 'light') return { ...baseDevice, id: 'light.sample_dimmable', name: 'Лампа в гостиной', status: 'Включено', type: DeviceType.DimmableLight, brightness: 80, state: 'on', haDomain: 'light' };
+    if (templateToEdit.deviceType === 'switch') return { ...baseDevice, id: 'switch.sample_outlet', name: 'Розетка на кухне', status: 'Включено', type: DeviceType.Switch, state: 'on', haDomain: 'switch' };
+    return { ...baseDevice, id: 'sensor.sample_temperature', name: 'Температура в кабинете', status: '25.9', type: DeviceType.Sensor, unit: '°C', history: Array.from({ length: 20 }, (_, i) => 25 + Math.sin(i / 3) + (Math.random() - 0.5)), state: '25.9', haDomain: 'sensor' };
   }, [templateToEdit.deviceType]);
   
   const sampleAllKnownDevices = useMemo(() => new Map<string, Device>([[sampleDevice.id, sampleDevice]]), [sampleDevice]);
@@ -351,6 +355,20 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
     }
   };
   
+  const handleAddElement = (elementId: CardElementId) => {
+    setIsAddLayerMenuOpen(false);
+    const newElement: CardElement = {
+        id: elementId,
+        visible: true,
+        position: { x: 30, y: 30 },
+        size: { width: 40, height: 20 },
+        zIndex: editedTemplate.elements.length + 1,
+        styles: {},
+    };
+    setEditedTemplate(prev => ({ ...prev, elements: [...prev.elements, newElement] }));
+    handleSelect('element', newElement.id);
+  };
+
   const handleAddSlot = () => {
     const newSlot: DeviceSlot = {
       id: nanoid(),
@@ -474,7 +492,9 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
 
   const selectedElement = useMemo(() => editedTemplate.elements.find(el => selectedElementIds.length === 1 && el.id === selectedElementIds[0]), [selectedElementIds, editedTemplate.elements]);
   const selectedSlot = useMemo(() => editedTemplate.deviceSlots?.find(s => s.id === selectedSlotId), [selectedSlotId, editedTemplate.deviceSlots]);
-  const isTextElementSelected = selectedElement && ['name', 'status', 'value', 'unit', 'temperature'].includes(selectedElement.id);
+  const isTextElementSelected = selectedElement && ['name', 'status', 'value', 'unit', 'temperature', 'battery'].includes(selectedElement.id);
+  const availableElementsToAdd = Object.keys(ELEMENT_LABELS).filter(id => !editedTemplate.elements.some(el => el.id === id));
+
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-sans" onClick={onClose}>
@@ -527,7 +547,26 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
               )}
 
             </div>
-            <div className="p-2 border-t border-gray-700/80">
+            <div className="p-2 space-y-2 border-t border-gray-700/80">
+                <div className="relative">
+                    <button
+                        onClick={() => setIsAddLayerMenuOpen(prev => !prev)}
+                        className="w-full flex items-center justify-center gap-2 text-sm text-gray-300 hover:text-white bg-gray-700 hover:bg-gray-600/80 rounded-md py-2 transition-colors"
+                        disabled={availableElementsToAdd.length === 0}
+                    >
+                        <Icon icon="mdi:layers-plus" className="w-5 h-5" />
+                        <span>Добавить слой</span>
+                    </button>
+                    {isAddLayerMenuOpen && availableElementsToAdd.length > 0 && (
+                        <div onMouseLeave={() => setIsAddLayerMenuOpen(false)} className="absolute bottom-full left-0 right-0 mb-2 w-full bg-gray-700 rounded-lg shadow-lg z-10 ring-1 ring-black/50 overflow-hidden fade-in max-h-48 overflow-y-auto">
+                            {availableElementsToAdd.map(id => (
+                                <button key={id} onClick={() => handleAddElement(id as CardElementId)} className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-600">
+                                    {ELEMENT_LABELS[id as CardElementId]}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
                 <button
                     onClick={handleAddSlot}
                     className="w-full flex items-center justify-center gap-2 text-sm text-gray-300 hover:text-white bg-gray-700 hover:bg-gray-600/80 rounded-md py-2 transition-colors"
