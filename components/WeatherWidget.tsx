@@ -111,56 +111,39 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeat
             const { latitude: lat, longitude: lon } = haConfig;
             if (!lat || !lon) throw new Error("В конфигурации HA не найдены широта или долгота.");
             
-            const query = `{
-              weatherByPoint(request: { lat: ${lat}, lon: ${lon} }) {
-                now {
-                  temperature
-                  condition
-                  icon
-                }
-                forecasts {
-                  date
-                  parts {
-                    day {
-                      tempMax: temp_max
-                      tempMin: temp_min
-                      condition
-                      icon
-                    }
-                  }
-                }
-              }
-            }`;
-            
-            const response = await fetch('https://api.weather.yandex.ru/graphql/query', {
-                method: 'POST',
+            const url = `https://api.weather.yandex.ru/v2/forecast?lat=${lat}&lon=${lon}&lang=ru_RU&limit=4`;
+
+            const response = await fetch(url, {
+                method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json',
                     'X-Yandex-Weather-Key': yandexWeatherKey
-                },
-                body: JSON.stringify({ query })
+                }
             });
             
             if (!response.ok) {
                 if(response.status === 403) throw new Error("Неверный или неактивный ключ API Яндекс Погоды.");
-                throw new Error(`Ошибка API Яндекс Погоды: ${response.statusText}`);
+                const errorData = await response.json().catch(() => ({ message: response.statusText }));
+                throw new Error(`Ошибка API Яндекс Погоды: ${errorData.message || response.statusText}`);
             }
             
-            const result = await response.json();
-            if (result.errors) throw new Error(result.errors[0].message);
+            const data = await response.json();
             
-            const { now, forecasts } = result.data.weatherByPoint;
+            const { fact: now, forecasts } = data;
+            
+            if (!now || !forecasts) {
+                throw new Error("API Яндекс Погоды вернуло некорректные данные.");
+            }
 
             return {
                 current: {
-                    temp: now.temperature,
+                    temp: now.temp,
                     desc: yandexConditionToText[now.condition] || now.condition,
                     icon: yandexIconToOwmCode[now.icon] || '01d',
                 },
                 forecast: forecasts.slice(0, 4).map((f: any) => ({
                     day: new Date(f.date).toLocaleDateString("ru-RU", { weekday: "short" }),
-                    tempMax: f.parts.day.tempMax,
-                    tempMin: f.parts.day.tempMin,
+                    tempMax: f.parts.day.temp_max,
+                    tempMin: f.parts.day.temp_min,
                     icon: yandexIconToOwmCode[f.parts.day.icon] || '01d',
                 }))
             };
