@@ -149,17 +149,19 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey, getCon
     return (
         <div>
             {/* Текущая погода */}
-            <div className="flex items-center gap-2">
-                <AnimatedWeatherIcon
-                  iconCode={current.icon}
-                  className="w-24 h-24 flex-shrink-0 -ml-2"
-                  style={{ width: currentIconSize, height: currentIconSize }}
-                />
-                <div className="overflow-hidden">
+            <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                    <AnimatedWeatherIcon
+                      iconCode={current.icon}
+                      className="w-24 h-24 flex-shrink-0"
+                      style={{ width: currentIconSize, height: currentIconSize }}
+                    />
                     <p className="text-4xl font-bold" style={{ color: colorScheme.valueTextColor, fontSize: colorScheme.weatherCurrentTempFontSize ? `${colorScheme.weatherCurrentTempFontSize}px` : undefined }}>
                       {current.temp}°C
                     </p>
-                    <p className="text-sm -mt-1 truncate capitalize" title={current.desc} style={{ color: colorScheme.statusTextColor, fontSize: colorScheme.weatherCurrentDescFontSize ? `${colorScheme.weatherCurrentDescFontSize}px` : undefined }}>
+                </div>
+                <div className="w-24 text-center -mt-2">
+                    <p className="text-sm capitalize" title={current.desc} style={{ color: colorScheme.statusTextColor, fontSize: colorScheme.weatherCurrentDescFontSize ? `${colorScheme.weatherCurrentDescFontSize}px` : undefined }}>
                       {current.desc}
                     </p>
                 </div>
