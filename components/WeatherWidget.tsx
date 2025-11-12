@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { ColorScheme } from '../types';
 import AnimatedWeatherIcon from './AnimatedWeatherIcon';
@@ -24,9 +22,10 @@ interface WeatherData {
 }
 
 interface WeatherWidgetProps {
-    weatherProvider: 'openweathermap' | 'yandex';
+    weatherProvider: 'openweathermap' | 'yandex' | 'foreca';
     openWeatherMapKey: string;
     yandexWeatherKey: string;
+    forecaApiKey: string;
     getConfig: () => Promise<any>;
     colorScheme: ColorScheme['light'];
 }
@@ -52,11 +51,38 @@ const yandexIconToOwmCode: { [key: string]: string } = {
     'ovc-ra-sn': '13d', 'ovc-dr': '09d', 'ovc-sn-sh': '13d', 'ovc-sh': '09d',
 };
 
+// --- MAPPING FOR FORECA WEATHER ---
+const forecaSymbolToOwmCode = (symbol: string): string => {
+    if (!symbol) return '01d';
+    const symbolCode = parseInt(symbol.slice(1), 10);
+    const dayNight = symbol.startsWith('d') ? 'd' : 'n';
+
+    if (symbolCode === 100) return `01${dayNight}`; // Clear
+    if (symbolCode >= 210 && symbolCode <= 212) return `02${dayNight}`; // Partly cloudy
+    if (symbolCode >= 220 && symbolCode <= 222) return `03${dayNight}`; // Cloudy
+    if (symbolCode === 230) return `04${dayNight}`; // Overcast
+    if (symbolCode >= 311 && symbolCode <= 312) return `10${dayNight}`; // Rain
+    if (symbolCode >= 320 && symbolCode <= 322) return `09${dayNight}`; // Showers
+    if (symbolCode >= 411 && symbolCode <= 412) return `13${dayNight}`; // Snow
+    if (symbolCode >= 420 && symbolCode <= 422) return `13${dayNight}`; // Snow showers
+    if (symbolCode >= 430 && symbolCode <= 432) return `13${dayNight}`; // Sleet
+    if (symbolCode >= 240 && symbolCode <= 242) return `11${dayNight}`; // Thunder
+    if (symbolCode === 0) return `50${dayNight}`; // Fog
+
+    // Default fallbacks
+    if (symbol.includes('2')) return `03${dayNight}`; // Generic cloud
+    if (symbol.includes('3')) return `10${dayNight}`; // Generic rain
+    if (symbol.includes('4')) return `13${dayNight}`; // Generic snow
+
+    return `01${dayNight}`; // Default to clear
+};
+
+
 /**
  * Виджет для отображения текущей погоды и прогноза на несколько дней.
  * Получает данные из OpenWeatherMap API, используя координаты из конфигурации Home Assistant.
  */
-const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeatherMapKey, yandexWeatherKey, getConfig, colorScheme }) => {
+const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, getConfig, colorScheme }) => {
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -148,12 +174,79 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeat
                 }))
             };
         };
+        
+        const fetchForecaWeather = async () => {
+            if (!forecaApiKey) throw new Error("Ключ API Foreca не настроен.");
+
+            const haConfig = await getConfig();
+            const { latitude: lat, longitude: lon } = haConfig;
+            if (!lat || !lon) throw new Error("В конфигурации HA не найдены широта или долгота.");
+
+            // 1. Find location ID
+            const locationUrl = `https://fnw-ws.foreca.com/api/v1/location/search/${lon},${lat}?lang=ru`;
+            const locationResponse = await fetch(locationUrl, {
+                headers: { 'Authorization': `Bearer ${forecaApiKey}` }
+            });
+
+            if (!locationResponse.ok) {
+                if(locationResponse.status === 401) throw new Error("Неверный ключ API Foreca.");
+                throw new Error(`Ошибка поиска локации Foreca: ${locationResponse.statusText}`);
+            }
+            const locationData = await locationResponse.json();
+            const locationId = locationData?.locations?.[0]?.id;
+            if (!locationId) throw new Error("Не удалось найти локацию в Foreca.");
+
+            // 2. Fetch current and forecast data
+            const [currentResponse, forecastResponse] = await Promise.all([
+                fetch(`https://fnw-ws.foreca.com/api/v1/current/${locationId}`, { headers: { 'Authorization': `Bearer ${forecaApiKey}` } }),
+                fetch(`https://fnw-ws.foreca.com/api/v1/forecast/daily/${locationId}?dataset=full&periods=4&lang=ru`, { headers: { 'Authorization': `Bearer ${forecaApiKey}` } })
+            ]);
+
+            if (!currentResponse.ok || !forecastResponse.ok) {
+                throw new Error("Ошибка при получении данных погоды от Foreca.");
+            }
+
+            const currentData = await currentResponse.json();
+            const forecastData = await forecastResponse.json();
+
+            const { current } = currentData;
+            const { forecast } = forecastData;
+
+            if (!current || !forecast) {
+                throw new Error("API Foreca вернуло некорректные данные.");
+            }
+            
+            return {
+                current: {
+                    temp: current.temperature,
+                    desc: current.symbolPhrase,
+                    icon: forecaSymbolToOwmCode(current.symbol),
+                },
+                forecast: forecast.slice(0, 4).map((f: any) => ({
+                    day: new Date(f.date).toLocaleDateString("ru-RU", { weekday: "short" }),
+                    tempMax: f.maxTemp,
+                    tempMin: f.minTemp,
+                    icon: forecaSymbolToOwmCode(f.symbol),
+                }))
+            };
+        };
 
         const fetchWeather = async () => {
             setLoading(true);
             setError(null);
             try {
-                const fetchFn = weatherProvider === 'yandex' ? fetchYandexWeather : fetchOpenWeatherMapWeather;
+                let fetchFn;
+                switch (weatherProvider) {
+                    case 'yandex':
+                        fetchFn = fetchYandexWeather;
+                        break;
+                    case 'foreca':
+                        fetchFn = fetchForecaWeather;
+                        break;
+                    default:
+                        fetchFn = fetchOpenWeatherMapWeather;
+                        break;
+                }
                 const processedData = await fetchFn();
                 setWeatherData(processedData);
             } catch (err: any) {
@@ -165,7 +258,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeat
         };
 
         fetchWeather();
-    }, [weatherProvider, openWeatherMapKey, yandexWeatherKey, getConfig]);
+    }, [weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, getConfig]);
 
     if (loading) {
         return ( // Скелет загрузки

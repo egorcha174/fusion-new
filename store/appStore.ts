@@ -1,5 +1,3 @@
-
-
 import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
@@ -179,9 +177,10 @@ interface AppState {
     isSidebarVisible: boolean;
     theme: 'day' | 'night' | 'auto';
     colorScheme: ColorScheme;
-    weatherProvider: 'openweathermap' | 'yandex';
+    weatherProvider: 'openweathermap' | 'yandex' | 'foreca';
     openWeatherMapKey: string;
     yandexWeatherKey: string;
+    forecaApiKey: string;
     lowBatteryThreshold: number;
     DEFAULT_COLOR_SCHEME: ColorScheme;
 }
@@ -210,6 +209,7 @@ interface AppActions {
     setWeatherProvider: (provider: AppState['weatherProvider']) => void;
     setOpenWeatherMapKey: (key: string) => void;
     setYandexWeatherKey: (key: string) => void;
+    setForecaApiKey: (key: string) => void;
     setLowBatteryThreshold: (threshold: number) => void;
 
     onResetColorScheme: () => void;
@@ -264,9 +264,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     isSidebarVisible: loadAndMigrate<boolean>('ha-sidebar-visible', true),
     theme: loadAndMigrate<'day' | 'night' | 'auto'>('ha-theme', 'auto'),
     colorScheme: loadAndMigrate<ColorScheme>('ha-color-scheme', DEFAULT_COLOR_SCHEME),
-    weatherProvider: loadAndMigrate<'openweathermap' | 'yandex'>('ha-weather-provider', 'openweathermap'),
+    weatherProvider: loadAndMigrate<'openweathermap' | 'yandex' | 'foreca'>('ha-weather-provider', 'openweathermap'),
     openWeatherMapKey: loadAndMigrate<string>('ha-openweathermap-key', ''),
     yandexWeatherKey: loadAndMigrate<string>('ha-yandex-weather-key', ''),
+    forecaApiKey: loadAndMigrate<string>('ha-foreca-key', ''),
     lowBatteryThreshold: loadAndMigrate<number>('ha-low-battery-threshold', 20),
     DEFAULT_COLOR_SCHEME: DEFAULT_COLOR_SCHEME,
     
@@ -333,6 +334,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     setYandexWeatherKey: (key) => {
         set({ yandexWeatherKey: key });
         localStorage.setItem('ha-yandex-weather-key', key);
+    },
+    setForecaApiKey: (key) => {
+        set({ forecaApiKey: key });
+        localStorage.setItem('ha-foreca-key', key);
     },
     setLowBatteryThreshold: (threshold) => {
         set({ lowBatteryThreshold: threshold });

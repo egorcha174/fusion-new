@@ -24,7 +24,7 @@ const LOCAL_STORAGE_KEYS = [
   'ha-url', 'ha-token', 'ha-tabs', 'ha-active-tab', 'ha-device-customizations',
   'ha-clock-settings', 'ha-card-templates', 'ha-sidebar-width', 'ha-openweathermap-key',
   'ha-camera-settings', 'ha-theme', 'ha-color-scheme', 'ha-sidebar-visible', 'ha-low-battery-threshold',
-  'ha-weather-provider', 'ha-yandex-weather-key',
+  'ha-weather-provider', 'ha-yandex-weather-key', 'ha-foreca-key',
 ];
 
 const ColorSettingRow: React.FC<{ label: string, value: string, onChange: (newColor: string) => void }> = React.memo(({ label, value, onChange }) => (
@@ -219,6 +219,7 @@ const Settings: React.FC<{
         weatherProvider, setWeatherProvider,
         openWeatherMapKey, setOpenWeatherMapKey,
         yandexWeatherKey, setYandexWeatherKey,
+        forecaApiKey, setForecaApiKey,
         lowBatteryThreshold, setLowBatteryThreshold,
     } = useAppStore();
     
@@ -469,6 +470,7 @@ const Settings: React.FC<{
                                     <div className="flex gap-1 bg-gray-200 dark:bg-gray-900/50 p-1 rounded-lg">
                                         <button onClick={() => setWeatherProvider('openweathermap')} className={`flex-1 text-xs font-semibold py-1 rounded-md transition-colors ${weatherProvider === 'openweathermap' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-50' : 'text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-gray-800/50'}`}>OpenWeatherMap</button>
                                         <button onClick={() => setWeatherProvider('yandex')} className={`flex-1 text-xs font-semibold py-1 rounded-md transition-colors ${weatherProvider === 'yandex' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-50' : 'text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-gray-800/50'}`}>Яндекс Погода</button>
+                                        <button onClick={() => setWeatherProvider('foreca')} className={`flex-1 text-xs font-semibold py-1 rounded-md transition-colors ${weatherProvider === 'foreca' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-50' : 'text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-gray-800/50'}`}>Foreca</button>
                                     </div>
                                 </div>
                                 {weatherProvider === 'openweathermap' && (
@@ -481,6 +483,12 @@ const Settings: React.FC<{
                                     <div>
                                         <label htmlFor="yandexKey" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mt-3">Яндекс Погода API Key</label>
                                         <input id="yandexKey" type="password" value={yandexWeatherKey} onChange={(e) => setYandexWeatherKey(e.target.value)} placeholder="Введите ваш API ключ (тариф Тестовый)" className="w-full mt-1 bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                    </div>
+                                )}
+                                {weatherProvider === 'foreca' && (
+                                    <div>
+                                        <label htmlFor="forecaKey" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mt-3">Foreca API Key</label>
+                                        <input id="forecaKey" type="password" value={forecaApiKey} onChange={(e) => setForecaApiKey(e.target.value)} placeholder="Введите ваш API ключ (token)" className="w-full mt-1 bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                                     </div>
                                 )}
                             </Section>
