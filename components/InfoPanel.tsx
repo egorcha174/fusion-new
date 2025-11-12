@@ -219,7 +219,7 @@ interface InfoPanelProps {
  */
 const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, cameras, haUrl, signPath, getCameraStreamUrl, getConfig, colorScheme, isDark }) => {
     const [isResizing, setIsResizing] = useState(false);
-    const { clockSettings, openWeatherMapKey, isBatteryWidgetVisible } = useAppStore();
+    const { clockSettings, weatherProvider, openWeatherMapKey, yandexWeatherKey, isBatteryWidgetVisible } = useAppStore();
 
     // Обработчик начала перетаскивания для изменения размера
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -272,7 +272,9 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, ca
                 />
             
                 <WeatherWidget 
-                    openWeatherMapKey={openWeatherMapKey} 
+                    weatherProvider={weatherProvider}
+                    openWeatherMapKey={openWeatherMapKey}
+                    yandexWeatherKey={yandexWeatherKey}
                     getConfig={getConfig} 
                     colorScheme={colorScheme}
                 />

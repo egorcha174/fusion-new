@@ -24,7 +24,7 @@ const LOCAL_STORAGE_KEYS = [
   'ha-url', 'ha-token', 'ha-tabs', 'ha-active-tab', 'ha-device-customizations',
   'ha-clock-settings', 'ha-card-templates', 'ha-sidebar-width', 'ha-openweathermap-key',
   'ha-camera-settings', 'ha-theme', 'ha-color-scheme', 'ha-sidebar-visible', 'ha-low-battery-threshold',
-  'ha-is-battery-widget-visible',
+  'ha-is-battery-widget-visible', 'ha-weather-provider', 'ha-yandex-weather-key',
 ];
 
 const ColorSettingRow: React.FC<{ label: string, value: string, onChange: (newColor: string) => void }> = React.memo(({ label, value, onChange }) => (
@@ -216,7 +216,9 @@ const Settings: React.FC<{
         templates, setEditingTemplate, handleDeleteTemplate,
         colorScheme, setColorScheme, onResetColorScheme,
         isSidebarVisible, setIsSidebarVisible, createNewBlankTemplate,
+        weatherProvider, setWeatherProvider,
         openWeatherMapKey, setOpenWeatherMapKey,
+        yandexWeatherKey, setYandexWeatherKey,
         lowBatteryThreshold, setLowBatteryThreshold,
         isBatteryWidgetVisible, setIsBatteryWidgetVisible
     } = useAppStore();
@@ -468,11 +470,27 @@ const Settings: React.FC<{
                                 <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Вы подключены к {haUrl}.</p>
                                 <button onClick={disconnect} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Отключиться</button>
                             </div>
-                            <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg space-y-3">
-                                <label htmlFor="owmKey" className="block text-sm font-medium text-gray-700 dark:text-gray-300">OpenWeatherMap API Key</label>
-                                <input id="owmKey" type="password" value={openWeatherMapKey} onChange={(e) => setOpenWeatherMapKey(e.target.value)} placeholder="Введите ваш API ключ" className="w-full bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                                <p className="text-xs text-gray-500 dark:text-gray-500">Необходим для виджета погоды.</p>
-                            </div>
+                            <Section title="API Погоды" defaultOpen={true}>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-800 dark:text-gray-200">Провайдер</label>
+                                    <div className="flex gap-1 bg-gray-200 dark:bg-gray-900/50 p-1 rounded-lg">
+                                        <button onClick={() => setWeatherProvider('openweathermap')} className={`flex-1 text-xs font-semibold py-1 rounded-md transition-colors ${weatherProvider === 'openweathermap' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-50' : 'text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-gray-800/50'}`}>OpenWeatherMap</button>
+                                        <button onClick={() => setWeatherProvider('yandex')} className={`flex-1 text-xs font-semibold py-1 rounded-md transition-colors ${weatherProvider === 'yandex' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-50' : 'text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-gray-800/50'}`}>Яндекс Погода</button>
+                                    </div>
+                                </div>
+                                {weatherProvider === 'openweathermap' && (
+                                    <div>
+                                        <label htmlFor="owmKey" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mt-3">OpenWeatherMap API Key</label>
+                                        <input id="owmKey" type="password" value={openWeatherMapKey} onChange={(e) => setOpenWeatherMapKey(e.target.value)} placeholder="Введите ваш API ключ" className="w-full mt-1 bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                    </div>
+                                )}
+                                {weatherProvider === 'yandex' && (
+                                    <div>
+                                        <label htmlFor="yandexKey" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mt-3">Яндекс Погода API Key</label>
+                                        <input id="yandexKey" type="password" value={yandexWeatherKey} onChange={(e) => setYandexWeatherKey(e.target.value)} placeholder="Введите ваш API ключ (тариф Тестовый)" className="w-full mt-1 bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                    </div>
+                                )}
+                            </Section>
                         </div>
                     )}
                      {activeTab === 'backup' && (

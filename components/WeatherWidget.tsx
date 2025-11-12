@@ -24,95 +24,155 @@ interface WeatherData {
 }
 
 interface WeatherWidgetProps {
+    weatherProvider: 'openweathermap' | 'yandex';
     openWeatherMapKey: string;
+    yandexWeatherKey: string;
     getConfig: () => Promise<any>;
     colorScheme: ColorScheme['light'];
 }
+
+// --- MAPPINGS FOR YANDEX WEATHER ---
+const yandexConditionToText: { [key: string]: string } = {
+    'clear': 'Ясно', 'partly-cloudy': 'Малооблачно', 'cloudy': 'Облачно с прояснениями',
+    'overcast': 'Пасмурно', 'drizzle': 'Морось', 'light-rain': 'Небольшой дождь', 'rain': 'Дождь',
+    'moderate-rain': 'Умеренно сильный дождь', 'heavy-rain': 'Сильный дождь',
+    'continuous-heavy-rain': 'Длительный сильный дождь', 'showers': 'Ливень',
+    'wet-snow': 'Дождь со снегом', 'light-snow': 'Небольшой снег', 'snow': 'Снег',
+    'snow-showers': 'Снегопад', 'hail': 'Град', 'thunderstorm': 'Гроза',
+    'thunderstorm-with-rain': 'Дождь с грозой', 'thunderstorm-with-hail': 'Гроза с градом',
+};
+
+const yandexIconToOwmCode: { [key: string]: string } = {
+    'skc-d': '01d', 'skc-n': '01n', 'bkn-d': '02d', 'bkn-n': '02n',
+    'cld-d': '03d', 'cld-n': '03n', 'ovc': '04d',
+    'ovc-ra': '10d', 'ovc-sn': '13d', 'ovc-ts-ra': '11d',
+    'fg-fog': '50d',
+    // Fallbacks
+    'bkn-ra-d': '10d', 'bkn-ra-n': '10n', 'bkn-sn-d': '13d', 'bkn-sn-n': '13n',
+    'ovc-ra-sn': '13d', 'ovc-dr': '09d', 'ovc-sn-sh': '13d', 'ovc-sh': '09d',
+};
 
 /**
  * Виджет для отображения текущей погоды и прогноза на несколько дней.
  * Получает данные из OpenWeatherMap API, используя координаты из конфигурации Home Assistant.
  */
-const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey, getConfig, colorScheme }) => {
+const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeatherMapKey, yandexWeatherKey, getConfig, colorScheme }) => {
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchWeather = async () => {
-            // Проверяем наличие ключа API.
-            if (!openWeatherMapKey) {
-                setError("Ключ API OpenWeatherMap не настроен.");
-                setLoading(false);
-                return;
-            }
-            if (!getConfig) {
-                setError("Функция получения конфигурации недоступна.");
-                setLoading(false);
-                return;
+        const fetchOpenWeatherMapWeather = async () => {
+            if (!openWeatherMapKey) throw new Error("Ключ API OpenWeatherMap не настроен.");
+            
+            const haConfig = await getConfig();
+            const { latitude: lat, longitude: lon } = haConfig;
+            if (!lat || !lon) throw new Error("В конфигурации HA не найдены широта или долгота.");
+
+            const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${openWeatherMapKey}&units=metric&lang=ru`;
+            const weatherRes = await fetch(forecastUrl);
+
+            if (!weatherRes.ok) {
+                if (weatherRes.status === 401) throw new Error("Неверный ключ API OpenWeatherMap.");
+                throw new Error(`Ошибка при получении прогноза: ${weatherRes.statusText}`);
             }
 
+            const data = await weatherRes.json();
+            if (!data || !Array.isArray(data.list) || data.list.length === 0) throw new Error("API вернуло пустые или некорректные данные.");
+            
+            const days: { [key: string]: any[] } = {};
+            for (const item of data.list) {
+                const dayKey = item.dt_txt.split(' ')[0];
+                if (!days[dayKey]) days[dayKey] = [];
+                days[dayKey].push(item);
+            }
+
+            const forecast = Object.entries(days).slice(0, 4).map(([dayKey, arr]) => {
+                const dt = new Date(dayKey);
+                const dayName = dt.toLocaleDateString("ru-RU", { weekday: "short" });
+                const tempMax = Math.max(...arr.map((e) => e.main.temp_max));
+                const tempMin = Math.min(...arr.map((e) => e.main.temp_min));
+                const noonSample = arr[Math.floor(arr.length / 2)];
+                const icon = noonSample.weather[0].icon;
+                return { day: dayName, tempMax, tempMin, icon };
+            });
+
+            const now = data.list[0];
+            return {
+                current: { temp: Math.round(now.main.temp), desc: now.weather[0].description, icon: now.weather[0].icon },
+                forecast
+            };
+        };
+        
+        const fetchYandexWeather = async () => {
+            if (!yandexWeatherKey) throw new Error("Ключ API Яндекс Погоды не настроен.");
+
+            const haConfig = await getConfig();
+            const { latitude: lat, longitude: lon } = haConfig;
+            if (!lat || !lon) throw new Error("В конфигурации HA не найдены широта или долгота.");
+            
+            const query = `{
+              weatherByPoint(request: { lat: ${lat}, lon: ${lon} }) {
+                now {
+                  temperature
+                  condition
+                  icon
+                }
+                forecasts {
+                  date
+                  parts {
+                    day {
+                      tempMax: temp_max
+                      tempMin: temp_min
+                      condition
+                      icon
+                    }
+                  }
+                }
+              }
+            }`;
+            
+            const response = await fetch('https://api.weather.yandex.ru/graphql/query', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Yandex-Weather-Key': yandexWeatherKey
+                },
+                body: JSON.stringify({ query })
+            });
+            
+            if (!response.ok) {
+                if(response.status === 403) throw new Error("Неверный или неактивный ключ API Яндекс Погоды.");
+                throw new Error(`Ошибка API Яндекс Погоды: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            if (result.errors) throw new Error(result.errors[0].message);
+            
+            const { now, forecasts } = result.data.weatherByPoint;
+
+            return {
+                current: {
+                    temp: now.temperature,
+                    desc: yandexConditionToText[now.condition] || now.condition,
+                    icon: yandexIconToOwmCode[now.icon] || '01d',
+                },
+                forecast: forecasts.slice(0, 4).map((f: any) => ({
+                    day: new Date(f.date).toLocaleDateString("ru-RU", { weekday: "short" }),
+                    tempMax: f.parts.day.tempMax,
+                    tempMin: f.parts.day.tempMin,
+                    icon: yandexIconToOwmCode[f.parts.day.icon] || '01d',
+                }))
+            };
+        };
+
+        const fetchWeather = async () => {
             setLoading(true);
             setError(null);
-
             try {
-                // 1. Получаем местоположение (широту и долготу) из конфигурации Home Assistant.
-                const haConfig = await getConfig();
-                const { latitude: lat, longitude: lon } = haConfig;
-
-                if (!lat || !lon) {
-                    throw new Error("В конфигурации HA не найдены широта или долгота.");
-                }
-
-                // 2. Запрашиваем прогноз у OpenWeatherMap.
-                const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${openWeatherMapKey}&units=metric&lang=ru`;
-                const weatherRes = await fetch(forecastUrl);
-
-                if (!weatherRes.ok) {
-                    if (weatherRes.status === 401) {
-                         throw new Error("Неверный ключ API OpenWeatherMap.");
-                    }
-                    throw new Error(`Ошибка при получении прогноза: ${weatherRes.statusText}`);
-                }
-
-                const data = await weatherRes.json();
-                
-                if (!data || !Array.isArray(data.list) || data.list.length === 0) {
-                    throw new Error("API вернуло пустые или некорректные данные о погоде.");
-                }
-                
-                // 3. Обрабатываем полученные данные.
-                // Группируем прогноз по дням.
-                const days: { [key: string]: any[] } = {};
-                for (const item of data.list) {
-                    const dayKey = item.dt_txt.split(' ')[0];
-                    if (!days[dayKey]) days[dayKey] = [];
-                    days[dayKey].push(item);
-                }
-
-                // Вычисляем мин/макс температуру для каждого дня и выбираем иконку.
-                const forecast = Object.entries(days).slice(0, 4).map(([dayKey, arr]) => {
-                    const dt = new Date(dayKey);
-                    const dayName = dt.toLocaleDateString("ru-RU", { weekday: "short" });
-                    const tempMax = Math.max(...arr.map((e) => e.main.temp_max));
-                    const tempMin = Math.min(...arr.map((e) => e.main.temp_min));
-                    const noonSample = arr[Math.floor(arr.length / 2)]; // Примерная иконка для дня
-                    const icon = noonSample.weather[0].icon;
-                    return { day: dayName, tempMax, tempMin, icon };
-                });
-
-                const now = data.list[0]; // Текущая погода - это первый элемент в списке.
-                const processedData: WeatherData = {
-                    current: {
-                        temp: Math.round(now.main.temp),
-                        desc: now.weather[0].description,
-                        icon: now.weather[0].icon
-                    },
-                    forecast
-                };
-
+                const fetchFn = weatherProvider === 'yandex' ? fetchYandexWeather : fetchOpenWeatherMapWeather;
+                const processedData = await fetchFn();
                 setWeatherData(processedData);
-
             } catch (err: any) {
                 console.error("Failed to fetch weather data:", err);
                 setError(err.message || "Неизвестная ошибка.");
@@ -122,7 +182,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey, getCon
         };
 
         fetchWeather();
-    }, [openWeatherMapKey, getConfig]);
+    }, [weatherProvider, openWeatherMapKey, yandexWeatherKey, getConfig]);
 
     if (loading) {
         return ( // Скелет загрузки
@@ -161,7 +221,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey, getCon
                       style={{ width: currentIconSize, height: currentIconSize }}
                     />
                     <p className="text-4xl font-bold" style={{ color: colorScheme.valueTextColor, fontSize: colorScheme.weatherCurrentTempFontSize ? `${colorScheme.weatherCurrentTempFontSize}px` : undefined }}>
-                      {current.temp}°C
+                      {Math.round(current.temp)}°C
                     </p>
                 </div>
                 <div className="w-24 text-center -mt-2">

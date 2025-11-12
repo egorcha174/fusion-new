@@ -1,4 +1,5 @@
 
+
 import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
@@ -179,7 +180,9 @@ interface AppState {
     isBatteryWidgetVisible: boolean;
     theme: 'day' | 'night' | 'auto';
     colorScheme: ColorScheme;
+    weatherProvider: 'openweathermap' | 'yandex';
     openWeatherMapKey: string;
+    yandexWeatherKey: string;
     lowBatteryThreshold: number;
     DEFAULT_COLOR_SCHEME: ColorScheme;
 }
@@ -206,7 +209,9 @@ interface AppActions {
     setIsBatteryWidgetVisible: (isVisible: boolean) => void;
     setTheme: (theme: AppState['theme']) => void;
     setColorScheme: (scheme: ColorScheme) => void;
+    setWeatherProvider: (provider: AppState['weatherProvider']) => void;
     setOpenWeatherMapKey: (key: string) => void;
+    setYandexWeatherKey: (key: string) => void;
     setLowBatteryThreshold: (threshold: number) => void;
 
     onResetColorScheme: () => void;
@@ -262,7 +267,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     isBatteryWidgetVisible: loadAndMigrate<boolean>('ha-is-battery-widget-visible', true),
     theme: loadAndMigrate<'day' | 'night' | 'auto'>('ha-theme', 'auto'),
     colorScheme: loadAndMigrate<ColorScheme>('ha-color-scheme', DEFAULT_COLOR_SCHEME),
+    weatherProvider: loadAndMigrate<'openweathermap' | 'yandex'>('ha-weather-provider', 'openweathermap'),
     openWeatherMapKey: loadAndMigrate<string>('ha-openweathermap-key', ''),
+    yandexWeatherKey: loadAndMigrate<string>('ha-yandex-weather-key', ''),
     lowBatteryThreshold: loadAndMigrate<number>('ha-low-battery-threshold', 20),
     DEFAULT_COLOR_SCHEME: DEFAULT_COLOR_SCHEME,
     
@@ -322,9 +329,17 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         set({ colorScheme: scheme });
         localStorage.setItem('ha-color-scheme', JSON.stringify(scheme));
     },
+    setWeatherProvider: (provider) => {
+        set({ weatherProvider: provider });
+        localStorage.setItem('ha-weather-provider', provider);
+    },
     setOpenWeatherMapKey: (key) => {
         set({ openWeatherMapKey: key });
         localStorage.setItem('ha-openweathermap-key', key);
+    },
+    setYandexWeatherKey: (key) => {
+        set({ yandexWeatherKey: key });
+        localStorage.setItem('ha-yandex-weather-key', key);
     },
     setLowBatteryThreshold: (threshold) => {
         set({ lowBatteryThreshold: threshold });
