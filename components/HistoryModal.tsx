@@ -1,9 +1,8 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Device, ColorScheme } from '../types';
 import LoadingSpinner from './LoadingSpinner';
 import HistoryChart from './HistoryChart';
-// FIX: Module '"date-fns"' has no exported member 'subHours' or 'subDays'.
-// Changed to import from specific sub-paths for robust module resolution.
 import { subHours } from 'date-fns/subHours';
 import { subDays } from 'date-fns/subDays';
 import { Icon } from '@iconify/react';

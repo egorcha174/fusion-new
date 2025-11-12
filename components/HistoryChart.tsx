@@ -1,7 +1,7 @@
+
 import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
-// FIX: Module '"date-fns/locale"' has no exported member 'ru'. The correct import is from the specific sub-path.
 import { ru } from 'date-fns/locale/ru';
 
 interface HistoryChartProps {

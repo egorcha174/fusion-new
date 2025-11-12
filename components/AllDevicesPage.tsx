@@ -59,7 +59,6 @@ const AddToTabButton: React.FC<{
     );
 });
 
-// FIX: Define the props interface for the component.
 interface AllDevicesPageProps {
   rooms: Room[];
 }

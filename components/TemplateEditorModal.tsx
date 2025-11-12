@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot, ColorScheme } from '../types';
 import DeviceCard from './DeviceCard';

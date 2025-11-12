@@ -1,3 +1,4 @@
+
 import React, { useRef, useCallback, useState, useEffect, useLayoutEffect } from 'react';
 import { ColorScheme } from '../types';
 
@@ -94,7 +95,6 @@ const GradientArc: React.FC<{
     );
 });
 
-// FIX: Add pStyle prop to allow inline styling of the text element, resolving TypeScript errors.
 const AutoFitText: React.FC<{
   text: string;
   className?: string;
