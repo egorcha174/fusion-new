@@ -77,6 +77,10 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey, getCon
 
                 const data = await weatherRes.json();
                 
+                if (!data || !Array.isArray(data.list) || data.list.length === 0) {
+                    throw new Error("API вернуло пустые или некорректные данные о погоде.");
+                }
+                
                 // 3. Обрабатываем полученные данные.
                 // Группируем прогноз по дням.
                 const days: { [key: string]: any[] } = {};

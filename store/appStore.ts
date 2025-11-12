@@ -60,6 +60,56 @@ const defaultClimateTemplate: CardTemplate = {
   ],
 };
 
+const humidifierTemplate: CardTemplate = {
+  id: "humidifier-card",
+  name: "Увлажнитель",
+  deviceType: "climate",
+  // FIX: Added missing 'styles' property to satisfy CardTemplate type.
+  styles: {},
+  elements: [
+    { id: "icon", visible: true, position: { x: 10, y: 10 }, size: { width: 20, height: 20 }, zIndex: 1, styles: {} },
+    { id: "name", visible: true, position: { x: 35, y: 10 }, size: { width: 60, height: 10 }, zIndex: 1, styles: {} },
+    { id: "value", visible: true, position: { x: 35, y: 30 }, size: { width: 40, height: 20 }, zIndex: 2, styles: { decimalPlaces: 0 } },
+    { id: "status", visible: true, position: { x: 35, y: 55 }, size: { width: 60, height: 10 }, zIndex: 1, styles: {} }
+  ],
+  width: 2,
+  height: 2,
+};
+
+const acTemplate: CardTemplate = {
+  id: "ac-card",
+  name: "Кондиционер",
+  deviceType: "climate",
+  // FIX: Added missing 'styles' property to satisfy CardTemplate type.
+  styles: {},
+  elements: [
+    { id: "name", visible: true, position: { x: 8, y: 8 }, size: { width: 50, height: 15 }, zIndex: 2, styles: {} },
+    { id: "temperature", visible: true, position: { x: 8, y: 25 }, size: { width: 30, height: 20 }, zIndex: 2, styles: { decimalPlaces: 0 } },
+    { id: 'status', visible: true, position: { x: 8, y: 45 }, size: { width: 40, height: 10 }, zIndex: 2, styles: {} },
+    { id: "target-temperature", visible: true, position: { x: 50, y: 5 }, size: { width: 50, height: 90 }, zIndex: 1, styles: {} },
+    { id: "hvac-modes", visible: true, position: { x: 8, y: 65 }, size: { width: 35, height: 25 }, zIndex: 2, styles: {} }
+  ],
+  width: 3,
+  height: 2,
+};
+
+const blindsTemplate: CardTemplate = {
+  id: "blinds-card",
+  name: "Жалюзи",
+  deviceType: "switch",
+  // FIX: Added missing 'styles' property to satisfy CardTemplate type.
+  styles: {},
+  elements: [
+    { id: "icon", visible: true, position: { x: 10, y: 10 }, size: { width: 20, height: 20 }, zIndex: 1, styles: {} },
+    { id: "name", visible: true, position: { x: 35, y: 10 }, size: { width: 60, height: 10 }, zIndex: 1, styles: {} },
+    { id: "status", visible: true, position: { x: 35, y: 30 }, size: { width: 60, height: 10 }, zIndex: 1, styles: {} },
+    { id: "slider", visible: true, position: { x: 10, y: 50 }, size: { width: 80, height: 20 }, zIndex: 2, styles: {} }
+  ],
+  width: 2,
+  height: 2,
+};
+
+
 // --- Default Color Scheme ---
 const DEFAULT_COLOR_SCHEME: ColorScheme = {
   light: {
@@ -201,6 +251,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         [DEFAULT_LIGHT_TEMPLATE_ID]: defaultLightTemplate,
         [DEFAULT_SWITCH_TEMPLATE_ID]: defaultSwitchTemplate,
         [DEFAULT_CLIMATE_TEMPLATE_ID]: defaultClimateTemplate,
+        'humidifier-card': humidifierTemplate,
+        'ac-card': acTemplate,
+        'blinds-card': blindsTemplate,
     }),
     clockSettings: loadAndMigrate<ClockSettings>('ha-clock-settings', { format: '24h', showSeconds: true, size: 'md' }),
     cameraSettings: loadAndMigrate<CameraSettings>('ha-camera-settings', { selectedEntityId: null }),
