@@ -131,7 +131,7 @@ export interface DeviceCustomization {
 // Словарь кастомизаций, где ключ - это ID устройства (entity_id).
 export type DeviceCustomizations = Record<string, DeviceCustomization>;
 
-export type Page = 'dashboard' | 'settings' | 'all-devices';
+export type Page = 'dashboard' | 'settings' | 'all-devices' | 'all-entities';
 
 export type ClockSize = 'sm' | 'md' | 'lg';
 
@@ -398,4 +398,17 @@ export interface HassEntityRegistryEntry {
     entity_id: string;
     area_id: string | null;
     device_id: string | null;
+}
+
+// NEW: Types for physical device grouping
+export interface PhysicalDevice {
+  id: string;
+  name: string;
+  entities: Device[];
+}
+
+export interface RoomWithPhysicalDevices {
+  id: string;
+  name: string;
+  devices: PhysicalDevice[];
 }

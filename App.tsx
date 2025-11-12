@@ -4,12 +4,11 @@
 
 
 
+
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
-import { Device, DeviceCustomization, DeviceCustomizations, Tab, Room, ClockSettings, DeviceType, CameraSettings, GridLayoutItem, CardTemplates, CardTemplate, DeviceBinding, ThresholdRule, ColorScheme, CardElementId, CardElement } from './types';
+import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices } from './types';
 import { nanoid } from 'nanoid';
-import { getIconNameForDeviceType } from './components/DeviceIcon';
-import { set } from './utils/obj-path';
 import { useAppStore } from './store/appStore';
 import { useHAStore } from './store/haStore';
 
@@ -19,6 +18,7 @@ import { useHAStore } from './store/haStore';
 const Settings = lazy(() => import('./components/Settings'));
 const InfoPanel = lazy(() => import('./components/InfoPanel'));
 const DashboardHeader = lazy(() => import('./components/DashboardHeader'));
+const AllEntitiesPage = lazy(() => import('./components/AllEntitiesPage'));
 const AllDevicesPage = lazy(() => import('./components/AllDevicesPage'));
 const TabContent = lazy(() => import('./components/TabContent'));
 const DeviceSettingsModal = lazy(() => import('./components/DeviceSettingsModal'));
@@ -115,22 +115,21 @@ const useIsLg = () => {
 const App: React.FC = () => {
     // Получение состояний и действий из хранилища Zustand для Home Assistant.
     const {
-        connectionStatus, isLoading, error, connect, disconnect, allKnownDevices, allRoomsForDevicePage,
-        allCameras, getCameraStreamUrl, getConfig, getHistory, signPath, callService,
-        handleDeviceToggle, handleBrightnessChange, handleHvacModeChange,
-        handlePresetChange, handleTemperatureChange, haUrl
+        connectionStatus, isLoading, error, connect, allKnownDevices, allRoomsForDevicePage,
+        allCameras, getCameraStreamUrl, getConfig, getHistory, signPath,
+        haUrl, allRoomsWithPhysicalDevices,
     } = useHAStore();
 
     // Получение состояний и действий из хранилища Zustand для UI приложения.
     const {
-        currentPage, setCurrentPage, isEditMode, setIsEditMode, editingDevice, setEditingDevice,
-        editingTab, setEditingTab, editingTemplate, setEditingTemplate, searchTerm, setSearchTerm,
-        contextMenu, setContextMenu, floatingCamera, setFloatingCamera,
+        currentPage, isEditMode, setEditingDevice,
+        editingTab, setEditingTab, editingTemplate, setEditingTemplate, searchTerm,
+        contextMenu, setContextMenu, setFloatingCamera,
         historyModalEntityId, setHistoryModalEntityId,
-        tabs, setTabs, activeTabId, setActiveTabId, customizations, setCustomizations,
-        templates, setTemplates, clockSettings, setClockSettings, cameraSettings, setCameraSettings,
-        sidebarWidth, setSidebarWidth, isSidebarVisible, setIsSidebarVisible, theme, setTheme,
-        colorScheme, setColorScheme, DEFAULT_COLOR_SCHEME, createNewBlankTemplate, getTemplateForDevice
+        tabs, setTabs, activeTabId, setActiveTabId,
+        templates,
+        sidebarWidth, setSidebarWidth, isSidebarVisible, theme,
+        colorScheme, getTemplateForDevice, createNewBlankTemplate
     } = useAppStore();
 
   const isLg = useIsLg();
@@ -170,8 +169,8 @@ const App: React.FC = () => {
   // Мемоизированное значение текущей активной вкладки для избежания лишних пересчетов.
   const activeTab = useMemo(() => tabs.find(t => t.id === activeTabId), [tabs, activeTabId]);
   
-  // Мемоизированный список комнат для страницы "Все устройства", отфильтрованный по поисковому запросу.
-  const filteredRoomsForDevicePage = useMemo(() => {
+  // Мемоизированный список комнат с сущностями для страницы "Все сущности", отфильтрованный по поисковому запросу.
+  const filteredRoomsForEntitiesPage = useMemo(() => {
     if (!searchTerm) return allRoomsForDevicePage;
     const lowercasedFilter = searchTerm.toLowerCase();
     const filteredRooms: Room[] = [];
@@ -189,6 +188,30 @@ const App: React.FC = () => {
 
     return filteredRooms;
   }, [searchTerm, allRoomsForDevicePage]);
+
+  // Мемоизированный список комнат с физическими устройствами для страницы "Все устройства", отфильтрованный по поисковому запросу.
+  const filteredRoomsForPhysicalDevicesPage = useMemo(() => {
+    if (!searchTerm) return allRoomsWithPhysicalDevices;
+    const lowercasedFilter = searchTerm.toLowerCase();
+
+    const filteredRooms: RoomWithPhysicalDevices[] = [];
+
+    allRoomsWithPhysicalDevices.forEach(room => {
+        const filteredPhysicalDevices = room.devices.filter(pDevice =>
+            pDevice.name.toLowerCase().includes(lowercasedFilter) ||
+            pDevice.entities.some(entity => 
+                entity.name.toLowerCase().includes(lowercasedFilter) ||
+                entity.id.toLowerCase().includes(lowercasedFilter)
+            )
+        );
+
+        if (filteredPhysicalDevices.length > 0) {
+            filteredRooms.push({ ...room, devices: filteredPhysicalDevices });
+        }
+    });
+
+    return filteredRooms;
+  }, [searchTerm, allRoomsWithPhysicalDevices]);
 
     // Мемоизированные значения для определения текущей цветовой схемы.
     const isSystemDark = useMemo(() => window.matchMedia('(prefers-color-scheme: dark)').matches, []);
@@ -284,8 +307,10 @@ const App: React.FC = () => {
             <Suspense fallback={<div />}><Settings onConnect={connect} connectionStatus={connectionStatus} error={error} /></Suspense>
           </div>
         );
+      case 'all-entities':
+        return <AllEntitiesPage rooms={filteredRoomsForEntitiesPage} />;
       case 'all-devices':
-        return <AllDevicesPage rooms={filteredRoomsForDevicePage} />;
+        return <AllDevicesPage rooms={filteredRoomsForPhysicalDevicesPage} />;
       case 'dashboard':
       default:
         return activeTab ? (
@@ -312,9 +337,6 @@ const App: React.FC = () => {
             sidebarWidth={sidebarWidth} 
             setSidebarWidth={setSidebarWidth}
             cameras={allCameras}
-            cameraSettings={cameraSettings}
-            onCameraSettingsChange={setCameraSettings}
-            onCameraWidgetClick={setFloatingCamera}
             haUrl={haUrl}
             signPath={signPath}
             getCameraStreamUrl={getCameraStreamUrl}
@@ -341,9 +363,9 @@ const App: React.FC = () => {
         
         {/* Секция для модальных окон и оверлеев. Они рендерятся здесь, чтобы быть поверх всего контента. */}
         <Suspense fallback={null}>
-          {editingDevice && (
+          {useAppStore.getState().editingDevice && (
             <DeviceSettingsModal 
-              device={editingDevice} 
+              device={useAppStore.getState().editingDevice!} 
               onClose={() => setEditingDevice(null)}
             />
           )}
@@ -457,9 +479,9 @@ const App: React.FC = () => {
             </ContextMenu>
           )}
 
-          {floatingCamera && haUrl && (
+          {useAppStore.getState().floatingCamera && haUrl && (
             <FloatingCameraWindow
-              device={floatingCamera}
+              device={useAppStore.getState().floatingCamera!}
               onClose={() => setFloatingCamera(null)}
               haUrl={haUrl}
               signPath={signPath}

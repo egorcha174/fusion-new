@@ -1,6 +1,7 @@
 
+
 import { create } from 'zustand';
-import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device, Room, DeviceCustomizations, DeviceType } from '../types';
+import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device, Room, RoomWithPhysicalDevices, PhysicalDevice } from '../types';
 import { constructHaUrl } from '../utils/url';
 import { mapEntitiesToRooms } from '../utils/ha-data-mapper';
 import { useAppStore } from './appStore';
@@ -29,6 +30,7 @@ interface HAState {
   
   allKnownDevices: Map<string, Device>;
   allRoomsForDevicePage: Room[];
+  allRoomsWithPhysicalDevices: RoomWithPhysicalDevices[];
   allCameras: Device[];
   batteryDevices: BatteryDevice[];
 }
@@ -138,8 +140,51 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
       const cameras = Array.from(deviceMap.values()).filter((d: Device) => d.haDomain === 'camera');
       // Сортируем список физических устройств по уровню заряда
       batteryDevicesList.sort((a, b) => a.batteryLevel - b.batteryLevel);
+      
+      // --- NEW: Logic for rooms with physical devices ---
+      const deviceIdToEntities = new Map<string, Device[]>();
+      const entityIdToDeviceId = new Map<string, string>();
+      entityRegistry.forEach(entry => {
+          if (entry.device_id) {
+              entityIdToDeviceId.set(entry.entity_id, entry.device_id);
+          }
+      });
 
-      set({ allKnownDevices: deviceMap, allRoomsForDevicePage: rooms, allCameras: cameras, batteryDevices: batteryDevicesList });
+      deviceMap.forEach((device, entityId) => {
+          const deviceId = entityIdToDeviceId.get(entityId);
+          if (deviceId) {
+              if (!deviceIdToEntities.has(deviceId)) {
+                  deviceIdToEntities.set(deviceId, []);
+              }
+              deviceIdToEntities.get(deviceId)!.push(device);
+          }
+      });
+
+      const roomsWithPhysicalDevicesMap = new Map<string, RoomWithPhysicalDevices>();
+      areas.forEach(area => {
+          roomsWithPhysicalDevicesMap.set(area.area_id, { id: area.area_id, name: area.name, devices: [] });
+      });
+      roomsWithPhysicalDevicesMap.set('no_area', { id: 'no_area', name: 'Без пространства', devices: [] });
+
+      devices.forEach(haDevice => { // HassDevice
+          const entitiesForDevice = deviceIdToEntities.get(haDevice.id) || [];
+          if (entitiesForDevice.length > 0) {
+              const physicalDevice: PhysicalDevice = {
+                  id: haDevice.id,
+                  name: haDevice.name,
+                  entities: entitiesForDevice.sort((a,b) => a.name.localeCompare(b.name)),
+              };
+              const areaId = haDevice.area_id || 'no_area';
+              const room = roomsWithPhysicalDevicesMap.get(areaId);
+              room?.devices.push(physicalDevice);
+          }
+      });
+
+      const allRoomsWithPhysicalDevices = Array.from(roomsWithPhysicalDevicesMap.values())
+          .filter(room => room.devices.length > 0)
+          .sort((a,b) => a.name.localeCompare(b.name));
+
+      set({ allKnownDevices: deviceMap, allRoomsForDevicePage: rooms, allCameras: cameras, batteryDevices: batteryDevicesList, allRoomsWithPhysicalDevices });
   };
   
   // Re-compute derived state whenever customizations change
@@ -163,6 +208,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     entityRegistry: [],
     allKnownDevices: new Map(),
     allRoomsForDevicePage: [],
+    allRoomsWithPhysicalDevices: [],
     allCameras: [],
     batteryDevices: [],
 

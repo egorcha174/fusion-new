@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ClockSettings, Device, ClockSize, CameraSettings, ColorScheme } from '../types';
 import { CameraStreamContent } from './CameraStreamContent';
@@ -68,9 +70,6 @@ const Clock: React.FC<ClockProps> = React.memo(({ settings, sidebarWidth, color 
 
 interface CameraWidgetProps {
     cameras: Device[];
-    settings: CameraSettings;
-    onSettingsChange: (settings: CameraSettings) => void;
-    onCameraWidgetClick: (device: Device) => void;
     haUrl: string;
     signPath: (path: string) => Promise<{ path: string }>;
     getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
@@ -80,18 +79,19 @@ interface CameraWidgetProps {
  * Виджет для отображения видео с камеры.
  * Позволяет выбирать камеру для отображения через контекстное меню (правый клик).
  */
-const CameraWidget: React.FC<CameraWidgetProps> = React.memo(({ cameras, settings, onSettingsChange, onCameraWidgetClick, haUrl, signPath, getCameraStreamUrl }) => {
+const CameraWidget: React.FC<CameraWidgetProps> = React.memo(({ cameras, haUrl, signPath, getCameraStreamUrl }) => {
+    const { cameraSettings, setCameraSettings, setFloatingCamera } = useAppStore();
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number } | null>(null);
-    const selectedCamera = useMemo(() => cameras.find(c => c.id === settings.selectedEntityId), [cameras, settings.selectedEntityId]);
+    const selectedCamera = useMemo(() => cameras.find(c => c.id === cameraSettings.selectedEntityId), [cameras, cameraSettings.selectedEntityId]);
 
     const handleSelectCamera = (entityId: string | null) => {
-        onSettingsChange({ selectedEntityId: entityId });
+        setCameraSettings({ selectedEntityId: entityId });
         setContextMenu(null);
     };
 
     const handleCameraClick = () => {
         if (selectedCamera) {
-            onCameraWidgetClick(selectedCamera);
+            setFloatingCamera(selectedCamera);
         }
     };
     
@@ -115,7 +115,7 @@ const CameraWidget: React.FC<CameraWidgetProps> = React.memo(({ cameras, setting
                 {selectedCamera ? (
                     <>
                         <CameraStreamContent
-                            entityId={settings.selectedEntityId}
+                            entityId={cameraSettings.selectedEntityId}
                             haUrl={haUrl}
                             signPath={signPath}
                             getCameraStreamUrl={getCameraStreamUrl}
@@ -205,9 +205,6 @@ interface InfoPanelProps {
     sidebarWidth: number;
     setSidebarWidth: (width: number) => void;
     cameras: Device[];
-    cameraSettings: CameraSettings;
-    onCameraSettingsChange: (settings: CameraSettings) => void;
-    onCameraWidgetClick: (device: Device) => void;
     haUrl: string;
     signPath: (path: string) => Promise<{ path: string }>;
     getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
@@ -220,7 +217,7 @@ interface InfoPanelProps {
  * Боковая информационная панель, содержащая часы, виджет камеры и виджет погоды.
  * Поддерживает изменение ширины путем перетаскивания правого края.
  */
-const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, cameras, cameraSettings, onCameraSettingsChange, onCameraWidgetClick, haUrl, signPath, getCameraStreamUrl, getConfig, colorScheme, isDark }) => {
+const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, cameras, haUrl, signPath, getCameraStreamUrl, getConfig, colorScheme, isDark }) => {
     const [isResizing, setIsResizing] = useState(false);
     const { clockSettings, openWeatherMapKey, isBatteryWidgetVisible } = useAppStore();
 
@@ -269,9 +266,6 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, ca
             <div className="flex-1 mt-4 space-y-4 overflow-y-auto no-scrollbar min-h-0">
                  <CameraWidget
                     cameras={cameras}
-                    settings={cameraSettings}
-                    onSettingsChange={onCameraSettingsChange}
-                    onCameraWidgetClick={onCameraWidgetClick}
                     haUrl={haUrl}
                     signPath={signPath}
                     getCameraStreamUrl={getCameraStreamUrl}
