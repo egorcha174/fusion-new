@@ -194,18 +194,12 @@ const ThemeEditor: React.FC<{
                 <ColorSettingRow label="Название" value={themeSet.nameTextColor} onChange={v => onUpdate('nameTextColor', v)} />
                 <ColorSettingRow label="Статус" value={themeSet.statusTextColor} onChange={v => onUpdate('statusTextColor', v)} />
                 <ColorSettingRow label="Значение" value={themeSet.valueTextColor} onChange={v => onUpdate('valueTextColor', v)} />
-                <FontSettingRow label="Шрифт (Название)" fontFamily={themeSet.nameTextFontFamily} fontSize={themeSet.nameTextFontSize} onFontFamilyChange={v => onUpdate('nameTextFontFamily', v)} onFontSizeChange={v => onUpdate('nameTextFontSize', v)} />
-                <FontSettingRow label="Шрифт (Статус)" fontFamily={themeSet.statusTextFontFamily} fontSize={themeSet.statusTextFontSize} onFontFamilyChange={v => onUpdate('statusTextFontFamily', v)} onFontSizeChange={v => onUpdate('statusTextFontSize', v)} />
-                <FontSettingRow label="Шрифт (Значение)" fontFamily={themeSet.valueTextFontFamily} fontSize={themeSet.valueTextFontSize} onFontFamilyChange={v => onUpdate('valueTextFontFamily', v)} onFontSizeChange={v => onUpdate('valueTextFontSize', v)} />
             </Section>
 
              <Section title="Текст карточки (Вкл.)">
                 <ColorSettingRow label="Название" value={themeSet.nameTextColorOn} onChange={v => onUpdate('nameTextColorOn', v)} />
                 <ColorSettingRow label="Статус" value={themeSet.statusTextColorOn} onChange={v => onUpdate('statusTextColorOn', v)} />
                 <ColorSettingRow label="Значение" value={themeSet.valueTextColorOn} onChange={v => onUpdate('valueTextColorOn', v)} />
-                <FontSettingRow label="Шрифт (Название)" fontFamily={themeSet.nameTextFontFamilyOn} fontSize={themeSet.nameTextFontSizeOn} onFontFamilyChange={v => onUpdate('nameTextFontFamilyOn', v)} onFontSizeChange={v => onUpdate('nameTextFontSizeOn', v)} />
-                <FontSettingRow label="Шрифт (Статус)" fontFamily={themeSet.statusTextFontFamilyOn} fontSize={themeSet.statusTextFontSizeOn} onFontFamilyChange={v => onUpdate('statusTextFontFamilyOn', v)} onFontSizeChange={v => onUpdate('statusTextFontSizeOn', v)} />
-                <FontSettingRow label="Шрифт (Значение)" fontFamily={themeSet.valueTextFontFamilyOn} fontSize={themeSet.valueTextFontSizeOn} onFontFamilyChange={v => onUpdate('valueTextFontFamilyOn', v)} onFontSizeChange={v => onUpdate('valueTextFontSizeOn', v)} />
             </Section>
         </div>
     );

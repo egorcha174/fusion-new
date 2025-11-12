@@ -234,34 +234,6 @@ export interface ColorThemeSet {
   valueTextColorOn: string;
   /** Цвет единицы измерения (например, "°C"). */
   unitTextColorOn: string;
-
-  // --- Шрифты карточки (Выкл.) ---
-  /** Семейство шрифта для названия. */
-  nameTextFontFamily?: string;
-  /** Размер шрифта для названия (в px). Если не указан, подбирается автоматически. */
-  nameTextFontSize?: number;
-  /** Семейство шрифта для статуса. */
-  statusTextFontFamily?: string;
-  /** Размер шрифта для статуса (в px). */
-  statusTextFontSize?: number;
-  /** Семейство шрифта для значения. */
-  valueTextFontFamily?: string;
-  /** Размер шрифта для значения (в px). */
-  valueTextFontSize?: number;
-  /** Семейство шрифта для единицы измерения. */
-  unitTextFontFamily?: string;
-  /** Размер шрифта для единицы измерения (в px). */
-  unitTextFontSize?: number;
-
-  // --- Шрифты карточки (Вкл.) ---
-  nameTextFontFamilyOn?: string;
-  nameTextFontSizeOn?: number;
-  statusTextFontFamilyOn?: string;
-  statusTextFontSizeOn?: number;
-  valueTextFontFamilyOn?: string;
-  valueTextFontSizeOn?: number;
-  unitTextFontFamilyOn?: string;
-  unitTextFontSizeOn?: number;
 }
 
 /**
@@ -292,6 +264,8 @@ export interface CardElement {
     onColor?: string; // Для 'icon'
     offColor?: string; // для 'icon'
     textAlign?: 'left' | 'center' | 'right'; // Для текстовых элементов
+    fontFamily?: string; // Для текстовых элементов
+    fontSize?: number; // Для текстовых элементов (в px)
     linkedEntityId?: string; // для 'linked-entity'
     showValue?: boolean; // для 'linked-entity'
     chartTimeRange?: number; // для 'chart'

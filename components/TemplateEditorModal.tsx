@@ -11,6 +11,15 @@ import { useAppStore } from '../store/appStore';
 import { useHAStore } from '../store/haStore';
 
 const SNAP_GRID_SIZE = 1; // pixels
+const FONT_FAMILIES = [
+    { name: 'Системный', value: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"` },
+    { name: 'San Francisco (SF Pro)', value: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' },
+    { name: 'Roboto', value: 'Roboto, sans-serif' },
+    { name: 'Verdana', value: 'Verdana, Geneva, sans-serif' },
+    { name: 'Tahoma', value: 'Tahoma, Verdana, Segoe, sans-serif' },
+    { name: 'Arial', value: 'Arial, Helvetica, sans-serif' },
+    { name: 'Times New Roman', value: '"Times New Roman", Times, serif' },
+];
 
 // --- Draggable Resize Handle ---
 const ResizeHandle: React.FC<{
@@ -465,6 +474,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
 
   const selectedElement = useMemo(() => editedTemplate.elements.find(el => selectedElementIds.length === 1 && el.id === selectedElementIds[0]), [selectedElementIds, editedTemplate.elements]);
   const selectedSlot = useMemo(() => editedTemplate.deviceSlots?.find(s => s.id === selectedSlotId), [selectedSlotId, editedTemplate.deviceSlots]);
+  const isTextElementSelected = selectedElement && ['name', 'status', 'value', 'unit', 'temperature'].includes(selectedElement.id);
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-sans" onClick={onClose}>
@@ -617,6 +627,28 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                         </div>
                     </div>
                 </Section>
+
+                {isTextElementSelected && (
+                    <Section title="Шрифт">
+                        <LabeledInput label="Шрифт">
+                           <select 
+                                value={selectedElement.styles.fontFamily || ''}
+                                onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, fontFamily: e.target.value}} : el)}))}
+                                className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
+                            >
+                                <option value="">По умолчанию</option>
+                                {FONT_FAMILIES.map(f => <option key={f.value} value={f.value}>{f.name}</option>)}
+                            </select>
+                        </LabeledInput>
+                        <LabeledInput label="Размер" suffix="px">
+                            <NumberInput 
+                                value={selectedElement.styles.fontSize}
+                                onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, fontSize: v}} : el)}))}
+                                min={8} max={200} placeholder="Авто"
+                            />
+                        </LabeledInput>
+                    </Section>
+                )}
                 
                  {['value', 'temperature'].includes(selectedElement.id) && (
                      <Section title="Данные">

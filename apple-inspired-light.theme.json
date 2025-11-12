@@ -37,23 +37,7 @@
       "nameTextColorOn": "#2A333E",
       "statusTextColorOn": "#3D4C5E",
       "valueTextColorOn": "#2A333E",
-      "unitTextColorOn": "#2A333E",
-      "nameTextFontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
-      "nameTextFontSize": 16,
-      "statusTextFontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
-      "statusTextFontSize": 14,
-      "valueTextFontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
-      "valueTextFontSize": 52,
-      "unitTextFontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
-      "unitTextFontSize": 52,
-      "nameTextFontFamilyOn": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
-      "nameTextFontSizeOn": 16,
-      "statusTextFontFamilyOn": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
-      "statusTextFontSizeOn": 14,
-      "valueTextFontFamilyOn": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
-      "valueTextFontSizeOn": 52,
-      "unitTextFontFamilyOn": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
-      "unitTextFontSizeOn": 52
+      "unitTextColorOn": "#2A333E"
     },
     "dark": {
       "dashboardBackgroundType": "color",
@@ -88,23 +72,7 @@
       "nameTextColorOn": "#FFFFFF",
       "statusTextColorOn": "#D1D5DB",
       "valueTextColorOn": "#FFFFFF",
-      "unitTextColorOn": "#FFFFFF",
-      "nameTextFontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
-      "nameTextFontSize": 16,
-      "statusTextFontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
-      "statusTextFontSize": 14,
-      "valueTextFontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
-      "valueTextFontSize": 52,
-      "unitTextFontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
-      "unitTextFontSize": 52,
-      "nameTextFontFamilyOn": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
-      "nameTextFontSizeOn": 16,
-      "statusTextFontFamilyOn": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
-      "statusTextFontSizeOn": 14,
-      "valueTextFontFamilyOn": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
-      "valueTextFontSizeOn": 52,
-      "unitTextFontFamilyOn": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
-      "unitTextFontSizeOn": 52
+      "unitTextColorOn": "#FFFFFF"
     }
   }
 }
