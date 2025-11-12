@@ -1,4 +1,5 @@
 
+
 {
   "ha-dashboard-theme-version": 2,
   "exported-at": "2024-07-26T12:00:00.000Z",
@@ -22,6 +23,13 @@
       "thermostatHeatingColor": "#F97316",
       "thermostatCoolingColor": "#3B82F6",
       "clockTextColor": "#3D4C5E",
+      "weatherIconSize": 96,
+      "weatherForecastIconSize": 48,
+      "weatherCurrentTempFontSize": 36,
+      "weatherCurrentDescFontSize": 14,
+      "weatherForecastDayFontSize": 12,
+      "weatherForecastMaxTempFontSize": 18,
+      "weatherForecastMinTempFontSize": 14,
       "nameTextColor": "#3D4C5E",
       "statusTextColor": "#6B7280",
       "valueTextColor": "#2A333E",
@@ -66,6 +74,13 @@
       "thermostatHeatingColor": "#FB923C",
       "thermostatCoolingColor": "#60A5FA",
       "clockTextColor": "#D1D5DB",
+      "weatherIconSize": 96,
+      "weatherForecastIconSize": 48,
+      "weatherCurrentTempFontSize": 36,
+      "weatherCurrentDescFontSize": 14,
+      "weatherForecastDayFontSize": 12,
+      "weatherForecastMaxTempFontSize": 18,
+      "weatherForecastMinTempFontSize": 14,
       "nameTextColor": "#D1D5DB",
       "statusTextColor": "#9CA3AF",
       "valueTextColor": "#F9FAFB",

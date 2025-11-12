@@ -1,4 +1,5 @@
 
+
 import React, { useRef, useState, useMemo } from 'react';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet } from '../types';
 import ConfirmDialog from './ConfirmDialog';
@@ -38,6 +39,23 @@ const ColorSettingRow: React.FC<{ label: string, value: string, onChange: (newCo
     />
   </div>
 ));
+
+const NumberSettingRow: React.FC<{ label: string; value: number | undefined; onChange: (newValue: number) => void; placeholder?: string; suffix?: string; }> = React.memo(({ label, value, onChange, placeholder, suffix }) => (
+    <div className="flex items-center justify-between">
+        <label className="text-sm text-gray-800 dark:text-gray-300">{label}</label>
+        <div className="flex items-center gap-2">
+            <input
+                type="number"
+                value={value || ''}
+                onChange={e => onChange(parseInt(e.target.value, 10))}
+                placeholder={placeholder || "Авто"}
+                className="w-20 bg-gray-200 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
+            {suffix && <span className="text-sm text-gray-500 dark:text-gray-400">{suffix}</span>}
+        </div>
+    </div>
+));
+
 
 const FontSettingRow: React.FC<{
     label: string;
@@ -160,6 +178,16 @@ const ThemeEditor: React.FC<{
 
             <Section title="Часы">
                  <ColorSettingRow label="Цвет текста" value={themeSet.clockTextColor} onChange={v => onUpdate('clockTextColor', v)} />
+            </Section>
+
+            <Section title="Виджет Погоды">
+                <NumberSettingRow label="Размер иконки (текущая)" value={themeSet.weatherIconSize} onChange={v => onUpdate('weatherIconSize', v)} suffix="px" />
+                <NumberSettingRow label="Размер иконки (прогноз)" value={themeSet.weatherForecastIconSize} onChange={v => onUpdate('weatherForecastIconSize', v)} suffix="px" />
+                <NumberSettingRow label="Шрифт (температура)" value={themeSet.weatherCurrentTempFontSize} onChange={v => onUpdate('weatherCurrentTempFontSize', v)} suffix="px" />
+                <NumberSettingRow label="Шрифт (описание)" value={themeSet.weatherCurrentDescFontSize} onChange={v => onUpdate('weatherCurrentDescFontSize', v)} suffix="px" />
+                <NumberSettingRow label="Шрифт (день)" value={themeSet.weatherForecastDayFontSize} onChange={v => onUpdate('weatherForecastDayFontSize', v)} suffix="px" />
+                <NumberSettingRow label="Шрифт (прогноз, макс.)" value={themeSet.weatherForecastMaxTempFontSize} onChange={v => onUpdate('weatherForecastMaxTempFontSize', v)} suffix="px" />
+                <NumberSettingRow label="Шрифт (прогноз, мин.)" value={themeSet.weatherForecastMinTempFontSize} onChange={v => onUpdate('weatherForecastMinTempFontSize', v)} suffix="px" />
             </Section>
             
             <Section title="Текст карточки (Выкл.)">

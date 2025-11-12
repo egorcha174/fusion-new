@@ -1,6 +1,5 @@
 
 
-
 import React, { useState, useEffect } from 'react';
 import { ColorScheme } from '../types';
 
@@ -148,17 +147,25 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey, getCon
     }
     
     const { current, forecast } = weatherData;
+    
+    const currentIconSize = colorScheme.weatherIconSize ? `${colorScheme.weatherIconSize}px` : undefined;
+    const forecastIconSize = colorScheme.weatherForecastIconSize ? `${colorScheme.weatherForecastIconSize}px` : undefined;
 
     return (
         <div>
             {/* Текущая погода */}
             <div className="flex items-center gap-2">
-                <img src={getWeatherIconUrl(current.icon, '4x')} alt={current.desc} className="w-24 h-24 flex-shrink-0 -ml-2" />
+                <img 
+                  src={getWeatherIconUrl(current.icon, '4x')} 
+                  alt={current.desc} 
+                  className="w-24 h-24 flex-shrink-0 -ml-2"
+                  style={{ width: currentIconSize, height: currentIconSize }}
+                />
                 <div className="overflow-hidden">
-                    <p className="text-4xl font-bold" style={{ color: colorScheme.valueTextColor, fontFamily: colorScheme.valueTextFontFamily, fontSize: colorScheme.valueTextFontSize ? `${colorScheme.valueTextFontSize}px` : undefined }}>
+                    <p className="text-4xl font-bold" style={{ color: colorScheme.valueTextColor, fontSize: colorScheme.weatherCurrentTempFontSize ? `${colorScheme.weatherCurrentTempFontSize}px` : undefined }}>
                       {current.temp}°C
                     </p>
-                    <p className="text-sm -mt-1 truncate capitalize" title={current.desc} style={{ color: colorScheme.statusTextColor, fontFamily: colorScheme.statusTextFontFamily, fontSize: colorScheme.statusTextFontSize ? `${colorScheme.statusTextFontSize}px` : undefined }}>
+                    <p className="text-sm -mt-1 truncate capitalize" title={current.desc} style={{ color: colorScheme.statusTextColor, fontSize: colorScheme.weatherCurrentDescFontSize ? `${colorScheme.weatherCurrentDescFontSize}px` : undefined }}>
                       {current.desc}
                     </p>
                 </div>
@@ -168,15 +175,20 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey, getCon
             <div className="mt-4 grid grid-cols-4 gap-2 text-center">
                 {forecast.map((day, index) => (
                     <div key={index} className="flex flex-col items-center space-y-1">
-                        <p className="text-xs font-medium capitalize" style={{ color: colorScheme.nameTextColor, fontFamily: colorScheme.nameTextFontFamily, fontSize: colorScheme.nameTextFontSize ? `${colorScheme.nameTextFontSize}px` : undefined, }}>
+                        <p className="text-xs font-medium capitalize" style={{ color: colorScheme.nameTextColor, fontSize: colorScheme.weatherForecastDayFontSize ? `${colorScheme.weatherForecastDayFontSize}px` : undefined, }}>
                           {day.day}
                         </p>
-                         <img src={getWeatherIconUrl(day.icon, '2x')} alt="" className="w-12 h-12" />
+                         <img 
+                            src={getWeatherIconUrl(day.icon, '2x')} 
+                            alt="" 
+                            className="w-12 h-12"
+                            style={{ width: forecastIconSize, height: forecastIconSize }}
+                        />
                         <div>
-                            <p className="text-lg font-semibold" style={{ color: colorScheme.valueTextColor, fontFamily: colorScheme.valueTextFontFamily, fontSize: colorScheme.valueTextFontSize ? `${colorScheme.valueTextFontSize}px` : undefined, }}>
+                            <p className="text-lg font-semibold" style={{ color: colorScheme.valueTextColor, fontSize: colorScheme.weatherForecastMaxTempFontSize ? `${colorScheme.weatherForecastMaxTempFontSize}px` : undefined, }}>
                               {Math.round(day.tempMax)}°
                             </p>
-                            <p className="text-sm -mt-1" style={{ color: colorScheme.statusTextColor, fontFamily: colorScheme.statusTextFontFamily, fontSize: colorScheme.statusTextFontSize ? `${colorScheme.statusTextFontSize}px` : undefined, }}>
+                            <p className="text-sm -mt-1" style={{ color: colorScheme.statusTextColor, fontSize: colorScheme.weatherForecastMinTempFontSize ? `${colorScheme.weatherForecastMinTempFontSize}px` : undefined, }}>
                               {Math.round(day.tempMin)}°
                             </p>
                         </div>
