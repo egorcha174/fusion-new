@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ColorScheme } from '../types';
+import AnimatedWeatherIcon from './AnimatedWeatherIcon';
 
 // --- Типы данных для погоды ---
 interface CurrentWeather {
@@ -36,12 +37,6 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey, getCon
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-
-    // Хелпер для получения URL иконки погоды от OpenWeatherMap.
-    const getWeatherIconUrl = (iconCode: string, size: '4x' | '2x' | '1x' = '1x') => {
-        const sizeSuffix = size === '1x' ? '' : `@${size}`;
-        return `https://openweathermap.org/img/wn/${iconCode}${sizeSuffix}.png`;
-    };
 
     useEffect(() => {
         const fetchWeather = async () => {
@@ -155,9 +150,8 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey, getCon
         <div>
             {/* Текущая погода */}
             <div className="flex items-center gap-2">
-                <img 
-                  src={getWeatherIconUrl(current.icon, '4x')} 
-                  alt={current.desc} 
+                <AnimatedWeatherIcon
+                  iconCode={current.icon}
                   className="w-24 h-24 flex-shrink-0 -ml-2"
                   style={{ width: currentIconSize, height: currentIconSize }}
                 />
@@ -178,9 +172,8 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ openWeatherMapKey, getCon
                         <p className="text-xs font-medium capitalize" style={{ color: colorScheme.nameTextColor, fontSize: colorScheme.weatherForecastDayFontSize ? `${colorScheme.weatherForecastDayFontSize}px` : undefined, }}>
                           {day.day}
                         </p>
-                         <img 
-                            src={getWeatherIconUrl(day.icon, '2x')} 
-                            alt="" 
+                         <AnimatedWeatherIcon
+                            iconCode={day.icon}
                             className="w-12 h-12"
                             style={{ width: forecastIconSize, height: forecastIconSize }}
                         />
