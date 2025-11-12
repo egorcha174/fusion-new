@@ -25,7 +25,7 @@ const FONT_FAMILIES = [
 const LOCAL_STORAGE_KEYS = [
   'ha-url', 'ha-token', 'ha-tabs', 'ha-active-tab', 'ha-device-customizations',
   'ha-clock-settings', 'ha-card-templates', 'ha-sidebar-width', 'ha-openweathermap-key',
-  'ha-camera-settings', 'ha-theme', 'ha-color-scheme', 'ha-sidebar-visible',
+  'ha-camera-settings', 'ha-theme', 'ha-color-scheme', 'ha-sidebar-visible', 'ha-low-battery-threshold',
 ];
 
 const ColorSettingRow: React.FC<{ label: string, value: string, onChange: (newColor: string) => void }> = React.memo(({ label, value, onChange }) => (
@@ -40,13 +40,15 @@ const ColorSettingRow: React.FC<{ label: string, value: string, onChange: (newCo
   </div>
 ));
 
-const NumberSettingRow: React.FC<{ label: string; value: number | undefined; onChange: (newValue: number) => void; placeholder?: string; suffix?: string; }> = React.memo(({ label, value, onChange, placeholder, suffix }) => (
+const NumberSettingRow: React.FC<{ label: string; value: number | undefined; onChange: (newValue: number) => void; placeholder?: string; suffix?: string; min?: number; max?: number; }> = React.memo(({ label, value, onChange, placeholder, suffix, min, max }) => (
     <div className="flex items-center justify-between">
         <label className="text-sm text-gray-800 dark:text-gray-300">{label}</label>
         <div className="flex items-center gap-2">
             <input
                 type="number"
                 value={value || ''}
+                min={min}
+                max={max}
                 onChange={e => onChange(parseInt(e.target.value, 10))}
                 placeholder={placeholder || "Авто"}
                 className="w-20 bg-gray-200 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
@@ -215,7 +217,8 @@ const Settings: React.FC<{
         templates, setEditingTemplate, handleDeleteTemplate,
         colorScheme, setColorScheme, onResetColorScheme,
         isSidebarVisible, setIsSidebarVisible, createNewBlankTemplate,
-        openWeatherMapKey, setOpenWeatherMapKey
+        openWeatherMapKey, setOpenWeatherMapKey,
+        lowBatteryThreshold, setLowBatteryThreshold
     } = useAppStore();
     
     const [activeTab, setActiveTab] = useState<SettingsTab>('appearance');
@@ -416,6 +419,17 @@ const Settings: React.FC<{
                                     <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${isSidebarVisible ? 'translate-x-6' : 'translate-x-1'}`} />
                                 </button>
                             </div>
+                            <Section title="Уровень заряда батарей">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">Настройте оповещения о низком заряде батарей для ваших беспроводных устройств.</p>
+                                <NumberSettingRow 
+                                    label="Порог низкого заряда" 
+                                    value={lowBatteryThreshold} 
+                                    onChange={v => setLowBatteryThreshold(v)} 
+                                    suffix="%"
+                                    min={0}
+                                    max={100}
+                                />
+                            </Section>
                         </div>
                     )}
                      {activeTab === 'templates' && (

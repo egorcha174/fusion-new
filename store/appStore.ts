@@ -128,6 +128,8 @@ interface AppState {
     theme: 'day' | 'night' | 'auto';
     colorScheme: ColorScheme;
     openWeatherMapKey: string;
+    // FIX: Added lowBatteryThreshold to the state.
+    lowBatteryThreshold: number;
     DEFAULT_COLOR_SCHEME: ColorScheme;
 }
 
@@ -153,6 +155,8 @@ interface AppActions {
     setTheme: (theme: AppState['theme']) => void;
     setColorScheme: (scheme: ColorScheme) => void;
     setOpenWeatherMapKey: (key: string) => void;
+    // FIX: Added setLowBatteryThreshold to the actions.
+    setLowBatteryThreshold: (threshold: number) => void;
 
     onResetColorScheme: () => void;
     handleTabOrderChange: (newTabs: Tab[]) => void;
@@ -204,6 +208,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     theme: loadAndMigrate<'day' | 'night' | 'auto'>('ha-theme', 'auto'),
     colorScheme: loadAndMigrate<ColorScheme>('ha-color-scheme', DEFAULT_COLOR_SCHEME),
     openWeatherMapKey: loadAndMigrate<string>('ha-openweathermap-key', ''),
+    // FIX: Initialized lowBatteryThreshold state from local storage.
+    lowBatteryThreshold: loadAndMigrate<number>('ha-low-battery-threshold', 20),
     DEFAULT_COLOR_SCHEME: DEFAULT_COLOR_SCHEME,
     
     // --- Actions ---
@@ -261,6 +267,11 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     setOpenWeatherMapKey: (key) => {
         set({ openWeatherMapKey: key });
         localStorage.setItem('ha-openweathermap-key', key);
+    },
+    // FIX: Implemented the setLowBatteryThreshold action.
+    setLowBatteryThreshold: (threshold) => {
+        set({ lowBatteryThreshold: threshold });
+        localStorage.setItem('ha-low-battery-threshold', JSON.stringify(threshold));
     },
 
     // --- Complex Actions ---

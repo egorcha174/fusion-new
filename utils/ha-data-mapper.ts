@@ -194,6 +194,11 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
       }
   }
 
+  // Добавляем уровень заряда, если он есть
+  if (typeof attributes.battery_level === 'number') {
+    device.batteryLevel = attributes.battery_level;
+  }
+
   return device;
 };
 

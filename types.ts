@@ -65,6 +65,7 @@ export interface Device {
   haDomain?: string; // Домен из Home Assistant (например, 'light', 'sensor')
   haDeviceClass?: string; // device_class из Home Assistant
   state?: string; // "Сырое" состояние из Home Assistant (например, 'on', 'off')
+  batteryLevel?: number; // Уровень заряда батареи в процентах
 }
 
 /**
@@ -248,7 +249,7 @@ export interface ColorScheme {
 // --- Система шаблонов карточек ---
 
 // ID доступных элементов внутри шаблона карточки.
-export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status' | 'slider' | 'temperature' | 'target-temperature' | 'hvac-modes' | 'linked-entity';
+export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status' | 'slider' | 'temperature' | 'target-temperature' | 'hvac-modes' | 'linked-entity' | 'battery';
 
 /**
  * Описывает один элемент (например, иконку, название) внутри шаблона карточки.
@@ -359,6 +360,7 @@ export interface HassEntity {
     hvac_action?: string;
     min_temp?: number;
     max_temp?: number;
+    battery_level?: number; // Уровень заряда батареи
     [key: string]: any; // Для других атрибутов
   };
   context: {

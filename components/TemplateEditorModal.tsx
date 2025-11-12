@@ -190,7 +190,7 @@ interface TemplateEditorModalProps {
 const ELEMENT_LABELS: Record<CardElementId, string> = {
   name: 'Название', icon: 'Иконка', value: 'Значение', unit: 'Единица изм.', chart: 'График',
   status: 'Статус', slider: 'Слайдер', temperature: 'Текущая темп.', 'target-temperature': 'Термостат (кольцо)',
-  'hvac-modes': 'Режимы климата', 'linked-entity': 'Связанное устройство'
+  'hvac-modes': 'Режимы климата', 'linked-entity': 'Связанное устройство', battery: 'Уровень заряда'
 };
 
 // --- Sortable Layer Item Component ---

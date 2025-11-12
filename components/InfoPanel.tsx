@@ -1,11 +1,12 @@
 
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ClockSettings, Device, ClockSize, CameraSettings, ColorScheme } from '../types';
 import { CameraStreamContent } from './CameraStreamContent';
 import ContextMenu from './ContextMenu';
 import WeatherWidget from './WeatherWidget';
 import { useAppStore } from '../store/appStore';
+import { useHAStore } from '../store/haStore';
+import { Icon } from '@iconify/react';
 
 interface ClockProps {
     settings: ClockSettings;
@@ -146,6 +147,50 @@ const CameraWidget: React.FC<CameraWidgetProps> = React.memo(({ cameras, setting
     );
 });
 
+const BatteryLevelsWidget: React.FC = () => {
+    const { batteryDevices } = useHAStore();
+    // FIX: Add lowBatteryThreshold to the app store to resolve this error.
+    const { lowBatteryThreshold } = useAppStore();
+
+    if (batteryDevices.length === 0) {
+        return null;
+    }
+
+    const getBatteryIcon = (level: number) => {
+        if (level <= lowBatteryThreshold) return 'mdi:battery-alert-variant-outline';
+        if (level <= 10) return 'mdi:battery-10';
+        if (level <= 20) return 'mdi:battery-20';
+        if (level <= 30) return 'mdi:battery-30';
+        if (level <= 40) return 'mdi:battery-40';
+        if (level <= 50) return 'mdi:battery-50';
+        if (level <= 60) return 'mdi:battery-60';
+        if (level <= 70) return 'mdi:battery-70';
+        if (level <= 80) return 'mdi:battery-80';
+        if (level <= 90) return 'mdi:battery-90';
+        return 'mdi:battery';
+    };
+
+    return (
+        <div className="bg-gray-200/50 dark:bg-gray-800/70 p-3 rounded-lg">
+            <h3 className="text-xs font-bold uppercase text-gray-500 dark:text-gray-400 tracking-wider mb-2">Уровень заряда</h3>
+            <div className="space-y-2">
+                {batteryDevices.map(({ deviceId, deviceName, batteryLevel }) => {
+                    const isLow = batteryLevel <= lowBatteryThreshold;
+                    return (
+                        <div key={deviceId} className="flex items-center justify-between text-sm">
+                            <div className={`flex items-center gap-2 overflow-hidden ${isLow ? 'text-red-500 dark:text-red-400' : 'text-gray-800 dark:text-gray-200'}`}>
+                                <Icon icon={getBatteryIcon(batteryLevel)} className="w-5 h-5 flex-shrink-0" />
+                                <span className="truncate" title={deviceName}>{deviceName}</span>
+                            </div>
+                            <span className={`font-semibold ${isLow ? 'text-red-500 dark:text-red-400' : 'text-gray-600 dark:text-gray-300'}`}>{batteryLevel}%</span>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
 
 interface InfoPanelProps {
     sidebarWidth: number;
@@ -216,7 +261,6 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, ca
                  <CameraWidget
                     cameras={cameras}
                     settings={cameraSettings}
-                    // FIX: The prop is called onSettingsChange in the component definition.
                     onSettingsChange={onCameraSettingsChange}
                     onCameraWidgetClick={onCameraWidgetClick}
                     haUrl={haUrl}
@@ -229,6 +273,8 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, ca
                     getConfig={getConfig} 
                     colorScheme={colorScheme}
                 />
+
+                <BatteryLevelsWidget />
             </div>
 
             {/* Невидимый элемент для захвата мыши при изменении размера */}

@@ -11,6 +11,12 @@ interface HassEntities {
   [key: string]: HassEntity;
 }
 
+interface BatteryDevice {
+    deviceId: string;
+    deviceName: string;
+    batteryLevel: number;
+}
+
 interface HAState {
   connectionStatus: ConnectionStatus;
   isLoading: boolean;
@@ -24,6 +30,7 @@ interface HAState {
   allKnownDevices: Map<string, Device>;
   allRoomsForDevicePage: Room[];
   allCameras: Device[];
+  batteryDevices: BatteryDevice[];
 }
 
 interface HAActions {
@@ -67,8 +74,51 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
               deviceMap.set(device.id, device);
           });
       });
+      
+      // --- Логика для поиска уровня заряда батареи ---
+      const entityArray = Object.values(entities);
+      const entityIdToDeviceId = new Map<string, string>();
+      entityRegistry.forEach(e => { if (e.device_id) entityIdToDeviceId.set(e.entity_id, e.device_id); });
+
+      const batteryDevicesList: BatteryDevice[] = [];
+      
+      deviceMap.forEach(device => {
+          const entity = entities[device.id];
+          if (!entity) return;
+
+          let batteryLevel: number | undefined = undefined;
+
+          // 1. Проверяем атрибут `battery_level` у самого устройства.
+          if (typeof entity.attributes.battery_level === 'number') {
+              batteryLevel = entity.attributes.battery_level;
+          }
+
+          // 2. Ищем связанный сенсор батареи по `device_id`.
+          if (batteryLevel === undefined) {
+              const physicalDeviceId = entityIdToDeviceId.get(device.id);
+              if (physicalDeviceId) {
+                  const batterySensor = entityArray.find(e =>
+                      entityIdToDeviceId.get(e.entity_id) === physicalDeviceId &&
+                      e.attributes.device_class === 'battery' &&
+                      !isNaN(parseFloat(e.state))
+                  );
+                  if (batterySensor) {
+                      batteryLevel = parseFloat(batterySensor.state);
+                  }
+              }
+          }
+
+          if (batteryLevel !== undefined) {
+              device.batteryLevel = Math.round(batteryLevel);
+              batteryDevicesList.push({ deviceId: device.id, deviceName: device.name, batteryLevel: device.batteryLevel });
+          }
+      });
+      
       const cameras = Array.from(deviceMap.values()).filter((d: Device) => d.haDomain === 'camera');
-      set({ allKnownDevices: deviceMap, allRoomsForDevicePage: rooms, allCameras: cameras });
+      // Сортируем устройства по уровню заряда (по возрастанию)
+      batteryDevicesList.sort((a, b) => a.batteryLevel - b.batteryLevel);
+
+      set({ allKnownDevices: deviceMap, allRoomsForDevicePage: rooms, allCameras: cameras, batteryDevices: batteryDevicesList });
   };
   
   // Re-compute derived state whenever customizations change
@@ -93,6 +143,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     allKnownDevices: new Map(),
     allRoomsForDevicePage: [],
     allCameras: [],
+    batteryDevices: [],
 
     connect: (url, token) => {
         if (socketRef) socketRef.close();
