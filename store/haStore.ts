@@ -75,47 +75,68 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           });
       });
       
-      // --- Логика для поиска уровня заряда батареи ---
-      const entityArray = Object.values(entities);
-      const entityIdToDeviceId = new Map<string, string>();
-      entityRegistry.forEach(e => { if (e.device_id) entityIdToDeviceId.set(e.entity_id, e.device_id); });
+      // --- Новая логика для поиска уровня заряда батареи по физическим устройствам ---
+      const deviceIdToEntityIds = new Map<string, string[]>();
+      entityRegistry.forEach(e => {
+        if (e.device_id) {
+          if (!deviceIdToEntityIds.has(e.device_id)) {
+            deviceIdToEntityIds.set(e.device_id, []);
+          }
+          deviceIdToEntityIds.get(e.device_id)!.push(e.entity_id);
+        }
+      });
 
       const batteryDevicesList: BatteryDevice[] = [];
-      
-      deviceMap.forEach(device => {
-          const entity = entities[device.id];
-          if (!entity) return;
 
-          let batteryLevel: number | undefined = undefined;
+      // Итерируем по физическим устройствам из Home Assistant
+      devices.forEach(haDevice => {
+        if (!haDevice.id) return;
 
-          // 1. Проверяем атрибут `battery_level` у самого устройства.
-          if (typeof entity.attributes.battery_level === 'number') {
-              batteryLevel = entity.attributes.battery_level;
+        const associatedEntityIds = deviceIdToEntityIds.get(haDevice.id) || [];
+        if (associatedEntityIds.length === 0) return;
+
+        let batteryLevel: number | undefined = undefined;
+
+        // Стратегия 1: Найти выделенный сенсор батареи для этого устройства
+        const batterySensorEntity = associatedEntityIds
+          .map(id => entities[id])
+          .find(entity => entity?.attributes.device_class === 'battery' && !isNaN(parseFloat(entity.state)));
+        
+        if (batterySensorEntity) {
+          batteryLevel = parseFloat(batterySensorEntity.state);
+        } else {
+          // Стратегия 2: Найти любую сущность для этого устройства, у которой есть атрибут battery_level
+          const entityWithBatteryAttribute = associatedEntityIds
+            .map(id => entities[id])
+            .find(entity => typeof entity?.attributes.battery_level === 'number');
+
+          if (entityWithBatteryAttribute) {
+            batteryLevel = entityWithBatteryAttribute.attributes.battery_level;
           }
+        }
 
-          // 2. Ищем связанный сенсор батареи по `device_id`.
-          if (batteryLevel === undefined) {
-              const physicalDeviceId = entityIdToDeviceId.get(device.id);
-              if (physicalDeviceId) {
-                  const batterySensor = entityArray.find(e =>
-                      entityIdToDeviceId.get(e.entity_id) === physicalDeviceId &&
-                      e.attributes.device_class === 'battery' &&
-                      !isNaN(parseFloat(e.state))
-                  );
-                  if (batterySensor) {
-                      batteryLevel = parseFloat(batterySensor.state);
-                  }
-              }
-          }
+        if (batteryLevel !== undefined) {
+          const roundedBatteryLevel = Math.round(batteryLevel);
 
-          if (batteryLevel !== undefined) {
-              device.batteryLevel = Math.round(batteryLevel);
-              batteryDevicesList.push({ deviceId: device.id, deviceName: device.name, batteryLevel: device.batteryLevel });
-          }
+          // Добавляем одну запись для физического устройства в наш список
+          batteryDevicesList.push({
+            deviceId: haDevice.id,
+            deviceName: haDevice.name,
+            batteryLevel: roundedBatteryLevel,
+          });
+
+          // Распространяем этот уровень заряда на все связанные сущности в нашей карте `allKnownDevices`
+          associatedEntityIds.forEach(entityId => {
+            const device = deviceMap.get(entityId);
+            if (device) {
+              device.batteryLevel = roundedBatteryLevel;
+            }
+          });
+        }
       });
       
       const cameras = Array.from(deviceMap.values()).filter((d: Device) => d.haDomain === 'camera');
-      // Сортируем устройства по уровню заряда (по возрастанию)
+      // Сортируем список физических устройств по уровню заряда
       batteryDevicesList.sort((a, b) => a.batteryLevel - b.batteryLevel);
 
       set({ allKnownDevices: deviceMap, allRoomsForDevicePage: rooms, allCameras: cameras, batteryDevices: batteryDevicesList });
