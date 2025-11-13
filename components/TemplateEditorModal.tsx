@@ -595,7 +595,27 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
           <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
             <main className="flex-1 flex flex-col items-center justify-center bg-gray-900/50 relative" onClick={() => handleSelect('element', '')}>
               <div ref={previewRef} className="w-[400px] transition-all duration-300 relative" style={{ aspectRatio: `${editedTemplate.width || 1} / ${editedTemplate.height || 1}`}}>
-                  <DeviceCard device={sampleDevice} allKnownDevices={sampleAllKnownDevices} customizations={{}} onDeviceToggle={() => {}} template={editedTemplate} isPreview={true} onTemperatureChange={()=>{}} onBrightnessChange={()=>{}} onHvacModeChange={()=>{}} onPresetChange={()=>{}} onFanSpeedChange={()=>{}} onCameraCardClick={()=>{}} isEditMode={false} onEditDevice={()=>{}} haUrl="" signPath={async()=>({path:''})} getCameraStreamUrl={async()=>({url: ''})} colorScheme={currentColorScheme} />
+                  <DeviceCard 
+                      device={sampleDevice} 
+                      allKnownDevices={sampleAllKnownDevices} 
+                      customizations={{}} 
+                      onDeviceToggle={() => {}} 
+                      template={editedTemplate} 
+                      isPreview={true} 
+                      onTemperatureChange={()=>{}} 
+                      onBrightnessChange={()=>{}} 
+                      onHvacModeChange={()=>{}} 
+                      onPresetChange={()=>{}} 
+                      onFanSpeedChange={()=>{}} 
+                      onCameraCardClick={()=>{}} 
+                      isEditMode={false} 
+                      onEditDevice={()=>{}} 
+                      haUrl="" 
+                      signPath={async()=>({path:''})} 
+                      getCameraStreamUrl={async()=>({url: ''})} 
+                      colorScheme={currentColorScheme}
+// FIX: Pass the 'isDark' prop to DeviceCard as it is required.
+                      isDark={isDark} />
                   {editedTemplate.elements.map(element => <DraggableCanvasElement key={element.id} element={element} isSelected={selectedElementIds.includes(element.id)} onSelect={(id, multi) => handleSelect('element', id, multi)} showResizeHandles={selectedElementIds.length === 1 && selectedElementIds[0] === element.id}/>)}
                   {editedTemplate.deviceSlots?.map(slot => <DraggableIndicatorSlot key={slot.id} slot={slot} isSelected={selectedSlotId === slot.id} onSelect={() => handleSelect('slot', slot.id)} />)}
               </div>

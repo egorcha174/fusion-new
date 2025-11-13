@@ -160,6 +160,7 @@ interface DeviceCardProps {
   colorScheme: ColorScheme['light']; // Текущая цветовая схема
   onContextMenu?: (event: React.MouseEvent) => void;
   isOnPreview?: boolean; // Для переключения состояния в редакторе
+  isDark: boolean;
 }
 
 /**
@@ -168,7 +169,7 @@ interface DeviceCardProps {
  * 1. На основе шаблона (template): универсальный рендерер, который строит UI по заданной структуре.
  * 2. Резервный (legacy): рендерит предопределенный UI для каждого типа устройства.
  */
-const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, customizations, onDeviceToggle, onTemperatureChange, onBrightnessChange, onHvacModeChange, onPresetChange, onFanSpeedChange, onCameraCardClick, isEditMode, isPreview = false, onEditDevice, onRemoveFromTab, haUrl, signPath, getCameraStreamUrl, template, openMenuDeviceId, setOpenMenuDeviceId, colorScheme, onContextMenu, isOnPreview }) => {
+const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, customizations, onDeviceToggle, onTemperatureChange, onBrightnessChange, onHvacModeChange, onPresetChange, onFanSpeedChange, onCameraCardClick, isEditMode, isPreview = false, onEditDevice, onRemoveFromTab, haUrl, signPath, getCameraStreamUrl, template, openMenuDeviceId, setOpenMenuDeviceId, colorScheme, onContextMenu, isOnPreview, isDark }) => {
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
   const presetMenuRef = useRef<HTMLDivElement>(null);
   const hvacModesRef = useRef<HTMLDivElement>(null);
@@ -287,6 +288,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
   const isCamera = device.type === DeviceType.Camera;
   const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && device.type !== DeviceType.Sensor && !isCamera;
   const deviceBindings = customizations[device.id]?.deviceBindings;
+  const flashColor = isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.1)';
 
   // --- УНИВЕРСАЛЬНЫЙ РЕНДЕРЕР НА ОСНОВЕ ШАБЛОНА ---
   if (template) {
@@ -714,7 +716,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
               transition={{ duration: 0.4, ease: 'easeOut' }}
               className="absolute inset-0 rounded-2xl pointer-events-none"
               style={{
-                background: 'radial-gradient(circle, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 70%)'
+                background: `radial-gradient(circle, ${flashColor} 0%, rgba(0,0,0,0) 70%)`
               }}
             />
           )}
@@ -907,7 +909,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
               transition={{ duration: 0.4, ease: 'easeOut' }}
               className="absolute inset-0 rounded-2xl pointer-events-none z-10"
               style={{
-                background: 'radial-gradient(circle, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 70%)'
+                background: `radial-gradient(circle, ${flashColor} 0%, rgba(0,0,0,0) 70%)`
               }}
             />
           )}

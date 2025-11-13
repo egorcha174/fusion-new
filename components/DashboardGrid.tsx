@@ -31,8 +31,9 @@ const DraggableDevice: React.FC<{
   allKnownDevices: Map<string, Device>;
   customizations: DeviceCustomizations;
   colorScheme: ColorScheme['light'];
+  isDark: boolean;
   [key: string]: any; // Прочие пропсы для DeviceCard
-}> = React.memo(({ device, isEditMode, onDeviceToggle, onShowHistory, template, allKnownDevices, customizations, colorScheme, ...cardProps }) => {
+}> = React.memo(({ device, isEditMode, onDeviceToggle, onShowHistory, template, allKnownDevices, customizations, colorScheme, isDark, ...cardProps }) => {
   const { attributes, listeners, setNodeRef: setDraggableNodeRef, isDragging } = useDraggable({
     id: device.id,
     disabled: !isEditMode,
@@ -103,6 +104,7 @@ const DraggableDevice: React.FC<{
         setOpenMenuDeviceId={cardProps.setOpenMenuDeviceId}
         colorScheme={colorScheme}
         onContextMenu={handleContextMenu}
+        isDark={isDark}
       />
     </div>
   );
@@ -208,7 +210,7 @@ interface DashboardGridProps {
   onBrightnessChange: (deviceId: string, brightness: number) => void;
   onHvacModeChange: (deviceId: string, mode: string) => void;
   onPresetChange: (deviceId: string, preset: string) => void;
-  onFanSpeedChange: (deviceId: string, percentage: number) => void;
+  onFanSpeedChange: (deviceId: string, value: number | string) => void;
   onCameraCardClick: (device: Device) => void;
   onShowHistory: (entityId: string) => void;
   onEditDevice: (device: Device) => void;
@@ -218,6 +220,7 @@ interface DashboardGridProps {
   templates: CardTemplates;
   customizations: DeviceCustomizations;
   colorScheme: ColorScheme['light'];
+  isDark: boolean;
 }
 
 /**
@@ -496,6 +499,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                           allKnownDevices={props.allKnownDevices}
                           customizations={props.customizations}
                           colorScheme={props.colorScheme}
+                          isDark={props.isDark}
                           haUrl={props.haUrl}
                           signPath={props.signPath}
                           getCameraStreamUrl={props.getCameraStreamUrl}
