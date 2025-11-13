@@ -373,11 +373,21 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         const [domain] = entity.entity_id.split('.');
         get().callService(domain, service, { entity_id: entity.entity_id });
     },
-    handleTemperatureChange: (deviceId, temperature, isDelta = false) => {
-        const entity = get().entities[deviceId];
-        if (!entity) return;
-        const newTemp = isDelta ? (entity.attributes.temperature || 0) + temperature : temperature;
-        get().callService('climate', 'set_temperature', { entity_id: entity.entity_id, temperature: newTemp });
+    handleTemperatureChange: (deviceId, value, isDelta = false) => {
+      const entity = get().entities[deviceId];
+      if (!entity) return;
+      const [domain] = entity.entity_id.split('.');
+      
+      if (domain === 'climate') {
+        const newTemp = isDelta ? (entity.attributes.temperature || 0) + value : value;
+        get().callService('climate', 'set_temperature', { entity_id: deviceId, temperature: newTemp });
+      } else if (domain === 'humidifier') {
+        const newHumidity = isDelta ? (entity.attributes.humidity || 0) + value : value;
+        const min = entity.attributes.min_humidity ?? 0;
+        const max = entity.attributes.max_humidity ?? 100;
+        const clampedHumidity = Math.max(min, Math.min(max, Math.round(newHumidity)));
+        get().callService('humidifier', 'set_humidity', { entity_id: deviceId, humidity: clampedHumidity });
+      }
     },
     handleHvacModeChange: (deviceId, mode) => {
         const entity = get().entities[deviceId];
@@ -393,7 +403,13 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         }, 200);
     },
     handlePresetChange: (deviceId, preset) => {
-        get().callService('climate', 'set_preset_mode', { entity_id: deviceId, preset_mode: preset });
+        const [domain] = deviceId.split('.');
+        const serviceData = domain === 'humidifier'
+            ? { entity_id: deviceId, mode: preset }
+            : { entity_id: deviceId, preset_mode: preset };
+        const serviceName = domain === 'humidifier' ? 'set_mode' : 'set_preset_mode';
+        
+        get().callService(domain, serviceName, serviceData);
     },
   };
 });

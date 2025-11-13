@@ -233,7 +233,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
 
   
   const isCamera = device.type === DeviceType.Camera;
-  const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && device.type !== DeviceType.Sensor && device.type !== DeviceType.Humidifier && !isCamera;
+  const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && device.type !== DeviceType.Sensor && !isCamera;
   const deviceBindings = customizations[device.id]?.deviceBindings;
 
   // --- УНИВЕРСАЛЬНЫЙ РЕНДЕРЕР НА ОСНОВЕ ШАБЛОНА ---
@@ -332,7 +332,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
 
           if (device.type === DeviceType.Humidifier && device.targetHumidity !== undefined) {
               const dp = typeof decimalPlaces === 'number' && decimalPlaces >= 0 ? decimalPlaces : 0;
-              valueText = `${device.targetHumidity.toFixed(dp)}%`;
+              valueText = `${device.targetHumidity.toFixed(dp)}`;
           } else {
             const numericStatus = parseFloat(device.status);
             // Форматируем число, если это возможно и задано количество знаков.
@@ -390,28 +390,34 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         }
         case 'temperature': {
            const { decimalPlaces } = element.styles;
+           const isHumidifier = device.type === DeviceType.Humidifier;
+           const tempValue = isHumidifier ? device.currentHumidity : device.temperature;
+           const unit = isHumidifier ? '%' : '°';
            let tempText = '';
-           if (typeof device.temperature === 'number') {
+           if (typeof tempValue === 'number') {
              tempText = (typeof decimalPlaces === 'number' && decimalPlaces >= 0)
-               ? device.temperature.toFixed(decimalPlaces)
-               : device.temperature.toFixed(0);
+               ? tempValue.toFixed(decimalPlaces)
+               : tempValue.toFixed(0);
            }
            const tempProps = getStyleProps('valueText');
            return (
              <div key={element.id} style={style} className="pointer-events-none">
-               <AutoFitText text={`${tempText}°`} className="w-full h-full" pClassName="font-bold" pStyle={{...tempProps.style, fontFamily: element.styles.fontFamily}} maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign}/>
+               <AutoFitText text={`${tempText}${unit}`} className="w-full h-full" pClassName="font-bold" pStyle={{...tempProps.style, fontFamily: element.styles.fontFamily}} maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign}/>
              </div>
            );
         }
-        case 'target-temperature':
+        case 'target-temperature': {
+          const isHumidifier = device.type === DeviceType.Humidifier;
           return (
             <div key={element.id} style={style} onClick={e => { if (!isPreview) e.stopPropagation(); }}>
-              <ThermostatDial 
-                min={device.minTemp ?? 10}
-                max={device.maxTemp ?? 35}
-                value={device.targetTemperature ?? 21}
-                current={device.temperature ?? 21}
+              <ThermostatDial
+                min={isHumidifier ? (device.minTemp ?? 0) : (device.minTemp ?? 10)}
+                max={isHumidifier ? (device.maxTemp ?? 100) : (device.maxTemp ?? 35)}
+                value={isHumidifier ? (device.targetHumidity ?? 50) : (device.targetTemperature ?? 21)}
+                current={isHumidifier ? (device.currentHumidity ?? 40) : (device.temperature ?? 21)}
                 onChange={value => { if (!isPreview) onTemperatureChange(value); }}
+                onDeltaChange={delta => { if (!isPreview) onTemperatureChange(delta, true); }}
+                deltaStep={element.styles.deltaStep ?? (isHumidifier ? 1 : 0.5)}
                 hvacAction={device.hvacAction ?? 'idle'}
                 idleLabelColor={element.styles.idleLabelColor}
                 heatingLabelColor={element.styles.heatingLabelColor}
@@ -420,6 +426,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
               />
             </div>
           );
+        }
         case 'hvac-modes': {
             const dropdownRef = useRef<HTMLDivElement>(null);
             const isDropdownOpen = openMenuDeviceId === device.id;
@@ -500,11 +507,12 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
             const { linkedEntityId, showValue } = element.styles;
             if (!linkedEntityId) return null;
             
-            const linkedDevice = allKnownDevices.get(linkedEntityId);
+            const finalEntityId = linkedEntityId === 'self' ? device.id : linkedEntityId;
+            const linkedDevice = allKnownDevices.get(finalEntityId);
             
             if (!linkedDevice) {
                 return (
-                    <div key={element.id} style={style} className="flex items-center justify-center" title={`Связанное устройство не найдено: ${linkedEntityId}`}>
+                    <div key={element.id} style={style} className="flex items-center justify-center" title={`Связанное устройство не найдено: ${finalEntityId}`}>
                         <Icon icon="mdi:alert-circle-outline" className="w-full h-full text-yellow-500/80" />
                     </div>
                 );
@@ -515,31 +523,17 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
 
             let valueText: string | null = null;
             if (showValue) {
-                const numericStatus = parseFloat(linkedDevice.status);
-                if (!isNaN(numericStatus)) {
-                    valueText = (typeof element.styles.decimalPlaces === 'number' && element.styles.decimalPlaces >= 0)
-                        ? numericStatus.toFixed(element.styles.decimalPlaces)
-                        : linkedDevice.status;
-                }
+                valueText = linkedDevice.status;
             }
         
             return (
-                <div key={element.id} style={style} className="w-full h-full flex items-center justify-center gap-1 p-1 overflow-hidden">
-                    {true && ( // Иконка всегда есть
-                        <div style={{ color: iconColor }} className={`flex-shrink-0 ${!!valueText ? 'w-[40%]' : 'w-full h-full'}`}>
-                            <DeviceIcon icon={linkedDevice.icon ?? linkedDevice.type} isOn={isLinkedOn} className="!w-full !h-full" iconAnimation={linkedDevice.iconAnimation} />
-                        </div>
-                    )}
+                <div key={element.id} style={style} onClick={!isPreview ? (e) => { e.stopPropagation(); onDeviceToggle(finalEntityId); } : undefined} className={`w-full h-full flex flex-col items-center justify-center bg-black/5 dark:bg-black/25 hover:bg-black/10 dark:hover:bg-black/40 rounded-xl transition-all p-1 ring-1 ring-black/5 dark:ring-white/10 ${!isPreview ? 'cursor-pointer' : ''}`}>
+                    <div style={{ color: iconColor }} className="w-auto h-[55%]">
+                        <DeviceIcon icon={linkedDevice.icon ?? linkedDevice.type} isOn={isLinkedOn} className="!w-full !h-full" iconAnimation={linkedDevice.iconAnimation} />
+                    </div>
                     {!!valueText && (
-                        <div className="flex-grow h-full min-w-0">
-                             <AutoFitText
-                                text={valueText}
-                                className="w-full h-full"
-                                pClassName="font-semibold"
-                                pStyle={{ color: isOn ? colorScheme.valueTextColorOn : colorScheme.valueTextColor, fontFamily: element.styles.fontFamily }}
-                                fontSize={element.styles.fontSize}
-                                maxFontSize={100} mode="single-line" textAlign={element.styles.textAlign || 'center'}
-                            />
+                        <div className="text-[10px] font-bold text-gray-700 dark:text-gray-300 mt-auto leading-tight text-center">
+                             {valueText}
                         </div>
                     )}
                 </div>

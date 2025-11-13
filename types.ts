@@ -279,6 +279,7 @@ export interface CardElement {
     idleLabelColor?: string; // для 'target-temperature'
     heatingLabelColor?: string; // для 'target-temperature'
     coolingLabelColor?: string; // для 'target-temperature'
+    deltaStep?: number; // для 'target-temperature'
   };
 }
 
@@ -357,6 +358,11 @@ export interface HassEntity {
     current_temperature?: number; // Текущая температура
     humidity?: number; // Целевая влажность
     current_humidity?: number; // Текущая влажность
+    min_humidity?: number;
+    max_humidity?: number;
+    mode?: string;
+    available_modes?: string[];
+    action?: string;
     device_id?: string;
     // `forecast` может иметь любую структуру, в зависимости от интеграции
     forecast?: any;

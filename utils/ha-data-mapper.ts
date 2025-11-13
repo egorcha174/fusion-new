@@ -1,4 +1,5 @@
 
+
 import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization, WeatherForecast } from '../types';
 
 /**
@@ -165,6 +166,11 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
   if (device.type === DeviceType.Humidifier) {
     device.targetHumidity = attributes.humidity;
     device.currentHumidity = attributes.current_humidity;
+    device.hvacAction = attributes.action; // humidifying, drying, idle
+    device.minTemp = attributes.min_humidity; // Re-use minTemp for min_humidity
+    device.maxTemp = attributes.max_humidity; // Re-use maxTemp for max_humidity
+    device.presetMode = attributes.mode; // Re-use presetMode for mode
+    device.presetModes = attributes.available_modes; // Re-use presetModes for available_modes
   }
   
   if (device.type === DeviceType.Weather) {

@@ -1,4 +1,5 @@
 
+
 import React, { useRef, useCallback, useState, useEffect, useLayoutEffect } from 'react';
 import { ColorScheme } from '../types';
 
@@ -150,6 +151,8 @@ interface ThermostatDialProps {
   value: number; // Target temperature
   current: number; // Current temperature
   onChange: (value: number) => void;
+  onDeltaChange?: (delta: number) => void;
+  deltaStep?: number;
   hvacAction: string;
   idleLabelColor?: string;
   heatingLabelColor?: string;
@@ -157,7 +160,7 @@ interface ThermostatDialProps {
   colorScheme: ColorScheme['light'];
 }
 
-const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, current, onChange, hvacAction, idleLabelColor, heatingLabelColor, coolingLabelColor, colorScheme }) => {
+const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, current, onChange, onDeltaChange, deltaStep = 0.5, hvacAction, idleLabelColor, heatingLabelColor, coolingLabelColor, colorScheme }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -257,6 +260,18 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
   const handlePosition = polarToCartesian(CENTER, CENTER, RADIUS, valueAngle);
 
   const getLabelAndStyle = () => {
+    const customActionLabel = {
+      'humidifying': 'УВЛАЖНЕНИЕ',
+      'drying': 'ОСУШЕНИЕ',
+    }[hvacAction];
+    
+    if (customActionLabel) {
+      return {
+        label: customActionLabel,
+        style: { color: heatingLabelColor || colorScheme.thermostatHeatingColor },
+      };
+    }
+
     switch (hvacAction) {
       case 'cooling': return {
           label: 'ОХЛАЖДЕНИЕ',
@@ -358,6 +373,13 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
           />
       </div>
       
+      {onDeltaChange && (
+        <div className="absolute bottom-[10%] w-[60%] flex justify-between pointer-events-none">
+            <button onClick={(e) => { e.stopPropagation(); onDeltaChange(-(deltaStep)); }} className="w-10 h-10 rounded-full flex items-center justify-center bg-black/5 dark:bg-white/5 text-2xl font-light pointer-events-auto hover:bg-black/10 dark:hover:bg-white/10">-</button>
+            <button onClick={(e) => { e.stopPropagation(); onDeltaChange(deltaStep); }} className="w-10 h-10 rounded-full flex items-center justify-center bg-black/5 dark:bg-white/5 text-2xl font-light pointer-events-auto hover:bg-black/10 dark:hover:bg-white/10">+</button>
+        </div>
+      )}
+
        {isEditing && (
         <div 
             className="absolute inset-0 bg-gray-200/70 dark:bg-gray-900/70 backdrop-blur-sm rounded-full flex items-center justify-center z-20 fade-in"
