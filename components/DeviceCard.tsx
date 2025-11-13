@@ -6,6 +6,7 @@ import ThermostatDial from './ThermostatDial';
 import { Icon } from '@iconify/react';
 import { CameraStreamContent } from './CameraStreamContent';
 import BatteryWidgetCard from './BatteryWidgetCard';
+import { motion, AnimatePresence } from 'framer-motion';
 
 /**
  * Применяет заданную прозрачность к строке цвета.
@@ -701,10 +702,24 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
 
     return (
       <div
-        className={`w-full h-full relative rounded-2xl transition-all duration-300 ease-in-out select-none transform ${hoverClass} ${cursorClass} shadow-lg ring-1 ring-black/5 dark:ring-white/10 will-flash ${isFlashing ? 'is-flashing' : ''}`}
+        className={`w-full h-full relative rounded-2xl transition-all duration-300 ease-in-out select-none transform ${hoverClass} ${cursorClass} shadow-lg ring-1 ring-black/5 dark:ring-white/10 overflow-hidden`}
         style={{ backgroundColor: applyOpacity(dynamicBackgroundColor, colorScheme.cardOpacity), backdropFilter: 'blur(16px)' }}
         onContextMenu={onContextMenu}
       >
+        <AnimatePresence>
+          {isFlashing && (
+            <motion.div
+              initial={{ scale: 0, opacity: 0.7 }}
+              animate={{ scale: 2.5, opacity: 0 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+              className="absolute inset-0 rounded-2xl pointer-events-none"
+              style={{
+                background: 'radial-gradient(circle, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 70%)'
+              }}
+            />
+          )}
+        </AnimatePresence>
+        
         {isPreview && <div className="absolute inset-0 bg-center" style={{ backgroundImage: `linear-gradient(rgba(100,116,139,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(100,116,139,0.2) 1px, transparent 1px)`, backgroundSize: `10px 10px` }} />}
         
         {/* Рендерим все элементы из шаблона */}
@@ -868,7 +883,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
   };
 
   const getCardClasses = () => {
-    const baseClasses = `w-full h-full rounded-2xl flex flex-col transition-all duration-300 ease-in-out select-none relative shadow-lg ring-1 ring-black/5 dark:ring-white/10 transform will-flash ${isFlashing ? 'is-flashing' : ''}`;
+    const baseClasses = `w-full h-full rounded-2xl flex flex-col transition-all duration-300 ease-in-out select-none relative shadow-lg ring-1 ring-black/5 dark:ring-white/10 transform overflow-hidden`;
     const layoutClasses = (isCamera || device.type === DeviceType.BatteryWidget) ? 'p-0' : styles.padding;
     const cursorClass = (isTogglable || isCamera) && !isEditMode && !isPreview ? 'cursor-pointer' : '';
     const hoverClass = !isEditMode && !isPreview ? 'hover:shadow-xl hover:scale-[1.02]' : '';
@@ -884,6 +899,19 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
 
   return (
     <div className={getCardClasses()} style={getCardStyle()} onContextMenu={onContextMenu}>
+       <AnimatePresence>
+          {isFlashing && (
+            <motion.div
+              initial={{ scale: 0, opacity: 0.7 }}
+              animate={{ scale: 2.5, opacity: 0 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+              className="absolute inset-0 rounded-2xl pointer-events-none z-10"
+              style={{
+                background: 'radial-gradient(circle, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 70%)'
+              }}
+            />
+          )}
+        </AnimatePresence>
        {renderContent()}
     </div>
   );
