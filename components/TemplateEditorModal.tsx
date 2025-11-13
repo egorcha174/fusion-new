@@ -1,5 +1,4 @@
 
-
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot, ColorScheme } from '../types';
 import DeviceCard from './DeviceCard';
@@ -758,7 +757,8 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                             >
                                 <option value="">-- Выберите устройство --</option>
                                 <option value="self">Это же устройство</option>
-                                {Array.from(allKnownDevices.values()).sort((a,b) => a.name.localeCompare(b.name)).map(d => (
+                                {/* FIX: Explicitly type array method parameters to resolve 'unknown' type errors. */}
+                                {Array.from(allKnownDevices.values()).sort((a: Device, b: Device) => a.name.localeCompare(b.name)).map((d: Device) => (
                                     <option key={d.id} value={d.id}>{d.name}</option>
                                 ))}
                             </select>
@@ -782,9 +782,10 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                                 className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
                             >
                                 <option value="">-- Выберите вентилятор --</option>
+                                {/* FIX: Explicitly type array method parameters to resolve 'unknown' type errors. */}
                                 {Array.from(allKnownDevices.values())
-                                    .filter(d => d.haDomain === 'fan' || (d.haDomain === 'select' && (d.id.includes('fan_level') || d.id.includes('speed'))))
-                                    .sort((a, b) => a.name.localeCompare(b.name)).map(d => (
+                                    .filter((d: Device) => d.haDomain === 'fan' || (d.haDomain === 'select' && (d.id.includes('fan_level') || d.id.includes('speed'))))
+                                    .sort((a: Device, b: Device) => a.name.localeCompare(b.name)).map((d: Device) => (
                                     <option key={d.id} value={d.id}>{d.name}</option>
                                 ))}
                             </select>
