@@ -173,7 +173,7 @@ interface AppState {
     cameraSettings: CameraSettings;
     sidebarWidth: number;
     isSidebarVisible: boolean;
-    theme: 'day' | 'night' | 'auto';
+    theme: 'day' | 'night' | 'auto' | 'sun';
     colorScheme: ColorScheme;
     weatherProvider: 'openweathermap' | 'yandex' | 'foreca';
     openWeatherMapKey: string;
@@ -260,7 +260,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     cameraSettings: loadAndMigrate<CameraSettings>('ha-camera-settings', { selectedEntityId: null }),
     sidebarWidth: loadAndMigrate<number>('ha-sidebar-width', 320),
     isSidebarVisible: loadAndMigrate<boolean>('ha-sidebar-visible', true),
-    theme: loadAndMigrate<'day' | 'night' | 'auto'>('ha-theme', 'auto'),
+    theme: loadAndMigrate<'day' | 'night' | 'auto' | 'sun'>('ha-theme', 'auto'),
     colorScheme: loadAndMigrate<ColorScheme>('ha-color-scheme', DEFAULT_COLOR_SCHEME),
     weatherProvider: loadAndMigrate<'openweathermap' | 'yandex' | 'foreca'>('ha-weather-provider', 'openweathermap'),
     openWeatherMapKey: loadAndMigrate<string>('ha-openweathermap-key', ''),

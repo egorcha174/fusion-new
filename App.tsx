@@ -5,6 +5,8 @@
 
 
 
+
+
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices } from './types';
@@ -27,6 +29,64 @@ const ContextMenu = lazy(() => import('./components/ContextMenu'));
 const FloatingCameraWindow = lazy(() => import('./components/FloatingCameraWindow'));
 const TemplateEditorModal = lazy(() => import('./components/TemplateEditorModal'));
 const HistoryModal = lazy(() => import('./components/HistoryModal'));
+
+
+/**
+ * Рассчитывает время восхода и заката для указанной даты и координат.
+ * @param latitude - Широта.
+ * @param longitude - Долгота.
+ * @param date - Дата для расчета.
+ * @returns { sunrise: Date | null, sunset: Date | null } - Объекты Date для восхода/заката или null для полярного дня/ночи.
+ */
+function getSunriseSunset(latitude: number, longitude: number, date = new Date()) {
+    const toRad = (deg: number) => deg * Math.PI / 180;
+    const toDeg = (rad: number) => rad * 180 / Math.PI;
+
+    const dayOfYear = (d: Date) => Math.floor((d.getTime() - new Date(d.getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24);
+    
+    const n = dayOfYear(date) + 1;
+    const lngHour = longitude / 15;
+    
+    const t = n + ((6 - lngHour) / 24);
+    const M = (0.9856 * t) - 3.289;
+    let L = M + (1.916 * Math.sin(toRad(M))) + (0.020 * Math.sin(toRad(2 * M))) + 282.634;
+    L = (L + 360) % 360;
+    
+    let RA = toDeg(Math.atan(0.91746 * Math.tan(toRad(L))));
+    RA = (RA + 360) % 360;
+
+    const Lquadrant = Math.floor(L / 90) * 90;
+    const RAquadrant = Math.floor(RA / 90) * 90;
+    RA = RA + (Lquadrant - RAquadrant);
+    RA = RA / 15;
+
+    const sinDec = 0.39782 * Math.sin(toRad(L));
+    const cosDec = Math.cos(Math.asin(sinDec));
+    
+    const cosH = (Math.cos(toRad(90.833)) - (sinDec * Math.sin(toRad(latitude)))) / (cosDec * Math.cos(toRad(latitude)));
+
+    if (cosH > 1) return { sunrise: null, sunset: null }; // полярная ночь
+    if (cosH < -1) return { sunrise: null, sunset: null }; // полярный день
+
+    const H = toDeg(Math.acos(cosH)) / 15;
+    
+    const T_sunrise = H + RA - (0.06571 * t) - 6.622;
+    const T_sunset = -H + RA - (0.06571 * t) - 6.622;
+    
+    const UT_sunrise = (T_sunrise - lngHour + 24) % 24;
+    const UT_sunset = (T_sunset - lngHour + 24) % 24;
+
+    const toDate = (time: number) => {
+        const hours = Math.floor(time);
+        const minutes = Math.floor((time - hours) * 60);
+        const d = new Date(date);
+        d.setUTCHours(hours, minutes, 0, 0);
+        return d;
+    }
+
+    return { sunrise: toDate(UT_sunrise), sunset: toDate(UT_sunset) };
+}
+
 
 /**
  * Вспомогательный компонент для пунктов меню с выпадающими подменю.
@@ -133,6 +193,43 @@ const App: React.FC = () => {
     } = useAppStore();
 
   const isLg = useIsLg();
+  const [isDarkBySun, setIsDarkBySun] = useState(false);
+
+  // Эффект для режима "По солнцу"
+  useEffect(() => {
+    if (theme !== 'sun' || connectionStatus !== 'connected') return;
+
+    let intervalId: number;
+
+    const calculateSunPhase = async () => {
+        try {
+            const config = await getConfig();
+            const { latitude, longitude } = config;
+            if (latitude === undefined || longitude === undefined) throw new Error("Location not found in HA config");
+
+            const now = new Date();
+            const { sunrise, sunset } = getSunriseSunset(latitude, longitude, now);
+
+            if (sunrise && sunset) {
+                const isNight = now < sunrise || now > sunset;
+                setIsDarkBySun(isNight);
+            } else {
+                // Полярный день или ночь, используем системные настройки как резервный вариант
+                setIsDarkBySun(window.matchMedia('(prefers-color-scheme: dark)').matches);
+            }
+        } catch (e) {
+            console.error("Could not get location for sun theme, falling back to system preference.", e);
+            setIsDarkBySun(window.matchMedia('(prefers-color-scheme: dark)').matches);
+        }
+    };
+
+    calculateSunPhase();
+    // Пересчитываем каждые 10 минут
+    intervalId = window.setInterval(calculateSunPhase, 10 * 60 * 1000);
+
+    return () => clearInterval(intervalId);
+  }, [theme, connectionStatus, getConfig]);
+
 
   // Эффект для управления темой (светлая/темная).
   // Добавляет/удаляет класс 'dark' у корневого элемента <html>.
@@ -141,16 +238,21 @@ const App: React.FC = () => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     
     const updateTheme = () => {
-      const isDark =
-        theme === 'night' ||
-        (theme === 'auto' && mediaQuery.matches);
-      root.classList.toggle('dark', isDark);
+        let isDark = false;
+        switch (theme) {
+            case 'night': isDark = true; break;
+            case 'day': isDark = false; break;
+            case 'sun': isDark = isDarkBySun; break;
+            case 'auto':
+            default: isDark = mediaQuery.matches; break;
+        }
+        root.classList.toggle('dark', isDark);
     };
 
     updateTheme();
     mediaQuery.addEventListener('change', updateTheme); // Следим за системными изменениями
     return () => mediaQuery.removeEventListener('change', updateTheme);
-  }, [theme]);
+  }, [theme, isDarkBySun]);
 
   // Эффект, гарантирующий наличие хотя бы одной вкладки и установку активной вкладки.
   // Запускается после успешного подключения и загрузки данных.
@@ -215,7 +317,15 @@ const App: React.FC = () => {
 
     // Мемоизированные значения для определения текущей цветовой схемы.
     const isSystemDark = useMemo(() => window.matchMedia('(prefers-color-scheme: dark)').matches, []);
-    const isDark = useMemo(() => theme === 'night' || (theme === 'auto' && isSystemDark), [theme, isSystemDark]);
+    const isDark = useMemo(() => {
+        switch (theme) {
+            case 'night': return true;
+            case 'day': return false;
+            case 'sun': return isDarkBySun;
+            case 'auto':
+            default: return isSystemDark;
+        }
+    }, [theme, isSystemDark, isDarkBySun]);
     const currentColorScheme = useMemo(() => isDark ? colorScheme.dark : colorScheme.light, [isDark, colorScheme]);
 
     // Мемоизированный стиль для фона дашборда

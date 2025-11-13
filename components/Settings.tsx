@@ -221,6 +221,7 @@ const Settings: React.FC<{
         yandexWeatherKey, setYandexWeatherKey,
         forecaApiKey, setForecaApiKey,
         lowBatteryThreshold, setLowBatteryThreshold,
+        theme, setTheme,
     } = useAppStore();
     
     const [activeTab, setActiveTab] = useState<SettingsTab>('appearance');
@@ -392,6 +393,34 @@ const Settings: React.FC<{
                             <div className="flex justify-between items-center">
                                  <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Внешний вид</h2>
                                  <button onClick={onResetColorScheme} className="text-sm text-blue-600 dark:text-blue-400 hover:underline">Сбросить</button>
+                            </div>
+                            <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg space-y-3">
+                                <h4 className="font-semibold text-gray-900 dark:text-gray-100">Тема</h4>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Выберите, как будет переключаться светлая и тёмная тема.</p>
+                                <div className="flex gap-1 bg-gray-200 dark:bg-gray-900/50 p-1 rounded-lg">
+                                    {[
+                                        { val: 'day', name: 'Светлая' },
+                                        { val: 'night', name: 'Тёмная' },
+                                        { val: 'auto', name: 'Авто' },
+                                        { val: 'sun', name: 'По солнцу' }
+                                    ].map(({ val, name }) => (
+                                        <button
+                                            key={val}
+                                            onClick={() => setTheme(val as any)}
+                                            className={`flex-1 text-xs font-semibold py-1 rounded-md transition-colors ${theme === val ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-50' : 'text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-gray-800/50'}`}
+                                        >
+                                            {name}
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    {{
+                                        day: 'Всегда используется светлая тема.',
+                                        night: 'Всегда используется тёмная тема.',
+                                        auto: 'Тема синхронизируется с настройками вашей операционной системы.',
+                                        sun: 'Тема переключается автоматически в зависимости от восхода и заката солнца в вашей локации (требуются координаты в Home Assistant).'
+                                    }[theme]}
+                                </p>
                             </div>
                             <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg space-y-3">
                                 <h4 className="font-semibold text-gray-900 dark:text-gray-100">Готовые темы</h4>
