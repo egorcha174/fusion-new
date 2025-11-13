@@ -534,17 +534,23 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
             return (
                 <div key={element.id} style={style} onClick={e => { if (!isPreview) e.stopPropagation(); }} ref={hvacModesRef}>
                     <div className="relative w-full h-full flex items-center justify-center">
-                        <button onClick={(e) => handleHvacButtonClick(e, modes)} disabled={isPreview} className="w-full h-full flex flex-col items-center justify-center bg-black/5 dark:bg-black/25 hover:bg-black/10 dark:hover:bg-black/40 rounded-xl transition-all p-1 ring-1 ring-black/5 dark:ring-white/10">
-                            <Icon icon={activeConfig.icon} className="w-auto h-[55%] text-gray-800 dark:text-gray-200" />
-                            <span className="text-[10px] font-bold text-gray-800 dark:text-gray-200 mt-auto leading-tight text-center">{activeConfig.label}</span>
+                        <button onClick={(e) => handleHvacButtonClick(e, modes)} disabled={isPreview} className="w-full h-full flex flex-col items-center justify-center bg-black/5 dark:bg-black/25 hover:bg-black/10 dark:hover:bg-black/40 rounded-xl transition-all p-1 ring-1 ring-black/5 dark:ring-white/10" style={{ color: colorScheme.nameTextColor }}>
+                            <Icon icon={activeConfig.icon} className="w-auto h-[55%]" />
+                            <span className="text-[10px] font-bold mt-auto leading-tight text-center">{activeConfig.label}</span>
                         </button>
         
                         {isDropdownOpen && !isPreview && (
                             <div className={`absolute right-0 min-w-[150px] w-max bg-gray-200/80 dark:bg-gray-900/80 backdrop-blur-lg rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-1 z-50 fade-in ${hvacDropdownPositionClass}`}>
                                 {modes.map(mode => {
                                     const config = getConfig(mode);
+                                    const isActiveMode = activeMode?.toLowerCase() === mode.toLowerCase();
                                     return (
-                                        <button key={mode} onClick={() => handleModeClick(mode)} className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left rounded-lg transition-colors ${activeMode?.toLowerCase() === mode.toLowerCase() ? 'bg-blue-600/80 text-white' : 'text-gray-800 dark:text-gray-200 hover:bg-black/10 dark:hover:bg-white/10'}`}>
+                                        <button
+                                            key={mode}
+                                            onClick={() => handleModeClick(mode)}
+                                            className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left rounded-lg transition-colors ${!isActiveMode ? 'hover:bg-black/10 dark:hover:bg-white/10' : ''}`}
+                                            style={isActiveMode ? { backgroundColor: colorScheme.tabIndicatorColor, color: colorScheme.activeTabTextColor, opacity: 0.9 } : { color: colorScheme.nameTextColor }}
+                                        >
                                             <Icon icon={config.icon} className="w-5 h-5 flex-shrink-0" />
                                             <span>{config.label}</span>
                                         </button>
@@ -585,7 +591,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                         <DeviceIcon icon={linkedDevice.icon ?? linkedDevice.type} isOn={isLinkedOn} className="!w-full !h-full" iconAnimation={linkedDevice.iconAnimation} />
                     </div>
                     {!!valueText && (
-                        <div className="text-[10px] font-bold text-gray-800 dark:text-gray-200 mt-auto leading-tight text-center">
+                        <div className="text-[10px] font-bold mt-auto leading-tight text-center" style={{ color: colorScheme.nameTextColor }}>
                              {valueText}
                         </div>
                     )}
@@ -657,7 +663,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                                     key={speed}
                                     disabled={isPreview}
                                     onClick={() => { if (!isPreview) onFanSpeedChange(linkedFanEntityId, speed); }}
-                                    className={`flex-1 text-xs font-bold rounded-lg transition-all ${isActive ? 'bg-blue-600 text-white shadow-md' : 'text-gray-800 dark:text-gray-200 hover:bg-black/10 dark:hover:bg-white/10'}`}
+                                    className={`flex-1 text-xs font-bold rounded-lg transition-all ${isActive ? 'shadow-md' : 'hover:bg-black/10 dark:hover:bg-white/10'}`}
+                                    style={isActive ? { backgroundColor: colorScheme.tabIndicatorColor, color: colorScheme.activeTabTextColor } : { color: colorScheme.nameTextColor }}
                                 >
                                     {buttonText}
                                 </button>
