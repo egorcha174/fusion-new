@@ -172,6 +172,26 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
   const presetMenuRef = useRef<HTMLDivElement>(null);
   const hvacModesRef = useRef<HTMLDivElement>(null);
   const [hvacDropdownPositionClass, setHvacDropdownPositionClass] = useState('top-full mt-2');
+  
+  // Определяем, включено ли устройство. В режиме превью используем isOnPreview.
+  const isOn = isPreview ? (isOnPreview ?? true) : (device.status.toLowerCase() === 'включено' || device.state === 'on');
+  
+  const [isFlashing, setIsFlashing] = useState(false);
+  const prevIsOnRef = useRef(isOn);
+
+  useEffect(() => {
+      // Запускаем анимацию вспышки только при переходе из состояния "выкл" в "вкл".
+      if (isOn && !prevIsOnRef.current) {
+          setIsFlashing(true);
+          // Сбрасываем состояние анимации после ее завершения, чтобы она могла запуститься снова.
+          const timer = setTimeout(() => {
+              setIsFlashing(false);
+          }, 400); // Длительность должна совпадать с анимацией в CSS.
+          return () => clearTimeout(timer);
+      }
+      prevIsOnRef.current = isOn;
+  }, [isOn]);
+
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -220,9 +240,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
       setOpenMenuDeviceId?.(openMenuDeviceId === device.id ? null : device.id);
   }, [isPreview, device.id, openMenuDeviceId, setOpenMenuDeviceId]);
   
-  // Определяем, включено ли устройство. В режиме превью используем isOnPreview.
-  const isOn = isPreview ? (isOnPreview ?? true) : (device.status.toLowerCase() === 'включено' || device.state === 'on');
-
   // Моковые данные для спарклайн-графика в режиме превью.
   const mockHistory = useMemo(() => {
     if (device.type !== DeviceType.Sensor) return [];
@@ -681,11 +698,10 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
     
     const hoverClass = !isEditMode && !isPreview ? 'hover:shadow-xl hover:scale-[1.02]' : '';
     const cursorClass = isTogglable && !isEditMode && !isPreview ? 'cursor-pointer' : '';
-    const onStateRingClass = isOn ? 'ring-2 ring-blue-500/40' : 'ring-1 ring-black/5 dark:ring-white/10';
 
     return (
       <div
-        className={`w-full h-full relative rounded-2xl transition-all duration-300 ease-in-out select-none transform ${hoverClass} ${cursorClass} shadow-lg ${onStateRingClass}`}
+        className={`w-full h-full relative rounded-2xl transition-all duration-300 ease-in-out select-none transform ${hoverClass} ${cursorClass} shadow-lg ring-1 ring-black/5 dark:ring-white/10 will-flash ${isFlashing ? 'is-flashing' : ''}`}
         style={{ backgroundColor: applyOpacity(dynamicBackgroundColor, colorScheme.cardOpacity), backdropFilter: 'blur(16px)' }}
         onContextMenu={onContextMenu}
       >
@@ -852,8 +868,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
   };
 
   const getCardClasses = () => {
-    const onStateRingClass = isOn ? 'ring-2 ring-blue-500/40' : 'ring-1 ring-black/5 dark:ring-white/10';
-    const baseClasses = `w-full h-full rounded-2xl flex flex-col transition-all duration-300 ease-in-out select-none relative shadow-lg ${onStateRingClass} transform`;
+    const baseClasses = `w-full h-full rounded-2xl flex flex-col transition-all duration-300 ease-in-out select-none relative shadow-lg ring-1 ring-black/5 dark:ring-white/10 transform will-flash ${isFlashing ? 'is-flashing' : ''}`;
     const layoutClasses = (isCamera || device.type === DeviceType.BatteryWidget) ? 'p-0' : styles.padding;
     const cursorClass = (isTogglable || isCamera) && !isEditMode && !isPreview ? 'cursor-pointer' : '';
     const hoverClass = !isEditMode && !isPreview ? 'hover:shadow-xl hover:scale-[1.02]' : '';
