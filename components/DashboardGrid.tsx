@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useLayoutEffect, useMemo, useCallback } from 'react';
 import {
   DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent,
@@ -400,7 +399,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
     return (
         <div ref={viewportRef} className="w-full h-full flex items-center justify-center p-4">
             <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={pointerWithin}>
-                <div className="relative" style={{ width: gridMetrics.containerWidth, height: gridMetrics.containerHeight }}>
+                <div className="relative dashboard-grid-container" style={{ width: gridMetrics.containerWidth, height: gridMetrics.containerHeight }}>
                     {isEditMode && Array.from({ length: tab.gridSettings.cols * tab.gridSettings.rows }).map((_, index) => {
                         const col = index % tab.gridSettings.cols;
                         const row = Math.floor(index / tab.gridSettings.cols);

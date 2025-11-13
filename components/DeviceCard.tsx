@@ -201,12 +201,17 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
 
       if (hvacModesRef.current) {
           const rect = hvacModesRef.current.getBoundingClientRect();
-          // Примерная высота элемента списка (36px) + вертикальные отступы (16px)
-          const dropdownHeight = (modes.length * 36) + 16;
-          const spaceBelow = window.innerHeight - rect.bottom;
+          // Находим ближайший контейнер сетки для корректного расчета границ
+          const gridContainer = hvacModesRef.current.closest('.dashboard-grid-container');
+          // Если контейнер не найден (например, в превью), используем окно браузера как границу
+          const containerRect = gridContainer ? gridContainer.getBoundingClientRect() : { top: 0, bottom: window.innerHeight };
+          
+          const dropdownHeight = (modes.length * 36) + 16; // Примерная высота выпадающего списка
+          const spaceBelow = containerRect.bottom - rect.bottom;
+          const spaceAbove = rect.top - containerRect.top;
 
-          // Если внизу места не хватает, а вверху хватает - открываем вверх
-          if (spaceBelow < dropdownHeight && rect.top > dropdownHeight) {
+          // Открываем вверх, если внизу места не хватает, а вверху - достаточно
+          if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
               setHvacDropdownPositionClass('bottom-full mb-2');
           } else {
               setHvacDropdownPositionClass('top-full mt-2');
