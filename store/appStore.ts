@@ -372,7 +372,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             else if (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight) templateId = DEFAULT_LIGHT_TEMPLATE_ID;
             else if (device.type === DeviceType.Switch) templateId = DEFAULT_SWITCH_TEMPLATE_ID;
             else if (device.type === DeviceType.Thermostat) templateId = DEFAULT_CLIMATE_TEMPLATE_ID;
-            // TODO: Add default humidifier template logic here if needed
+            else if (device.type === DeviceType.Humidifier) templateId = 'humidifier-card';
         }
         return templateId ? get().templates[templateId] : null;
     },
