@@ -70,7 +70,7 @@ const humidifierTemplate: CardTemplate = {
     { id: 'name', visible: true, position: { x: 5, y: 5 }, size: { width: 90, height: 10 }, zIndex: 2, styles: { textAlign: 'center', fontSize: 18 } },
     { id: 'status', visible: true, position: { x: 5, y: 15 }, size: { width: 90, height: 8 }, zIndex: 2, styles: { textAlign: 'center', fontSize: 14 } },
     { id: 'temperature', visible: true, position: { x: 5, y: 23 }, size: { width: 90, height: 10 }, zIndex: 2, styles: { textAlign: 'center', fontSize: 14 } },
-    { id: 'target-temperature', visible: true, position: { x: 12.5, y: 30 }, size: { width: 75, height: 75 }, zIndex: 1, styles: { deltaStep: 1 } },
+    { id: 'target-temperature', visible: true, position: { x: 12.5, y: 30 }, size: { width: 75, height: 75 }, zIndex: 1, styles: { } },
     { id: 'hvac-modes', visible: true, position: { x: 55, y: 80 }, size: { width: 35, height: 15 }, zIndex: 3, styles: {} },
     { id: 'linked-entity', visible: true, position: { x: 10, y: 80 }, size: { width: 35, height: 15 }, zIndex: 3, styles: { linkedEntityId: 'self', showValue: false } },
   ],

@@ -279,7 +279,6 @@ export interface CardElement {
     idleLabelColor?: string; // для 'target-temperature'
     heatingLabelColor?: string; // для 'target-temperature'
     coolingLabelColor?: string; // для 'target-temperature'
-    deltaStep?: number; // для 'target-temperature'
   };
 }
 

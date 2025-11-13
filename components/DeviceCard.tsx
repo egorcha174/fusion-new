@@ -416,8 +416,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                 value={isHumidifier ? (device.targetHumidity ?? 50) : (device.targetTemperature ?? 21)}
                 current={isHumidifier ? (device.currentHumidity ?? 40) : (device.temperature ?? 21)}
                 onChange={value => { if (!isPreview) onTemperatureChange(value); }}
-                onDeltaChange={delta => { if (!isPreview) onTemperatureChange(delta, true); }}
-                deltaStep={element.styles.deltaStep ?? (isHumidifier ? 1 : 0.5)}
                 hvacAction={device.hvacAction ?? 'idle'}
                 idleLabelColor={element.styles.idleLabelColor}
                 heatingLabelColor={element.styles.heatingLabelColor}
@@ -648,7 +646,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
     );
   }
 
-  // --- РЕЗЕРВНАЯ (LEGACY) ЛОГИКА РЕНДЕРИНГА, если шаблон не предоставлен ---
+  // --- РЕЗЕРВНАЯ (LEGACY) ЛОГИКА РЕНДЕРЕНГА, если шаблон не предоставлен ---
   const renderContent = () => {
     switch (device.type) {
       case DeviceType.Camera:
