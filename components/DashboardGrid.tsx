@@ -59,7 +59,7 @@ const DraggableDevice: React.FC<{
     }
 
     const isCamera = device.type === DeviceType.Camera;
-    const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && !isCamera;
+    const isTogglable = !isCamera;
     if (isTogglable) {
       onDeviceToggle(device.id);
     }
