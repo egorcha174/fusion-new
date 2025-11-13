@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useLayoutEffect, useMemo, useCallback } from 'react';
 import {
   DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent,
@@ -7,6 +8,7 @@ import { snapCenterToCursor } from '@dnd-kit/modifiers';
 import DeviceCard from './DeviceCard';
 import { Tab, Device, DeviceType, GridLayoutItem, CardTemplates, DeviceCustomizations, CardTemplate, ColorScheme, ColorThemeSet } from '../types';
 import { useAppStore } from '../store/appStore';
+import ErrorBoundary from './ErrorBoundary';
 import LoadingSpinner from './LoadingSpinner';
 
 // ID шаблонов по умолчанию
@@ -459,7 +461,9 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
 
                                     return (
                                         <div key={item.deviceId} style={wrapperStyle}>
-                                            <DraggableDevice device={device} template={templateToUse} {...props} openMenuDeviceId={openMenuDeviceId} setOpenMenuDeviceId={setOpenMenuDeviceId} />
+                                            <ErrorBoundary isCard>
+                                                <DraggableDevice device={device} template={templateToUse} {...props} openMenuDeviceId={openMenuDeviceId} setOpenMenuDeviceId={setOpenMenuDeviceId} />
+                                            </ErrorBoundary>
                                         </div>
                                     );
                                 })}

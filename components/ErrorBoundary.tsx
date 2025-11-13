@@ -1,8 +1,10 @@
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Icon } from '@iconify/react';
 
 interface Props {
   children: ReactNode;
+  isCard?: boolean;
 }
 
 interface State {
@@ -53,6 +55,15 @@ class ErrorBoundary extends Component<Props, State> {
   render(): ReactNode {
     // Если произошла ошибка, рендерим запасной UI.
     if (this.state.hasError) {
+      if (this.props.isCard) {
+        return (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-red-500/10 text-red-400 p-2 rounded-xl ring-1 ring-red-500/50">
+                <Icon icon="mdi:alert-circle-outline" className="w-8 h-8" />
+                <p className="text-xs mt-1 font-semibold text-center">Ошибка карточки</p>
+            </div>
+        );
+      }
+
       return (
         <div className="flex h-screen w-screen items-center justify-center bg-gray-900 text-gray-200 p-4">
           <div className="w-full max-w-lg bg-gray-800 p-8 rounded-2xl shadow-lg ring-1 ring-white/10 text-center">

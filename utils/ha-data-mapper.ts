@@ -266,8 +266,8 @@ export const mapEntitiesToRooms = (
     if (customization.isHidden && !showHidden) return; // Пропускаем скрытые
 
     const device = entityToDevice(entity, customization);
-    // Добавляем только успешно преобразованные и не "неизвестные" устройства
-    if (device && device.type !== DeviceType.Unknown) {
+    // Добавляем только успешно преобразованные устройства (включая "неизвестные")
+    if (device) {
         // Определяем, к какой комнате принадлежит устройство
         let areaId: string | undefined | null = entityIdToAreaIdMap.get(entity.entity_id);
         if (!areaId && entity.attributes?.device_id) {
