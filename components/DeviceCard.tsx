@@ -170,6 +170,50 @@ interface DeviceCardProps {
 const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, customizations, onDeviceToggle, onTemperatureChange, onBrightnessChange, onHvacModeChange, onPresetChange, onFanSpeedChange, onCameraCardClick, isEditMode, isPreview = false, onEditDevice, onRemoveFromTab, haUrl, signPath, getCameraStreamUrl, template, openMenuDeviceId, setOpenMenuDeviceId, colorScheme, onContextMenu, isOnPreview }) => {
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
   const presetMenuRef = useRef<HTMLDivElement>(null);
+  const hvacModesRef = useRef<HTMLDivElement>(null);
+  const [hvacDropdownPositionClass, setHvacDropdownPositionClass] = useState('top-full mt-2');
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        // Закрываем меню HVAC, если клик был вне его
+        if (openMenuDeviceId === device.id && hvacModesRef.current && !hvacModesRef.current.contains(event.target as Node)) {
+            setOpenMenuDeviceId?.(null);
+        }
+        // Закрываем меню пресетов термостата (старый UI), если клик был вне его
+        if (isPresetMenuOpen && presetMenuRef.current && !presetMenuRef.current.contains(event.target as Node)) {
+            setIsPresetMenuOpen(false);
+        }
+    };
+    
+    // Добавляем слушатель только если одно из меню открыто
+    if (openMenuDeviceId === device.id || isPresetMenuOpen) {
+        document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+    };
+}, [openMenuDeviceId, isPresetMenuOpen, device.id, setOpenMenuDeviceId]);
+
+  const handleHvacButtonClick = useCallback((e: React.MouseEvent, modes: string[]) => {
+      if (isPreview) return;
+      e.stopPropagation();
+
+      if (hvacModesRef.current) {
+          const rect = hvacModesRef.current.getBoundingClientRect();
+          // Примерная высота элемента списка (36px) + вертикальные отступы (16px)
+          const dropdownHeight = (modes.length * 36) + 16;
+          const spaceBelow = window.innerHeight - rect.bottom;
+
+          // Если внизу места не хватает, а вверху хватает - открываем вверх
+          if (spaceBelow < dropdownHeight && rect.top > dropdownHeight) {
+              setHvacDropdownPositionClass('bottom-full mb-2');
+          } else {
+              setHvacDropdownPositionClass('top-full mt-2');
+          }
+      }
+      setOpenMenuDeviceId?.(openMenuDeviceId === device.id ? null : device.id);
+  }, [isPreview, device.id, openMenuDeviceId, setOpenMenuDeviceId]);
   
   // Определяем, включено ли устройство. В режиме превью используем isOnPreview.
   const isOn = isPreview ? (isOnPreview ?? true) : (device.status.toLowerCase() === 'включено' || device.state === 'on');
@@ -216,22 +260,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
     e.stopPropagation(); // Предотвращаем клик по самой карточке
     onDeviceToggle(entityId);
   };
-
-  // Закрытие меню пресетов при клике вне его.
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-        if (presetMenuRef.current && !presetMenuRef.current.contains(event.target as Node)) {
-            setIsPresetMenuOpen(false);
-        }
-    };
-    if (isPresetMenuOpen) {
-        document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isPresetMenuOpen]);
-
   
   const isCamera = device.type === DeviceType.Camera;
   const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && device.type !== DeviceType.Sensor && !isCamera;
@@ -429,19 +457,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
           );
         }
         case 'hvac-modes': {
-            const dropdownRef = useRef<HTMLDivElement>(null);
             const isDropdownOpen = openMenuDeviceId === device.id;
-        
-            useEffect(() => {
-                const handleClickOutside = (event: MouseEvent) => {
-                    if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                        setOpenMenuDeviceId?.(null);
-                    }
-                };
-                if (isDropdownOpen) document.addEventListener('mousedown', handleClickOutside);
-                return () => document.removeEventListener('mousedown', handleClickOutside);
-            }, [isDropdownOpen, setOpenMenuDeviceId]);
-        
             const isPresetMode = device.presetModes && device.presetModes.length > 0;
             const modes = isPresetMode ? device.presetModes! : (device.hvacModes || []);
             const activeMode = isPresetMode ? device.presetMode : device.state;
@@ -471,24 +487,18 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                 setOpenMenuDeviceId?.(null);
             };
             
-            const handleButtonClick = (e: React.MouseEvent) => {
-                if (isPreview) return;
-                e.stopPropagation();
-                setOpenMenuDeviceId?.(isDropdownOpen ? null : device.id);
-            };
-        
             const activeConfig = getConfig(activeMode?.toLowerCase() || (isPresetMode ? 'none' : 'off'));
         
             return (
-                <div key={element.id} style={style} onClick={e => { if (!isPreview) e.stopPropagation(); }} ref={dropdownRef}>
+                <div key={element.id} style={style} onClick={e => { if (!isPreview) e.stopPropagation(); }} ref={hvacModesRef}>
                     <div className="relative w-full h-full flex items-center justify-center">
-                        <button onClick={handleButtonClick} disabled={isPreview} className="w-full h-full flex flex-col items-center justify-center bg-black/5 dark:bg-black/25 hover:bg-black/10 dark:hover:bg-black/40 rounded-xl transition-all p-1 ring-1 ring-black/5 dark:ring-white/10">
+                        <button onClick={(e) => handleHvacButtonClick(e, modes)} disabled={isPreview} className="w-full h-full flex flex-col items-center justify-center bg-black/5 dark:bg-black/25 hover:bg-black/10 dark:hover:bg-black/40 rounded-xl transition-all p-1 ring-1 ring-black/5 dark:ring-white/10">
                             <Icon icon={activeConfig.icon} className="w-auto h-[55%] text-gray-700 dark:text-gray-300" />
                             <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 mt-auto leading-tight text-center">{activeConfig.label}</span>
                         </button>
         
                         {isDropdownOpen && !isPreview && (
-                            <div className="absolute top-full right-0 mt-2 min-w-[150px] w-max bg-gray-200/80 dark:bg-gray-900/80 backdrop-blur-lg rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-1 z-20 fade-in">
+                            <div className={`absolute right-0 min-w-[150px] w-max bg-gray-200/80 dark:bg-gray-900/80 backdrop-blur-lg rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-1 z-20 fade-in ${hvacDropdownPositionClass}`}>
                                 {modes.map(mode => {
                                     const config = getConfig(mode);
                                     return (
