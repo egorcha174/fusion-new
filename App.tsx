@@ -1,19 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet, GridLayoutItem } from './types';
@@ -21,6 +5,7 @@ import { nanoid } from 'nanoid';
 import { useAppStore } from './store/appStore';
 import { useHAStore } from './store/haStore';
 import ErrorBoundary from './components/ErrorBoundary';
+import { motion, AnimatePresence } from 'framer-motion';
 
 
 // Ленивая загрузка (Lazy loading) компонентов для разделения кода (code splitting) и улучшения производительности.
@@ -502,9 +487,18 @@ const App: React.FC = () => {
             <Suspense fallback={<div className="flex h-full w-full items-center justify-center"><LoadingSpinner /></div>}>
               <ErrorBoundary>
                 <div className="container mx-auto h-full">
-                  <div key={currentPage + (activeTab?.id || '')} className="fade-in h-full">
-                    {renderPage()}
-                  </div>
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                        key={currentPage + (activeTab?.id || '')}
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -15 }}
+                        transition={{ duration: 0.25, ease: "easeInOut" }}
+                        className="h-full"
+                    >
+                        {renderPage()}
+                    </motion.div>
+                  </AnimatePresence>
                 </div>
               </ErrorBoundary>
             </Suspense>
