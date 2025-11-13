@@ -71,6 +71,41 @@ const appleMintTheme: ThemeObject = {
   }
 };
 
+const futuristicTheme: ThemeObject = {
+  "colorScheme": {
+    "light": {
+      "dashboardBackgroundType": "gradient", "dashboardBackgroundColor1": "#f5f7fa", "dashboardBackgroundColor2": "#eef2f7", "cardOpacity": 0.8, "panelOpacity": 0.7,
+      "cardBackground": "rgba(255, 255, 255, 0.8)", "cardBackgroundOn": "rgba(255, 255, 255, 1.0)", "tabTextColor": "#5c677d", "activeTabTextColor": "#007a7a", "tabIndicatorColor": "#007a7a",
+      "thermostatHandleColor": "#FFFFFF", "thermostatDialTextColor": "#007a7a", "thermostatDialLabelColor": "#5c677d", "thermostatHeatingColor": "#ff8c00", "thermostatCoolingColor": "#1e90ff", "clockTextColor": "#2f4f4f",
+      "nameTextColor": "#2f4f4f", "statusTextColor": "#5c677d", "valueTextColor": "#007a7a", "unitTextColor": "#007a7a", "nameTextColorOn": "#007a7a", "statusTextColorOn": "#2f4f4f", "valueTextColorOn": "#007a7a", "unitTextColorOn": "#007a7a"
+    },
+    "dark": {
+      "dashboardBackgroundType": "gradient", "dashboardBackgroundColor1": "#0d0221", "dashboardBackgroundColor2": "#261447", "cardOpacity": 0.8, "panelOpacity": 0.75,
+      "cardBackground": "rgba(17, 10, 42, 0.8)", "cardBackgroundOn": "rgba(38, 20, 71, 0.85)", "tabTextColor": "#2de2e6", "activeTabTextColor": "#f02d84", "tabIndicatorColor": "#f02d84",
+      "thermostatHandleColor": "#0d0221", "thermostatDialTextColor": "#f02d84", "thermostatDialLabelColor": "#2de2e6", "thermostatHeatingColor": "#ff7f50", "thermostatCoolingColor": "#00f5d4", "clockTextColor": "#9df9ef",
+      "nameTextColor": "#9df9ef", "statusTextColor": "#2de2e6", "valueTextColor": "#f02d84", "unitTextColor": "#f02d84", "nameTextColorOn": "#9df9ef", "statusTextColorOn": "#2de2e6", "valueTextColorOn": "#f02d84", "unitTextColorOn": "#f02d84"
+    }
+  }
+};
+
+const deepSpaceTheme: ThemeObject = {
+  "colorScheme": {
+    "light": {
+      "dashboardBackgroundType": "gradient", "dashboardBackgroundColor1": "#e0f2fe", "dashboardBackgroundColor2": "#ffffff", "cardOpacity": 0.8, "panelOpacity": 0.7,
+      "cardBackground": "rgba(255, 255, 255, 0.8)", "cardBackgroundOn": "rgba(255, 255, 255, 1.0)", "tabTextColor": "#607b99", "activeTabTextColor": "#003366", "tabIndicatorColor": "#003366",
+      "thermostatHandleColor": "#FFFFFF", "thermostatDialTextColor": "#003366", "thermostatDialLabelColor": "#607b99", "thermostatHeatingColor": "#f97316", "thermostatCoolingColor": "#3b82f6", "clockTextColor": "#2c3e50",
+      "nameTextColor": "#2c3e50", "statusTextColor": "#607b99", "valueTextColor": "#003366", "unitTextColor": "#003366", "nameTextColorOn": "#003366", "statusTextColorOn": "#2c3e50", "valueTextColorOn": "#003366", "unitTextColorOn": "#003366"
+    },
+    "dark": {
+// FIX: Added dashboardBackgroundColor1 as it is a required property for ColorThemeSet.
+      "dashboardBackgroundType": "image", "dashboardBackgroundColor1": "#0a0a19", "dashboardBackgroundImage": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAFoAeADASIAAhEBAxEB/8QAGwABAQEBAQEBAQAAAAAAAAAAAAECAwQFBgf/xAAzEAEAAgECAwYGAgMBAQEBAQAAAQIRAxIhBDEFQRMiUWFxgZEGByMyobHB0fDhFCRCUv/EABgBAQEBAQEAAAAAAAAAAAAAAAABAgME/8QAHREBAQEBAQADAQEAAAAAAAAAAAERAhIhMQNBUf/aANSUhEUwADs2AAAAAElAAAAAAAAAAgAAAAAAAAIAAAAAACAAAAAAAAAEFQAAAAAAAAAAAAAgACAAAAAAAAIAEAAAAAAAEAAAAAEFRUFRUBFVUAAAAAAAAAAAAAEAAAAAAAAEAEAEAAAAAAQAQAAAAAAAAAAgAAAAAAAAAAAAAAAgAAAAAAAAAAAAhUAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQVAAAAAAAAAAAAAAgAgAAAAAAAAAAAAAAAAAgAgAAAAAAAIAAAAAAAAAAAAAIAAAAAAAAAAAgAAhUAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAFQAAAAAAEAQAEAEAEAEAAAAAAAEAEAEAAAAAAABAAAAAAAABAAAAAAAAAQAAAAAAAAAAFQAAAAAQAAAAAAAhUAAAAAAAAAAAAAAAAAAAEAQAAAAAAAAAAAAAAEAQAAAAAAAAEAAAAAAAAAAAAAAEAAAAAAhUAAAAAAAABAAAAAAAAAAAAAAAAAEAEAEAEAEAAAAAAAAAAAAAAAAAAAAAAAAAEAQAAAAAAAAAAAAAAQAAAAAAhUAAAAAAAABAAAAAAAAAAAAAAAQAAAAAAAAAAAAAEAEAEAEAAAAAAAAAAAAQAAAAAAAAAAAEAEAEAEAAAAAEAEAEAAAAAAAAAAAAAAAIVAAAAAAAAAAAAAAAAAAAAAAEAQAAAAAAAAQAAAAAAAAAAEAQAAAAAAAAAQAAAAAAAAAEAEAAAAAAAQAAAAAAAAAAAAAEAEAAAAAAAAAAIVAAAAAAAAAAAAAAEAQAAAAAAAAAAAAAAAgAgAgAgAgAgAgAgAgAAAAAgAgAgAgAAAAAgAgAgAgAgAgAgAgAgAgAgAgAgAAhUAAAAAAAAAAAAAAAAAAQBAEAQBAEAQBAEAQBAEAQBAEAQBAEAQBAEAQBAEAQBAEAQBAEAQBAEAQBAEAQBAEAQBAEAQBAEAQBAEAQBAEAQBAEAQBAEAQBAIVAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAEAE-W" + ,"dashboardBackgroundImageBlur": 2, "dashboardBackgroundImageBrightness": 70, "cardOpacity": 0.75, "panelOpacity": 0.7,
+      "cardBackground": "rgba(10, 10, 25, 0.75)", "cardBackgroundOn": "rgba(20, 20, 45, 0.8)", "tabTextColor": "#5c7a9b", "activeTabTextColor": "#cbe1f7", "tabIndicatorColor": "#cbe1f7",
+      "thermostatHandleColor": "#101019", "thermostatDialTextColor": "#cbe1f7", "thermostatDialLabelColor": "#5c7a9b", "thermostatHeatingColor": "#ffaf4d", "thermostatCoolingColor": "#87ceeb", "clockTextColor": "#e0e0e0",
+      "nameTextColor": "#e0e0e0", "statusTextColor": "#5c7a9b", "valueTextColor": "#cbe1f7", "unitTextColor": "#cbe1f7", "nameTextColorOn": "#e0e0e0", "statusTextColorOn": "#5c7a9b", "valueTextColorOn": "#cbe1f7", "unitTextColorOn": "#cbe1f7"
+    }
+  }
+};
+
 
 const ColorSettingRow: React.FC<{ label: string, value: string, onChange: (newColor: string) => void }> = React.memo(({ label, value, onChange }) => (
   <div className="flex items-center justify-between">
@@ -307,6 +342,18 @@ const Settings: React.FC<{
         }
     };
 
+    const handleLoadFuturisticTheme = () => {
+        if (window.confirm("Загрузить тему 'Cyberwave'? Это перезапишет текущие настройки внешнего вида.")) {
+            setColorScheme(futuristicTheme.colorScheme);
+        }
+    };
+
+    const handleLoadDeepSpaceTheme = () => {
+        if (window.confirm("Загрузить тему 'Cosmic Rift'? Это перезапишет текущие настройки внешнего вида.")) {
+            setColorScheme(deepSpaceTheme.colorScheme);
+        }
+    };
+
     const handleExportSettings = () => {
         try {
             const settings: Record<string, any> = {};
@@ -482,24 +529,36 @@ const Settings: React.FC<{
                             <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg space-y-3">
                                 <h4 className="font-semibold text-gray-900 dark:text-gray-100">Готовые темы</h4>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">Выберите готовую тему для быстрого старта.</p>
-                                <div className="flex gap-2 flex-wrap">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                     <button 
                                         onClick={handleLoadAppleTheme} 
-                                        className="flex-1 text-center bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm p-2 rounded-lg"
+                                        className="text-center bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm p-2 rounded-lg"
                                     >
                                         Apple Home (Light)
                                     </button>
                                     <button 
                                         onClick={handleLoadGraphiteTheme} 
-                                        className="flex-1 text-center bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm p-2 rounded-lg"
+                                        className="text-center bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm p-2 rounded-lg"
                                     >
                                         Apple Home (Graphite)
                                     </button>
                                     <button 
                                         onClick={handleLoadMintTheme} 
-                                        className="flex-1 text-center bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm p-2 rounded-lg"
+                                        className="text-center bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm p-2 rounded-lg"
                                     >
                                         Apple Home (Mint)
+                                    </button>
+                                    <button 
+                                        onClick={handleLoadFuturisticTheme} 
+                                        className="text-center bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm p-2 rounded-lg"
+                                    >
+                                        Cyberwave
+                                    </button>
+                                    <button 
+                                        onClick={handleLoadDeepSpaceTheme} 
+                                        className="text-center bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm p-2 rounded-lg"
+                                    >
+                                        Cosmic Rift
                                     </button>
                                 </div>
                             </div>
