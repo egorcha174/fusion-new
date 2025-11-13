@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 import { Device, DeviceCustomization, DeviceType, CardTemplates, DeviceBinding, CardTemplate, ThresholdRule } from '../types';
 import DeviceIcon, { icons, getIconNameForDeviceType } from './DeviceIcon';
@@ -121,16 +122,31 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
     
   const availableIcons = Object.keys(icons).map(Number) as DeviceType[];
   
-  const isTemplateable = device.type === DeviceType.Sensor || device.type === DeviceType.Light || device.type === DeviceType.DimmableLight || device.type === DeviceType.Switch || device.type === DeviceType.Thermostat;
+  const isTemplateable = [
+    DeviceType.Sensor, DeviceType.Light, DeviceType.DimmableLight,
+    DeviceType.Switch, DeviceType.Thermostat, DeviceType.Humidifier
+  ].includes(device.type);
+
   const isSensor = type === DeviceType.Sensor;
   
-  const templateType = (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight)
-    ? 'light'
-    : (device.type === DeviceType.Switch)
-      ? 'switch'
-      : (device.type === DeviceType.Thermostat)
-        ? 'climate'
-        : 'sensor';
+  const getTemplateTypeString = (deviceType: DeviceType): 'sensor' | 'light' | 'switch' | 'climate' | 'humidifier' => {
+    switch (deviceType) {
+        case DeviceType.Light:
+        case DeviceType.DimmableLight:
+            return 'light';
+        case DeviceType.Switch:
+            return 'switch';
+        case DeviceType.Thermostat:
+            return 'climate';
+        case DeviceType.Humidifier:
+            return 'humidifier';
+        case DeviceType.Sensor:
+        default:
+            return 'sensor';
+    }
+  };
+
+  const templateType = getTemplateTypeString(device.type);
 
   const animationOptions = [
     { value: 'none', name: 'Нет' },
