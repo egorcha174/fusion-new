@@ -328,6 +328,12 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         height: `${element.size.height}%`,
         zIndex: element.zIndex,
       };
+      
+      // Динамически повышаем z-index для открытых меню, чтобы они были поверх других элементов.
+      if (element.id === 'hvac-modes' && openMenuDeviceId === device.id) {
+        style.zIndex = 100;
+      }
+
 
       // `switch` по `id` элемента для определения, что и как рендерить.
       switch(element.id) {
@@ -498,6 +504,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                 'eco': { icon: 'mdi:leaf', label: 'Эко' },
                 'baby': { icon: 'mdi:baby-carriage', label: 'Детский' },
                 'comfort': { icon: 'mdi:sofa-outline', label: 'Комфорт' },
+                'constant humidity': { icon: 'mdi:water-percent', label: 'Пост. влажность'},
+                'off': { icon: 'mdi:power-off', label: 'Выкл' },
             };
         
             const getConfig = (mode: string) => {
