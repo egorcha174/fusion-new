@@ -173,8 +173,11 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
     device.presetModes = attributes.available_modes; // Re-use presetModes for available_modes
   }
 
-  if (device.type === DeviceType.Fan) {
+  if (device.haDomain === 'fan') {
     device.fanSpeed = attributes.percentage;
+  } else if (device.haDomain === 'select' && (device.id.includes('fan_level') || device.id.includes('speed'))) {
+    device.fanLevel = entity.state;
+    device.fanLevels = attributes.options;
   }
   
   if (device.type === DeviceType.Weather) {

@@ -71,6 +71,8 @@ export interface Device {
   state?: string; // "Сырое" состояние из Home Assistant (например, 'on', 'off')
   batteryLevel?: number; // Уровень заряда батареи в процентах
   fanSpeed?: number; // Скорость вентилятора в процентах
+  fanLevel?: string; // Текущий уровень скорости вентилятора (строка, для select)
+  fanLevels?: string[]; // Доступные уровни скорости вентилятора (строки, для select)
 }
 
 /**
@@ -375,6 +377,7 @@ export interface HassEntity {
     max_temp?: number;
     battery_level?: number; // Уровень заряда батареи
     percentage?: number; // Для скорости вентилятора
+    options?: string[]; // для select
     [key: string]: any; // Для других атрибутов
   };
   context: {

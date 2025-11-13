@@ -144,7 +144,7 @@ interface DeviceCardProps {
   onBrightnessChange: (brightness: number) => void;
   onHvacModeChange: (mode: string) => void;
   onPresetChange: (preset: string) => void;
-  onFanSpeedChange: (deviceId: string, percentage: number) => void;
+  onFanSpeedChange: (deviceId: string, value: number | string) => void;
   onCameraCardClick: (device: Device) => void;
   isEditMode: boolean;
   isPreview?: boolean; // Используется в редакторе шаблонов
@@ -584,14 +584,22 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                 );
             }
             
-            const speeds = [25, 50, 75, 100];
-            const currentSpeed = fanDevice.fanSpeed;
+            // Определяем, используем ли мы уровни (select) или проценты (fan)
+            const isSelectBased = fanDevice.fanLevels && fanDevice.fanLevels.length > 0;
+
+            const speeds = isSelectBased ? fanDevice.fanLevels : [25, 50, 75, 100];
+            const currentSpeed = isSelectBased ? fanDevice.fanLevel : fanDevice.fanSpeed;
 
             return (
                 <div key={element.id} style={style} onClick={e => { if (!isPreview) e.stopPropagation(); }} className="flex items-center justify-center p-1">
                     <div className="flex w-full h-full bg-black/10 dark:bg-black/25 rounded-xl ring-1 ring-black/5 dark:ring-white/10 p-1">
-                        {speeds.map(speed => {
+                        {speeds!.map(speed => {
                             const isActive = currentSpeed === speed;
+                            // Для "Level4" попробуем извлечь "4" для отображения.
+                            const buttonText = typeof speed === 'string' 
+                                ? speed.match(/\d+/)?.[0] || speed 
+                                : speed;
+
                             return (
                                 <button 
                                     key={speed}
@@ -599,7 +607,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                                     onClick={() => { if (!isPreview) onFanSpeedChange(linkedFanEntityId, speed); }}
                                     className={`flex-1 text-xs font-bold rounded-lg transition-all ${isActive ? 'bg-blue-600 text-white shadow-md' : 'text-gray-700 dark:text-gray-300 hover:bg-black/10 dark:hover:bg-white/10'}`}
                                 >
-                                    {speed}
+                                    {buttonText}
                                 </button>
                             );
                         })}

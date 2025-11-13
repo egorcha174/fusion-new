@@ -782,7 +782,9 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                                 className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
                             >
                                 <option value="">-- Выберите вентилятор --</option>
-                                {Array.from(allKnownDevices.values()).filter(d => d.haDomain === 'fan').sort((a, b) => a.name.localeCompare(b.name)).map(d => (
+                                {Array.from(allKnownDevices.values())
+                                    .filter(d => d.haDomain === 'fan' || (d.haDomain === 'select' && (d.id.includes('fan_level') || d.id.includes('speed'))))
+                                    .sort((a, b) => a.name.localeCompare(b.name)).map(d => (
                                     <option key={d.id} value={d.id}>{d.name}</option>
                                 ))}
                             </select>

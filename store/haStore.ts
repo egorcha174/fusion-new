@@ -50,7 +50,7 @@ interface HAActions {
   handleHvacModeChange: (deviceId: string, mode: string) => void;
   handleBrightnessChange: (deviceId: string, brightness: number) => void;
   handlePresetChange: (deviceId: string, preset: string) => void;
-  handleFanSpeedChange: (deviceId: string, percentage: number) => void;
+  handleFanSpeedChange: (deviceId: string, value: number | string) => void;
 }
 
 export const useHAStore = create<HAState & HAActions>((set, get) => {
@@ -412,10 +412,15 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         
         get().callService(domain, serviceName, serviceData);
     },
-    handleFanSpeedChange: (deviceId, percentage) => {
+    handleFanSpeedChange: (deviceId, value) => {
         const entity = get().entities[deviceId];
-        if (!entity || entity.entity_id.split('.')[0] !== 'fan') return;
-        get().callService('fan', 'set_percentage', { entity_id: deviceId, percentage: percentage });
+        if (!entity) return;
+
+        if (typeof value === 'number') {
+            get().callService('fan', 'set_percentage', { entity_id: deviceId, percentage: value });
+        } else if (typeof value === 'string') {
+            get().callService('select', 'select_option', { entity_id: deviceId, option: value });
+        }
     },
   };
 });
