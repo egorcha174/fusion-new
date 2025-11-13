@@ -355,7 +355,7 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
             setIsEditing(true);
         }}
       >
-        <div className="absolute top-[22%] left-0 right-0 h-[20%]">
+        <div className="absolute top-[15%] left-0 right-0 h-[20%]">
           <AutoFitText
             text={centerLabel}
             className="w-full h-full"
