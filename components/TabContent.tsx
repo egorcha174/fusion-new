@@ -1,8 +1,9 @@
 
 
+
 import React, { useMemo } from 'react';
 import DashboardGrid from './DashboardGrid';
-import { Tab, Device, GridLayoutItem, CardTemplates, DeviceCustomizations, ColorScheme } from '../types';
+import { Tab, Device, GridLayoutItem, CardTemplates, DeviceCustomizations, ColorScheme, ColorThemeSet } from '../types';
 import { useHAStore } from '../store/haStore';
 import { useAppStore } from '../store/appStore';
 
@@ -10,6 +11,8 @@ interface TabContentProps {
   tab: Tab;
   isEditMode: boolean;
   onDeviceContextMenu: (event: React.MouseEvent, deviceId: string, tabId: string) => void;
+  currentColorScheme: ColorThemeSet;
+  isDark: boolean;
 }
 
 /**
@@ -19,14 +22,9 @@ interface TabContentProps {
  * Это позволяет `DashboardGrid` быть более "чистым" компонентом, не зависящим напрямую от хранилищ.
  */
 const TabContent: React.FC<TabContentProps> = (props) => {
-  const { tab } = props;
+  const { tab, currentColorScheme } = props;
   const { allKnownDevices, haUrl, signPath, getCameraStreamUrl, handleDeviceToggle, handleTemperatureChange, handleBrightnessChange, handleHvacModeChange, handlePresetChange, handleFanSpeedChange } = useHAStore();
-  const { searchTerm, handleDeviceLayoutChange, setFloatingCamera, setHistoryModalEntityId, setEditingDevice, templates, customizations, colorScheme, theme } = useAppStore();
-
-  // Определяем текущую цветовую схему (светлую или темную) на основе настроек.
-  const isSystemDark = useMemo(() => window.matchMedia('(prefers-color-scheme: dark)').matches, []);
-  const isDark = useMemo(() => theme === 'night' || (theme === 'auto' && isSystemDark), [theme, isSystemDark]);
-  const currentColorScheme = useMemo(() => isDark ? colorScheme.dark : colorScheme.light, [isDark, colorScheme]);
+  const { searchTerm, handleDeviceLayoutChange, setFloatingCamera, setHistoryModalEntityId, setEditingDevice, templates, customizations } = useAppStore();
 
   // Если на вкладке нет устройств, показываем заглушку.
   if (tab.layout.length === 0) {

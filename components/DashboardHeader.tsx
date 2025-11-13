@@ -7,6 +7,8 @@
 
 
 
+
+
 import React, { useState, useMemo } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
@@ -65,26 +67,26 @@ const SortableTab: React.FC<SortableTabProps> = ({ tab, isActive, isEditMode, on
     );
 };
 
+interface DashboardHeaderProps {
+    currentColorScheme: ColorThemeSet;
+    isDark: boolean;
+}
+
 /**
  * Верхняя панель (хедер) приложения.
  * Содержит навигацию по вкладкам, поиск, меню настроек и переключатель режима редактирования.
  */
-const DashboardHeader: React.FC = () => {
+const DashboardHeader: React.FC<DashboardHeaderProps> = ({ currentColorScheme, isDark }) => {
     const {
         tabs, activeTabId, setActiveTabId, handleTabOrderChange,
         isEditMode, setIsEditMode, setCurrentPage, handleAddTab, setEditingTab,
-        currentPage, searchTerm, setSearchTerm, theme, setTheme, colorScheme
+        currentPage, searchTerm, setSearchTerm
     } = useAppStore();
     
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     // Используем PointerSensor для drag-and-drop, активирующийся после смещения на 5px.
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
-
-    // Определяем текущую цветовую схему на основе настроек темы и системных предпочтений.
-    const isSystemDark = useMemo(() => window.matchMedia('(prefers-color-scheme: dark)').matches, []);
-    const isDark = useMemo(() => theme === 'night' || (theme === 'auto' && isSystemDark), [theme, isSystemDark]);
-    const currentColorScheme = useMemo(() => isDark ? colorScheme.dark : colorScheme.light, [isDark, colorScheme]);
 
     // Обработчик завершения перетаскивания вкладки.
     const handleDragEnd = (event: DragEndEvent) => {

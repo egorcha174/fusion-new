@@ -7,9 +7,13 @@
 
 
 
+
+
+
+
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
-import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices } from './types';
+import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet } from './types';
 import { nanoid } from 'nanoid';
 import { useAppStore } from './store/appStore';
 import { useHAStore } from './store/haStore';
@@ -40,6 +44,7 @@ const HistoryModal = lazy(() => import('./components/HistoryModal'));
  */
 function getSunriseSunset(latitude: number, longitude: number, date = new Date()) {
     const toRad = (deg: number) => deg * Math.PI / 180;
+    // FIX: Corrected a recursive division by itself to division by Math.PI.
     const toDeg = (rad: number) => rad * 180 / Math.PI;
 
     const dayOfYear = (d: Date) => Math.floor((d.getTime() - new Date(d.getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24);
@@ -429,6 +434,8 @@ const App: React.FC = () => {
             tab={activeTab}
             isEditMode={isEditMode}
             onDeviceContextMenu={handleDeviceContextMenu}
+            currentColorScheme={currentColorScheme}
+            isDark={isDark}
           />
         ) : (
           <div className="text-center text-gray-500">Выберите или создайте вкладку</div>
@@ -458,7 +465,10 @@ const App: React.FC = () => {
         )}
         <div className="flex flex-col flex-1" style={{ marginLeft: isLg && isSidebarVisible ? `${sidebarWidth}px` : '0px' }}>
           <Suspense fallback={<div className="h-[73px] bg-gray-900 border-b border-gray-700/50" />}>
-              <DashboardHeader />
+              <DashboardHeader 
+                currentColorScheme={currentColorScheme}
+                isDark={isDark}
+              />
           </Suspense>
           <main className="flex-1 overflow-y-auto">
             <Suspense fallback={<div className="flex h-full w-full items-center justify-center"><LoadingSpinner /></div>}>
