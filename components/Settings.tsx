@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useMemo } from 'react';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet } from '../types';
 import ConfirmDialog from './ConfirmDialog';
@@ -9,6 +10,11 @@ import appleTheme from '../apple-inspired-light.theme.json';
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'failed';
 type SettingsTab = 'appearance' | 'interface' | 'templates' | 'connection' | 'backup';
+
+// FIX: Define a type for theme objects to ensure they conform to the ColorScheme interface, which prevents TypeScript from inferring 'dashboardBackgroundType' as a generic string.
+type ThemeObject = {
+  colorScheme: ColorScheme;
+};
 
 const FONT_FAMILIES = [
     { name: 'Системный', value: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"` },
@@ -26,6 +32,45 @@ const LOCAL_STORAGE_KEYS = [
   'ha-camera-settings', 'ha-theme', 'ha-color-scheme', 'ha-sidebar-visible', 'ha-low-battery-threshold',
   'ha-weather-provider', 'ha-yandex-weather-key', 'ha-foreca-key',
 ];
+
+// --- Новые темы ---
+const appleGraphiteTheme: ThemeObject = {
+  "colorScheme": {
+    "light": {
+      "dashboardBackgroundType": "gradient", "dashboardBackgroundColor1": "#EAEAEB", "dashboardBackgroundColor2": "#DCDCDC", "dashboardBackgroundImageBlur": 0, "dashboardBackgroundImageBrightness": 100, "cardOpacity": 0.85, "panelOpacity": 0.75,
+      "cardBackground": "rgba(255, 255, 255, 0.8)", "cardBackgroundOn": "rgba(255, 255, 255, 0.95)", "tabTextColor": "#515154", "activeTabTextColor": "#1D1D1F", "tabIndicatorColor": "#1D1D1F",
+      "thermostatHandleColor": "#FFFFFF", "thermostatDialTextColor": "#1D1D1F", "thermostatDialLabelColor": "#515154", "thermostatHeatingColor": "#F97316", "thermostatCoolingColor": "#3B82F6", "clockTextColor": "#1D1D1F",
+      "weatherIconSize": 96, "weatherForecastIconSize": 48, "weatherCurrentTempFontSize": 36, "weatherCurrentDescFontSize": 14, "weatherForecastDayFontSize": 12, "weatherForecastMaxTempFontSize": 18, "weatherForecastMinTempFontSize": 14,
+      "nameTextColor": "#1D1D1F", "statusTextColor": "#515154", "valueTextColor": "#1D1D1F", "unitTextColor": "#1D1D1F", "nameTextColorOn": "#1D1D1F", "statusTextColorOn": "#515154", "valueTextColorOn": "#1D1D1F", "unitTextColorOn": "#1D1D1F"
+    },
+    "dark": {
+      "dashboardBackgroundType": "color", "dashboardBackgroundColor1": "#1C1C1E", "dashboardBackgroundColor2": "#2C2C2E", "dashboardBackgroundImageBlur": 0, "dashboardBackgroundImageBrightness": 100, "cardOpacity": 0.8, "panelOpacity": 0.75,
+      "cardBackground": "rgba(44, 44, 46, 0.8)", "cardBackgroundOn": "rgba(60, 60, 62, 0.85)", "tabTextColor": "#8E8E93", "activeTabTextColor": "#F5F5F7", "tabIndicatorColor": "#F5F5F7",
+      "thermostatHandleColor": "#1C1C1E", "thermostatDialTextColor": "#F5F5F7", "thermostatDialLabelColor": "#8E8E93", "thermostatHeatingColor": "#F28C18", "thermostatCoolingColor": "#0A84FF", "clockTextColor": "#F5F5F7",
+      "weatherIconSize": 96, "weatherForecastIconSize": 48, "weatherCurrentTempFontSize": 36, "weatherCurrentDescFontSize": 14, "weatherForecastDayFontSize": 12, "weatherForecastMaxTempFontSize": 18, "weatherForecastMinTempFontSize": 14,
+      "nameTextColor": "#F5F5F7", "statusTextColor": "#8E8E93", "valueTextColor": "#F5F5F7", "unitTextColor": "#F5F5F7", "nameTextColorOn": "#F5F5F7", "statusTextColorOn": "#8E8E93", "valueTextColorOn": "#F5F5F7", "unitTextColorOn": "#F5F5F7"
+    }
+  }
+};
+const appleMintTheme: ThemeObject = {
+  "colorScheme": {
+    "light": {
+      "dashboardBackgroundType": "gradient", "dashboardBackgroundColor1": "#F0F7F6", "dashboardBackgroundColor2": "#E6F0EF", "dashboardBackgroundImageBlur": 0, "dashboardBackgroundImageBrightness": 100, "cardOpacity": 0.85, "panelOpacity": 0.75,
+      "cardBackground": "rgba(255, 255, 255, 0.8)", "cardBackgroundOn": "rgba(255, 255, 255, 0.95)", "tabTextColor": "#374151", "activeTabTextColor": "#065F46", "tabIndicatorColor": "#059669",
+      "thermostatHandleColor": "#FFFFFF", "thermostatDialTextColor": "#065F46", "thermostatDialLabelColor": "#374151", "thermostatHeatingColor": "#F97316", "thermostatCoolingColor": "#3B82F6", "clockTextColor": "#065F46",
+      "weatherIconSize": 96, "weatherForecastIconSize": 48, "weatherCurrentTempFontSize": 36, "weatherCurrentDescFontSize": 14, "weatherForecastDayFontSize": 12, "weatherForecastMaxTempFontSize": 18, "weatherForecastMinTempFontSize": 14,
+      "nameTextColor": "#374151", "statusTextColor": "#6B7280", "valueTextColor": "#065F46", "unitTextColor": "#065F46", "nameTextColorOn": "#065F46", "statusTextColorOn": "#374151", "valueTextColorOn": "#065F46", "unitTextColorOn": "#065F46"
+    },
+    "dark": {
+      "dashboardBackgroundType": "color", "dashboardBackgroundColor1": "#1A2421", "dashboardBackgroundColor2": "#212E2A", "dashboardBackgroundImageBlur": 0, "dashboardBackgroundImageBrightness": 100, "cardOpacity": 0.8, "panelOpacity": 0.75,
+      "cardBackground": "rgba(30, 41, 59, 0.8)", "cardBackgroundOn": "rgba(38, 52, 75, 0.85)", "tabTextColor": "#9CA3AF", "activeTabTextColor": "#A7F3D0", "tabIndicatorColor": "#34D399",
+      "thermostatHandleColor": "#1A2421", "thermostatDialTextColor": "#A7F3D0", "thermostatDialLabelColor": "#9CA3AF", "thermostatHeatingColor": "#F28C18", "thermostatCoolingColor": "#0A84FF", "clockTextColor": "#A7F3D0",
+      "weatherIconSize": 96, "weatherForecastIconSize": 48, "weatherCurrentTempFontSize": 36, "weatherCurrentDescFontSize": 14, "weatherForecastDayFontSize": 12, "weatherForecastMaxTempFontSize": 18, "weatherForecastMinTempFontSize": 14,
+      "nameTextColor": "#D1D5DB", "statusTextColor": "#9CA3AF", "valueTextColor": "#A7F3D0", "unitTextColor": "#A7F3D0", "nameTextColorOn": "#A7F3D0", "statusTextColorOn": "#9CA3AF", "valueTextColorOn": "#A7F3D0", "unitTextColorOn": "#A7F3D0"
+    }
+  }
+};
+
 
 const ColorSettingRow: React.FC<{ label: string, value: string, onChange: (newColor: string) => void }> = React.memo(({ label, value, onChange }) => (
   <div className="flex items-center justify-between">
@@ -246,7 +291,19 @@ const Settings: React.FC<{
     
     const handleLoadAppleTheme = () => {
         if (window.confirm("Загрузить тему 'Apple Home (Light)'? Это перезапишет текущие настройки внешнего вида.")) {
-            setColorScheme(appleTheme.colorScheme);
+            setColorScheme((appleTheme as ThemeObject).colorScheme);
+        }
+    };
+
+    const handleLoadGraphiteTheme = () => {
+        if (window.confirm("Загрузить тему 'Apple Home (Graphite)'? Это перезапишет текущие настройки внешнего вида.")) {
+            setColorScheme(appleGraphiteTheme.colorScheme);
+        }
+    };
+
+    const handleLoadMintTheme = () => {
+        if (window.confirm("Загрузить тему 'Apple Home (Mint)'? Это перезапишет текущие настройки внешнего вида.")) {
+            setColorScheme(appleMintTheme.colorScheme);
         }
     };
 
@@ -425,12 +482,24 @@ const Settings: React.FC<{
                             <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg space-y-3">
                                 <h4 className="font-semibold text-gray-900 dark:text-gray-100">Готовые темы</h4>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">Выберите готовую тему для быстрого старта.</p>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 flex-wrap">
                                     <button 
                                         onClick={handleLoadAppleTheme} 
                                         className="flex-1 text-center bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm p-2 rounded-lg"
                                     >
                                         Apple Home (Light)
+                                    </button>
+                                    <button 
+                                        onClick={handleLoadGraphiteTheme} 
+                                        className="flex-1 text-center bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm p-2 rounded-lg"
+                                    >
+                                        Apple Home (Graphite)
+                                    </button>
+                                    <button 
+                                        onClick={handleLoadMintTheme} 
+                                        className="flex-1 text-center bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm p-2 rounded-lg"
+                                    >
+                                        Apple Home (Mint)
                                     </button>
                                 </div>
                             </div>
