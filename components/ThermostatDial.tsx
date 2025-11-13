@@ -348,27 +348,33 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
           onPointerDown={handlePointerDown}
         />
       </svg>
-      <div 
-        className="absolute top-1/2 left-1/2 w-[78%] h-[78%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center cursor-pointer rounded-full"
+      <div
+        className="absolute top-1/2 left-1/2 w-[78%] h-[78%] -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-full"
         onClick={(e) => {
             e.stopPropagation();
             setIsEditing(true);
         }}
       >
-          <AutoFitText 
+        <div className="absolute top-[22%] left-0 right-0 h-[20%]">
+          <AutoFitText
             text={centerLabel}
-            className="w-full h-[30%]"
+            className="w-full h-full"
             pClassName="font-bold"
             pStyle={activeStyle}
             maxFontSize={14}
           />
-          <AutoFitText 
-            text={value.toFixed(1).replace('.', ',')}
-            className="w-full h-[60%]"
-            pClassName="font-light"
-            pStyle={{ color: colorScheme.thermostatDialTextColor }}
-            maxFontSize={80}
-          />
+        </div>
+        <div className="w-full h-full flex items-center justify-center">
+            <div className="w-full h-[60%]">
+                <AutoFitText
+                    text={value.toFixed(1).replace('.', ',')}
+                    className="w-full h-full"
+                    pClassName="font-light"
+                    pStyle={{ color: colorScheme.thermostatDialTextColor }}
+                    maxFontSize={80}
+                />
+            </div>
+        </div>
       </div>
       
        {isEditing && (
