@@ -1,6 +1,5 @@
 
 
-
 import React, { useMemo } from 'react';
 import DashboardGrid from './DashboardGrid';
 import { Tab, Device, GridLayoutItem, CardTemplates, DeviceCustomizations, ColorScheme } from '../types';
@@ -21,7 +20,7 @@ interface TabContentProps {
  */
 const TabContent: React.FC<TabContentProps> = (props) => {
   const { tab } = props;
-  const { allKnownDevices, haUrl, signPath, getCameraStreamUrl, handleDeviceToggle, handleTemperatureChange, handleBrightnessChange, handleHvacModeChange, handlePresetChange } = useHAStore();
+  const { allKnownDevices, haUrl, signPath, getCameraStreamUrl, handleDeviceToggle, handleTemperatureChange, handleBrightnessChange, handleHvacModeChange, handlePresetChange, handleFanSpeedChange } = useHAStore();
   const { searchTerm, handleDeviceLayoutChange, setFloatingCamera, setHistoryModalEntityId, setEditingDevice, templates, customizations, colorScheme, theme } = useAppStore();
 
   // Определяем текущую цветовую схему (светлую или темную) на основе настроек.
@@ -50,6 +49,7 @@ const TabContent: React.FC<TabContentProps> = (props) => {
             onBrightnessChange={handleBrightnessChange}
             onHvacModeChange={handleHvacModeChange}
             onPresetChange={handlePresetChange}
+            onFanSpeedChange={handleFanSpeedChange}
             onCameraCardClick={setFloatingCamera}
             onShowHistory={setHistoryModalEntityId}
             onEditDevice={setEditingDevice}

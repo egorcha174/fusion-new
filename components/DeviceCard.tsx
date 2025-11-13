@@ -144,6 +144,7 @@ interface DeviceCardProps {
   onBrightnessChange: (brightness: number) => void;
   onHvacModeChange: (mode: string) => void;
   onPresetChange: (preset: string) => void;
+  onFanSpeedChange: (deviceId: string, percentage: number) => void;
   onCameraCardClick: (device: Device) => void;
   isEditMode: boolean;
   isPreview?: boolean; // Используется в редакторе шаблонов
@@ -166,7 +167,7 @@ interface DeviceCardProps {
  * 1. На основе шаблона (template): универсальный рендерер, который строит UI по заданной структуре.
  * 2. Резервный (legacy): рендерит предопределенный UI для каждого типа устройства.
  */
-const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, customizations, onDeviceToggle, onTemperatureChange, onBrightnessChange, onHvacModeChange, onPresetChange, onCameraCardClick, isEditMode, isPreview = false, onEditDevice, onRemoveFromTab, haUrl, signPath, getCameraStreamUrl, template, openMenuDeviceId, setOpenMenuDeviceId, colorScheme, onContextMenu, isOnPreview }) => {
+const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, customizations, onDeviceToggle, onTemperatureChange, onBrightnessChange, onHvacModeChange, onPresetChange, onFanSpeedChange, onCameraCardClick, isEditMode, isPreview = false, onEditDevice, onRemoveFromTab, haUrl, signPath, getCameraStreamUrl, template, openMenuDeviceId, setOpenMenuDeviceId, colorScheme, onContextMenu, isOnPreview }) => {
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
   const presetMenuRef = useRef<HTMLDivElement>(null);
   
@@ -408,6 +409,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         }
         case 'target-temperature': {
           const isHumidifier = device.type === DeviceType.Humidifier;
+          const dialGradient = isHumidifier ? ['#60A5FA', '#3B82F6', '#2563EB'] : undefined;
           return (
             <div key={element.id} style={style} onClick={e => { if (!isPreview) e.stopPropagation(); }}>
               <ThermostatDial
@@ -421,6 +423,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                 heatingLabelColor={element.styles.heatingLabelColor}
                 coolingLabelColor={element.styles.coolingLabelColor}
                 colorScheme={colorScheme}
+                gradientColors={dialGradient}
               />
             </div>
           );
@@ -564,6 +567,42 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                             fontSize={element.styles.fontSize}
                             maxFontSize={100} mode="single-line" textAlign={element.styles.textAlign || 'left'}
                         />
+                    </div>
+                </div>
+            );
+        }
+        case 'fan-speed-control': {
+            const { linkedFanEntityId } = element.styles;
+            if (!linkedFanEntityId) return null;
+
+            const fanDevice = allKnownDevices.get(linkedFanEntityId);
+            if (!fanDevice) {
+                return (
+                    <div key={element.id} style={style} className="flex items-center justify-center" title={`Вентилятор не найден: ${linkedFanEntityId}`}>
+                        <Icon icon="mdi:alert-circle-outline" className="w-full h-full text-yellow-500/80" />
+                    </div>
+                );
+            }
+            
+            const speeds = [25, 50, 75, 100];
+            const currentSpeed = fanDevice.fanSpeed;
+
+            return (
+                <div key={element.id} style={style} onClick={e => { if (!isPreview) e.stopPropagation(); }} className="flex items-center justify-center p-1">
+                    <div className="flex w-full h-full bg-black/10 dark:bg-black/25 rounded-xl ring-1 ring-black/5 dark:ring-white/10 p-1">
+                        {speeds.map(speed => {
+                            const isActive = currentSpeed === speed;
+                            return (
+                                <button 
+                                    key={speed}
+                                    disabled={isPreview}
+                                    onClick={() => { if (!isPreview) onFanSpeedChange(linkedFanEntityId, speed); }}
+                                    className={`flex-1 text-xs font-bold rounded-lg transition-all ${isActive ? 'bg-blue-600 text-white shadow-md' : 'text-gray-700 dark:text-gray-300 hover:bg-black/10 dark:hover:bg-white/10'}`}
+                                >
+                                    {speed}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
             );

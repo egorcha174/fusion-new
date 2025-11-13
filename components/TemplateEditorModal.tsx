@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot, ColorScheme } from '../types';
 import DeviceCard from './DeviceCard';
@@ -188,21 +189,22 @@ interface TemplateEditorModalProps {
   onClose: () => void;
 }
 
-const ELEMENT_LABELS: Record<CardElementId, string> = {
+const ELEMENT_LABELS_BASE: Record<CardElementId, string> = {
   name: 'Название', icon: 'Иконка', value: 'Значение', unit: 'Единица изм.', chart: 'График',
   status: 'Статус', slider: 'Слайдер', temperature: 'Текущая темп.', 'target-temperature': 'Термостат (кольцо)',
-  'hvac-modes': 'Режимы климата', 'linked-entity': 'Связанное устройство', battery: 'Уровень заряда'
+  'hvac-modes': 'Режимы климата', 'linked-entity': 'Связанное устройство', battery: 'Уровень заряда', 'fan-speed-control': 'Скорость вентилятора'
 };
 
 // --- Sortable Layer Item Component ---
 interface SortableLayerItemProps {
     element: CardElement;
+    label: string;
     isSelected: boolean;
     onSelect: (e: React.MouseEvent) => void;
     onToggleVisibility: (e: React.MouseEvent) => void;
 }
 
-const SortableLayerItem: React.FC<SortableLayerItemProps> = React.memo(({ element, isSelected, onSelect, onToggleVisibility }) => {
+const SortableLayerItem: React.FC<SortableLayerItemProps> = React.memo(({ element, label, isSelected, onSelect, onToggleVisibility }) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: `layer-${element.id}` });
     const style = { transform: CSS.Transform.toString(transform), transition };
     
@@ -217,7 +219,7 @@ const SortableLayerItem: React.FC<SortableLayerItemProps> = React.memo(({ elemen
                 <div {...attributes} {...listeners} className="cursor-grab touch-none text-gray-400 hover:text-white">
                     <Icon icon="mdi:drag-horizontal-variant" className="w-5 h-5"/>
                 </div>
-                <span className="text-sm truncate">{ELEMENT_LABELS[element.id]}</span>
+                <span className="text-sm truncate">{label}</span>
             </div>
             <button onClick={onToggleVisibility}>
                 <Icon icon={element.visible ? 'mdi:eye' : 'mdi:eye-off'} className={`w-5 h-5 ${element.visible ? 'text-gray-300' : 'text-gray-500'}`}/>
@@ -248,11 +250,12 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
 
   const sampleDevice = useMemo(() => {
     const baseDevice = {
-      batteryLevel: 48, // Add battery level to sample device
+      batteryLevel: 48,
     };
     if (templateToEdit.deviceType === 'climate') return { ...baseDevice, id: 'climate.living_room', name: 'Гостиная', status: 'Охлаждение до 22°', type: DeviceType.Thermostat, temperature: 24, targetTemperature: 22, minTemp: 16, maxTemp: 30, hvacModes: ['off', 'cool', 'heat', 'auto'], hvacAction: 'cooling', presetMode: 'comfort', presetModes: ['none', 'away', 'comfort', 'eco', 'sleep'], state: 'cool', haDomain: 'climate' };
     if (templateToEdit.deviceType === 'light') return { ...baseDevice, id: 'light.sample_dimmable', name: 'Лампа в гостиной', status: 'Включено', type: DeviceType.DimmableLight, brightness: 80, state: 'on', haDomain: 'light' };
     if (templateToEdit.deviceType === 'switch') return { ...baseDevice, id: 'switch.sample_outlet', name: 'Розетка на кухне', status: 'Включено', type: DeviceType.Switch, state: 'on', haDomain: 'switch' };
+    if (templateToEdit.deviceType === 'humidifier') return { ...baseDevice, id: 'humidifier.sample', name: 'Увлажнитель', status: 'Увлажнение', type: DeviceType.Humidifier, targetHumidity: 60, currentHumidity: 45, minTemp: 30, maxTemp: 80, presetModes: ['auto', 'sleep', 'turbo'], presetMode: 'auto', state: 'on', haDomain: 'humidifier' };
     return { ...baseDevice, id: 'sensor.sample_temperature', name: 'Температура в кабинете', status: '25.9', type: DeviceType.Sensor, unit: '°C', history: Array.from({ length: 20 }, (_, i) => 25 + Math.sin(i / 3) + (Math.random() - 0.5)), state: '25.9', haDomain: 'sensor' };
   }, [templateToEdit.deviceType]);
   
@@ -276,6 +279,16 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
         }
     });
   }, []);
+
+  const elementLabels = useMemo(() => {
+    const labels = { ...ELEMENT_LABELS_BASE };
+    if (editedTemplate.deviceType === 'humidifier') {
+        labels['temperature'] = 'Текущая влажность';
+        labels['target-temperature'] = 'Регулятор влажности';
+        labels['value'] = 'Целевая влажность';
+    }
+    return labels;
+  }, [editedTemplate.deviceType]);
 
   // --- Keyboard Shortcuts ---
   useEffect(() => {
@@ -494,7 +507,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   const selectedElement = useMemo(() => editedTemplate.elements.find(el => selectedElementIds.length === 1 && el.id === selectedElementIds[0]), [selectedElementIds, editedTemplate.elements]);
   const selectedSlot = useMemo(() => editedTemplate.deviceSlots?.find(s => s.id === selectedSlotId), [selectedSlotId, editedTemplate.deviceSlots]);
   const isTextElementSelected = selectedElement && ['name', 'status', 'value', 'unit', 'temperature', 'battery'].includes(selectedElement.id);
-  const availableElementsToAdd = Object.keys(ELEMENT_LABELS).filter(id => !editedTemplate.elements.some(el => el.id === id));
+  const availableElementsToAdd = Object.keys(elementLabels).filter(id => !editedTemplate.elements.some(el => el.id === id));
 
 
   return (
@@ -513,6 +526,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                        <SortableLayerItem
                             key={el.id}
                             element={el}
+                            label={elementLabels[el.id]}
                             isSelected={selectedElementIds.includes(el.id)}
                             onSelect={(e) => {
                                 e.stopPropagation();
@@ -562,7 +576,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                         <div onMouseLeave={() => setIsAddLayerMenuOpen(false)} className="absolute bottom-full left-0 right-0 mb-2 w-full bg-gray-700 rounded-lg shadow-lg z-10 ring-1 ring-black/50 overflow-hidden fade-in max-h-48 overflow-y-auto">
                             {availableElementsToAdd.map(id => (
                                 <button key={id} onClick={() => handleAddElement(id as CardElementId)} className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-600">
-                                    {ELEMENT_LABELS[id as CardElementId]}
+                                    {elementLabels[id as CardElementId]}
                                 </button>
                             ))}
                         </div>
@@ -582,7 +596,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
           <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
             <main className="flex-1 flex flex-col items-center justify-center bg-gray-900/50 relative" onClick={() => handleSelect('element', '')}>
               <div ref={previewRef} className="w-[400px] transition-all duration-300 relative" style={{ aspectRatio: `${editedTemplate.width || 1} / ${editedTemplate.height || 1}`}}>
-                  <DeviceCard device={sampleDevice} allKnownDevices={sampleAllKnownDevices} customizations={{}} onDeviceToggle={() => {}} template={editedTemplate} isPreview={true} onTemperatureChange={()=>{}} onBrightnessChange={()=>{}} onHvacModeChange={()=>{}} onPresetChange={()=>{}} onCameraCardClick={()=>{}} isEditMode={false} onEditDevice={()=>{}} haUrl="" signPath={async()=>({path:''})} getCameraStreamUrl={async()=>({url: ''})} colorScheme={currentColorScheme} />
+                  <DeviceCard device={sampleDevice} allKnownDevices={sampleAllKnownDevices} customizations={{}} onDeviceToggle={() => {}} template={editedTemplate} isPreview={true} onTemperatureChange={()=>{}} onBrightnessChange={()=>{}} onHvacModeChange={()=>{}} onPresetChange={()=>{}} onFanSpeedChange={()=>{}} onCameraCardClick={()=>{}} isEditMode={false} onEditDevice={()=>{}} haUrl="" signPath={async()=>({path:''})} getCameraStreamUrl={async()=>({url: ''})} colorScheme={currentColorScheme} />
                   {editedTemplate.elements.map(element => <DraggableCanvasElement key={element.id} element={element} isSelected={selectedElementIds.includes(element.id)} onSelect={(id, multi) => handleSelect('element', id, multi)} showResizeHandles={selectedElementIds.length === 1 && selectedElementIds[0] === element.id}/>)}
                   {editedTemplate.deviceSlots?.map(slot => <DraggableIndicatorSlot key={slot.id} slot={slot} isSelected={selectedSlotId === slot.id} onSelect={() => handleSelect('slot', slot.id)} />)}
               </div>
@@ -594,7 +608,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
             <div className="p-4 border-b border-gray-700/80">
               <h3 className="font-bold text-lg">Инспектор</h3>
               <p className="text-xs text-gray-400 mt-1">
-                {selectedElementIds.length > 1 ? `Выбрано ${selectedElementIds.length} элементов` : selectedElement ? ELEMENT_LABELS[selectedElement.id] : selectedSlot ? 'Индикатор' : 'Настройки шаблона'}
+                {selectedElementIds.length > 1 ? `Выбрано ${selectedElementIds.length} элементов` : selectedElement ? elementLabels[selectedElement.id] : selectedSlot ? 'Индикатор' : 'Настройки шаблона'}
               </p>
             </div>
             <div className="flex-grow p-4 space-y-4 overflow-y-auto no-scrollbar">
@@ -639,7 +653,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
               </>)}
               { selectedElement && (<>
                 <Section title="Положение и размер">
-                    <div className="grid grid-cols-[auto_1fr_auto_1fr] gap-x-2 gap-y-3 items-center">
+                    <div className="grid grid-cols-[auto,1fr,auto_1fr] gap-x-2 gap-y-3 items-center">
                         {/* Row 1 */}
                         <label className="text-xs text-gray-400 justify-self-end">X</label>
                         <div className="flex items-center gap-1">
@@ -704,25 +718,26 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                  {selectedElement.id === 'chart' && (
                     <Section title="Настройки графика">
                         <LabeledInput label="Период">
-                           <NumberInput 
-                               value={selectedElement.styles.chartTimeRange}
-                               onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === selectedElement.id ? {...e, styles: {...e.styles, chartTimeRange: v}} : e)}))} 
-                               min={1}
-                           />
+                            <div className="grid grid-cols-2 gap-2">
+                                <NumberInput 
+                                    value={selectedElement.styles.chartTimeRange}
+                                    onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, chartTimeRange: v}} : el)}))}
+                                    min={1}
+                                    placeholder="24"
+                                />
+                                <select 
+                                    value={selectedElement.styles.chartTimeRangeUnit || 'hours'}
+                                    onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, chartTimeRangeUnit: e.target.value as any}} : el)}))}
+                                    className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
+                                >
+                                    <option value="minutes">Минут</option>
+                                    <option value="hours">Часов</option>
+                                    <option value="days">Дней</option>
+                                </select>
+                            </div>
                         </LabeledInput>
-                         <LabeledInput label="Единица">
-                            <select 
-                                value={selectedElement.styles.chartTimeRangeUnit || 'hours'}
-                                onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, chartTimeRangeUnit: e.target.value as any}} : el)}))}
-                                className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
-                            >
-                                <option value="minutes">Минуты</option>
-                                <option value="hours">Часы</option>
-                                <option value="days">Дни</option>
-                            </select>
-                         </LabeledInput>
-                         <LabeledInput label="Тип">
-                            <select 
+                        <LabeledInput label="Тип графика">
+                            <select
                                 value={selectedElement.styles.chartType || 'gradient'}
                                 onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, chartType: e.target.value as any}} : el)}))}
                                 className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
@@ -730,103 +745,107 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                                 <option value="gradient">Градиент</option>
                                 <option value="line">Линия</option>
                             </select>
-                         </LabeledInput>
+                        </LabeledInput>
                     </Section>
                  )}
-                {selectedElement.id === 'target-temperature' && (
+                 {selectedElement.id === 'linked-entity' && (
+                    <Section title="Связанное устройство">
+                        <LabeledInput label="Устройство">
+                            <select
+                                value={selectedElement.styles.linkedEntityId || ''}
+                                onChange={e => setEditedTemplate(p => ({ ...p, elements: p.elements.map(el => el.id === selectedElement.id ? { ...el, styles: { ...el.styles, linkedEntityId: e.target.value } } : el) }))}
+                                className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
+                            >
+                                <option value="">-- Выберите устройство --</option>
+                                <option value="self">Это же устройство</option>
+                                {Array.from(allKnownDevices.values()).sort((a,b) => a.name.localeCompare(b.name)).map(d => (
+                                    <option key={d.id} value={d.id}>{d.name}</option>
+                                ))}
+                            </select>
+                        </LabeledInput>
+                        <LabeledInput label="Показывать значение">
+                            <input
+                                type="checkbox"
+                                checked={selectedElement.styles.showValue ?? false}
+                                onChange={e => setEditedTemplate(p => ({ ...p, elements: p.elements.map(el => el.id === selectedElement.id ? { ...el, styles: { ...el.styles, showValue: e.target.checked } } : el) }))}
+                                className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-600 ring-offset-gray-800 focus:ring-2"
+                            />
+                        </LabeledInput>
+                    </Section>
+                 )}
+                 {selectedElement.id === 'fan-speed-control' && (
+                    <Section title="Управление вентилятором">
+                        <LabeledInput label="Устройство вентилятора">
+                            <select
+                                value={selectedElement.styles.linkedFanEntityId || ''}
+                                onChange={e => setEditedTemplate(p => ({ ...p, elements: p.elements.map(el => el.id === selectedElement.id ? { ...el, styles: { ...el.styles, linkedFanEntityId: e.target.value } } : el) }))}
+                                className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
+                            >
+                                <option value="">-- Выберите вентилятор --</option>
+                                {Array.from(allKnownDevices.values()).filter(d => d.haDomain === 'fan').sort((a, b) => a.name.localeCompare(b.name)).map(d => (
+                                    <option key={d.id} value={d.id}>{d.name}</option>
+                                ))}
+                            </select>
+                        </LabeledInput>
+                    </Section>
+                 )}
+                 {selectedElement.id === 'target-temperature' && (
                     <Section title="Стили термостата">
-                        <LabeledInput label="Цвет (Цель)"><input type="color" value={selectedElement.styles.idleLabelColor || '#9CA3AF'} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, idleLabelColor: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
+                        <LabeledInput label="Цвет (Ожидание)"><input type="color" value={selectedElement.styles.idleLabelColor || '#9CA3AF'} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, idleLabelColor: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
                         <LabeledInput label="Цвет (Нагрев)"><input type="color" value={selectedElement.styles.heatingLabelColor || '#F97316'} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, heatingLabelColor: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
                         <LabeledInput label="Цвет (Охлаждение)"><input type="color" value={selectedElement.styles.coolingLabelColor || '#3B82F6'} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, coolingLabelColor: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
                     </Section>
-                )}
-                 {selectedElement.id === 'linked-entity' && (
-                     <Section title="Связанное устройство">
-                         <LabeledInput label="ID устройства"><input type="text" placeholder="e.g. sensor.temperature" value={selectedElement.styles.linkedEntityId ?? ''} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, linkedEntityId: e.target.value}} : el)}))} className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"/></LabeledInput>
-                         <LabeledInput label="Показывать значение">
-                            <button 
-                                onClick={() => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, showValue: !el.styles.showValue}} : el)}))}
-                                className={`relative inline-flex items-center h-5 rounded-full w-9 transition-colors ${selectedElement.styles.showValue ? 'bg-blue-600' : 'bg-gray-600'}`}
-                            >
-                                <span className={`inline-block w-3 h-3 transform bg-white rounded-full transition-transform ${selectedElement.styles.showValue ? 'translate-x-5' : 'translate-x-1'}`} />
-                            </button>
-                        </LabeledInput>
-                        {selectedElement.styles.showValue && (
-                            <LabeledInput label="Знаков после ," >
-                                <NumberInput value={selectedElement.styles.decimalPlaces} onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(e => e.id === selectedElement.id ? {...e, styles: {...e.styles, decimalPlaces: v}} : e)}))} min={0} max={5} />
-                            </LabeledInput>
-                        )}
-                        <Section title="Стили иконки">
-                            <LabeledInput label="Цвет (Вкл.)"><input type="color" value={selectedElement.styles.onColor || '#3B82F6'} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, onColor: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
-                            <LabeledInput label="Цвет (Выкл.)"><input type="color" value={selectedElement.styles.offColor || '#9CA3AF'} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, offColor: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
-                        </Section>
-                     </Section>
                  )}
               </>)}
-               {selectedSlot && (
-                <>
-                  <Section title="Положение и размер" defaultOpen={true}>
-                    {!selectedSlot.visualStyle.showValue && (
-                        <LabeledInput label="Размер иконки">
-                            <input type="range" min="20" max="48" value={selectedSlot.iconSize} onChange={e => handleSlotUpdate(selectedSlot.id, { iconSize: parseInt(e.target.value, 10) })} className="w-full accent-blue-500" />
-                        </LabeledInput>
-                    )}
+              
+              { selectedSlot && (<>
+                  <Section title="Положение индикатора">
+                     <div className="grid grid-cols-[auto,1fr,auto_1fr] gap-x-2 gap-y-3 items-center">
+                        <label className="text-xs text-gray-400 justify-self-end">X</label>
+                        <div className="flex items-center gap-1">
+                            <NumberInput value={Math.round(selectedSlot.position.x)} onChange={v => handleSlotUpdate(selectedSlot.id, { position: { ...selectedSlot.position, x: v || 0 } })} />
+                            <span className="text-xs text-gray-500">%</span>
+                        </div>
+                        
+                        <label className="text-xs text-gray-400 justify-self-end pl-2">Y</label>
+                        <div className="flex items-center gap-1">
+                            <NumberInput value={Math.round(selectedSlot.position.y)} onChange={v => handleSlotUpdate(selectedSlot.id, { position: { ...selectedSlot.position, y: v || 0 } })} />
+                            <span className="text-xs text-gray-500">%</span>
+                        </div>
+                    </div>
                   </Section>
-                  <Section title="Отображение">
+
+                  <Section title="Внешний вид">
+                    <LabeledInput label="Размер иконки" suffix="px">
+                      <NumberInput value={selectedSlot.iconSize} onChange={v => handleSlotUpdate(selectedSlot.id, { iconSize: v || 24 })} min={12} max={64} />
+                    </LabeledInput>
+                     <LabeledInput label="Цвет (Вкл.)"><input type="color" value={selectedSlot.visualStyle.activeColor} onChange={e => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, activeColor: e.target.value } })} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
+                     <LabeledInput label="Цвет (Выкл.)"><input type="color" value={selectedSlot.visualStyle.inactiveColor} onChange={e => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, inactiveColor: e.target.value } })} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
+                     <LabeledInput label="Интенсивность свечения">
+                        <input type="range" min="0" max="1" step="0.1" value={selectedSlot.visualStyle.glowIntensity} onChange={e => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, glowIntensity: parseFloat(e.target.value) } })} className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"/>
+                     </LabeledInput>
+                  </Section>
+                  
+                  <Section title="Поведение">
                     <LabeledInput label="Показывать значение">
-                        <button 
-                            onClick={() => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, showValue: !selectedSlot.visualStyle.showValue }})}
-                            className={`relative inline-flex items-center h-5 rounded-full w-9 transition-colors ${selectedSlot.visualStyle.showValue ? 'bg-blue-600' : 'bg-gray-600'}`}
-                        >
-                            <span className={`inline-block w-3 h-3 transform bg-white rounded-full transition-transform ${selectedSlot.visualStyle.showValue ? 'translate-x-5' : 'translate-x-1'}`} />
-                        </button>
+                        <input type="checkbox" checked={selectedSlot.visualStyle.showValue} onChange={e => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, showValue: e.target.checked }})} className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-600 ring-offset-gray-800 focus:ring-2"/>
                     </LabeledInput>
                     {selectedSlot.visualStyle.showValue && (
                         <>
-                            <LabeledInput label="Размер шрифта" suffix="px">
-                                <NumberInput
-                                    value={selectedSlot.visualStyle.fontSize}
-                                    onChange={v => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, fontSize: v } })}
-                                    min={8} max={100} placeholder="Авто"
-                                />
-                            </LabeledInput>
-                            <LabeledInput label="Знаков после ," suffix=",">
-                                <NumberInput
-                                    value={selectedSlot.visualStyle.decimalPlaces}
-                                    onChange={v => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, decimalPlaces: v } })}
-                                    min={0} max={5} placeholder="Авто"
-                                />
-                            </LabeledInput>
-                            <LabeledInput label="Единица изм.">
-                                <input
-                                    type="text"
-                                    value={selectedSlot.visualStyle.unit || ''}
-                                    onChange={e => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, unit: e.target.value }})}
-                                    placeholder="°C, %..."
-                                    className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                />
-                            </LabeledInput>
+                         <LabeledInput label="Знаков после ,"><NumberInput value={selectedSlot.visualStyle.decimalPlaces} onChange={v => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, decimalPlaces: v }})} min={0} max={5} /></LabeledInput>
+                         <LabeledInput label="Единица изм."><input type="text" value={selectedSlot.visualStyle.unit || ''} onChange={e => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, unit: e.target.value }})} className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm"/></LabeledInput>
+                         <LabeledInput label="Размер шрифта" suffix="px"><NumberInput value={selectedSlot.visualStyle.fontSize} onChange={v => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, fontSize: v }})} min={8} max={48} /></LabeledInput>
                         </>
                     )}
+                    <LabeledInput label="Интерактивный">
+                        <input type="checkbox" checked={selectedSlot.interactive} onChange={e => handleSlotUpdate(selectedSlot.id, { interactive: e.target.checked })} className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-600 ring-offset-gray-800 focus:ring-2"/>
+                    </LabeledInput>
                   </Section>
-                  <Section title="Поведение">
-                    <LabeledInput label="Интерактивный"><button onClick={() => handleSlotUpdate(selectedSlot.id, { interactive: !selectedSlot.interactive })} className={`relative inline-flex items-center h-5 rounded-full w-9 transition-colors ${selectedSlot.interactive ? 'bg-blue-600' : 'bg-gray-600'}`}><span className={`inline-block w-3 h-3 transform bg-white rounded-full transition-transform ${selectedSlot.interactive ? 'translate-x-5' : 'translate-x-1'}`} /></button></LabeledInput>
-                  </Section>
-                   <div className="pt-4 border-t border-gray-700/80">
-                      <button
-                        onClick={() => handleDeleteSlot(selectedSlot.id)}
-                        className="w-full flex items-center justify-center gap-2 text-sm text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-3 py-2 rounded-lg transition-colors"
-                      >
-                         <Icon icon="mdi:trash-can-outline" className="w-4 h-4" />
-                         Удалить индикатор
-                      </button>
-                    </div>
-                </>
-              )}
+              </>)}
             </div>
-            <div className="p-4 flex justify-end gap-4 bg-gray-900/50 rounded-b-2xl border-t border-gray-700/80">
-                <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">Отмена</button>
-                <button onClick={() => { handleSaveTemplate(editedTemplate); onClose(); }} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Сохранить</button>
+            <div className="p-4 flex justify-end gap-4 border-t border-gray-700/80">
+              <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">Отмена</button>
+              <button onClick={() => handleSaveTemplate(editedTemplate)} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Сохранить</button>
             </div>
           </aside>
       </div>
@@ -834,4 +853,4 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   );
 };
 
-export default React.memo(TemplateEditorModal);
+export default TemplateEditorModal;

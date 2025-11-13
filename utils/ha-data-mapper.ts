@@ -172,6 +172,10 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
     device.presetMode = attributes.mode; // Re-use presetMode for mode
     device.presetModes = attributes.available_modes; // Re-use presetModes for available_modes
   }
+
+  if (device.type === DeviceType.Fan) {
+    device.fanSpeed = attributes.percentage;
+  }
   
   if (device.type === DeviceType.Weather) {
       device.temperature = attributes.temperature;

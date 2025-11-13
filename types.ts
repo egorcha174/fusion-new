@@ -70,6 +70,7 @@ export interface Device {
   haDeviceClass?: string; // device_class из Home Assistant
   state?: string; // "Сырое" состояние из Home Assistant (например, 'on', 'off')
   batteryLevel?: number; // Уровень заряда батареи в процентах
+  fanSpeed?: number; // Скорость вентилятора в процентах
 }
 
 /**
@@ -253,7 +254,7 @@ export interface ColorScheme {
 // --- Система шаблонов карточек ---
 
 // ID доступных элементов внутри шаблона карточки.
-export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status' | 'slider' | 'temperature' | 'target-temperature' | 'hvac-modes' | 'linked-entity' | 'battery';
+export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status' | 'slider' | 'temperature' | 'target-temperature' | 'hvac-modes' | 'linked-entity' | 'battery' | 'fan-speed-control';
 
 /**
  * Описывает один элемент (например, иконку, название) внутри шаблона карточки.
@@ -272,6 +273,7 @@ export interface CardElement {
     fontFamily?: string; // Для текстовых элементов
     fontSize?: number; // Для текстовых элементов (в px)
     linkedEntityId?: string; // для 'linked-entity'
+    linkedFanEntityId?: string; // для 'fan-speed-control'
     showValue?: boolean; // для 'linked-entity'
     chartTimeRange?: number; // для 'chart'
     chartTimeRangeUnit?: 'minutes' | 'hours' | 'days'; // для 'chart'
@@ -372,6 +374,7 @@ export interface HassEntity {
     min_temp?: number;
     max_temp?: number;
     battery_level?: number; // Уровень заряда батареи
+    percentage?: number; // Для скорости вентилятора
     [key: string]: any; // Для других атрибутов
   };
   context: {

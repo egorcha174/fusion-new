@@ -90,6 +90,7 @@ const DraggableDevice: React.FC<{
         onBrightnessChange={(brightness) => cardProps.onBrightnessChange(device.id, brightness)}
         onHvacModeChange={(mode) => cardProps.onHvacModeChange(device.id, mode)}
         onPresetChange={(preset) => cardProps.onPresetChange(device.id, preset)}
+        onFanSpeedChange={(deviceId, percentage) => cardProps.onFanSpeedChange(deviceId, percentage)}
         onCameraCardClick={cardProps.onCameraCardClick}
         isEditMode={isEditMode}
         onEditDevice={() => cardProps.onEditDevice(device)}
@@ -201,6 +202,7 @@ interface DashboardGridProps {
   onBrightnessChange: (deviceId: string, brightness: number) => void;
   onHvacModeChange: (deviceId: string, mode: string) => void;
   onPresetChange: (deviceId: string, preset: string) => void;
+  onFanSpeedChange: (deviceId: string, percentage: number) => void;
   onCameraCardClick: (device: Device) => void;
   onShowHistory: (entityId: string) => void;
   onEditDevice: (device: Device) => void;
@@ -493,6 +495,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                           onBrightnessChange={() => {}}
                           onHvacModeChange={() => {}}
                           onPresetChange={() => {}}
+                          onFanSpeedChange={() => {}}
                           onCameraCardClick={() => {}}
                           onEditDevice={() => {}}
                           onContextMenu={() => {}}

@@ -28,7 +28,7 @@ const valueToAngle = (value: number, min: number, max: number, startAngle: numbe
 
 
 // --- Gradient Generation Helpers (NEW) ---
-const GRADIENT_COLORS = ["#4169E1", "#8B5CF6", "#EC4899", "#F97316", "#EF4444"];
+const DEFAULT_GRADIENT_COLORS = ["#4169E1", "#8B5CF6", "#EC4899", "#F97316", "#EF4444"];
 
 const hexToRgb = (hex: string) => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -67,8 +67,9 @@ const GradientArc: React.FC<{
     strokeWidth: number;
     startAngle: number;
     endAngle: number;
+    colors: string[];
     steps?: number;
-}> = React.memo(({ center, radius, strokeWidth, startAngle, endAngle, steps = 300 }) => {
+}> = React.memo(({ center, radius, strokeWidth, startAngle, endAngle, colors, steps = 300 }) => {
     const angleRange = endAngle - startAngle;
     const angleStep = angleRange / steps;
     
@@ -79,7 +80,7 @@ const GradientArc: React.FC<{
                 // Add a small overlap to ensure no gaps from anti-aliasing
                 const currentAngleEnd = startAngle + (i + 1) * angleStep + 0.5;
                 const colorRatio = (i + 0.5) / steps;
-                const color = interpolateColor(colorRatio, GRADIENT_COLORS);
+                const color = interpolateColor(colorRatio, colors);
                 
                 return (
                     <path
@@ -156,9 +157,10 @@ interface ThermostatDialProps {
   heatingLabelColor?: string;
   coolingLabelColor?: string;
   colorScheme: ColorScheme['light'];
+  gradientColors?: string[];
 }
 
-const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, current, onChange, hvacAction, idleLabelColor, heatingLabelColor, coolingLabelColor, colorScheme }) => {
+const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, current, onChange, hvacAction, idleLabelColor, heatingLabelColor, coolingLabelColor, colorScheme, gradientColors }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -324,6 +326,7 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
                 strokeWidth={STROKE_WIDTH}
                 startAngle={START_ANGLE}
                 endAngle={END_ANGLE}
+                colors={gradientColors || DEFAULT_GRADIENT_COLORS}
             />
         </g>
         
