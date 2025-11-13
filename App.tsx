@@ -12,9 +12,11 @@
 
 
 
+
+
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
-import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet } from './types';
+import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet, GridLayoutItem } from './types';
 import { nanoid } from 'nanoid';
 import { useAppStore } from './store/appStore';
 import { useHAStore } from './store/haStore';
@@ -23,18 +25,18 @@ import ErrorBoundary from './components/ErrorBoundary';
 
 // Ленивая загрузка (Lazy loading) компонентов для разделения кода (code splitting) и улучшения производительности.
 // Компоненты будут загружены только тогда, когда они понадобятся.
-const Settings = lazy(() => import('./components/Settings'));
-const InfoPanel = lazy(() => import('./components/InfoPanel'));
-const DashboardHeader = lazy(() => import('./components/DashboardHeader'));
-const AllEntitiesPage = lazy(() => import('./components/AllEntitiesPage'));
-const AllDevicesPage = lazy(() => import('./components/AllDevicesPage'));
-const TabContent = lazy(() => import('./components/TabContent'));
-const DeviceSettingsModal = lazy(() => import('./components/DeviceSettingsModal'));
-const TabSettingsModal = lazy(() => import('./components/TabSettingsModal'));
-const ContextMenu = lazy(() => import('./components/ContextMenu'));
-const FloatingCameraWindow = lazy(() => import('./components/FloatingCameraWindow'));
-const TemplateEditorModal = lazy(() => import('./components/TemplateEditorModal'));
-const HistoryModal = lazy(() => import('./components/HistoryModal'));
+const Settings = lazy(() => import('./components/Settings.tsx'));
+const InfoPanel = lazy(() => import('./components/InfoPanel.tsx'));
+const DashboardHeader = lazy(() => import('./components/DashboardHeader.tsx'));
+const AllEntitiesPage = lazy(() => import('./components/AllEntitiesPage.tsx'));
+const AllDevicesPage = lazy(() => import('./components/AllDevicesPage.tsx'));
+const TabContent = lazy(() => import('./components/TabContent.tsx'));
+const DeviceSettingsModal = lazy(() => import('./components/DeviceSettingsModal.tsx'));
+const TabSettingsModal = lazy(() => import('./components/TabSettingsModal.tsx'));
+const ContextMenu = lazy(() => import('./components/ContextMenu.tsx'));
+const FloatingCameraWindow = lazy(() => import('./components/FloatingCameraWindow.tsx'));
+const TemplateEditorModal = lazy(() => import('./components/TemplateEditorModal.tsx'));
+const HistoryModal = lazy(() => import('./components/HistoryModal.tsx'));
 
 
 /**
@@ -278,7 +280,8 @@ const App: React.FC = () => {
                     id: nanoid(),
                     name: 'Главная',
                     // Автоматически размещаем все устройства на первой вкладке
-                    layout: allDeviceIds.map(id => ({ deviceId: id, col: 0, row: 0, width: 1, height: 1 })),
+                    // FIX: Explicitly type the 'id' parameter in the map function to resolve a TypeScript inference issue where it was being inferred as 'unknown'.
+                    layout: allDeviceIds.map((id: string): GridLayoutItem => ({ deviceId: id, col: 0, row: 0, width: 1, height: 1 })),
                     gridSettings: { cols: 8, rows: 5 }
                 };
                 setTabs([newTab]);
