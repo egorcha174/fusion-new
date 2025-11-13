@@ -535,8 +535,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                 <div key={element.id} style={style} onClick={e => { if (!isPreview) e.stopPropagation(); }} ref={hvacModesRef}>
                     <div className="relative w-full h-full flex items-center justify-center">
                         <button onClick={(e) => handleHvacButtonClick(e, modes)} disabled={isPreview} className="w-full h-full flex flex-col items-center justify-center bg-black/5 dark:bg-black/25 hover:bg-black/10 dark:hover:bg-black/40 rounded-xl transition-all p-1 ring-1 ring-black/5 dark:ring-white/10">
-                            <Icon icon={activeConfig.icon} className="w-auto h-[55%] text-gray-700 dark:text-gray-300" />
-                            <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 mt-auto leading-tight text-center">{activeConfig.label}</span>
+                            <Icon icon={activeConfig.icon} className="w-auto h-[55%] text-gray-800 dark:text-gray-200" />
+                            <span className="text-[10px] font-bold text-gray-800 dark:text-gray-200 mt-auto leading-tight text-center">{activeConfig.label}</span>
                         </button>
         
                         {isDropdownOpen && !isPreview && (
@@ -585,7 +585,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                         <DeviceIcon icon={linkedDevice.icon ?? linkedDevice.type} isOn={isLinkedOn} className="!w-full !h-full" iconAnimation={linkedDevice.iconAnimation} />
                     </div>
                     {!!valueText && (
-                        <div className="text-[10px] font-bold text-gray-700 dark:text-gray-300 mt-auto leading-tight text-center">
+                        <div className="text-[10px] font-bold text-gray-800 dark:text-gray-200 mt-auto leading-tight text-center">
                              {valueText}
                         </div>
                     )}
@@ -657,7 +657,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                                     key={speed}
                                     disabled={isPreview}
                                     onClick={() => { if (!isPreview) onFanSpeedChange(linkedFanEntityId, speed); }}
-                                    className={`flex-1 text-xs font-bold rounded-lg transition-all ${isActive ? 'bg-blue-600 text-white shadow-md' : 'text-gray-700 dark:text-gray-300 hover:bg-black/10 dark:hover:bg-white/10'}`}
+                                    className={`flex-1 text-xs font-bold rounded-lg transition-all ${isActive ? 'bg-blue-600 text-white shadow-md' : 'text-gray-800 dark:text-gray-200 hover:bg-black/10 dark:hover:bg-white/10'}`}
                                 >
                                     {buttonText}
                                 </button>
