@@ -4,6 +4,7 @@ import {
   useDraggable, useDroppable, DragOverlay, pointerWithin,
 } from '@dnd-kit/core';
 import { snapCenterToCursor } from '@dnd-kit/modifiers';
+import { motion, AnimatePresence } from 'framer-motion';
 import DeviceCard from './DeviceCard';
 import { Tab, Device, DeviceType, GridLayoutItem, CardTemplates, DeviceCustomizations, CardTemplate, ColorScheme, ColorThemeSet } from '../types';
 import { useAppStore } from '../store/appStore';
@@ -176,17 +177,21 @@ const OccupiedCellWrapper: React.FC<{
         left: `${firstItem.col * (metrics.cellSize + metrics.gap)}px`,
         top: `${firstItem.row * (metrics.cellSize + metrics.gap)}px`,
         zIndex: groupHasOpenMenu ? 40 : (groupIsActive ? 0 : 1),
-        transition: 'all 350ms cubic-bezier(0.4, 0, 0.2, 1)',
     };
 
     return (
-        <div
+        <motion.div
             ref={setNodeRef}
             style={style}
             className={`relative rounded-xl transition-colors duration-200 ${overClasses}`}
+            layout="position"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
         >
             {children}
-        </div>
+        </motion.div>
     );
 });
 
@@ -407,80 +412,83 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                         if (isOccupied) return null;
                         return <DroppableCell key={`cell-${col}-${row}`} col={col} row={row} isEditMode={isEditMode} metrics={gridMetrics} />;
                     })}
+                    <AnimatePresence>
+                        {groupedLayout.map((group) => {
+                            const firstItem = group[0];
+                            if (!firstItem) return null;
+                            const groupKey = group.map(i => i.deviceId).join('-');
+                            
+                            return (
+                                <OccupiedCellWrapper key={groupKey} group={group} isEditMode={isEditMode} activeId={activeId} openMenuDeviceId={openMenuDeviceId} metrics={gridMetrics}>
+                                    {group.map((item, index) => {
+                                        const device = allKnownDevices.get(item.deviceId);
+                                        if (!device) return null;
 
-                    {groupedLayout.map((group) => {
-                        const firstItem = group[0];
-                        if (!firstItem) return null;
-                        
-                        return (
-                             <OccupiedCellWrapper key={`${firstItem.col}-${firstItem.row}`} group={group} isEditMode={isEditMode} activeId={activeId} openMenuDeviceId={openMenuDeviceId} metrics={gridMetrics}>
-                                {group.map((item, index) => {
-                                    const device = allKnownDevices.get(item.deviceId);
-                                    if (!device) return null;
+                                        const custom = customizations[device.id];
+                                        let templateId = custom?.templateId;
 
-                                    const custom = customizations[device.id];
-                                    let templateId = custom?.templateId;
-
-                                    if (!templateId) {
-                                        if (device.type === DeviceType.Sensor) templateId = DEFAULT_SENSOR_TEMPLATE_ID;
-                                        else if (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight) templateId = DEFAULT_LIGHT_TEMPLATE_ID;
-                                        else if (device.type === DeviceType.Switch) templateId = DEFAULT_SWITCH_TEMPLATE_ID;
-                                        else if (device.type === DeviceType.Thermostat) templateId = DEFAULT_CLIMATE_TEMPLATE_ID;
-                                    }
-                                    const templateToUse = templateId ? templates[templateId] : undefined;
-                                    
-                                    const isStackedPair = group.length === 2 && group.every(i => i.height === 0.5 && (i.width || 1) === 1);
-                                    const isSingleStackableItem = group.length === 1 && item.height === 0.5 && (item.width || 1) === 1;
-
-                                    const wrapperStyle: React.CSSProperties = {
-                                        position: 'absolute',
-                                        zIndex: group.length - index,
-                                    };
-
-                                    if (isStackedPair) {
-                                        // Пара карточек 1x0.5. Позиционируем их сверху и снизу.
-                                        wrapperStyle.height = `calc(50% - ${gridMetrics.gap / 2}px)`;
-                                        wrapperStyle.left = '0';
-                                        wrapperStyle.right = '0';
-                                        if (index === 0) { // Стабильная сортировка гарантирует, что первый элемент всегда будет одним и тем же
-                                            wrapperStyle.top = '0';
-                                        } else {
-                                            wrapperStyle.bottom = '0';
+                                        if (!templateId) {
+                                            if (device.type === DeviceType.Sensor) templateId = DEFAULT_SENSOR_TEMPLATE_ID;
+                                            else if (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight) templateId = DEFAULT_LIGHT_TEMPLATE_ID;
+                                            else if (device.type === DeviceType.Switch) templateId = DEFAULT_SWITCH_TEMPLATE_ID;
+                                            else if (device.type === DeviceType.Thermostat) templateId = DEFAULT_CLIMATE_TEMPLATE_ID;
                                         }
-                                    } else if (isSingleStackableItem) {
-                                        // Одиночная карточка 1x0.5. Ее контейнер 1x1. Размещаем ее вверху.
-                                        wrapperStyle.height = `calc(50% - ${gridMetrics.gap / 2}px)`;
-                                        wrapperStyle.top = '0';
-                                        wrapperStyle.left = '0';
-                                        wrapperStyle.right = '0';
-                                    } else {
-                                        // Обычная, не "стопочная" карточка. Заполняет свой контейнер.
-                                        wrapperStyle.inset = 0;
-                                    }
+                                        const templateToUse = templateId ? templates[templateId] : undefined;
+                                        
+                                        const isStackedPair = group.length === 2 && group.every(i => i.height === 0.5 && (i.width || 1) === 1);
+                                        const isSingleStackableItem = group.length === 1 && item.height === 0.5 && (item.width || 1) === 1;
 
-                                    return (
-                                        <div key={item.deviceId} style={wrapperStyle}>
-                                            <ErrorBoundary isCard>
-                                                <DraggableDevice device={device} template={templateToUse} {...props} openMenuDeviceId={openMenuDeviceId} setOpenMenuDeviceId={setOpenMenuDeviceId} />
-                                            </ErrorBoundary>
-                                        </div>
-                                    );
-                                })}
-                            </OccupiedCellWrapper>
-                        )
-                    })}
+                                        const wrapperStyle: React.CSSProperties = {
+                                            position: 'absolute',
+                                            zIndex: group.length - index,
+                                        };
+
+                                        if (isStackedPair) {
+                                            // Пара карточек 1x0.5. Позиционируем их сверху и снизу.
+                                            wrapperStyle.height = `calc(50% - ${gridMetrics.gap / 2}px)`;
+                                            wrapperStyle.left = '0';
+                                            wrapperStyle.right = '0';
+                                            if (index === 0) { // Стабильная сортировка гарантирует, что первый элемент всегда будет одним и тем же
+                                                wrapperStyle.top = '0';
+                                            } else {
+                                                wrapperStyle.bottom = '0';
+                                            }
+                                        } else if (isSingleStackableItem) {
+                                            // Одиночная карточка 1x0.5. Ее контейнер 1x1. Размещаем ее вверху.
+                                            wrapperStyle.height = `calc(50% - ${gridMetrics.gap / 2}px)`;
+                                            wrapperStyle.top = '0';
+                                            wrapperStyle.left = '0';
+                                            wrapperStyle.right = '0';
+                                        } else {
+                                            // Обычная, не "стопочная" карточка. Заполняет свой контейнер.
+                                            wrapperStyle.inset = 0;
+                                        }
+
+                                        return (
+                                            <div key={item.deviceId} style={wrapperStyle}>
+                                                <ErrorBoundary isCard>
+                                                    <DraggableDevice device={device} template={templateToUse} {...props} openMenuDeviceId={openMenuDeviceId} setOpenMenuDeviceId={setOpenMenuDeviceId} />
+                                                </ErrorBoundary>
+                                            </div>
+                                        );
+                                    })}
+                                </OccupiedCellWrapper>
+                            )
+                        })}
+                    </AnimatePresence>
                 </div>
                 {/* DragOverlay показывает "призрачный" элемент во время перетаскивания для лучшего UX. */}
                  <DragOverlay dropAnimation={null} modifiers={[snapCenterToCursor]}>
                     {activeDevice && activeDragItemRect ? (
-                      <div 
-                        className="rounded-2xl" 
-                        style={{ 
-                          width: activeDragItemRect.width, 
+                      <motion.div
+                        className="rounded-2xl"
+                        style={{
+                          width: activeDragItemRect.width,
                           height: activeDragItemRect.height,
-                          transform: 'scale(1.05)',
-                          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.45)',
                         }}
+                        initial={{ scale: 1, boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)' }}
+                        animate={{ scale: 1.05, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.45)' }}
+                        transition={{ duration: 0.2 }}
                       >
                         <DeviceCard
                           device={activeDevice}
@@ -503,7 +511,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                           onEditDevice={() => {}}
                           onContextMenu={() => {}}
                         />
-                      </div>
+                      </motion.div>
                     ) : null}
                 </DragOverlay>
             </DndContext>
