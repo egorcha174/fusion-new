@@ -534,7 +534,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
             return (
                 <div key={element.id} style={style} onClick={e => { if (!isPreview) e.stopPropagation(); }} ref={hvacModesRef}>
                     <div className="relative w-full h-full flex items-center justify-center">
-                        <button onClick={(e) => handleHvacButtonClick(e, modes)} disabled={isPreview} className="w-full h-full flex flex-col items-center justify-center bg-black/5 dark:bg-black/25 hover:bg-black/10 dark:hover:bg-black/40 rounded-xl transition-all p-1 ring-1 ring-black/5 dark:ring-white/10" style={{ color: colorScheme.nameTextColor }}>
+                        <button onClick={(e) => handleHvacButtonClick(e, modes)} disabled={isPreview} className="w-full h-full flex flex-col items-center justify-center bg-black/5 dark:bg-black/25 hover:bg-black/10 dark:hover:bg-black/40 rounded-xl transition-all p-1 ring-1 ring-black/5 dark:ring-white/10" style={{ color: colorScheme.activeTabTextColor }}>
                             <Icon icon={activeConfig.icon} className="w-auto h-[55%]" />
                             <span className="text-[10px] font-bold mt-auto leading-tight text-center">{activeConfig.label}</span>
                         </button>
@@ -549,7 +549,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                                             key={mode}
                                             onClick={() => handleModeClick(mode)}
                                             className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left rounded-lg transition-colors ${!isActiveMode ? 'hover:bg-black/10 dark:hover:bg-white/10' : ''}`}
-                                            style={isActiveMode ? { backgroundColor: colorScheme.tabIndicatorColor, color: colorScheme.activeTabTextColor, opacity: 0.9 } : { color: colorScheme.nameTextColor }}
+                                            style={isActiveMode ? { backgroundColor: colorScheme.tabIndicatorColor, color: '#FFFFFF' } : { color: colorScheme.activeTabTextColor }}
                                         >
                                             <Icon icon={config.icon} className="w-5 h-5 flex-shrink-0" />
                                             <span>{config.label}</span>
@@ -664,7 +664,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                                     disabled={isPreview}
                                     onClick={() => { if (!isPreview) onFanSpeedChange(linkedFanEntityId, speed); }}
                                     className={`flex-1 text-xs font-bold rounded-lg transition-all ${isActive ? 'shadow-md' : 'hover:bg-black/10 dark:hover:bg-white/10'}`}
-                                    style={isActive ? { backgroundColor: colorScheme.tabIndicatorColor, color: colorScheme.activeTabTextColor } : { color: colorScheme.nameTextColor }}
+                                    style={isActive ? { backgroundColor: colorScheme.tabIndicatorColor, color: '#FFFFFF' } : { color: colorScheme.activeTabTextColor }}
                                 >
                                     {buttonText}
                                 </button>
