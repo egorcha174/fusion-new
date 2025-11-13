@@ -22,6 +22,7 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
     case 'sensor': return DeviceType.Sensor;
     case 'climate': return DeviceType.Thermostat;
     case 'fan': return DeviceType.Fan;
+    case 'humidifier': return DeviceType.Humidifier;
   }
 
   // --- Приоритет 2: Домен + Атрибуты/Класс устройства ---
@@ -159,6 +160,11 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
     device.hvacAction = attributes.hvac_action;
     device.minTemp = attributes.min_temp;
     device.maxTemp = attributes.max_temp;
+  }
+  
+  if (device.type === DeviceType.Humidifier) {
+    device.targetHumidity = attributes.humidity;
+    device.currentHumidity = attributes.current_humidity;
   }
   
   if (device.type === DeviceType.Weather) {

@@ -62,8 +62,7 @@ const defaultClimateTemplate: CardTemplate = {
 const humidifierTemplate: CardTemplate = {
   id: "humidifier-card",
   name: "Увлажнитель",
-  deviceType: "climate",
-  // FIX: Added missing 'styles' property to satisfy CardTemplate type.
+  deviceType: "humidifier",
   styles: {},
   elements: [
     { id: "icon", visible: true, position: { x: 10, y: 10 }, size: { width: 20, height: 20 }, zIndex: 1, styles: {} },
@@ -72,14 +71,13 @@ const humidifierTemplate: CardTemplate = {
     { id: "status", visible: true, position: { x: 35, y: 55 }, size: { width: 60, height: 10 }, zIndex: 1, styles: {} }
   ],
   width: 2,
-  height: 2,
+  height: 1,
 };
 
 const acTemplate: CardTemplate = {
   id: "ac-card",
   name: "Кондиционер",
   deviceType: "climate",
-  // FIX: Added missing 'styles' property to satisfy CardTemplate type.
   styles: {},
   elements: [
     { id: "name", visible: true, position: { x: 8, y: 8 }, size: { width: 50, height: 15 }, zIndex: 2, styles: {} },
@@ -96,7 +94,6 @@ const blindsTemplate: CardTemplate = {
   id: "blinds-card",
   name: "Жалюзи",
   deviceType: "switch",
-  // FIX: Added missing 'styles' property to satisfy CardTemplate type.
   styles: {},
   elements: [
     { id: "icon", visible: true, position: { x: 10, y: 10 }, size: { width: 20, height: 20 }, zIndex: 1, styles: {} },
@@ -375,6 +372,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             else if (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight) templateId = DEFAULT_LIGHT_TEMPLATE_ID;
             else if (device.type === DeviceType.Switch) templateId = DEFAULT_SWITCH_TEMPLATE_ID;
             else if (device.type === DeviceType.Thermostat) templateId = DEFAULT_CLIMATE_TEMPLATE_ID;
+            // TODO: Add default humidifier template logic here if needed
         }
         return templateId ? get().templates[templateId] : null;
     },
@@ -582,11 +580,12 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             [DeviceType.Light]: defaultLightTemplate,
             [DeviceType.DimmableLight]: defaultLightTemplate,
             [DeviceType.Switch]: defaultSwitchTemplate,
-            [DeviceType.Thermostat]: defaultClimateTemplate
+            [DeviceType.Thermostat]: defaultClimateTemplate,
+            [DeviceType.Humidifier]: humidifierTemplate,
         };
         const typeNameMap = {
             [DeviceType.Sensor]: 'сенсор', [DeviceType.Light]: 'светильник', [DeviceType.DimmableLight]: 'светильник',
-            [DeviceType.Switch]: 'переключатель', [DeviceType.Thermostat]: 'климат'
+            [DeviceType.Switch]: 'переключатель', [DeviceType.Thermostat]: 'климат', [DeviceType.Humidifier]: 'увлажнитель'
         };
         const baseTemplate = baseMap[deviceType] || defaultSensorTemplate;
         const newTemplate = JSON.parse(JSON.stringify(baseTemplate));

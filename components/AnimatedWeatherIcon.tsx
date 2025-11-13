@@ -33,9 +33,14 @@ const AnimatedWeatherIcon: React.FC<AnimatedWeatherIconProps> = ({ iconCode, cla
     // Используем '01d' (солнечно) как резервный вариант, если иконка не найдена
     const { icon, animation, color } = iconMap[iconCode] || iconMap['01d']; 
 
+    // Собираем классы для иконки, включая базовые, анимацию и цвет.
+    // Класс анимации (например, 'animate-sunny') берется из iconMap и соответствует
+    // существующим анимациям Tailwind, определенным в index.html.
+    const iconClassName = `w-full h-full ${animation} ${color}`;
+
     return (
         <div className={`relative ${className}`} style={style}>
-            <Icon icon={icon} className={`w-full h-full ${animation} ${color}`} />
+            <Icon icon={icon} className={iconClassName} />
         </div>
     );
 };

@@ -26,6 +26,7 @@ export enum DeviceType {
   DoorSensor,
   Camera,
   BatteryWidget,
+  Humidifier,
   Unknown, // Резервный тип для неопознанных устройств
 }
 
@@ -53,6 +54,8 @@ export interface Device {
   brightness?: number; // Яркость для DimmableLight (0-100)
   temperature?: number; // Текущая температура для термостата или погоды
   targetTemperature?: number; // Целевая температура для термостата
+  currentHumidity?: number; // Текущая влажность для увлажнителя
+  targetHumidity?: number; // Целевая влажность для увлажнителя
   unit?: string; // Единица измерения (например, '°C', '%')
   forecast?: WeatherForecast[]; // Прогноз погоды для устройств типа Weather
   condition?: string; // Состояние погоды в "сыром" виде (например, 'partlycloudy')
@@ -323,7 +326,7 @@ export interface ThresholdRule {
 export interface CardTemplate {
   id: string;
   name: string;
-  deviceType: 'sensor' | 'light' | 'switch' | 'climate'; // Для какого типа устройств этот шаблон
+  deviceType: 'sensor' | 'light' | 'switch' | 'climate' | 'humidifier'; // Для какого типа устройств этот шаблон
   elements: CardElement[]; // Элементы внутри карточки
   styles: { // Общие стили для карточки
     // Стили фона перенесены в глобальную ColorScheme
@@ -352,6 +355,8 @@ export interface HassEntity {
     brightness?: number; // 0-255
     temperature?: number; // Целевая температура
     current_temperature?: number; // Текущая температура
+    humidity?: number; // Целевая влажность
+    current_humidity?: number; // Текущая влажность
     device_id?: string;
     // `forecast` может иметь любую структуру, в зависимости от интеграции
     forecast?: any;

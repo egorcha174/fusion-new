@@ -233,7 +233,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
 
   
   const isCamera = device.type === DeviceType.Camera;
-  const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && device.type !== DeviceType.Sensor && !isCamera;
+  const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && device.type !== DeviceType.Sensor && device.type !== DeviceType.Humidifier && !isCamera;
   const deviceBindings = customizations[device.id]?.deviceBindings;
 
   // --- УНИВЕРСАЛЬНЫЙ РЕНДЕРЕР НА ОСНОВЕ ШАБЛОНА ---
@@ -329,11 +329,18 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         case 'value': {
           const { decimalPlaces } = element.styles;
           let valueText = device.status;
-          const numericStatus = parseFloat(device.status);
-          // Форматируем число, если это возможно и задано количество знаков.
-          if (!isNaN(numericStatus) && typeof decimalPlaces === 'number' && decimalPlaces >= 0) {
-            valueText = numericStatus.toFixed(decimalPlaces);
+
+          if (device.type === DeviceType.Humidifier && device.targetHumidity !== undefined) {
+              const dp = typeof decimalPlaces === 'number' && decimalPlaces >= 0 ? decimalPlaces : 0;
+              valueText = `${device.targetHumidity.toFixed(dp)}%`;
+          } else {
+            const numericStatus = parseFloat(device.status);
+            // Форматируем число, если это возможно и задано количество знаков.
+            if (!isNaN(numericStatus) && typeof decimalPlaces === 'number' && decimalPlaces >= 0) {
+              valueText = numericStatus.toFixed(decimalPlaces);
+            }
           }
+
            const valueProps = getStyleProps('valueText');
            // Применяем цвет из порогового правила, если он есть.
            if (dynamicValueColor) {
