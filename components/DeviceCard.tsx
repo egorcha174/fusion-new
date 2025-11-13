@@ -679,12 +679,13 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
       }
     };
     
-    const hoverClass = !isEditMode && !isPreview ? 'hover:brightness-95 dark:hover:brightness-110' : '';
+    const hoverClass = !isEditMode && !isPreview ? 'hover:shadow-xl hover:scale-[1.02]' : '';
     const cursorClass = isTogglable && !isEditMode && !isPreview ? 'cursor-pointer' : '';
+    const onStateRingClass = isOn ? 'ring-2 ring-blue-500/40' : 'ring-1 ring-black/5 dark:ring-white/10';
 
     return (
       <div
-        className={`w-full h-full relative rounded-2xl transition-all duration-200 ease-in-out select-none ${hoverClass} ${cursorClass} shadow-lg ring-1 ring-black/5 dark:ring-white/10`}
+        className={`w-full h-full relative rounded-2xl transition-all duration-300 ease-in-out select-none transform ${hoverClass} ${cursorClass} shadow-lg ${onStateRingClass}`}
         style={{ backgroundColor: applyOpacity(dynamicBackgroundColor, colorScheme.cardOpacity), backdropFilter: 'blur(16px)' }}
         onContextMenu={onContextMenu}
       >
@@ -851,16 +852,15 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
   };
 
   const getCardClasses = () => {
-    const baseClasses = "w-full h-full rounded-2xl flex flex-col transition-all duration-200 ease-in-out select-none relative shadow-lg ring-1 ring-black/5 dark:ring-white/10";
-    if (template) return baseClasses;
+    const onStateRingClass = isOn ? 'ring-2 ring-blue-500/40' : 'ring-1 ring-black/5 dark:ring-white/10';
+    const baseClasses = `w-full h-full rounded-2xl flex flex-col transition-all duration-300 ease-in-out select-none relative shadow-lg ${onStateRingClass} transform`;
     const layoutClasses = (isCamera || device.type === DeviceType.BatteryWidget) ? 'p-0' : styles.padding;
     const cursorClass = (isTogglable || isCamera) && !isEditMode && !isPreview ? 'cursor-pointer' : '';
-    const hoverClass = !isEditMode && !isPreview ? 'hover:brightness-95 dark:hover:brightness-110' : '';
+    const hoverClass = !isEditMode && !isPreview ? 'hover:shadow-xl hover:scale-[1.02]' : '';
     return `${baseClasses} ${layoutClasses} ${cursorClass} ${hoverClass}`;
   }
 
   const getCardStyle = (): React.CSSProperties => {
-      if(template) return {};
       return { 
           backgroundColor: applyOpacity(isOn ? colorScheme.cardBackgroundOn : colorScheme.cardBackground, colorScheme.cardOpacity),
           backdropFilter: 'blur(16px)',
