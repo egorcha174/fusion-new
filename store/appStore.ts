@@ -7,6 +7,7 @@ import {
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from '../components/DeviceIcon';
 import { loadAndMigrate } from '../utils/localStorage';
+import { LOCAL_STORAGE_KEYS } from '../constants';
 
 // --- Default Templates ---
 const DEFAULT_SENSOR_TEMPLATE_ID = 'default-sensor';
@@ -244,10 +245,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     floatingCamera: null,
     historyModalEntityId: null,
     
-    tabs: loadAndMigrate<Tab[]>('ha-tabs', []),
-    activeTabId: loadAndMigrate<string | null>('ha-active-tab', null),
-    customizations: loadAndMigrate<DeviceCustomizations>('ha-device-customizations', {}),
-    templates: loadAndMigrate<CardTemplates>('ha-card-templates', {
+    tabs: loadAndMigrate<Tab[]>(LOCAL_STORAGE_KEYS.TABS, []),
+    activeTabId: loadAndMigrate<string | null>(LOCAL_STORAGE_KEYS.ACTIVE_TAB, null),
+    customizations: loadAndMigrate<DeviceCustomizations>(LOCAL_STORAGE_KEYS.CUSTOMIZATIONS, {}),
+    templates: loadAndMigrate<CardTemplates>(LOCAL_STORAGE_KEYS.CARD_TEMPLATES, {
         [DEFAULT_SENSOR_TEMPLATE_ID]: defaultSensorTemplate,
         [DEFAULT_LIGHT_TEMPLATE_ID]: defaultLightTemplate,
         [DEFAULT_SWITCH_TEMPLATE_ID]: defaultSwitchTemplate,
@@ -256,17 +257,17 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         'ac-card': acTemplate,
         'blinds-card': blindsTemplate,
     }),
-    clockSettings: loadAndMigrate<ClockSettings>('ha-clock-settings', { format: '24h', showSeconds: true, size: 'md' }),
-    cameraSettings: loadAndMigrate<CameraSettings>('ha-camera-settings', { selectedEntityId: null }),
-    sidebarWidth: loadAndMigrate<number>('ha-sidebar-width', 320),
-    isSidebarVisible: loadAndMigrate<boolean>('ha-sidebar-visible', true),
-    theme: loadAndMigrate<'day' | 'night' | 'auto' | 'sun'>('ha-theme', 'auto'),
-    colorScheme: loadAndMigrate<ColorScheme>('ha-color-scheme', DEFAULT_COLOR_SCHEME),
-    weatherProvider: loadAndMigrate<'openweathermap' | 'yandex' | 'foreca'>('ha-weather-provider', 'openweathermap'),
-    openWeatherMapKey: loadAndMigrate<string>('ha-openweathermap-key', ''),
-    yandexWeatherKey: loadAndMigrate<string>('ha-yandex-weather-key', ''),
-    forecaApiKey: loadAndMigrate<string>('ha-foreca-key', ''),
-    lowBatteryThreshold: loadAndMigrate<number>('ha-low-battery-threshold', 20),
+    clockSettings: loadAndMigrate<ClockSettings>(LOCAL_STORAGE_KEYS.CLOCK_SETTINGS, { format: '24h', showSeconds: true, size: 'md' }),
+    cameraSettings: loadAndMigrate<CameraSettings>(LOCAL_STORAGE_KEYS.CAMERA_SETTINGS, { selectedEntityId: null }),
+    sidebarWidth: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.SIDEBAR_WIDTH, 320),
+    isSidebarVisible: loadAndMigrate<boolean>(LOCAL_STORAGE_KEYS.SIDEBAR_VISIBLE, true),
+    theme: loadAndMigrate<'day' | 'night' | 'auto' | 'sun'>(LOCAL_STORAGE_KEYS.THEME, 'auto'),
+    colorScheme: loadAndMigrate<ColorScheme>(LOCAL_STORAGE_KEYS.COLOR_SCHEME, DEFAULT_COLOR_SCHEME),
+    weatherProvider: loadAndMigrate<'openweathermap' | 'yandex' | 'foreca'>(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, 'openweathermap'),
+    openWeatherMapKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, ''),
+    yandexWeatherKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, ''),
+    forecaApiKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.FORECA_KEY, ''),
+    lowBatteryThreshold: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, 20),
     DEFAULT_COLOR_SCHEME: DEFAULT_COLOR_SCHEME,
     
     // --- Actions ---
@@ -283,63 +284,63 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     // --- Actions with Persistence ---
     setTabs: (tabs) => {
         set({ tabs });
-        localStorage.setItem('ha-tabs', JSON.stringify(tabs));
+        localStorage.setItem(LOCAL_STORAGE_KEYS.TABS, JSON.stringify(tabs));
     },
     setActiveTabId: (id) => {
         set({ activeTabId: id });
-        localStorage.setItem('ha-active-tab', JSON.stringify(id));
+        localStorage.setItem(LOCAL_STORAGE_KEYS.ACTIVE_TAB, JSON.stringify(id));
     },
     setCustomizations: (customizations) => {
         set({ customizations });
-        localStorage.setItem('ha-device-customizations', JSON.stringify(customizations));
+        localStorage.setItem(LOCAL_STORAGE_KEYS.CUSTOMIZATIONS, JSON.stringify(customizations));
     },
     setTemplates: (templates) => {
         set({ templates });
-        localStorage.setItem('ha-card-templates', JSON.stringify(templates));
+        localStorage.setItem(LOCAL_STORAGE_KEYS.CARD_TEMPLATES, JSON.stringify(templates));
     },
     setClockSettings: (settings) => {
         set({ clockSettings: settings });
-        localStorage.setItem('ha-clock-settings', JSON.stringify(settings));
+        localStorage.setItem(LOCAL_STORAGE_KEYS.CLOCK_SETTINGS, JSON.stringify(settings));
     },
     setCameraSettings: (settings) => {
         set({ cameraSettings: settings });
-        localStorage.setItem('ha-camera-settings', JSON.stringify(settings));
+        localStorage.setItem(LOCAL_STORAGE_KEYS.CAMERA_SETTINGS, JSON.stringify(settings));
     },
     setSidebarWidth: (width) => {
         set({ sidebarWidth: width });
-        localStorage.setItem('ha-sidebar-width', JSON.stringify(width));
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SIDEBAR_WIDTH, JSON.stringify(width));
     },
     setIsSidebarVisible: (isVisible) => {
         set({ isSidebarVisible: isVisible });
-        localStorage.setItem('ha-sidebar-visible', JSON.stringify(isVisible));
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SIDEBAR_VISIBLE, JSON.stringify(isVisible));
     },
     setTheme: (theme) => {
         set({ theme });
-        localStorage.setItem('ha-theme', theme);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.THEME, theme);
     },
     setColorScheme: (scheme) => {
         set({ colorScheme: scheme });
-        localStorage.setItem('ha-color-scheme', JSON.stringify(scheme));
+        localStorage.setItem(LOCAL_STORAGE_KEYS.COLOR_SCHEME, JSON.stringify(scheme));
     },
     setWeatherProvider: (provider) => {
         set({ weatherProvider: provider });
-        localStorage.setItem('ha-weather-provider', provider);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, provider);
     },
     setOpenWeatherMapKey: (key) => {
         set({ openWeatherMapKey: key });
-        localStorage.setItem('ha-openweathermap-key', key);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, key);
     },
     setYandexWeatherKey: (key) => {
         set({ yandexWeatherKey: key });
-        localStorage.setItem('ha-yandex-weather-key', key);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, key);
     },
     setForecaApiKey: (key) => {
         set({ forecaApiKey: key });
-        localStorage.setItem('ha-foreca-key', key);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.FORECA_KEY, key);
     },
     setLowBatteryThreshold: (threshold) => {
         set({ lowBatteryThreshold: threshold });
-        localStorage.setItem('ha-low-battery-threshold', JSON.stringify(threshold));
+        localStorage.setItem(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, JSON.stringify(threshold));
     },
 
     // --- Complex Actions ---
@@ -512,7 +513,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             const newTabs = [...state.tabs];
             newTabs[tabIndex] = { ...tab, layout: newLayout };
             
-            localStorage.setItem('ha-tabs', JSON.stringify(newTabs));
+            localStorage.setItem(LOCAL_STORAGE_KEYS.TABS, JSON.stringify(newTabs));
             return { tabs: newTabs };
         });
     },
