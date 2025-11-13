@@ -2,8 +2,13 @@ import React, { useState } from 'react';
 import { useHAStore } from '../store/haStore';
 import { useAppStore } from '../store/appStore';
 import { Icon } from '@iconify/react';
+import { ColorThemeSet } from '../types';
 
-const BatteryWidgetCard: React.FC = () => {
+interface BatteryWidgetCardProps {
+    colorScheme: ColorThemeSet;
+}
+
+const BatteryWidgetCard: React.FC<BatteryWidgetCardProps> = ({ colorScheme }) => {
     const { batteryDevices } = useHAStore();
     const { lowBatteryThreshold } = useAppStore();
     const [isExpanded, setIsExpanded] = useState(false);
@@ -11,9 +16,9 @@ const BatteryWidgetCard: React.FC = () => {
     if (batteryDevices.length === 0) {
         return (
             <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center">
-                <Icon icon="mdi:battery-off-outline" className="w-10 h-10 text-gray-400 dark:text-gray-500 mb-2" />
-                <p className="font-semibold text-gray-800 dark:text-gray-200">Нет устройств с батареей</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Не найдено устройств с уровнем заряда.</p>
+                <Icon icon="mdi:battery-off-outline" className="w-10 h-10 mb-2" style={{ color: colorScheme.statusTextColor }} />
+                <p className="font-semibold" style={{ color: colorScheme.valueTextColor }}>Нет устройств с батареей</p>
+                <p className="text-sm" style={{ color: colorScheme.statusTextColor }}>Не найдено устройств с уровнем заряда.</p>
             </div>
         );
     }
@@ -37,19 +42,22 @@ const BatteryWidgetCard: React.FC = () => {
     return (
         <div className="w-full h-full flex flex-col p-4 overflow-hidden">
             <div className="flex-shrink-0 flex items-center gap-3 mb-3">
-                <Icon icon="mdi:battery-heart-variant-outline" className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100">Уровень заряда</h3>
+                <Icon icon="mdi:battery-heart-variant-outline" className="w-6 h-6" style={{ color: colorScheme.statusTextColor }} />
+                <h3 className="font-semibold" style={{ color: colorScheme.valueTextColor }}>Уровень заряда</h3>
             </div>
             <div className="flex-grow space-y-2 overflow-y-auto no-scrollbar pr-1">
                 {devicesToShow.map(({ deviceId, deviceName, batteryLevel }) => {
                     const isLow = batteryLevel <= lowBatteryThreshold;
+                    const textColor = isLow ? '#ef4444' : colorScheme.nameTextColor;
+                    const percentageColor = isLow ? '#ef4444' : colorScheme.statusTextColor;
+
                     return (
                         <div key={deviceId} className="flex items-center justify-between text-sm">
-                            <div className={`flex items-center gap-2 overflow-hidden ${isLow ? 'text-red-500 dark:text-red-400' : 'text-gray-800 dark:text-gray-200'}`}>
+                            <div className="flex items-center gap-2 overflow-hidden" style={{ color: textColor }}>
                                 <Icon icon={getBatteryIcon(batteryLevel)} className="w-5 h-5 flex-shrink-0" />
                                 <span className="truncate" title={deviceName}>{deviceName}</span>
                             </div>
-                            <span className={`font-semibold ${isLow ? 'text-red-500 dark:text-red-400' : 'text-gray-600 dark:text-gray-300'}`}>{batteryLevel}%</span>
+                            <span className="font-semibold" style={{ color: percentageColor }}>{batteryLevel}%</span>
                         </div>
                     );
                 })}

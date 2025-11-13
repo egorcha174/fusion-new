@@ -763,7 +763,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
             </div>
         )
       case DeviceType.BatteryWidget:
-        return <BatteryWidgetCard />;
+        return <BatteryWidgetCard colorScheme={colorScheme} />;
       case DeviceType.DimmableLight:
         return (
           <div className="flex flex-col h-full">
