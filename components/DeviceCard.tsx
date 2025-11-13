@@ -463,9 +463,17 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         }
         case 'hvac-modes': {
             const isDropdownOpen = openMenuDeviceId === device.id;
-            const isPresetMode = device.presetModes && device.presetModes.length > 0;
-            const modes = isPresetMode ? device.presetModes! : (device.hvacModes || []);
-            const activeMode = isPresetMode ? device.presetMode : device.state;
+            const isHumidifier = device.type === DeviceType.Humidifier;
+            const isThermostatWithPresets = !isHumidifier && device.presetModes && device.presetModes.length > 0;
+
+            const modes = isHumidifier
+                ? (device.presetModes || [])
+                : (isThermostatWithPresets ? device.presetModes! : (device.hvacModes || []));
+            
+            const activeMode = isHumidifier 
+                ? device.presetMode 
+                : (isThermostatWithPresets ? device.presetMode : device.state);
+
             if (modes.length === 0) return null;
         
             const hvacModeConfig: { [key: string]: { icon: string, label: string } } = {
@@ -481,18 +489,39 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                 'home': { icon: 'mdi:home-variant-outline', label: translatePreset('home') }, 'sleep': { icon: 'mdi:power-sleep', label: translatePreset('sleep') },
                 'activity': { icon: 'mdi:run', label: translatePreset('activity') }, 'boost': { icon: 'mdi:rocket-launch-outline', label: translatePreset('boost') },
             };
+            
+            const humidifierModeConfig: { [key: string]: { icon: string, label: string } } = {
+                'auto': { icon: 'mdi:autorenew', label: 'Авто' },
+                'sleep': { icon: 'mdi:power-sleep', label: 'Сон' },
+                'turbo': { icon: 'mdi:rocket-launch-outline', label: 'Турбо' },
+                'normal': { icon: 'mdi:water-outline', label: 'Обычный' },
+                'eco': { icon: 'mdi:leaf', label: 'Эко' },
+                'baby': { icon: 'mdi:baby-carriage', label: 'Детский' },
+                'comfort': { icon: 'mdi:sofa-outline', label: 'Комфорт' },
+            };
         
-            const getConfig = (mode: string) => isPresetMode
-                ? presetModeConfig[mode.toLowerCase()] || { icon: 'mdi:circle-medium', label: translatePreset(mode) }
-                : hvacModeConfig[mode.toLowerCase()] || { icon: 'mdi:circle-medium', label: mode };
+            const getConfig = (mode: string) => {
+                const lowerMode = mode.toLowerCase();
+                if (isHumidifier) {
+                    return humidifierModeConfig[lowerMode] || { icon: 'mdi:circle-medium', label: mode };
+                }
+                if (isThermostatWithPresets) {
+                    return presetModeConfig[lowerMode] || { icon: 'mdi:circle-medium', label: translatePreset(mode) };
+                }
+                return hvacModeConfig[lowerMode] || { icon: 'mdi:circle-medium', label: mode };
+            };
         
             const handleModeClick = (mode: string) => {
                 if (isPreview) return;
-                isPresetMode ? onPresetChange(mode) : onHvacModeChange(mode);
+                if (isHumidifier || isThermostatWithPresets) {
+                    onPresetChange(mode);
+                } else {
+                    onHvacModeChange(mode);
+                }
                 setOpenMenuDeviceId?.(null);
             };
             
-            const activeConfig = getConfig(activeMode?.toLowerCase() || (isPresetMode ? 'none' : 'off'));
+            const activeConfig = getConfig(activeMode?.toLowerCase() || (isHumidifier ? 'auto' : (isThermostatWithPresets ? 'none' : 'off')));
         
             return (
                 <div key={element.id} style={style} onClick={e => { if (!isPreview) e.stopPropagation(); }} ref={hvacModesRef}>
@@ -503,7 +532,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                         </button>
         
                         {isDropdownOpen && !isPreview && (
-                            <div className={`absolute right-0 min-w-[150px] w-max bg-gray-200/80 dark:bg-gray-900/80 backdrop-blur-lg rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-1 z-20 fade-in ${hvacDropdownPositionClass}`}>
+                            <div className={`absolute right-0 min-w-[150px] w-max bg-gray-200/80 dark:bg-gray-900/80 backdrop-blur-lg rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-1 z-50 fade-in ${hvacDropdownPositionClass}`}>
                                 {modes.map(mode => {
                                     const config = getConfig(mode);
                                     return (
