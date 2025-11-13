@@ -6,7 +6,7 @@ import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityR
  * Определяет внутренний тип устройства (`DeviceType`) на основе данных из Home Assistant.
  * Использует иерархическую логику: сначала точные совпадения по домену,
  * затем домен + атрибуты, затем ключевые слова в названии.
- * @param entity - Сущность Home Assistant.
+ * @param {HassEntity} entity - Сущность Home Assistant.
  * @returns {DeviceType} - Внутренний тип устройства.
  */
 const getDeviceType = (entity: HassEntity): DeviceType => {
@@ -63,7 +63,7 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
 
 /**
  * Преобразует "сырое" состояние сущности из Home Assistant в человекочитаемый текст на русском языке.
- * @param entity - Сущность Home Assistant.
+ * @param {HassEntity} entity - Сущность Home Assistant.
  * @returns {string} - Человекочитаемый статус.
  */
 const getStatusText = (entity: HassEntity): string => {
@@ -125,8 +125,8 @@ const getStatusText = (entity: HassEntity): string => {
 /**
  * Преобразует одну сущность Home Assistant (HassEntity) в формат устройства приложения (Device),
  * применяя при этом пользовательские настройки.
- * @param entity - Сущность Home Assistant.
- * @param customization - Пользовательские настройки для этой сущности.
+ * @param {HassEntity} entity - Сущность Home Assistant.
+ * @param {DeviceCustomization} [customization={}] - Пользовательские настройки для этой сущности.
  * @returns {Device | null} - Объект устройства или null, если не удалось преобразовать.
  */
 const entityToDevice = (entity: HassEntity, customization: DeviceCustomization = {}): Device | null => {
@@ -224,12 +224,12 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
 /**
  * Главная функция маппинга. Принимает все "сырые" данные из HA
  * и организует их в структуру комнат с устройствами.
- * @param entities - Все сущности.
- * @param areas - Все области (комнаты).
- * @param haDevices - Все физические устройства.
- * @param entityRegistry - Реестр сущностей для связей.
- * @param customizations - Пользовательские настройки.
- * @param showHidden - Показывать ли скрытые устройства.
+ * @param {HassEntity[]} entities - Все сущности.
+ * @param {HassArea[]} areas - Все области (комнаты).
+ * @param {HassDevice[]} haDevices - Все физические устройства.
+ * @param {HassEntityRegistryEntry[]} entityRegistry - Реестр сущностей для связей.
+ * @param {DeviceCustomizations} customizations - Пользовательские настройки.
+ * @param {boolean} [showHidden=false] - Показывать ли скрытые устройства.
  * @returns {Room[]} - Массив комнат с устройствами.
  */
 export const mapEntitiesToRooms = (
@@ -248,17 +248,15 @@ export const mapEntitiesToRooms = (
   });
   roomsMap.set('no_area', { id: 'no_area', name: 'Без пространства', devices: []});
 
-  // Создаем карты для быстрого поиска связей
+  // Создаем карты для быстрого поиска связей (O(n) операции)
   const entityIdToAreaIdMap = new Map<string, string>();
   entityRegistry.forEach(entry => {
       if (entry.area_id) entityIdToAreaIdMap.set(entry.entity_id, entry.area_id);
   });
-  const deviceIdToAreaIdMap = new Map<string, string>();
-  haDevices.forEach(d => {
-      if(d.area_id) deviceIdToAreaIdMap.set(d.id, d.area_id);
-  })
+  
+  const haDeviceById = new Map(haDevices.map(d => [d.id, d]));
 
-  // Проходим по всем сущностям
+  // Проходим по всем сущностям (O(m) операция)
   entities.forEach(entity => {
     if (!entity) return;
 
@@ -268,10 +266,10 @@ export const mapEntitiesToRooms = (
     const device = entityToDevice(entity, customization);
     // Добавляем только успешно преобразованные устройства (включая "неизвестные")
     if (device) {
-        // Определяем, к какой комнате принадлежит устройство
+        // Определяем, к какой комнате принадлежит устройство (O(1) операции)
         let areaId: string | undefined | null = entityIdToAreaIdMap.get(entity.entity_id);
         if (!areaId && entity.attributes?.device_id) {
-            const haDevice = haDevices.find(d => d.id === entity.attributes.device_id);
+            const haDevice = haDeviceById.get(entity.attributes.device_id);
             if (haDevice?.area_id) areaId = haDevice.area_id;
         }
 

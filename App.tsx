@@ -11,12 +11,14 @@
 
 
 
+
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet } from './types';
 import { nanoid } from 'nanoid';
 import { useAppStore } from './store/appStore';
 import { useHAStore } from './store/haStore';
+import ErrorBoundary from './components/ErrorBoundary';
 
 
 // Ленивая загрузка (Lazy loading) компонентов для разделения кода (code splitting) и улучшения производительности.
@@ -178,6 +180,7 @@ const useIsLg = () => {
  * Отвечает за общую структуру, управление состоянием и рендеринг страниц.
  */
 const App: React.FC = () => {
+    const initializationDone = useRef(false);
     // Получение состояний и действий из хранилища Zustand для Home Assistant.
     const {
         connectionStatus, isLoading, error, connect, allKnownDevices, allRoomsForDevicePage,
@@ -196,6 +199,11 @@ const App: React.FC = () => {
         sidebarWidth, setSidebarWidth, isSidebarVisible, theme,
         colorScheme, getTemplateForDevice, createNewBlankTemplate
     } = useAppStore();
+
+    // Получение состояний модальных окон через хуки-селекторы для обеспечения реактивности
+    const editingDevice = useAppStore(state => state.editingDevice);
+    const floatingCamera = useAppStore(state => state.floatingCamera);
+
 
   const isLg = useIsLg();
   const [isDarkBySun, setIsDarkBySun] = useState(false);
@@ -261,17 +269,27 @@ const App: React.FC = () => {
 
   // Эффект, гарантирующий наличие хотя бы одной вкладки и установку активной вкладки.
   // Запускается после успешного подключения и загрузки данных.
-  useEffect(() => {
-    if (connectionStatus === 'connected' && !isLoading) {
-      if (tabs.length === 0) {
-        const newTab: Tab = { id: nanoid(), name: 'Главная', layout: [], gridSettings: { cols: 8, rows: 5 } };
-        setTabs([newTab]);
-        setActiveTabId(newTab.id);
-      } else if (!activeTabId || !tabs.some(t => t.id === activeTabId)) {
-        setActiveTabId(tabs[0].id);
-      }
-    }
-  }, [tabs, activeTabId, connectionStatus, isLoading, setTabs, setActiveTabId]);
+    useEffect(() => {
+        if (connectionStatus === 'connected' && !isLoading && !initializationDone.current) {
+            initializationDone.current = true; // Выполняем только один раз
+            if (tabs.length === 0 && allKnownDevices.size > 0) {
+                const allDeviceIds = Array.from(allKnownDevices.keys());
+                const newTab: Tab = {
+                    id: nanoid(),
+                    name: 'Главная',
+                    // Автоматически размещаем все устройства на первой вкладке
+                    layout: allDeviceIds.map(id => ({ deviceId: id, col: 0, row: 0, width: 1, height: 1 })),
+                    gridSettings: { cols: 8, rows: 5 }
+                };
+                setTabs([newTab]);
+                setActiveTabId(newTab.id);
+            } else if (!activeTabId || !tabs.some(t => t.id === activeTabId)) {
+                if (tabs.length > 0) {
+                    setActiveTabId(tabs[0].id);
+                }
+            }
+        }
+    }, [connectionStatus, isLoading, tabs, activeTabId, allKnownDevices, setTabs, setActiveTabId]);
 
   // Мемоизированное значение текущей активной вкладки для избежания лишних пересчетов.
   const activeTab = useMemo(() => tabs.find(t => t.id === activeTabId), [tabs, activeTabId]);
@@ -354,6 +372,13 @@ const App: React.FC = () => {
         }
         return style;
     }, [currentColorScheme]);
+
+    // --- Обработчики закрытия модальных окон ---
+    const handleCloseDeviceSettings = useCallback(() => setEditingDevice(null), [setEditingDevice]);
+    const handleCloseTabSettings = useCallback(() => setEditingTab(null), [setEditingTab]);
+    const handleCloseTemplateEditor = useCallback(() => setEditingTemplate(null), [setEditingTemplate]);
+    const handleCloseHistoryModal = useCallback(() => setHistoryModalEntityId(null), [setHistoryModalEntityId]);
+    const handleCloseFloatingCamera = useCallback(() => setFloatingCamera(null), [setFloatingCamera]);
 
   // --- Обработчики Контекстного Меню ---
 
@@ -472,40 +497,42 @@ const App: React.FC = () => {
           </Suspense>
           <main className="flex-1 overflow-y-auto">
             <Suspense fallback={<div className="flex h-full w-full items-center justify-center"><LoadingSpinner /></div>}>
-              <div className="container mx-auto h-full">
-                <div key={currentPage + (activeTab?.id || '')} className="fade-in h-full">
-                  {renderPage()}
+              <ErrorBoundary>
+                <div className="container mx-auto h-full">
+                  <div key={currentPage + (activeTab?.id || '')} className="fade-in h-full">
+                    {renderPage()}
+                  </div>
                 </div>
-              </div>
+              </ErrorBoundary>
             </Suspense>
           </main>
         </div>
         
         {/* Секция для модальных окон и оверлеев. Они рендерятся здесь, чтобы быть поверх всего контента. */}
         <Suspense fallback={null}>
-          {useAppStore.getState().editingDevice && (
+          {editingDevice && (
             <DeviceSettingsModal 
-              device={useAppStore.getState().editingDevice!} 
-              onClose={() => setEditingDevice(null)}
+              device={editingDevice} 
+              onClose={handleCloseDeviceSettings}
             />
           )}
           {editingTab && (
             <TabSettingsModal 
               tab={editingTab} 
-              onClose={() => setEditingTab(null)}
+              onClose={handleCloseTabSettings}
             />
           )}
           {editingTemplate && (
             <TemplateEditorModal
                 templateToEdit={editingTemplate === 'new' ? createNewBlankTemplate(DeviceType.Sensor) : editingTemplate}
-                onClose={() => setEditingTemplate(null)}
+                onClose={handleCloseTemplateEditor}
             />
           )}
           
           {historyModalEntityId && (
             <HistoryModal
               entityId={historyModalEntityId}
-              onClose={() => setHistoryModalEntityId(null)}
+              onClose={handleCloseHistoryModal}
               getHistory={getHistory}
               allKnownDevices={allKnownDevices}
               colorScheme={currentColorScheme}
@@ -599,10 +626,10 @@ const App: React.FC = () => {
             </ContextMenu>
           )}
 
-          {useAppStore.getState().floatingCamera && haUrl && (
+          {floatingCamera && haUrl && (
             <FloatingCameraWindow
-              device={useAppStore.getState().floatingCamera!}
-              onClose={() => setFloatingCamera(null)}
+              device={floatingCamera}
+              onClose={handleCloseFloatingCamera}
               haUrl={haUrl}
               signPath={signPath}
               getCameraStreamUrl={getCameraStreamUrl}
