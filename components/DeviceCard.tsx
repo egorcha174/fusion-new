@@ -178,20 +178,27 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
   // Определяем, включено ли устройство. В режиме превью используем isOnPreview.
   const isOn = isPreview ? (isOnPreview ?? true) : (device.status.toLowerCase() === 'включено' || device.state === 'on');
   
-  const [isFlashing, setIsFlashing] = useState(false);
+  const [animationType, setAnimationType] = useState<'on' | 'off' | null>(null);
   const prevIsOnRef = useRef(isOn);
 
   useEffect(() => {
-      // Запускаем анимацию вспышки только при переходе из состояния "выкл" в "вкл".
-      if (isOn && !prevIsOnRef.current) {
-          setIsFlashing(true);
-          // Сбрасываем состояние анимации после ее завершения, чтобы она могла запуститься снова.
-          const timer = setTimeout(() => {
-              setIsFlashing(false);
-          }, 400); // Длительность должна совпадать с анимацией в CSS.
-          return () => clearTimeout(timer);
-      }
-      prevIsOnRef.current = isOn;
+    // Запускаем анимацию только при изменении состояния
+    if (isOn && !prevIsOnRef.current) {
+        setAnimationType('on');
+        const timer = setTimeout(() => {
+            setAnimationType(null);
+        }, 400); // Длительность анимации
+        return () => clearTimeout(timer);
+    }
+    if (!isOn && prevIsOnRef.current) {
+        setAnimationType('off');
+        const timer = setTimeout(() => {
+            setAnimationType(null);
+        }, 400); // Длительность анимации
+        return () => clearTimeout(timer);
+    }
+    // Обновляем предыдущее состояние в конце эффекта
+    prevIsOnRef.current = isOn;
   }, [isOn]);
 
 
@@ -288,7 +295,39 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
   const isCamera = device.type === DeviceType.Camera;
   const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && device.type !== DeviceType.Sensor && !isCamera;
   const deviceBindings = customizations[device.id]?.deviceBindings;
-  const flashColor = isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.1)';
+  
+  const flashOnColor = isDark ? 'rgba(255, 255, 255, 0.5)' : 'rgba(200, 200, 200, 0.6)';
+  const dimOffColor = isDark ? 'rgba(10, 10, 10, 0.4)' : 'rgba(255, 255, 255, 0.4)';
+
+  const animationOverlay = (
+    <AnimatePresence>
+      {animationType === 'on' && (
+        <motion.div
+          key="flash-on"
+          initial={{ scale: 0, opacity: 0.6 }}
+          animate={{ scale: 2.5, opacity: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          className="absolute inset-0 rounded-2xl pointer-events-none z-10"
+          style={{
+            background: `radial-gradient(circle, ${flashOnColor} 0%, rgba(0,0,0,0) 70%)`
+          }}
+        />
+      )}
+      {animationType === 'off' && (
+        <motion.div
+          key="dim-off"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, transition: { duration: 0.15 } }}
+          exit={{ opacity: 0, transition: { duration: 0.25 } }}
+          className="absolute inset-0 rounded-2xl pointer-events-none z-10"
+          style={{
+            backgroundColor: dimOffColor,
+          }}
+        />
+      )}
+    </AnimatePresence>
+  );
 
   // --- УНИВЕРСАЛЬНЫЙ РЕНДЕРЕР НА ОСНОВЕ ШАБЛОНА ---
   if (template) {
@@ -708,19 +747,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         style={{ backgroundColor: applyOpacity(dynamicBackgroundColor, colorScheme.cardOpacity), backdropFilter: 'blur(16px)' }}
         onContextMenu={onContextMenu}
       >
-        <AnimatePresence>
-          {isFlashing && (
-            <motion.div
-              initial={{ scale: 0, opacity: 0.7 }}
-              animate={{ scale: 2.5, opacity: 0 }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
-              className="absolute inset-0 rounded-2xl pointer-events-none"
-              style={{
-                background: `radial-gradient(circle, ${flashColor} 0%, rgba(0,0,0,0) 70%)`
-              }}
-            />
-          )}
-        </AnimatePresence>
+        {animationOverlay}
         
         {isPreview && <div className="absolute inset-0 bg-center" style={{ backgroundImage: `linear-gradient(rgba(100,116,139,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(100,116,139,0.2) 1px, transparent 1px)`, backgroundSize: `10px 10px` }} />}
         
@@ -901,19 +928,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
 
   return (
     <div className={getCardClasses()} style={getCardStyle()} onContextMenu={onContextMenu}>
-       <AnimatePresence>
-          {isFlashing && (
-            <motion.div
-              initial={{ scale: 0, opacity: 0.7 }}
-              animate={{ scale: 2.5, opacity: 0 }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
-              className="absolute inset-0 rounded-2xl pointer-events-none z-10"
-              style={{
-                background: `radial-gradient(circle, ${flashColor} 0%, rgba(0,0,0,0) 70%)`
-              }}
-            />
-          )}
-        </AnimatePresence>
+       {animationOverlay}
        {renderContent()}
     </div>
   );
