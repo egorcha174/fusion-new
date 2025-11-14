@@ -8,151 +8,24 @@ import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from '../components/DeviceIcon';
 import { loadAndMigrate } from '../utils/localStorage';
 import { LOCAL_STORAGE_KEYS } from '../constants';
+import {
+    defaultTemplates,
+    DEFAULT_COLOR_SCHEME,
+    defaultClockSettings,
+    defaultCameraSettings,
+    DEFAULT_SIDEBAR_WIDTH,
+    DEFAULT_SIDEBAR_VISIBLE,
+    DEFAULT_THEME,
+    DEFAULT_WEATHER_PROVIDER,
+    DEFAULT_LOW_BATTERY_THRESHOLD,
+    DEFAULT_FONT_FAMILY,
+    DEFAULT_SENSOR_TEMPLATE_ID,
+    DEFAULT_LIGHT_TEMPLATE_ID,
+    DEFAULT_SWITCH_TEMPLATE_ID,
+    DEFAULT_CLIMATE_TEMPLATE_ID,
+    DEFAULT_HUMIDIFIER_TEMPLATE_ID
+} from '../config/defaults';
 
-// --- Default Templates ---
-const DEFAULT_SENSOR_TEMPLATE_ID = 'default-sensor';
-const DEFAULT_LIGHT_TEMPLATE_ID = 'default-light';
-const DEFAULT_SWITCH_TEMPLATE_ID = 'default-switch';
-const DEFAULT_CLIMATE_TEMPLATE_ID = 'default-climate';
-const DEFAULT_FONT_FAMILY = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
-
-const defaultSensorTemplate: CardTemplate = {
-  id: DEFAULT_SENSOR_TEMPLATE_ID, name: 'Стандартный сенсор', deviceType: 'sensor',
-  styles: { },
-  elements: [
-    { id: 'name', visible: true, position: { x: 8, y: 7 }, size: { width: 65, height: 22 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 16 } },
-    { id: 'icon', visible: true, position: { x: 80, y: 7 }, size: { width: 15, height: 15 }, zIndex: 2, styles: {} },
-    { id: 'value', visible: true, position: { x: 8, y: 35 }, size: { width: 70, height: 40 }, zIndex: 2, styles: { decimalPlaces: 1, fontFamily: DEFAULT_FONT_FAMILY, fontSize: 52 } },
-    { id: 'unit', visible: true, position: { x: 70, y: 40 }, size: { width: 25, height: 25 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 24 } },
-    { id: 'chart', visible: true, position: { x: 0, y: 82 }, size: { width: 100, height: 18 }, zIndex: 1, styles: { chartTimeRange: 24, chartTimeRangeUnit: 'hours', chartType: 'gradient' } },
-    { id: 'status', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
-  ],
-};
-const defaultLightTemplate: CardTemplate = {
-    id: DEFAULT_LIGHT_TEMPLATE_ID, name: 'Стандартный светильник', deviceType: 'light',
-    styles: { },
-    elements: [
-      { id: 'icon', visible: true, position: { x: 8, y: 8 }, size: { width: 20, height: 20 }, zIndex: 2, styles: { onColor: 'rgb(59 130 246 / 1)' } },
-      { id: 'name', visible: true, position: { x: 8, y: 35 }, size: { width: 84, height: 22 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 16 } },
-      { id: 'status', visible: true, position: { x: 8, y: 58 }, size: { width: 84, height: 12 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 14 } },
-      { id: 'slider', visible: true, position: { x: 8, y: 78 }, size: { width: 84, height: 14 }, zIndex: 2, styles: {} },
-    ],
-};
-const defaultSwitchTemplate: CardTemplate = {
-    id: DEFAULT_SWITCH_TEMPLATE_ID, name: 'Стандартный переключатель', deviceType: 'switch',
-    styles: { },
-    elements: [
-      { id: 'icon', visible: true, position: { x: 8, y: 8 }, size: { width: 20, height: 20 }, zIndex: 2, styles: { onColor: 'rgb(59 130 246 / 1)' } },
-      { id: 'name', visible: true, position: { x: 8, y: 35 }, size: { width: 84, height: 22 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 16 } },
-      { id: 'status', visible: true, position: { x: 8, y: 58 }, size: { width: 84, height: 12 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 14 } },
-    ],
-};
-const defaultClimateTemplate: CardTemplate = {
-  id: DEFAULT_CLIMATE_TEMPLATE_ID, name: 'Стандартный климат', deviceType: 'climate',
-  styles: { },
-  elements: [
-    { id: 'temperature', visible: true, position: { x: 8, y: 15 }, size: { width: 40, height: 15 }, zIndex: 2, styles: { decimalPlaces: 0, fontFamily: DEFAULT_FONT_FAMILY, fontSize: 24 } },
-    { id: 'name', visible: true, position: { x: 8, y: 32 }, size: { width: 40, height: 10 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 16 } },
-    { id: 'status', visible: true, position: { x: 8, y: 44 }, size: { width: 40, height: 8 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 14 } },
-    { id: 'target-temperature', visible: true, position: { x: 25, y: 5 }, size: { width: 90, height: 90 }, zIndex: 1, styles: {} },
-    { id: 'hvac-modes', visible: true, position: { x: 80, y: 25 }, size: { width: 15, height: 50 }, zIndex: 2, styles: {} },
-    { id: 'linked-entity', visible: false, position: { x: 8, y: 8 }, size: { width: 10, height: 10 }, zIndex: 2, styles: { linkedEntityId: '', showValue: false } },
-  ],
-};
-
-const humidifierTemplate: CardTemplate = {
-  id: "humidifier-card",
-  name: "Увлажнитель (расширенный)",
-  deviceType: "humidifier",
-  styles: {},
-  width: 2,
-  height: 2,
-  elements: [
-    { id: 'name', visible: true, position: { x: 5, y: 5 }, size: { width: 90, height: 8 }, zIndex: 2, styles: { textAlign: 'center', fontSize: 16 } },
-    { id: 'status', visible: true, position: { x: 5, y: 14 }, size: { width: 90, height: 7 }, zIndex: 2, styles: { textAlign: 'center', fontSize: 12 } },
-    { id: 'temperature', visible: true, position: { x: 5, y: 22 }, size: { width: 90, height: 7 }, zIndex: 2, styles: { textAlign: 'center', fontSize: 12 } },
-    { id: 'target-temperature', visible: true, position: { x: 20, y: 30 }, size: { width: 60, height: 60 }, zIndex: 1, styles: {} },
-    { id: 'fan-speed-control', visible: true, position: { x: 5, y: 85 }, size: { width: 90, height: 12 }, zIndex: 3, styles: { linkedFanEntityId: '' } }
-  ],
-};
-
-const acTemplate: CardTemplate = {
-  id: "ac-card",
-  name: "Кондиционер",
-  deviceType: "climate",
-  styles: {},
-  elements: [
-    { id: "name", visible: true, position: { x: 8, y: 8 }, size: { width: 50, height: 15 }, zIndex: 2, styles: {} },
-    { id: "temperature", visible: true, position: { x: 8, y: 25 }, size: { width: 30, height: 20 }, zIndex: 2, styles: { decimalPlaces: 0 } },
-    { id: 'status', visible: true, position: { x: 8, y: 45 }, size: { width: 40, height: 10 }, zIndex: 2, styles: {} },
-    { id: "target-temperature", visible: true, position: { x: 50, y: 5 }, size: { width: 50, height: 90 }, zIndex: 1, styles: {} },
-    { id: "hvac-modes", visible: true, position: { x: 8, y: 65 }, size: { width: 35, height: 25 }, zIndex: 2, styles: {} }
-  ],
-  width: 3,
-  height: 2,
-};
-
-const blindsTemplate: CardTemplate = {
-  id: "blinds-card",
-  name: "Жалюзи",
-  deviceType: "switch",
-  styles: {},
-  elements: [
-    { id: "icon", visible: true, position: { x: 10, y: 10 }, size: { width: 20, height: 20 }, zIndex: 1, styles: {} },
-    { id: "name", visible: true, position: { x: 35, y: 10 }, size: { width: 60, height: 10 }, zIndex: 1, styles: {} },
-    { id: "status", visible: true, position: { x: 35, y: 30 }, size: { width: 60, height: 10 }, zIndex: 1, styles: {} },
-    { id: "slider", visible: true, position: { x: 10, y: 50 }, size: { width: 80, height: 20 }, zIndex: 2, styles: {} }
-  ],
-  width: 2,
-  height: 2,
-};
-
-
-// --- Default Color Scheme ---
-const DEFAULT_COLOR_SCHEME: ColorScheme = {
-  light: {
-    dashboardBackgroundType: 'color',
-    dashboardBackgroundColor1: '#E9EEF6',
-    dashboardBackgroundColor2: '#DDE6F1',
-    dashboardBackgroundImageBlur: 0,
-    dashboardBackgroundImageBrightness: 100,
-    cardOpacity: 0.8,
-    panelOpacity: 0.7,
-    cardBackground: 'rgba(255, 255, 255, 0.7)',
-    cardBackgroundOn: 'rgba(255, 255, 255, 0.7)',
-    tabTextColor: '#6A6A6A',
-    activeTabTextColor: '#212121',
-    tabIndicatorColor: '#212121',
-    nameTextColor: '#4A4A4A',
-    statusTextColor: '#6A6A6A',
-    valueTextColor: '#212121',
-    unitTextColor: '#212121',
-    nameTextColorOn: '#4A4A4A',
-    statusTextColorOn: '#6A6A6A',
-    valueTextColorOn: '#212121',
-    unitTextColorOn: '#212121',
-    thermostatHandleColor: '#FFFFFF',
-    thermostatDialTextColor: '#212121',
-    thermostatDialLabelColor: '#6A6A6A',
-    thermostatHeatingColor: '#F97316',
-    thermostatCoolingColor: '#3b82f6',
-    clockTextColor: '#212121',
-  },
-  dark: {
-    dashboardBackgroundType: 'color',
-    dashboardBackgroundColor1: '#111827',
-    dashboardBackgroundColor2: '#1F2937',
-    dashboardBackgroundImageBlur: 0,
-    dashboardBackgroundImageBrightness: 100,
-    cardOpacity: 0.8,
-    panelOpacity: 0.75,
-    nameTextColor: '#d1d5db', statusTextColor: '#9ca3af', valueTextColor: '#f9fafb', unitTextColor: '#9ca3af',
-    cardBackground: 'rgba(31, 41, 55, 0.8)', cardBackgroundOn: '#374151',
-    tabTextColor: '#9ca3af', activeTabTextColor: '#f9fafb', tabIndicatorColor: '#f9fafb', thermostatHandleColor: '#f9fafb', thermostatDialTextColor: '#f9fafb',
-    thermostatDialLabelColor: '#9ca3af', thermostatHeatingColor: '#fb923c', thermostatCoolingColor: '#60a5fa', clockTextColor: '#f9fafb',
-    nameTextColorOn: '#f9fafb', statusTextColorOn: '#d1d5db', valueTextColorOn: '#f9fafb', unitTextColorOn: '#d1d5db',
-  },
-};
 
 // --- State and Actions Interfaces ---
 interface AppState {
@@ -248,26 +121,18 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     tabs: loadAndMigrate<Tab[]>(LOCAL_STORAGE_KEYS.TABS, []),
     activeTabId: loadAndMigrate<string | null>(LOCAL_STORAGE_KEYS.ACTIVE_TAB, null),
     customizations: loadAndMigrate<DeviceCustomizations>(LOCAL_STORAGE_KEYS.CUSTOMIZATIONS, {}),
-    templates: loadAndMigrate<CardTemplates>(LOCAL_STORAGE_KEYS.CARD_TEMPLATES, {
-        [DEFAULT_SENSOR_TEMPLATE_ID]: defaultSensorTemplate,
-        [DEFAULT_LIGHT_TEMPLATE_ID]: defaultLightTemplate,
-        [DEFAULT_SWITCH_TEMPLATE_ID]: defaultSwitchTemplate,
-        [DEFAULT_CLIMATE_TEMPLATE_ID]: defaultClimateTemplate,
-        'humidifier-card': humidifierTemplate,
-        'ac-card': acTemplate,
-        'blinds-card': blindsTemplate,
-    }),
-    clockSettings: loadAndMigrate<ClockSettings>(LOCAL_STORAGE_KEYS.CLOCK_SETTINGS, { format: '24h', showSeconds: true, size: 'md' }),
-    cameraSettings: loadAndMigrate<CameraSettings>(LOCAL_STORAGE_KEYS.CAMERA_SETTINGS, { selectedEntityId: null }),
-    sidebarWidth: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.SIDEBAR_WIDTH, 320),
-    isSidebarVisible: loadAndMigrate<boolean>(LOCAL_STORAGE_KEYS.SIDEBAR_VISIBLE, true),
-    theme: loadAndMigrate<'day' | 'night' | 'auto' | 'sun'>(LOCAL_STORAGE_KEYS.THEME, 'auto'),
+    templates: loadAndMigrate<CardTemplates>(LOCAL_STORAGE_KEYS.CARD_TEMPLATES, defaultTemplates),
+    clockSettings: loadAndMigrate<ClockSettings>(LOCAL_STORAGE_KEYS.CLOCK_SETTINGS, defaultClockSettings),
+    cameraSettings: loadAndMigrate<CameraSettings>(LOCAL_STORAGE_KEYS.CAMERA_SETTINGS, defaultCameraSettings),
+    sidebarWidth: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.SIDEBAR_WIDTH, DEFAULT_SIDEBAR_WIDTH),
+    isSidebarVisible: loadAndMigrate<boolean>(LOCAL_STORAGE_KEYS.SIDEBAR_VISIBLE, DEFAULT_SIDEBAR_VISIBLE),
+    theme: loadAndMigrate<'day' | 'night' | 'auto' | 'sun'>(LOCAL_STORAGE_KEYS.THEME, DEFAULT_THEME),
     colorScheme: loadAndMigrate<ColorScheme>(LOCAL_STORAGE_KEYS.COLOR_SCHEME, DEFAULT_COLOR_SCHEME),
-    weatherProvider: loadAndMigrate<'openweathermap' | 'yandex' | 'foreca'>(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, 'openweathermap'),
+    weatherProvider: loadAndMigrate<'openweathermap' | 'yandex' | 'foreca'>(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, DEFAULT_WEATHER_PROVIDER),
     openWeatherMapKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, ''),
     yandexWeatherKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, ''),
     forecaApiKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.FORECA_KEY, ''),
-    lowBatteryThreshold: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, 20),
+    lowBatteryThreshold: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, DEFAULT_LOW_BATTERY_THRESHOLD),
     DEFAULT_COLOR_SCHEME: DEFAULT_COLOR_SCHEME,
     
     // --- Actions ---
@@ -369,12 +234,19 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         if (!device) return null;
         const custom = get().customizations[device.id];
         let templateId = custom?.templateId;
+
+        if (templateId === '') return null; // Explicitly no template
+
         if (!templateId) {
-            if (device.type === DeviceType.Sensor) templateId = DEFAULT_SENSOR_TEMPLATE_ID;
-            else if (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight) templateId = DEFAULT_LIGHT_TEMPLATE_ID;
-            else if (device.type === DeviceType.Switch) templateId = DEFAULT_SWITCH_TEMPLATE_ID;
-            else if (device.type === DeviceType.Thermostat) templateId = DEFAULT_CLIMATE_TEMPLATE_ID;
-            else if (device.type === DeviceType.Humidifier) templateId = 'humidifier-card';
+            const defaultMap: { [key in DeviceType]?: string } = {
+                [DeviceType.Sensor]: DEFAULT_SENSOR_TEMPLATE_ID,
+                [DeviceType.Light]: DEFAULT_LIGHT_TEMPLATE_ID,
+                [DeviceType.DimmableLight]: DEFAULT_LIGHT_TEMPLATE_ID,
+                [DeviceType.Switch]: DEFAULT_SWITCH_TEMPLATE_ID,
+                [DeviceType.Thermostat]: DEFAULT_CLIMATE_TEMPLATE_ID,
+                [DeviceType.Humidifier]: DEFAULT_HUMIDIFIER_TEMPLATE_ID,
+            };
+            templateId = defaultMap[device.type];
         }
         return templateId ? get().templates[templateId] : null;
     },
@@ -578,18 +450,18 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     },
     createNewBlankTemplate: (deviceType) => {
         const baseMap = {
-            [DeviceType.Sensor]: defaultSensorTemplate,
-            [DeviceType.Light]: defaultLightTemplate,
-            [DeviceType.DimmableLight]: defaultLightTemplate,
-            [DeviceType.Switch]: defaultSwitchTemplate,
-            [DeviceType.Thermostat]: defaultClimateTemplate,
-            [DeviceType.Humidifier]: humidifierTemplate,
+            [DeviceType.Sensor]: get().templates[DEFAULT_SENSOR_TEMPLATE_ID],
+            [DeviceType.Light]: get().templates[DEFAULT_LIGHT_TEMPLATE_ID],
+            [DeviceType.DimmableLight]: get().templates[DEFAULT_LIGHT_TEMPLATE_ID],
+            [DeviceType.Switch]: get().templates[DEFAULT_SWITCH_TEMPLATE_ID],
+            [DeviceType.Thermostat]: get().templates[DEFAULT_CLIMATE_TEMPLATE_ID],
+            [DeviceType.Humidifier]: get().templates[DEFAULT_HUMIDIFIER_TEMPLATE_ID],
         };
         const typeNameMap = {
             [DeviceType.Sensor]: 'сенсор', [DeviceType.Light]: 'светильник', [DeviceType.DimmableLight]: 'светильник',
             [DeviceType.Switch]: 'переключатель', [DeviceType.Thermostat]: 'климат', [DeviceType.Humidifier]: 'увлажнитель'
         };
-        const baseTemplate = baseMap[deviceType] || defaultSensorTemplate;
+        const baseTemplate = (baseMap as any)[deviceType] || get().templates[DEFAULT_SENSOR_TEMPLATE_ID];
         const newTemplate = JSON.parse(JSON.stringify(baseTemplate));
         newTemplate.id = nanoid();
         newTemplate.name = `Новый ${typeNameMap[deviceType] || 'шаблон'}`;
