@@ -6,8 +6,7 @@ import {
 } from '../types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from '../components/DeviceIcon';
-import { loadAndMigrate } from '../utils/localStorage';
-import { LOCAL_STORAGE_KEYS } from '../constants';
+import { useHAStore } from './haStore';
 import {
     defaultTemplates,
     DEFAULT_COLOR_SCHEME,
@@ -18,7 +17,6 @@ import {
     DEFAULT_THEME,
     DEFAULT_WEATHER_PROVIDER,
     DEFAULT_LOW_BATTERY_THRESHOLD,
-    DEFAULT_FONT_FAMILY,
     DEFAULT_SENSOR_TEMPLATE_ID,
     DEFAULT_LIGHT_TEMPLATE_ID,
     DEFAULT_SWITCH_TEMPLATE_ID,
@@ -47,7 +45,9 @@ interface AppState {
     cameraSettings: CameraSettings;
     sidebarWidth: number;
     isSidebarVisible: boolean;
-    theme: 'day' | 'night' | 'auto' | 'sun';
+    theme: 'day' | 'night' | 'auto' | 'schedule';
+    scheduleStartTime: string;
+    scheduleEndTime: string;
     colorScheme: ColorScheme;
     weatherProvider: 'openweathermap' | 'yandex' | 'foreca';
     openWeatherMapKey: string;
@@ -77,6 +77,8 @@ interface AppActions {
     setSidebarWidth: (width: number) => void;
     setIsSidebarVisible: (isVisible: boolean) => void;
     setTheme: (theme: AppState['theme']) => void;
+    setScheduleStartTime: (time: string) => void;
+    setScheduleEndTime: (time: string) => void;
     setColorScheme: (scheme: ColorScheme) => void;
     setWeatherProvider: (provider: AppState['weatherProvider']) => void;
     setOpenWeatherMapKey: (key: string) => void;
@@ -103,11 +105,12 @@ interface AppActions {
     handleSaveTemplate: (template: CardTemplate) => void;
     handleDeleteTemplate: (templateId: string) => void;
     createNewBlankTemplate: (deviceType: DeviceType) => CardTemplate;
+    _triggerSave: (category: keyof typeof categorySelectors) => void;
 }
 
 
 export const useAppStore = create<AppState & AppActions>((set, get) => ({
-    // --- State Initialization from LocalStorage ---
+    // --- State Initialization with Defaults ---
     currentPage: 'dashboard',
     isEditMode: false,
     editingDevice: null,
@@ -118,21 +121,23 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     floatingCamera: null,
     historyModalEntityId: null,
     
-    tabs: loadAndMigrate<Tab[]>(LOCAL_STORAGE_KEYS.TABS, []),
-    activeTabId: loadAndMigrate<string | null>(LOCAL_STORAGE_KEYS.ACTIVE_TAB, null),
-    customizations: loadAndMigrate<DeviceCustomizations>(LOCAL_STORAGE_KEYS.CUSTOMIZATIONS, {}),
-    templates: loadAndMigrate<CardTemplates>(LOCAL_STORAGE_KEYS.CARD_TEMPLATES, defaultTemplates),
-    clockSettings: loadAndMigrate<ClockSettings>(LOCAL_STORAGE_KEYS.CLOCK_SETTINGS, defaultClockSettings),
-    cameraSettings: loadAndMigrate<CameraSettings>(LOCAL_STORAGE_KEYS.CAMERA_SETTINGS, defaultCameraSettings),
-    sidebarWidth: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.SIDEBAR_WIDTH, DEFAULT_SIDEBAR_WIDTH),
-    isSidebarVisible: loadAndMigrate<boolean>(LOCAL_STORAGE_KEYS.SIDEBAR_VISIBLE, DEFAULT_SIDEBAR_VISIBLE),
-    theme: loadAndMigrate<'day' | 'night' | 'auto' | 'sun'>(LOCAL_STORAGE_KEYS.THEME, DEFAULT_THEME),
-    colorScheme: loadAndMigrate<ColorScheme>(LOCAL_STORAGE_KEYS.COLOR_SCHEME, DEFAULT_COLOR_SCHEME),
-    weatherProvider: loadAndMigrate<'openweathermap' | 'yandex' | 'foreca'>(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, DEFAULT_WEATHER_PROVIDER),
-    openWeatherMapKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, ''),
-    yandexWeatherKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, ''),
-    forecaApiKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.FORECA_KEY, ''),
-    lowBatteryThreshold: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, DEFAULT_LOW_BATTERY_THRESHOLD),
+    tabs: [],
+    activeTabId: null,
+    customizations: {},
+    templates: defaultTemplates,
+    clockSettings: defaultClockSettings,
+    cameraSettings: defaultCameraSettings,
+    sidebarWidth: DEFAULT_SIDEBAR_WIDTH,
+    isSidebarVisible: DEFAULT_SIDEBAR_VISIBLE,
+    theme: DEFAULT_THEME,
+    scheduleStartTime: '22:00',
+    scheduleEndTime: '07:00',
+    colorScheme: DEFAULT_COLOR_SCHEME,
+    weatherProvider: DEFAULT_WEATHER_PROVIDER,
+    openWeatherMapKey: '',
+    yandexWeatherKey: '',
+    forecaApiKey: '',
+    lowBatteryThreshold: DEFAULT_LOW_BATTERY_THRESHOLD,
     DEFAULT_COLOR_SCHEME: DEFAULT_COLOR_SCHEME,
     
     // --- Actions ---
@@ -146,67 +151,24 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     setFloatingCamera: (device) => set({ floatingCamera: device }),
     setHistoryModalEntityId: (id) => set({ historyModalEntityId: id }),
 
-    // --- Actions with Persistence ---
-    setTabs: (tabs) => {
-        set({ tabs });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.TABS, JSON.stringify(tabs));
-    },
-    setActiveTabId: (id) => {
-        set({ activeTabId: id });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.ACTIVE_TAB, JSON.stringify(id));
-    },
-    setCustomizations: (customizations) => {
-        set({ customizations });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.CUSTOMIZATIONS, JSON.stringify(customizations));
-    },
-    setTemplates: (templates) => {
-        set({ templates });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.CARD_TEMPLATES, JSON.stringify(templates));
-    },
-    setClockSettings: (settings) => {
-        set({ clockSettings: settings });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.CLOCK_SETTINGS, JSON.stringify(settings));
-    },
-    setCameraSettings: (settings) => {
-        set({ cameraSettings: settings });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.CAMERA_SETTINGS, JSON.stringify(settings));
-    },
-    setSidebarWidth: (width) => {
-        set({ sidebarWidth: width });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.SIDEBAR_WIDTH, JSON.stringify(width));
-    },
-    setIsSidebarVisible: (isVisible) => {
-        set({ isSidebarVisible: isVisible });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.SIDEBAR_VISIBLE, JSON.stringify(isVisible));
-    },
-    setTheme: (theme) => {
-        set({ theme });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.THEME, theme);
-    },
-    setColorScheme: (scheme) => {
-        set({ colorScheme: scheme });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.COLOR_SCHEME, JSON.stringify(scheme));
-    },
-    setWeatherProvider: (provider) => {
-        set({ weatherProvider: provider });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, provider);
-    },
-    setOpenWeatherMapKey: (key) => {
-        set({ openWeatherMapKey: key });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, key);
-    },
-    setYandexWeatherKey: (key) => {
-        set({ yandexWeatherKey: key });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, key);
-    },
-    setForecaApiKey: (key) => {
-        set({ forecaApiKey: key });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.FORECA_KEY, key);
-    },
-    setLowBatteryThreshold: (threshold) => {
-        set({ lowBatteryThreshold: threshold });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, JSON.stringify(threshold));
-    },
+    // --- Setters that now only update local state ---
+    setTabs: (tabs) => set({ tabs }),
+    setActiveTabId: (id) => set({ activeTabId: id }),
+    setCustomizations: (customizations) => set({ customizations }),
+    setTemplates: (templates) => set({ templates }),
+    setClockSettings: (settings) => set({ clockSettings: settings }),
+    setCameraSettings: (settings) => set({ cameraSettings: settings }),
+    setSidebarWidth: (width) => set({ sidebarWidth: width }),
+    setIsSidebarVisible: (isVisible) => set({ isSidebarVisible: isVisible }),
+    setTheme: (theme) => set({ theme }),
+    setScheduleStartTime: (time) => set({ scheduleStartTime: time }),
+    setScheduleEndTime: (time) => set({ scheduleEndTime: time }),
+    setColorScheme: (scheme) => set({ colorScheme: scheme }),
+    setWeatherProvider: (provider) => set({ weatherProvider: provider }),
+    setOpenWeatherMapKey: (key) => set({ openWeatherMapKey: key }),
+    setYandexWeatherKey: (key) => set({ yandexWeatherKey: key }),
+    setForecaApiKey: (key) => set({ forecaApiKey: key }),
+    setLowBatteryThreshold: (threshold) => set({ lowBatteryThreshold: threshold }),
 
     // --- Complex Actions ---
     onResetColorScheme: () => get().setColorScheme(DEFAULT_COLOR_SCHEME),
@@ -385,7 +347,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             const newTabs = [...state.tabs];
             newTabs[tabIndex] = { ...tab, layout: newLayout };
             
-            localStorage.setItem(LOCAL_STORAGE_KEYS.TABS, JSON.stringify(newTabs));
             return { tabs: newTabs };
         });
     },
@@ -467,4 +428,37 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         newTemplate.name = `Новый ${typeNameMap[deviceType] || 'шаблон'}`;
         return newTemplate;
     },
+    _triggerSave: (category) => {
+        const selector = categorySelectors[category];
+        if (selector) {
+            const dataToSave = selector(get());
+            useHAStore.getState().saveHASettings(category, dataToSave);
+        }
+    },
 }));
+
+// --- Data Persistence to Home Assistant ---
+
+const categorySelectors = {
+    layout: (state: AppState) => ({ tabs: state.tabs, activeTabId: state.activeTabId }),
+    customizations: (state: AppState) => ({ customizations: state.customizations }),
+    templates: (state: AppState) => ({ templates: state.templates }),
+    appearance: (state: AppState) => ({ colorScheme: state.colorScheme, theme: state.theme, scheduleStartTime: state.scheduleStartTime, scheduleEndTime: state.scheduleEndTime }),
+    interface: (state: AppState) => ({ clockSettings: state.clockSettings, cameraSettings: state.cameraSettings, sidebarWidth: state.sidebarWidth, isSidebarVisible: state.isSidebarVisible, lowBatteryThreshold: state.lowBatteryThreshold }),
+    integrations: (state: AppState) => ({ weatherProvider: state.weatherProvider, openWeatherMapKey: state.openWeatherMapKey, yandexWeatherKey: state.yandexWeatherKey, forecaApiKey: state.forecaApiKey }),
+};
+
+// Subscribe to changes in each category and save them to Home Assistant
+Object.entries(categorySelectors).forEach(([category, selector]) => {
+    useAppStore.subscribe(
+        selector,
+        (data) => {
+            // Only save if settings are fully loaded from HA, to prevent overwriting HA state with initial defaults on startup.
+            if (useHAStore.getState().settingsStatus === 'loaded') {
+                useHAStore.getState().saveHASettings(category, data);
+            }
+        },
+        // Use a deep comparison to prevent saving on every render if the data hasn't actually changed.
+        { equalityFn: (a, b) => JSON.stringify(a) === JSON.stringify(b) }
+    );
+});

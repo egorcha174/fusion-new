@@ -167,12 +167,11 @@ const useIsLg = () => {
  * Отвечает за общую структуру, управление состоянием и рендеринг страниц.
  */
 const App: React.FC = () => {
-    const initializationDone = useRef(false);
     // Получение состояний и действий из хранилища Zustand для Home Assistant.
     const {
         connectionStatus, isLoading, error, connect, allKnownDevices, allRoomsForDevicePage,
         allCameras, getCameraStreamUrl, getConfig, getHistory, signPath,
-        haUrl, allRoomsWithPhysicalDevices,
+        haUrl, allRoomsWithPhysicalDevices, settingsStatus
     } = useHAStore();
 
     // Получение состояний и действий из хранилища Zustand для UI приложения.
@@ -184,6 +183,7 @@ const App: React.FC = () => {
         tabs, setTabs, activeTabId, setActiveTabId,
         templates,
         sidebarWidth, setSidebarWidth, isSidebarVisible, theme,
+        scheduleStartTime, scheduleEndTime,
         colorScheme, getTemplateForDevice, createNewBlankTemplate
     } = useAppStore();
 
@@ -193,42 +193,44 @@ const App: React.FC = () => {
 
 
   const isLg = useIsLg();
-  const [isDarkBySun, setIsDarkBySun] = useState(false);
+  const [isDarkBySchedule, setIsDarkBySchedule] = useState(false);
+  const isAppLoading = isLoading || settingsStatus === 'loading';
 
-  // Эффект для режима "По солнцу"
+  // Эффект для режима "По расписанию"
   useEffect(() => {
-    if (theme !== 'sun' || connectionStatus !== 'connected') return;
+    if (theme !== 'schedule') return;
 
-    let intervalId: number;
-
-    const calculateSunPhase = async () => {
+    const calculateSchedulePhase = () => {
         try {
-            const config = await getConfig();
-            const { latitude, longitude } = config;
-            if (latitude === undefined || longitude === undefined) throw new Error("Location not found in HA config");
-
             const now = new Date();
-            const { sunrise, sunset } = getSunriseSunset(latitude, longitude, now);
+            const currentTime = now.getHours() * 60 + now.getMinutes();
 
-            if (sunrise && sunset) {
-                const isNight = now < sunrise || now > sunset;
-                setIsDarkBySun(isNight);
-            } else {
-                // Полярный день или ночь, используем системные настройки как резервный вариант
-                setIsDarkBySun(window.matchMedia('(prefers-color-scheme: dark)').matches);
+            const [startHour, startMinute] = scheduleStartTime.split(':').map(Number);
+            const [endHour, endMinute] = scheduleEndTime.split(':').map(Number);
+
+            const startTime = startHour * 60 + startMinute;
+            const endTime = endHour * 60 + endMinute;
+
+            let isNight;
+            if (startTime > endTime) { // Overnight schedule (e.g., 22:00 - 07:00)
+                isNight = currentTime >= startTime || currentTime < endTime;
+            } else { // Same-day schedule (e.g., 07:00 - 19:00, unlikely but possible)
+                isNight = currentTime >= startTime && currentTime < endTime;
             }
+            setIsDarkBySchedule(isNight);
+
         } catch (e) {
-            console.error("Could not get location for sun theme, falling back to system preference.", e);
-            setIsDarkBySun(window.matchMedia('(prefers-color-scheme: dark)').matches);
+            console.error("Could not parse schedule time, falling back to system preference.", e);
+            setIsDarkBySchedule(window.matchMedia('(prefers-color-scheme: dark)').matches);
         }
     };
 
-    calculateSunPhase();
-    // Пересчитываем каждые 10 минут
-    intervalId = window.setInterval(calculateSunPhase, 10 * 60 * 1000);
+    calculateSchedulePhase();
+    // Пересчитываем каждую минуту
+    const intervalId = window.setInterval(calculateSchedulePhase, 60 * 1000);
 
     return () => clearInterval(intervalId);
-  }, [theme, connectionStatus, getConfig]);
+  }, [theme, scheduleStartTime, scheduleEndTime]);
 
 
   // Эффект для управления темой (светлая/темная).
@@ -242,7 +244,7 @@ const App: React.FC = () => {
         switch (theme) {
             case 'night': isDark = true; break;
             case 'day': isDark = false; break;
-            case 'sun': isDark = isDarkBySun; break;
+            case 'schedule': isDark = isDarkBySchedule; break;
             case 'auto':
             default: isDark = mediaQuery.matches; break;
         }
@@ -252,20 +254,19 @@ const App: React.FC = () => {
     updateTheme();
     mediaQuery.addEventListener('change', updateTheme); // Следим за системными изменениями
     return () => mediaQuery.removeEventListener('change', updateTheme);
-  }, [theme, isDarkBySun]);
+  }, [theme, isDarkBySchedule]);
 
   // Эффект, гарантирующий наличие хотя бы одной вкладки и установку активной вкладки.
   // Запускается после успешного подключения и загрузки данных.
     useEffect(() => {
-        if (connectionStatus === 'connected' && !isLoading && !initializationDone.current) {
-            initializationDone.current = true; // Выполняем только один раз
+        // Выполняем только один раз после полной загрузки приложения.
+        if (connectionStatus === 'connected' && !isAppLoading && settingsStatus === 'loaded') {
             if (tabs.length === 0 && allKnownDevices.size > 0) {
                 const allDeviceIds = Array.from(allKnownDevices.keys());
                 const newTab: Tab = {
                     id: nanoid(),
                     name: 'Главная',
                     // Автоматически размещаем все устройства на первой вкладке
-                    // FIX: Explicitly type the 'id' parameter in the map function to resolve a TypeScript inference issue where it was being inferred as 'unknown'.
                     layout: allDeviceIds.map((id: string): GridLayoutItem => ({ deviceId: id, col: 0, row: 0, width: 1, height: 1 })),
                     gridSettings: { cols: 8, rows: 5 }
                 };
@@ -277,7 +278,7 @@ const App: React.FC = () => {
                 }
             }
         }
-    }, [connectionStatus, isLoading, tabs, activeTabId, allKnownDevices, setTabs, setActiveTabId]);
+    }, [connectionStatus, isAppLoading, settingsStatus, tabs, activeTabId, allKnownDevices, setTabs, setActiveTabId]);
 
   // Мемоизированное значение текущей активной вкладки для избежания лишних пересчетов.
   const activeTab = useMemo(() => tabs.find(t => t.id === activeTabId), [tabs, activeTabId]);
@@ -332,11 +333,11 @@ const App: React.FC = () => {
         switch (theme) {
             case 'night': return true;
             case 'day': return false;
-            case 'sun': return isDarkBySun;
+            case 'schedule': return isDarkBySchedule;
             case 'auto':
             default: return isSystemDark;
         }
-    }, [theme, isSystemDark, isDarkBySun]);
+    }, [theme, isSystemDark, isDarkBySchedule]);
     const currentColorScheme = useMemo(() => isDark ? colorScheme.dark : colorScheme.light, [isDark, colorScheme]);
 
     // Мемоизированный стиль для фона дашборда
@@ -408,7 +409,7 @@ const App: React.FC = () => {
   }
   
   // Если идет загрузка данных, показываем спиннер.
-  if (isLoading) {
+  if (isAppLoading) {
     return (
        <div className="flex h-screen w-screen items-center justify-center">
          <LoadingSpinner />

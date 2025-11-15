@@ -1,5 +1,3 @@
-
-
 import { create } from 'zustand';
 import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device, Room, RoomWithPhysicalDevices, PhysicalDevice, DeviceType } from '../types';
 import { constructHaUrl } from '../utils/url';
@@ -21,6 +19,7 @@ interface BatteryDevice {
 interface HAState {
   connectionStatus: ConnectionStatus;
   isLoading: boolean;
+  settingsStatus: 'idle' | 'loading' | 'loaded' | 'failed';
   error: string | null;
   haUrl: string;
   entities: HassEntities;
@@ -43,6 +42,8 @@ interface HAActions {
   getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
   getConfig: () => Promise<any>;
   getHistory: (entityIds: string[], startTime: string, endTime?: string) => Promise<any>;
+  saveHASettings: (category: string, data: any) => void;
+  _initializeSettings: () => Promise<void>;
 
   // Derived actions for convenience
   handleDeviceToggle: (deviceId: string) => void;
@@ -52,6 +53,14 @@ interface HAActions {
   handlePresetChange: (deviceId: string, preset: string) => void;
   handleFanSpeedChange: (deviceId: string, value: number | string) => void;
 }
+
+const debounce = (fn: Function, delay: number) => {
+    let timeoutId: number;
+    return (...args: any[]) => {
+        clearTimeout(timeoutId);
+        timeoutId = window.setTimeout(() => fn(...args), delay);
+    };
+};
 
 export const useHAStore = create<HAState & HAActions>((set, get) => {
   let socketRef: WebSocket | null = null;
@@ -223,6 +232,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   return {
     connectionStatus: 'idle',
     isLoading: false,
+    settingsStatus: 'idle',
     error: null,
     haUrl: '',
     entities: {},
@@ -238,7 +248,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     connect: (url, token) => {
         if (socketRef) socketRef.close();
         
-        set({ connectionStatus: 'connecting', error: null, isLoading: true, haUrl: url });
+        set({ connectionStatus: 'connecting', error: null, isLoading: true, haUrl: url, settingsStatus: 'idle' });
         messageIdRef = 1;
 
         try {
@@ -307,7 +317,9 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                         if (initialFetchIds.size === 0) {
                                             const s = get();
                                             updateDerivedState(s.entities, s.areas, s.devices, s.entityRegistry);
-                                            set({ isLoading: false });
+                                            get()._initializeSettings().finally(() => {
+                                                set({ isLoading: false });
+                                            });
                                         }
                                     }
                                 }
@@ -330,14 +342,14 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             socketRef.onclose = () => {
                 if (get().connectionStatus === 'connecting') set({ connectionStatus: 'failed' });
                 else set({ connectionStatus: 'idle' });
-                set({ isLoading: false });
+                set({ isLoading: false, settingsStatus: 'idle' });
             };
             socketRef.onerror = () => {
-                set({ error: 'WebSocket error. Check URL and connection.', connectionStatus: 'failed', isLoading: false });
+                set({ error: 'WebSocket error. Check URL and connection.', connectionStatus: 'failed', isLoading: false, settingsStatus: 'failed' });
             };
 
         } catch (e) {
-            set({ error: 'Failed to connect. Invalid URL?', connectionStatus: 'failed', isLoading: false });
+            set({ error: 'Failed to connect. Invalid URL?', connectionStatus: 'failed', isLoading: false, settingsStatus: 'failed' });
         }
     },
     disconnect: () => {
@@ -365,6 +377,49 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         historyPeriodCallbacks.set(id, { resolve, reject });
         sendMessage({ id, type: 'history/history_during_period', entity_ids: entityIds, start_time: startTime, end_time: endTime, minimal_response: true });
     }),
+
+    _initializeSettings: async () => {
+        set({ settingsStatus: 'loading' });
+        const { _triggerSave, ...setters } = useAppStore.getState();
+    
+        const allHAStates = get().entities;
+    
+        const categoryConfigs = [
+            { name: 'layout', handler: (s: any) => { setters.setTabs(s.tabs); setters.setActiveTabId(s.activeTabId); } },
+            { name: 'customizations', handler: (s: any) => setters.setCustomizations(s.customizations) },
+            { name: 'templates', handler: (s: any) => setters.setTemplates(s.templates) },
+            { name: 'appearance', handler: (s: any) => { setters.setColorScheme(s.colorScheme); setters.setTheme(s.theme); setters.setScheduleStartTime(s.scheduleStartTime); setters.setScheduleEndTime(s.scheduleEndTime); } },
+            { name: 'interface', handler: (s: any) => { setters.setClockSettings(s.clockSettings); setters.setCameraSettings(s.cameraSettings); setters.setSidebarWidth(s.sidebarWidth); setters.setIsSidebarVisible(s.isSidebarVisible); setters.setLowBatteryThreshold(s.lowBatteryThreshold); } },
+            { name: 'integrations', handler: (s: any) => { setters.setWeatherProvider(s.weatherProvider); setters.setOpenWeatherMapKey(s.openWeatherMapKey); setters.setYandexWeatherKey(s.yandexWeatherKey); setters.setForecaApiKey(s.forecaApiKey); } },
+        ];
+    
+        for (const config of categoryConfigs) {
+            const entityId = `input_textarea.frontend_settings_${config.name}`;
+            const entityState = allHAStates[entityId];
+            if (entityState && entityState.state && entityState.state !== 'unknown') {
+                try {
+                    const settings = JSON.parse(entityState.state);
+                    config.handler(settings);
+                } catch (e) {
+                    console.error(`[Settings] Failed to parse settings for ${config.name} from ${entityId}. Using defaults.`, e);
+                }
+            } else {
+                console.warn(`[Settings] Entity '${entityId}' not found or is empty. Using default values for '${config.name}' and attempting to save them to HA if you create the helper.`);
+                _triggerSave(config.name as any);
+            }
+        }
+    
+        set({ settingsStatus: 'loaded' });
+    },
+
+    saveHASettings: debounce((category: string, data: any) => {
+        const entityId = `input_textarea.frontend_settings_${category}`;
+        console.log(`[Settings] Saving settings for category: ${category}`);
+        get().callService('input_textarea', 'set_value', {
+            entity_id: entityId,
+            value: JSON.stringify(data, null, 2)
+        });
+    }, 1000),
 
     // --- Derived Actions ---
     handleDeviceToggle: (deviceId) => {

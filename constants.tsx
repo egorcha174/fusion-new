@@ -16,6 +16,8 @@ export const LOCAL_STORAGE_KEYS = {
   SIDEBAR_WIDTH: 'ha-sidebar-width',
   CAMERA_SETTINGS: 'ha-camera-settings',
   THEME: 'ha-theme',
+  SCHEDULE_START_TIME: 'ha-schedule-start-time',
+  SCHEDULE_END_TIME: 'ha-schedule-end-time',
   COLOR_SCHEME: 'ha-color-scheme',
   SIDEBAR_VISIBLE: 'ha-sidebar-visible',
   LOW_BATTERY_THRESHOLD: 'ha-low-battery-threshold',

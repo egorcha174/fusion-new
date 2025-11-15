@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot, ColorScheme } from '../types';
 import DeviceCard from './DeviceCard';
@@ -614,7 +613,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                       signPath={async()=>({path:''})} 
                       getCameraStreamUrl={async()=>({url: ''})} 
                       colorScheme={currentColorScheme}
-// FIX: Pass the 'isDark' prop to DeviceCard as it is required.
                       isDark={isDark} />
                   {editedTemplate.elements.map(element => <DraggableCanvasElement key={element.id} element={element} isSelected={selectedElementIds.includes(element.id)} onSelect={(id, multi) => handleSelect('element', id, multi)} showResizeHandles={selectedElementIds.length === 1 && selectedElementIds[0] === element.id}/>)}
                   {editedTemplate.deviceSlots?.map(slot => <DraggableIndicatorSlot key={slot.id} slot={slot} isSelected={selectedSlotId === slot.id} onSelect={() => handleSelect('slot', slot.id)} />)}

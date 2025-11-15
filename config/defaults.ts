@@ -173,6 +173,7 @@ export const defaultClockSettings: ClockSettings = { format: '24h', showSeconds:
 export const defaultCameraSettings: CameraSettings = { selectedEntityId: null };
 export const DEFAULT_SIDEBAR_WIDTH = 320;
 export const DEFAULT_SIDEBAR_VISIBLE = true;
-export const DEFAULT_THEME: 'day' | 'night' | 'auto' | 'sun' = 'auto';
+// FIX: The `theme` type in the store is `'day' | 'night' | 'auto' | 'schedule'`. The type here was `... | 'sun'`, which caused a type mismatch. Corrected to `'schedule'`.
+export const DEFAULT_THEME: 'day' | 'night' | 'auto' | 'schedule' = 'auto';
 export const DEFAULT_WEATHER_PROVIDER: 'openweathermap' | 'yandex' | 'foreca' = 'openweathermap';
 export const DEFAULT_LOW_BATTERY_THRESHOLD = 20;
