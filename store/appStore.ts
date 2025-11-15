@@ -172,7 +172,8 @@ export const useAppStore = create<AppState & AppActions>((setState, get) => ({
 
     // --- Complex Actions ---
     onResetColorScheme: () => get().setColorScheme(DEFAULT_COLOR_SCHEME),
-    handleTabOrderChange: (newTabs) => get().setTabs(newTabs),
+    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
+    handleTabOrderChange: (newTabs: Tab[]) => get().setTabs(newTabs),
     handleAddTab: () => {
         const newTabName = `Вкладка ${get().tabs.length + 1}`;
         const newTab: Tab = { id: nanoid(), name: newTabName, layout: [], gridSettings: { cols: 8, rows: 5 } };
@@ -180,11 +181,13 @@ export const useAppStore = create<AppState & AppActions>((setState, get) => ({
         get().setTabs(newTabs);
         get().setActiveTabId(newTab.id);
     },
-    handleUpdateTabSettings: (tabId, settings) => {
+    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
+    handleUpdateTabSettings: (tabId: string, settings: { name: string; gridSettings: { cols: number; rows: number } }) => {
         const newTabs = get().tabs.map(tab => (tab.id === tabId) ? { ...tab, ...settings } : tab);
         get().setTabs(newTabs);
     },
-    handleDeleteTab: (tabId) => {
+    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
+    handleDeleteTab: (tabId: string) => {
         const newTabs = get().tabs.filter(t => t.id !== tabId);
         if (get().activeTabId === tabId) {
             get().setActiveTabId(newTabs.length > 0 ? newTabs[0].id : null);
@@ -192,7 +195,8 @@ export const useAppStore = create<AppState & AppActions>((setState, get) => ({
         get().setTabs(newTabs);
     },
     
-    getTemplateForDevice: (device) => {
+    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
+    getTemplateForDevice: (device: Device | null) => {
         if (!device) return null;
         const custom = get().customizations[device.id];
         let templateId = custom?.templateId;
@@ -212,7 +216,8 @@ export const useAppStore = create<AppState & AppActions>((setState, get) => ({
         }
         return templateId ? get().templates[templateId] : null;
     },
-    handleDeviceAddToTab: (device, tabId) => {
+    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
+    handleDeviceAddToTab: (device: Device, tabId: string) => {
         const getTemplateForDevice = get().getTemplateForDevice;
         const newTabs = get().tabs.map(tab => {
             if (tab.id !== tabId || tab.layout.some(item => item.deviceId === device.id)) return tab;
@@ -259,16 +264,19 @@ export const useAppStore = create<AppState & AppActions>((setState, get) => ({
         });
         get().setTabs(newTabs);
     },
-    handleDeviceRemoveFromTab: (deviceId, tabId) => {
+    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
+    handleDeviceRemoveFromTab: (deviceId: string, tabId: string) => {
         const newTabs = get().tabs.map(tab => (tab.id === tabId) ? { ...tab, layout: tab.layout.filter(item => item.deviceId !== deviceId) } : tab);
         get().setTabs(newTabs);
     },
-    handleDeviceMoveToTab: (device, fromTabId, toTabId) => {
+    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
+    handleDeviceMoveToTab: (device: Device, fromTabId: string, toTabId: string) => {
         if (fromTabId === toTabId) return;
         get().handleDeviceAddToTab(device, toTabId);
         get().handleDeviceRemoveFromTab(device.id, fromTabId);
     },
-    checkCollision: (layout, itemToPlace, gridSettings, ignoreDeviceId) => {
+    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
+    checkCollision: (layout: GridLayoutItem[], itemToPlace: { col: number; row: number; width: number; height: number; }, gridSettings: { cols: number; rows: number; }, ignoreDeviceId: string) => {
         const { col, row, width, height } = itemToPlace;
     
         // 1. Boundary check
@@ -321,11 +329,12 @@ export const useAppStore = create<AppState & AppActions>((setState, get) => ({
     
         return false; // No collisions found
     },
-    handleDeviceLayoutChange: (tabId, newLayout) => {
+    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
+    handleDeviceLayoutChange: (tabId: string, newLayout: GridLayoutItem[]) => {
         const newTabs = get().tabs.map(tab => (tab.id === tabId) ? { ...tab, layout: newLayout } : tab);
         get().setTabs(newTabs);
     },
-    handleDeviceResizeOnTab: (tabId, deviceId, newWidth, newHeight) => {
+    handleDeviceResizeOnTab: (tabId: string, deviceId: string, newWidth: number, newHeight: number) => {
         // FIX: The `set` function was potentially shadowed. Using `setState` from the `create` arguments to ensure the correct function is called.
         setState(state => {
             const tabIndex = state.tabs.findIndex(t => t.id === tabId);
@@ -351,7 +360,8 @@ export const useAppStore = create<AppState & AppActions>((setState, get) => ({
             return { tabs: newTabs };
         });
     },
-    handleSaveCustomization: (originalDevice, newValues) => {
+    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
+    handleSaveCustomization: (originalDevice: Device, newValues: Omit<DeviceCustomization, 'name' | 'type' | 'icon' | 'isHidden'> & { name: string; type: DeviceType; icon: string; isHidden: boolean; }) => {
         const deviceId = originalDevice.id;
         const oldCustomization = get().customizations[deviceId] || {};
 
@@ -378,7 +388,8 @@ export const useAppStore = create<AppState & AppActions>((setState, get) => ({
             }
         }
     },
-    handleToggleVisibility: (device, isHidden) => {
+    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
+    handleToggleVisibility: (device: Device, isHidden: boolean) => {
         const currentCustomization = get().customizations[device.id] || {};
         
         get().handleSaveCustomization(device, {
@@ -392,13 +403,15 @@ export const useAppStore = create<AppState & AppActions>((setState, get) => ({
             thresholds: currentCustomization.thresholds,
         });
     },
-    handleSaveTemplate: (template) => {
+    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
+    handleSaveTemplate: (template: CardTemplate) => {
         const newTemplates = { ...get().templates, [template.id]: template };
         get().setTemplates(newTemplates);
         // FIX: The `set` function was potentially shadowed. Using `setState` from the `create` arguments.
         setState({ editingTemplate: null });
     },
-    handleDeleteTemplate: (templateId) => {
+    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
+    handleDeleteTemplate: (templateId: string) => {
         const newTemplates = { ...get().templates };
         delete newTemplates[templateId];
         get().setTemplates(newTemplates);
@@ -411,7 +424,8 @@ export const useAppStore = create<AppState & AppActions>((setState, get) => ({
         });
         get().setCustomizations(newCustomizations);
     },
-    createNewBlankTemplate: (deviceType) => {
+    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
+    createNewBlankTemplate: (deviceType: DeviceType) => {
         const baseMap = {
             [DeviceType.Sensor]: get().templates[DEFAULT_SENSOR_TEMPLATE_ID],
             [DeviceType.Light]: get().templates[DEFAULT_LIGHT_TEMPLATE_ID],
@@ -430,7 +444,8 @@ export const useAppStore = create<AppState & AppActions>((setState, get) => ({
         newTemplate.name = `Новый ${typeNameMap[deviceType] || 'шаблон'}`;
         return newTemplate;
     },
-    _triggerSave: (category) => {
+    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
+    _triggerSave: (category: keyof typeof categorySelectors) => {
         const selector = categorySelectors[category];
         if (selector) {
             const dataToSave = selector(get());
