@@ -108,7 +108,8 @@ interface AppActions {
 }
 
 
-export const useAppStore = create<AppState & AppActions>((set, get) => ({
+// FIX: Renamed `set` to `setState` to avoid potential naming conflicts with other utility functions named `set`.
+export const useAppStore = create<AppState & AppActions>((setState, get) => ({
     // --- State Initialization with Defaults ---
     currentPage: 'dashboard',
     isEditMode: false,
@@ -140,34 +141,34 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     DEFAULT_COLOR_SCHEME: DEFAULT_COLOR_SCHEME,
     
     // --- Actions ---
-    setCurrentPage: (page) => set({ currentPage: page }),
-    setIsEditMode: (isEdit) => set({ isEditMode: isEdit }),
-    setEditingDevice: (device) => set({ editingDevice: device }),
-    setEditingTab: (tab) => set({ editingTab: tab }),
-    setEditingTemplate: (template) => set({ editingTemplate: template }),
-    setSearchTerm: (term) => set({ searchTerm: term }),
-    setContextMenu: (menu) => set({ contextMenu: menu }),
-    setFloatingCamera: (device) => set({ floatingCamera: device }),
-    setHistoryModalEntityId: (id) => set({ historyModalEntityId: id }),
+    setCurrentPage: (page) => setState({ currentPage: page }),
+    setIsEditMode: (isEdit) => setState({ isEditMode: isEdit }),
+    setEditingDevice: (device) => setState({ editingDevice: device }),
+    setEditingTab: (tab) => setState({ editingTab: tab }),
+    setEditingTemplate: (template) => setState({ editingTemplate: template }),
+    setSearchTerm: (term) => setState({ searchTerm: term }),
+    setContextMenu: (menu) => setState({ contextMenu: menu }),
+    setFloatingCamera: (device) => setState({ floatingCamera: device }),
+    setHistoryModalEntityId: (id) => setState({ historyModalEntityId: id }),
 
     // --- Setters that now only update local state ---
-    setTabs: (tabs) => set({ tabs }),
-    setActiveTabId: (id) => set({ activeTabId: id }),
-    setCustomizations: (customizations) => set({ customizations }),
-    setTemplates: (templates) => set({ templates }),
-    setClockSettings: (settings) => set({ clockSettings: settings }),
-    setCameraSettings: (settings) => set({ cameraSettings: settings }),
-    setSidebarWidth: (width) => set({ sidebarWidth: width }),
-    setIsSidebarVisible: (isVisible) => set({ isSidebarVisible: isVisible }),
-    setTheme: (theme) => set({ theme }),
-    setScheduleStartTime: (time) => set({ scheduleStartTime: time }),
-    setScheduleEndTime: (time) => set({ scheduleEndTime: time }),
-    setColorScheme: (scheme) => set({ colorScheme: scheme }),
-    setWeatherProvider: (provider) => set({ weatherProvider: provider }),
-    setOpenWeatherMapKey: (key) => set({ openWeatherMapKey: key }),
-    setYandexWeatherKey: (key) => set({ yandexWeatherKey: key }),
-    setForecaApiKey: (key) => set({ forecaApiKey: key }),
-    setLowBatteryThreshold: (threshold) => set({ lowBatteryThreshold: threshold }),
+    setTabs: (tabs) => setState({ tabs }),
+    setActiveTabId: (id) => setState({ activeTabId: id }),
+    setCustomizations: (customizations) => setState({ customizations }),
+    setTemplates: (templates) => setState({ templates }),
+    setClockSettings: (settings) => setState({ clockSettings: settings }),
+    setCameraSettings: (settings) => setState({ cameraSettings: settings }),
+    setSidebarWidth: (width) => setState({ sidebarWidth: width }),
+    setIsSidebarVisible: (isVisible) => setState({ isSidebarVisible: isVisible }),
+    setTheme: (theme) => setState({ theme }),
+    setScheduleStartTime: (time) => setState({ scheduleStartTime: time }),
+    setScheduleEndTime: (time) => setState({ scheduleEndTime: time }),
+    setColorScheme: (scheme) => setState({ colorScheme: scheme }),
+    setWeatherProvider: (provider) => setState({ weatherProvider: provider }),
+    setOpenWeatherMapKey: (key) => setState({ openWeatherMapKey: key }),
+    setYandexWeatherKey: (key) => setState({ yandexWeatherKey: key }),
+    setForecaApiKey: (key) => setState({ forecaApiKey: key }),
+    setLowBatteryThreshold: (threshold) => setState({ lowBatteryThreshold: threshold }),
 
     // --- Complex Actions ---
     onResetColorScheme: () => get().setColorScheme(DEFAULT_COLOR_SCHEME),
@@ -325,7 +326,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         get().setTabs(newTabs);
     },
     handleDeviceResizeOnTab: (tabId, deviceId, newWidth, newHeight) => {
-        set(state => {
+        // FIX: The `set` function was potentially shadowed. Using `setState` from the `create` arguments to ensure the correct function is called.
+        setState(state => {
             const tabIndex = state.tabs.findIndex(t => t.id === tabId);
             if (tabIndex === -1) return state;
     
@@ -393,7 +395,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     handleSaveTemplate: (template) => {
         const newTemplates = { ...get().templates, [template.id]: template };
         get().setTemplates(newTemplates);
-        set({ editingTemplate: null });
+        // FIX: The `set` function was potentially shadowed. Using `setState` from the `create` arguments.
+        setState({ editingTemplate: null });
     },
     handleDeleteTemplate: (templateId) => {
         const newTemplates = { ...get().templates };
