@@ -6,6 +6,8 @@ import {
 } from '../types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from '../components/DeviceIcon';
+import { loadAndMigrate } from '../utils/localStorage';
+import { LOCAL_STORAGE_KEYS } from '../constants';
 import {
     defaultTemplates,
     DEFAULT_COLOR_SCHEME,
@@ -16,6 +18,7 @@ import {
     DEFAULT_THEME,
     DEFAULT_WEATHER_PROVIDER,
     DEFAULT_LOW_BATTERY_THRESHOLD,
+    DEFAULT_FONT_FAMILY,
     DEFAULT_SENSOR_TEMPLATE_ID,
     DEFAULT_LIGHT_TEMPLATE_ID,
     DEFAULT_SWITCH_TEMPLATE_ID,
@@ -104,13 +107,11 @@ interface AppActions {
     handleSaveTemplate: (template: CardTemplate) => void;
     handleDeleteTemplate: (templateId: string) => void;
     createNewBlankTemplate: (deviceType: DeviceType) => CardTemplate;
-    _triggerSave: (category: keyof typeof categorySelectors) => void;
 }
 
 
-// FIX: Renamed `set` to `setState` to avoid potential naming conflicts with other utility functions named `set`.
-export const useAppStore = create<AppState & AppActions>((setState, get) => ({
-    // --- State Initialization with Defaults ---
+export const useAppStore = create<AppState & AppActions>((set, get) => ({
+    // --- State Initialization from LocalStorage ---
     currentPage: 'dashboard',
     isEditMode: false,
     editingDevice: null,
@@ -121,59 +122,109 @@ export const useAppStore = create<AppState & AppActions>((setState, get) => ({
     floatingCamera: null,
     historyModalEntityId: null,
     
-    tabs: [],
-    activeTabId: null,
-    customizations: {},
-    templates: defaultTemplates,
-    clockSettings: defaultClockSettings,
-    cameraSettings: defaultCameraSettings,
-    sidebarWidth: DEFAULT_SIDEBAR_WIDTH,
-    isSidebarVisible: DEFAULT_SIDEBAR_VISIBLE,
-    theme: DEFAULT_THEME,
-    scheduleStartTime: '22:00',
-    scheduleEndTime: '07:00',
-    colorScheme: DEFAULT_COLOR_SCHEME,
-    weatherProvider: DEFAULT_WEATHER_PROVIDER,
-    openWeatherMapKey: '',
-    yandexWeatherKey: '',
-    forecaApiKey: '',
-    lowBatteryThreshold: DEFAULT_LOW_BATTERY_THRESHOLD,
+    tabs: loadAndMigrate<Tab[]>(LOCAL_STORAGE_KEYS.TABS, []),
+    activeTabId: loadAndMigrate<string | null>(LOCAL_STORAGE_KEYS.ACTIVE_TAB, null),
+    customizations: loadAndMigrate<DeviceCustomizations>(LOCAL_STORAGE_KEYS.CUSTOMIZATIONS, {}),
+    templates: loadAndMigrate<CardTemplates>(LOCAL_STORAGE_KEYS.CARD_TEMPLATES, defaultTemplates),
+    clockSettings: loadAndMigrate<ClockSettings>(LOCAL_STORAGE_KEYS.CLOCK_SETTINGS, defaultClockSettings),
+    cameraSettings: loadAndMigrate<CameraSettings>(LOCAL_STORAGE_KEYS.CAMERA_SETTINGS, defaultCameraSettings),
+    sidebarWidth: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.SIDEBAR_WIDTH, DEFAULT_SIDEBAR_WIDTH),
+    isSidebarVisible: loadAndMigrate<boolean>(LOCAL_STORAGE_KEYS.SIDEBAR_VISIBLE, DEFAULT_SIDEBAR_VISIBLE),
+    theme: loadAndMigrate<'day' | 'night' | 'auto' | 'schedule'>(LOCAL_STORAGE_KEYS.THEME, DEFAULT_THEME),
+    scheduleStartTime: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.SCHEDULE_START_TIME, '22:00'),
+    scheduleEndTime: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.SCHEDULE_END_TIME, '07:00'),
+    colorScheme: loadAndMigrate<ColorScheme>(LOCAL_STORAGE_KEYS.COLOR_SCHEME, DEFAULT_COLOR_SCHEME),
+    weatherProvider: loadAndMigrate<'openweathermap' | 'yandex' | 'foreca'>(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, DEFAULT_WEATHER_PROVIDER),
+    openWeatherMapKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, ''),
+    yandexWeatherKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, ''),
+    forecaApiKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.FORECA_KEY, ''),
+    lowBatteryThreshold: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, DEFAULT_LOW_BATTERY_THRESHOLD),
     DEFAULT_COLOR_SCHEME: DEFAULT_COLOR_SCHEME,
     
     // --- Actions ---
-    setCurrentPage: (page) => setState({ currentPage: page }),
-    setIsEditMode: (isEdit) => setState({ isEditMode: isEdit }),
-    setEditingDevice: (device) => setState({ editingDevice: device }),
-    setEditingTab: (tab) => setState({ editingTab: tab }),
-    setEditingTemplate: (template) => setState({ editingTemplate: template }),
-    setSearchTerm: (term) => setState({ searchTerm: term }),
-    setContextMenu: (menu) => setState({ contextMenu: menu }),
-    setFloatingCamera: (device) => setState({ floatingCamera: device }),
-    setHistoryModalEntityId: (id) => setState({ historyModalEntityId: id }),
+    setCurrentPage: (page) => set({ currentPage: page }),
+    setIsEditMode: (isEdit) => set({ isEditMode: isEdit }),
+    setEditingDevice: (device) => set({ editingDevice: device }),
+    setEditingTab: (tab) => set({ editingTab: tab }),
+    setEditingTemplate: (template) => set({ editingTemplate: template }),
+    setSearchTerm: (term) => set({ searchTerm: term }),
+    setContextMenu: (menu) => set({ contextMenu: menu }),
+    setFloatingCamera: (device) => set({ floatingCamera: device }),
+    setHistoryModalEntityId: (id) => set({ historyModalEntityId: id }),
 
-    // --- Setters that now only update local state ---
-    setTabs: (tabs) => setState({ tabs }),
-    setActiveTabId: (id) => setState({ activeTabId: id }),
-    setCustomizations: (customizations) => setState({ customizations }),
-    setTemplates: (templates) => setState({ templates }),
-    setClockSettings: (settings) => setState({ clockSettings: settings }),
-    setCameraSettings: (settings) => setState({ cameraSettings: settings }),
-    setSidebarWidth: (width) => setState({ sidebarWidth: width }),
-    setIsSidebarVisible: (isVisible) => setState({ isSidebarVisible: isVisible }),
-    setTheme: (theme) => setState({ theme }),
-    setScheduleStartTime: (time) => setState({ scheduleStartTime: time }),
-    setScheduleEndTime: (time) => setState({ scheduleEndTime: time }),
-    setColorScheme: (scheme) => setState({ colorScheme: scheme }),
-    setWeatherProvider: (provider) => setState({ weatherProvider: provider }),
-    setOpenWeatherMapKey: (key) => setState({ openWeatherMapKey: key }),
-    setYandexWeatherKey: (key) => setState({ yandexWeatherKey: key }),
-    setForecaApiKey: (key) => setState({ forecaApiKey: key }),
-    setLowBatteryThreshold: (threshold) => setState({ lowBatteryThreshold: threshold }),
+    // --- Actions with Persistence ---
+    setTabs: (tabs) => {
+        set({ tabs });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.TABS, JSON.stringify(tabs));
+    },
+    setActiveTabId: (id) => {
+        set({ activeTabId: id });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.ACTIVE_TAB, JSON.stringify(id));
+    },
+    setCustomizations: (customizations) => {
+        set({ customizations });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.CUSTOMIZATIONS, JSON.stringify(customizations));
+    },
+    setTemplates: (templates) => {
+        set({ templates });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.CARD_TEMPLATES, JSON.stringify(templates));
+    },
+    setClockSettings: (settings) => {
+        set({ clockSettings: settings });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.CLOCK_SETTINGS, JSON.stringify(settings));
+    },
+    setCameraSettings: (settings) => {
+        set({ cameraSettings: settings });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.CAMERA_SETTINGS, JSON.stringify(settings));
+    },
+    setSidebarWidth: (width) => {
+        set({ sidebarWidth: width });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SIDEBAR_WIDTH, JSON.stringify(width));
+    },
+    setIsSidebarVisible: (isVisible) => {
+        set({ isSidebarVisible: isVisible });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SIDEBAR_VISIBLE, JSON.stringify(isVisible));
+    },
+    setTheme: (theme) => {
+        set({ theme });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.THEME, theme);
+    },
+    setScheduleStartTime: (time) => {
+        set({ scheduleStartTime: time });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SCHEDULE_START_TIME, time);
+    },
+    setScheduleEndTime: (time) => {
+        set({ scheduleEndTime: time });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SCHEDULE_END_TIME, time);
+    },
+    setColorScheme: (scheme) => {
+        set({ colorScheme: scheme });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.COLOR_SCHEME, JSON.stringify(scheme));
+    },
+    setWeatherProvider: (provider) => {
+        set({ weatherProvider: provider });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, provider);
+    },
+    setOpenWeatherMapKey: (key) => {
+        set({ openWeatherMapKey: key });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, key);
+    },
+    setYandexWeatherKey: (key) => {
+        set({ yandexWeatherKey: key });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, key);
+    },
+    setForecaApiKey: (key) => {
+        set({ forecaApiKey: key });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.FORECA_KEY, key);
+    },
+    setLowBatteryThreshold: (threshold) => {
+        set({ lowBatteryThreshold: threshold });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, JSON.stringify(threshold));
+    },
 
     // --- Complex Actions ---
     onResetColorScheme: () => get().setColorScheme(DEFAULT_COLOR_SCHEME),
-    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
-    handleTabOrderChange: (newTabs: Tab[]) => get().setTabs(newTabs),
+    handleTabOrderChange: (newTabs) => get().setTabs(newTabs),
     handleAddTab: () => {
         const newTabName = `Вкладка ${get().tabs.length + 1}`;
         const newTab: Tab = { id: nanoid(), name: newTabName, layout: [], gridSettings: { cols: 8, rows: 5 } };
@@ -181,13 +232,11 @@ export const useAppStore = create<AppState & AppActions>((setState, get) => ({
         get().setTabs(newTabs);
         get().setActiveTabId(newTab.id);
     },
-    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
-    handleUpdateTabSettings: (tabId: string, settings: { name: string; gridSettings: { cols: number; rows: number } }) => {
+    handleUpdateTabSettings: (tabId, settings) => {
         const newTabs = get().tabs.map(tab => (tab.id === tabId) ? { ...tab, ...settings } : tab);
         get().setTabs(newTabs);
     },
-    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
-    handleDeleteTab: (tabId: string) => {
+    handleDeleteTab: (tabId) => {
         const newTabs = get().tabs.filter(t => t.id !== tabId);
         if (get().activeTabId === tabId) {
             get().setActiveTabId(newTabs.length > 0 ? newTabs[0].id : null);
@@ -195,8 +244,7 @@ export const useAppStore = create<AppState & AppActions>((setState, get) => ({
         get().setTabs(newTabs);
     },
     
-    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
-    getTemplateForDevice: (device: Device | null) => {
+    getTemplateForDevice: (device) => {
         if (!device) return null;
         const custom = get().customizations[device.id];
         let templateId = custom?.templateId;
@@ -216,8 +264,7 @@ export const useAppStore = create<AppState & AppActions>((setState, get) => ({
         }
         return templateId ? get().templates[templateId] : null;
     },
-    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
-    handleDeviceAddToTab: (device: Device, tabId: string) => {
+    handleDeviceAddToTab: (device, tabId) => {
         const getTemplateForDevice = get().getTemplateForDevice;
         const newTabs = get().tabs.map(tab => {
             if (tab.id !== tabId || tab.layout.some(item => item.deviceId === device.id)) return tab;
@@ -264,19 +311,16 @@ export const useAppStore = create<AppState & AppActions>((setState, get) => ({
         });
         get().setTabs(newTabs);
     },
-    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
-    handleDeviceRemoveFromTab: (deviceId: string, tabId: string) => {
+    handleDeviceRemoveFromTab: (deviceId, tabId) => {
         const newTabs = get().tabs.map(tab => (tab.id === tabId) ? { ...tab, layout: tab.layout.filter(item => item.deviceId !== deviceId) } : tab);
         get().setTabs(newTabs);
     },
-    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
-    handleDeviceMoveToTab: (device: Device, fromTabId: string, toTabId: string) => {
+    handleDeviceMoveToTab: (device, fromTabId, toTabId) => {
         if (fromTabId === toTabId) return;
         get().handleDeviceAddToTab(device, toTabId);
         get().handleDeviceRemoveFromTab(device.id, fromTabId);
     },
-    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
-    checkCollision: (layout: GridLayoutItem[], itemToPlace: { col: number; row: number; width: number; height: number; }, gridSettings: { cols: number; rows: number; }, ignoreDeviceId: string) => {
+    checkCollision: (layout, itemToPlace, gridSettings, ignoreDeviceId) => {
         const { col, row, width, height } = itemToPlace;
     
         // 1. Boundary check
@@ -329,14 +373,12 @@ export const useAppStore = create<AppState & AppActions>((setState, get) => ({
     
         return false; // No collisions found
     },
-    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
-    handleDeviceLayoutChange: (tabId: string, newLayout: GridLayoutItem[]) => {
+    handleDeviceLayoutChange: (tabId, newLayout) => {
         const newTabs = get().tabs.map(tab => (tab.id === tabId) ? { ...tab, layout: newLayout } : tab);
         get().setTabs(newTabs);
     },
-    handleDeviceResizeOnTab: (tabId: string, deviceId: string, newWidth: number, newHeight: number) => {
-        // FIX: The `set` function was potentially shadowed. Using `setState` from the `create` arguments to ensure the correct function is called.
-        setState(state => {
+    handleDeviceResizeOnTab: (tabId, deviceId, newWidth, newHeight) => {
+        set(state => {
             const tabIndex = state.tabs.findIndex(t => t.id === tabId);
             if (tabIndex === -1) return state;
     
@@ -357,11 +399,11 @@ export const useAppStore = create<AppState & AppActions>((setState, get) => ({
             const newTabs = [...state.tabs];
             newTabs[tabIndex] = { ...tab, layout: newLayout };
             
+            localStorage.setItem(LOCAL_STORAGE_KEYS.TABS, JSON.stringify(newTabs));
             return { tabs: newTabs };
         });
     },
-    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
-    handleSaveCustomization: (originalDevice: Device, newValues: Omit<DeviceCustomization, 'name' | 'type' | 'icon' | 'isHidden'> & { name: string; type: DeviceType; icon: string; isHidden: boolean; }) => {
+    handleSaveCustomization: (originalDevice, newValues) => {
         const deviceId = originalDevice.id;
         const oldCustomization = get().customizations[deviceId] || {};
 
@@ -388,8 +430,7 @@ export const useAppStore = create<AppState & AppActions>((setState, get) => ({
             }
         }
     },
-    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
-    handleToggleVisibility: (device: Device, isHidden: boolean) => {
+    handleToggleVisibility: (device, isHidden) => {
         const currentCustomization = get().customizations[device.id] || {};
         
         get().handleSaveCustomization(device, {
@@ -403,15 +444,12 @@ export const useAppStore = create<AppState & AppActions>((setState, get) => ({
             thresholds: currentCustomization.thresholds,
         });
     },
-    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
-    handleSaveTemplate: (template: CardTemplate) => {
+    handleSaveTemplate: (template) => {
         const newTemplates = { ...get().templates, [template.id]: template };
         get().setTemplates(newTemplates);
-        // FIX: The `set` function was potentially shadowed. Using `setState` from the `create` arguments.
-        setState({ editingTemplate: null });
+        set({ editingTemplate: null });
     },
-    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
-    handleDeleteTemplate: (templateId: string) => {
+    handleDeleteTemplate: (templateId) => {
         const newTemplates = { ...get().templates };
         delete newTemplates[templateId];
         get().setTemplates(newTemplates);
@@ -424,8 +462,7 @@ export const useAppStore = create<AppState & AppActions>((setState, get) => ({
         });
         get().setCustomizations(newCustomizations);
     },
-    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
-    createNewBlankTemplate: (deviceType: DeviceType) => {
+    createNewBlankTemplate: (deviceType) => {
         const baseMap = {
             [DeviceType.Sensor]: get().templates[DEFAULT_SENSOR_TEMPLATE_ID],
             [DeviceType.Light]: get().templates[DEFAULT_LIGHT_TEMPLATE_ID],
@@ -444,51 +481,4 @@ export const useAppStore = create<AppState & AppActions>((setState, get) => ({
         newTemplate.name = `Новый ${typeNameMap[deviceType] || 'шаблон'}`;
         return newTemplate;
     },
-    // FIX: Added explicit types to action implementations to ensure correct type inference by TypeScript.
-    _triggerSave: (category: keyof typeof categorySelectors) => {
-        const selector = categorySelectors[category];
-        if (selector) {
-            const dataToSave = selector(get());
-            import('./haStore').then(({ useHAStore }) => {
-                useHAStore.getState().saveHASettings(category, dataToSave);
-            });
-        }
-    },
 }));
-
-// --- Data Persistence to Home Assistant ---
-
-const categorySelectors = {
-    layout: (state: AppState) => ({ tabs: state.tabs, activeTabId: state.activeTabId }),
-    customizations: (state: AppState) => ({ customizations: state.customizations }),
-    templates: (state: AppState) => ({ templates: state.templates }),
-    appearance: (state: AppState) => ({ colorScheme: state.colorScheme, theme: state.theme, scheduleStartTime: state.scheduleStartTime, scheduleEndTime: state.scheduleEndTime }),
-    interface: (state: AppState) => ({ clockSettings: state.clockSettings, cameraSettings: state.cameraSettings, sidebarWidth: state.sidebarWidth, isSidebarVisible: state.isSidebarVisible, lowBatteryThreshold: state.lowBatteryThreshold }),
-    integrations: (state: AppState) => ({ weatherProvider: state.weatherProvider, openWeatherMapKey: state.openWeatherMapKey, yandexWeatherKey: state.yandexWeatherKey, forecaApiKey: state.forecaApiKey }),
-};
-
-// Subscribe to changes in each category and save them to Home Assistant
-Object.entries(categorySelectors).forEach(([category, selector]) => {
-    useAppStore.subscribe(
-        selector,
-        (data) => {
-            import('./haStore').then(({ useHAStore }) => {
-                if (useHAStore.getState().settingsStatus === 'loaded') {
-                    useHAStore.getState().saveHASettings(category, data);
-                }
-            });
-        },
-        { equalityFn: (a, b) => JSON.stringify(a) === JSON.stringify(b) }
-    );
-});
-
-// Subscribe to changes that require haStore to re-calculate its derived state
-useAppStore.subscribe(
-    state => ({ customizations: state.customizations, lowBatteryThreshold: state.lowBatteryThreshold }),
-    () => {
-        import('./haStore').then(({ useHAStore }) => {
-            useHAStore.getState()._resyncDerivedState();
-        });
-    },
-    { equalityFn: (a, b) => JSON.stringify(a) === JSON.stringify(b) }
-);

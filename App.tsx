@@ -167,11 +167,12 @@ const useIsLg = () => {
  * Отвечает за общую структуру, управление состоянием и рендеринг страниц.
  */
 const App: React.FC = () => {
+    const initializationDone = useRef(false);
     // Получение состояний и действий из хранилища Zustand для Home Assistant.
     const {
         connectionStatus, isLoading, error, connect, allKnownDevices, allRoomsForDevicePage,
         allCameras, getCameraStreamUrl, getConfig, getHistory, signPath,
-        haUrl, allRoomsWithPhysicalDevices, settingsStatus
+        haUrl, allRoomsWithPhysicalDevices,
     } = useHAStore();
 
     // Получение состояний и действий из хранилища Zustand для UI приложения.
@@ -194,7 +195,6 @@ const App: React.FC = () => {
 
   const isLg = useIsLg();
   const [isDarkBySchedule, setIsDarkBySchedule] = useState(false);
-  const isAppLoading = isLoading || settingsStatus === 'loading';
 
   // Эффект для режима "По расписанию"
   useEffect(() => {
@@ -259,14 +259,15 @@ const App: React.FC = () => {
   // Эффект, гарантирующий наличие хотя бы одной вкладки и установку активной вкладки.
   // Запускается после успешного подключения и загрузки данных.
     useEffect(() => {
-        // Выполняем только один раз после полной загрузки приложения.
-        if (connectionStatus === 'connected' && !isAppLoading && settingsStatus === 'loaded') {
+        if (connectionStatus === 'connected' && !isLoading && !initializationDone.current) {
+            initializationDone.current = true; // Выполняем только один раз
             if (tabs.length === 0 && allKnownDevices.size > 0) {
                 const allDeviceIds = Array.from(allKnownDevices.keys());
                 const newTab: Tab = {
                     id: nanoid(),
                     name: 'Главная',
                     // Автоматически размещаем все устройства на первой вкладке
+                    // FIX: Explicitly type the 'id' parameter in the map function to resolve a TypeScript inference issue where it was being inferred as 'unknown'.
                     layout: allDeviceIds.map((id: string): GridLayoutItem => ({ deviceId: id, col: 0, row: 0, width: 1, height: 1 })),
                     gridSettings: { cols: 8, rows: 5 }
                 };
@@ -278,7 +279,7 @@ const App: React.FC = () => {
                 }
             }
         }
-    }, [connectionStatus, isAppLoading, settingsStatus, tabs, activeTabId, allKnownDevices, setTabs, setActiveTabId]);
+    }, [connectionStatus, isLoading, tabs, activeTabId, allKnownDevices, setTabs, setActiveTabId]);
 
   // Мемоизированное значение текущей активной вкладки для избежания лишних пересчетов.
   const activeTab = useMemo(() => tabs.find(t => t.id === activeTabId), [tabs, activeTabId]);
@@ -409,7 +410,7 @@ const App: React.FC = () => {
   }
   
   // Если идет загрузка данных, показываем спиннер.
-  if (isAppLoading) {
+  if (isLoading) {
     return (
        <div className="flex h-screen w-screen items-center justify-center">
          <LoadingSpinner />
