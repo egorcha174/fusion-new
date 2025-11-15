@@ -1,8 +1,7 @@
 import { create } from 'zustand';
-import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device, Room, RoomWithPhysicalDevices, PhysicalDevice, DeviceType } from '../types';
+import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device, Room, RoomWithPhysicalDevices, PhysicalDevice, DeviceType, DeviceCustomizations } from '../types';
 import { constructHaUrl } from '../utils/url';
 import { mapEntitiesToRooms } from '../utils/ha-data-mapper';
-import { useAppStore } from './appStore';
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'failed';
 
@@ -44,6 +43,7 @@ interface HAActions {
   getHistory: (entityIds: string[], startTime: string, endTime?: string) => Promise<any>;
   saveHASettings: (category: string, data: any) => void;
   _initializeSettings: () => Promise<void>;
+  _resyncDerivedState: () => void;
 
   // Derived actions for convenience
   handleDeviceToggle: (deviceId: string) => void;
@@ -77,8 +77,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     }
   };
   
-  const updateDerivedState = (entities: HassEntities, areas: HassArea[], devices: HassDevice[], entityRegistry: HassEntityRegistryEntry[]) => {
-      const { customizations, lowBatteryThreshold } = useAppStore.getState();
+  const updateDerivedState = (entities: HassEntities, areas: HassArea[], devices: HassDevice[], entityRegistry: HassEntityRegistryEntry[], customizations: DeviceCustomizations, lowBatteryThreshold: number) => {
       const rooms = mapEntitiesToRooms(Object.values(entities), areas, devices, entityRegistry, customizations, true);
       const deviceMap = new Map<string, Device>();
       rooms.forEach(room => {
@@ -87,7 +86,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           });
       });
       
-      // --- Новая логика для поиска уровня заряда батареи по физическим устройствам ---
       const deviceIdToEntityIds = new Map<string, string[]>();
       entityRegistry.forEach(e => {
         if (e.device_id) {
@@ -100,7 +98,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
 
       const batteryDevicesList: BatteryDevice[] = [];
 
-      // Итерируем по физическим устройствам из Home Assistant
       devices.forEach(haDevice => {
         if (!haDevice.id) return;
 
@@ -109,7 +106,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
 
         let batteryLevel: number | undefined = undefined;
 
-        // Стратегия 1: Найти выделенный сенсор батареи для этого устройства
         const batterySensorEntity = associatedEntityIds
           .map(id => entities[id])
           .find(entity => entity?.attributes.device_class === 'battery' && !isNaN(parseFloat(entity.state)));
@@ -117,7 +113,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         if (batterySensorEntity) {
           batteryLevel = parseFloat(batterySensorEntity.state);
         } else {
-          // Стратегия 2: Найти любую сущность для этого устройства, у которой есть атрибут battery_level
           const entityWithBatteryAttribute = associatedEntityIds
             .map(id => entities[id])
             .find(entity => typeof entity?.attributes.battery_level === 'number');
@@ -130,14 +125,12 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         if (batteryLevel !== undefined) {
           const roundedBatteryLevel = Math.round(batteryLevel);
 
-          // Добавляем одну запись для физического устройства в наш список
           batteryDevicesList.push({
             deviceId: haDevice.id,
             deviceName: haDevice.name,
             batteryLevel: roundedBatteryLevel,
           });
 
-          // Распространяем этот уровень заряда на все связанные сущности в нашей карте `allKnownDevices`
           associatedEntityIds.forEach(entityId => {
             const device = deviceMap.get(entityId);
             if (device) {
@@ -154,7 +147,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           name: 'Уровень заряда',
           status: lowBatteryCount > 0 ? `${lowBatteryCount} устр. с низким зарядом` : 'Все устройства заряжены',
           type: DeviceType.BatteryWidget,
-          state: String(batteryDevicesList.length), // Total device count
+          state: String(batteryDevicesList.length),
           haDomain: 'internal',
         };
         deviceMap.set(batteryWidgetDevice.id, batteryWidgetDevice);
@@ -170,10 +163,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
       }
 
       const cameras = Array.from(deviceMap.values()).filter((d: Device) => d.haDomain === 'camera');
-      // Сортируем список физических устройств по уровню заряда
       batteryDevicesList.sort((a, b) => a.batteryLevel - b.batteryLevel);
       
-      // --- NEW: Logic for rooms with physical devices ---
       const deviceIdToEntities = new Map<string, Device[]>();
       const entityIdToDeviceId = new Map<string, string>();
       entityRegistry.forEach(entry => {
@@ -198,7 +189,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
       });
       roomsWithPhysicalDevicesMap.set('no_area', { id: 'no_area', name: 'Без пространства', devices: [] });
 
-      devices.forEach(haDevice => { // HassDevice
+      devices.forEach(haDevice => {
           const entitiesForDevice = deviceIdToEntities.get(haDevice.id) || [];
           if (entitiesForDevice.length > 0) {
               const physicalDevice: PhysicalDevice = {
@@ -218,16 +209,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
 
       set({ allKnownDevices: deviceMap, allRoomsForDevicePage: rooms, allCameras: cameras, batteryDevices: batteryDevicesList, allRoomsWithPhysicalDevices });
   };
-  
-  // Re-compute derived state whenever customizations change
-  useAppStore.subscribe(
-    (state, prevState) => {
-        if (state.customizations !== prevState.customizations || state.lowBatteryThreshold !== prevState.lowBatteryThreshold) {
-            const { entities, areas, devices, entityRegistry } = get();
-            updateDerivedState(entities, areas, devices, entityRegistry);
-        }
-    }
-  );
 
   return {
     connectionStatus: 'idle',
@@ -316,9 +297,12 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                         
                                         if (initialFetchIds.size === 0) {
                                             const s = get();
-                                            updateDerivedState(s.entities, s.areas, s.devices, s.entityRegistry);
-                                            get()._initializeSettings().finally(() => {
-                                                set({ isLoading: false });
+                                            import('./appStore').then(({ useAppStore }) => {
+                                                const { customizations, lowBatteryThreshold } = useAppStore.getState();
+                                                updateDerivedState(s.entities, s.areas, s.devices, s.entityRegistry, customizations, lowBatteryThreshold);
+                                                get()._initializeSettings().finally(() => {
+                                                    set({ isLoading: false });
+                                                });
                                             });
                                         }
                                     }
@@ -328,7 +312,10 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                 const newEntities = { ...get().entities, [entity_id]: new_state };
                                 if (!new_state) delete newEntities[entity_id];
                                 set({ entities: newEntities });
-                                updateDerivedState(newEntities, get().areas, get().devices, get().entityRegistry);
+                                import('./appStore').then(({ useAppStore }) => {
+                                    const { customizations, lowBatteryThreshold } = useAppStore.getState();
+                                    updateDerivedState(newEntities, get().areas, get().devices, get().entityRegistry, customizations, lowBatteryThreshold);
+                                });
                             }
                         };
                         break;
@@ -380,6 +367,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
 
     _initializeSettings: async () => {
         set({ settingsStatus: 'loading' });
+        const { useAppStore } = await import('./appStore');
         const { _triggerSave, ...setters } = useAppStore.getState();
     
         const allHAStates = get().entities;
@@ -410,6 +398,14 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         }
     
         set({ settingsStatus: 'loaded' });
+    },
+    _resyncDerivedState: () => {
+        const s = get();
+        if (s.connectionStatus !== 'connected') return;
+        import('./appStore').then(({ useAppStore }) => {
+            const { customizations, lowBatteryThreshold } = useAppStore.getState();
+            updateDerivedState(s.entities, s.areas, s.devices, s.entityRegistry, customizations, lowBatteryThreshold);
+        });
     },
 
     saveHASettings: debounce((category: string, data: any) => {

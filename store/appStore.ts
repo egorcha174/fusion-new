@@ -6,7 +6,6 @@ import {
 } from '../types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from '../components/DeviceIcon';
-import { useHAStore } from './haStore';
 import {
     defaultTemplates,
     DEFAULT_COLOR_SCHEME,
@@ -432,7 +431,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         const selector = categorySelectors[category];
         if (selector) {
             const dataToSave = selector(get());
-            useHAStore.getState().saveHASettings(category, dataToSave);
+            import('./haStore').then(({ useHAStore }) => {
+                useHAStore.getState().saveHASettings(category, dataToSave);
+            });
         }
     },
 }));
@@ -453,12 +454,23 @@ Object.entries(categorySelectors).forEach(([category, selector]) => {
     useAppStore.subscribe(
         selector,
         (data) => {
-            // Only save if settings are fully loaded from HA, to prevent overwriting HA state with initial defaults on startup.
-            if (useHAStore.getState().settingsStatus === 'loaded') {
-                useHAStore.getState().saveHASettings(category, data);
-            }
+            import('./haStore').then(({ useHAStore }) => {
+                if (useHAStore.getState().settingsStatus === 'loaded') {
+                    useHAStore.getState().saveHASettings(category, data);
+                }
+            });
         },
-        // Use a deep comparison to prevent saving on every render if the data hasn't actually changed.
         { equalityFn: (a, b) => JSON.stringify(a) === JSON.stringify(b) }
     );
 });
+
+// Subscribe to changes that require haStore to re-calculate its derived state
+useAppStore.subscribe(
+    state => ({ customizations: state.customizations, lowBatteryThreshold: state.lowBatteryThreshold }),
+    () => {
+        import('./haStore').then(({ useHAStore }) => {
+            useHAStore.getState()._resyncDerivedState();
+        });
+    },
+    { equalityFn: (a, b) => JSON.stringify(a) === JSON.stringify(b) }
+);
