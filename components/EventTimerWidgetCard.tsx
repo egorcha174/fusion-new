@@ -1,6 +1,5 @@
 import React from 'react';
 import { Device, ColorThemeSet } from '../types';
-import { useAppStore } from '../store/appStore';
 
 interface EventTimerWidgetCardProps {
     device: Device;
@@ -35,17 +34,14 @@ const interpolateColor = (color1: string, color2: string, factor: number): strin
 
 
 const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, colorScheme, onContextMenu }) => {
-    const { resetCustomWidgetTimer } = useAppStore();
-
     const { 
-        fillPercentage = 0, daysRemaining = 0, widgetId, buttonText = "Сброс", 
+        fillPercentage = 0, daysRemaining = 0,
         fillColors, animation, showName, name,
         nameFontSize, namePosition, daysRemainingFontSize, daysRemainingPosition 
     } = device;
 
     const finalNamePosition = namePosition || { x: 50, y: 15 };
     const finalDaysPosition = daysRemainingPosition || { x: 50, y: 50 };
-    const finalButtonPosition = { x: 50, y: 92 };
 
     // Функция для определения цвета заливки в зависимости от процента и настроек
     const getFillColor = (percentage: number): string => {
@@ -61,13 +57,6 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, col
     };
 
     const fillColor = getFillColor(fillPercentage);
-
-    const handleReset = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (widgetId) {
-            resetCustomWidgetTimer(widgetId);
-        }
-    };
     
     // SVG-путь для создания "волнистого" края
     const wavePath = "M0,25 C150,50 350,0 500,25 L500,51 L0,51 Z";
@@ -134,22 +123,6 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, col
                     >
                         {daysRemaining}
                     </p>
-                </div>
-                
-                <div 
-                    className="absolute -translate-x-1/2 -translate-y-1/2"
-                    style={{
-                        top: `${finalButtonPosition.y}%`,
-                        left: `${finalButtonPosition.x}%`
-                    }}
-                >
-                    <button
-                        onClick={handleReset}
-                        className="text-lg font-semibold hover:opacity-80 transition-opacity"
-                        style={{ textShadow: '0 1px 5px rgba(0,0,0,0.4)', color: colorScheme.statusTextColorOn }}
-                    >
-                        {buttonText}
-                    </button>
                 </div>
             </div>
         </div>
