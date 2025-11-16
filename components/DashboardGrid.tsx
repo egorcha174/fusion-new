@@ -263,6 +263,11 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
 
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
+    // Фильтруем layout *до* всех вычислений, чтобы убрать "призрачные" элементы.
+    const validLayout = useMemo(() => 
+        tab.layout.filter(item => allKnownDevices.has(item.deviceId)),
+    [tab.layout, allKnownDevices]);
+
     const handleDragStart = (event: DragStartEvent) => {
         setActiveId(event.active.id as string);
         const rect = event.active.rect.current.initial;
@@ -270,7 +275,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
             setActiveDragItemRect({ width: rect.width, height: rect.height });
         } else {
             // Резервный вариант, если dnd-kit не смог измерить элемент
-            const layoutItem = tab.layout.find(item => item.deviceId === event.active.id);
+            const layoutItem = validLayout.find(item => item.deviceId === event.active.id);
             if (layoutItem && gridMetrics.cellSize > 0) {
                 const width = (layoutItem.width || 1) * gridMetrics.cellSize + (Math.ceil(layoutItem.width || 1) - 1) * gridMetrics.gap;
                 const height = (layoutItem.height || 1) * gridMetrics.cellSize + (Math.ceil(layoutItem.height || 1) - 1) * gridMetrics.gap;
@@ -291,7 +296,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
     
         if (!over || !isEditMode || active.id === over.id) return;
     
-        const currentLayout = tab.layout;
+        // FIX: Используем validLayout вместо tab.layout, чтобы избежать проблем с "призрачными" элементами.
+        const currentLayout = validLayout;
         const draggedDeviceId = active.id as string;
         const draggedItemIndex = currentLayout.findIndex(item => item.deviceId === draggedDeviceId);
         if (draggedItemIndex === -1) return;
@@ -322,7 +328,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         const draggedHeight = draggedItem.height || 1;
         const newPositionItem = { col: targetCol, row: targetRow, width: draggedWidth, height: draggedHeight };
 
-        // 2. Используем централизованную функцию checkCollision, которая умеет обрабатывать стопки.
+        // 2. Используем централизованную функцию checkCollision.
         const hasCollision = useAppStore.getState().checkCollision(currentLayout, newPositionItem, tab.gridSettings, draggedDeviceId);
         
         if (!hasCollision) {
@@ -353,12 +359,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         }
     };
     
-    // **ИСПРАВЛЕНИЕ**: Фильтруем layout *до* всех вычислений, чтобы убрать "призрачные" элементы.
-    const validLayout = useMemo(() => 
-        tab.layout.filter(item => allKnownDevices.has(item.deviceId)),
-    [tab.layout, allKnownDevices]);
-
-    // **ИСПРАВЛЕНИЕ**: Вычисляем занятые ячейки на основе отфильтрованного layout.
+    // Вычисляем занятые ячейки на основе отфильтрованного layout.
     const occupiedCells = useMemo(() => {
       const cells = new Set<string>();
       validLayout.forEach(item => {
@@ -387,7 +388,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         activeDeviceTemplate = templateId ? templates[templateId] : undefined;
     }
 
-    // **ИСПРАВЛЕНИЕ**: Группируем элементы на основе отфильтрованного layout.
+    // Группируем элементы на основе отфильтрованного layout.
     const groupedLayout = useMemo(() => {
         const groups = new Map<string, GridLayoutItem[]>();
         validLayout.forEach(item => {
