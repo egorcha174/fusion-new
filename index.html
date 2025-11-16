@@ -72,6 +72,57 @@
         },
       }
     </script>
+    <style>
+  /* Анимации для погодных иконок */
+  @keyframes sunny {
+    0%, 100% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.6)); }
+    50% { transform: rotate(180deg) scale(1.15); filter: drop-shadow(0 0 16px rgba(251, 191, 36, 0.8)); }
+  }
+  
+  @keyframes night-twinkle {
+    0%, 100% { opacity: 0.7; transform: scale(1); filter: drop-shadow(0 0 6px rgba(156, 163, 175, 0.5)); }
+    50% { opacity: 1; transform: scale(1.08); filter: drop-shadow(0 0 12px rgba(156, 163, 175, 0.7)); }
+  }
+  
+  @keyframes cloudy-move {
+    0%, 100% { transform: translateX(-4%) scale(1); opacity: 0.9; }
+    50% { transform: translateX(4%) scale(1.05); opacity: 1; }
+  }
+  
+  @keyframes rainy-bounce {
+    0% { transform: translateX(-3%) translateY(-3%); }
+    25% { transform: translateX(3%) translateY(3%); }
+    50% { transform: translateX(3%) translateY(-3%); }
+    75% { transform: translateX(-3%) translateY(3%); }
+    100% { transform: translateX(-3%) translateY(-3%); }
+  }
+  
+  @keyframes snowy-drift {
+    0%, 100% { transform: translateX(-5%) translateY(-2%) rotate(-3deg); opacity: 0.9; }
+    50% { transform: translateX(5%) translateY(2%) rotate(3deg); opacity: 1; }
+  }
+  
+  @keyframes stormy-flash {
+    0%, 85%, 100% { opacity: 1; filter: brightness(1); }
+    88% { opacity: 0.3; filter: brightness(1.5); }
+    90% { opacity: 1; filter: brightness(1); }
+    93% { opacity: 0.3; filter: brightness(1.5); }
+    95% { opacity: 1; filter: brightness(1); }
+  }
+  
+  @keyframes foggy-drift {
+    0%, 100% { transform: translateX(-6%); opacity: 0.6; filter: blur(1px); }
+    50% { transform: translateX(6%); opacity: 0.85; filter: blur(0.5px); }
+  }
+  
+  .animate-sunny { animation: sunny 6s ease-in-out infinite; }
+  .animate-night { animation: night-twinkle 4s ease-in-out infinite; }
+  .animate-cloudy { animation: cloudy-move 7s ease-in-out infinite; }
+  .animate-rainy { animation: rainy-bounce 5s ease-in-out infinite; }
+  .animate-snowy { animation: snowy-drift 9s ease-in-out infinite; }
+  .animate-stormy { animation: stormy-flash 4s linear infinite; }
+  .animate-foggy { animation: foggy-drift 10s ease-in-out infinite; }
+</style>
     <script src="https://cdn.tailwindcss.com"></script>
 <style>
   /* Utility to hide scrollbars */
