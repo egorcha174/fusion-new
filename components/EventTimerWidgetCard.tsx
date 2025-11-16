@@ -91,7 +91,7 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, col
     const fillColor = getFillColor(fillPercentage);
 
     const fillStyle: React.CSSProperties = {
-        height: `${fillPercentage}%`,
+        height: `${100 - fillPercentage}%`,
         backgroundColor: fillColor,
         transition: effectiveAnimation === 'smooth' 
             ? 'height 0.7s ease-in-out, background-color 0.5s linear' 
