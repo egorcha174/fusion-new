@@ -16,6 +16,12 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
   const entityIdLower = entityId.toLowerCase();
   const domain = entityId.split('.')[0];
 
+  // --- Приоритет 0: Внутренние виджеты ---
+  if (domain === 'internal') {
+    if (entityId.includes('septic_tank')) return DeviceType.SepticTank;
+    if (entityId.includes('battery')) return DeviceType.BatteryWidget;
+  }
+
   // --- Приоритет 1: Прямое сопоставление домена (однозначные случаи) ---
   switch (domain) {
     case 'camera': return DeviceType.Camera;

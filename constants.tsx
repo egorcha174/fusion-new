@@ -25,4 +25,5 @@ export const LOCAL_STORAGE_KEYS = {
   OPENWEATHERMAP_KEY: 'ha-openweathermap-key',
   YANDEX_WEATHER_KEY: 'ha-yandex-weather-key',
   FORECA_KEY: 'ha-foreca-key',
+  SEPTIC_TANK_SETTINGS: 'ha-septic-tank-settings',
 } as const;

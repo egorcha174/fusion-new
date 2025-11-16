@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
   CameraSettings, ColorScheme, CardTemplate, DeviceType, GridLayoutItem, DeviceCustomization,
-  CardElementId
+  CardElementId, SepticTankSettings
 } from '../types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from '../components/DeviceIcon';
@@ -56,6 +56,7 @@ interface AppState {
     yandexWeatherKey: string;
     forecaApiKey: string;
     lowBatteryThreshold: number;
+    septicTankSettings: SepticTankSettings;
     DEFAULT_COLOR_SCHEME: ColorScheme;
 }
 
@@ -87,6 +88,8 @@ interface AppActions {
     setYandexWeatherKey: (key: string) => void;
     setForecaApiKey: (key: string) => void;
     setLowBatteryThreshold: (threshold: number) => void;
+    setSepticTankSettings: (settings: Partial<SepticTankSettings>) => void;
+    resetSepticTankTimer: () => void;
 
     onResetColorScheme: () => void;
     handleTabOrderChange: (newTabs: Tab[]) => void;
@@ -139,6 +142,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     yandexWeatherKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, ''),
     forecaApiKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.FORECA_KEY, ''),
     lowBatteryThreshold: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, DEFAULT_LOW_BATTERY_THRESHOLD),
+    septicTankSettings: loadAndMigrate<SepticTankSettings>(LOCAL_STORAGE_KEYS.SEPTIC_TANK_SETTINGS, { lastResetDate: null, cycleDays: 14 }),
     DEFAULT_COLOR_SCHEME: DEFAULT_COLOR_SCHEME,
     
     // --- Actions ---
@@ -220,6 +224,14 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     setLowBatteryThreshold: (threshold) => {
         set({ lowBatteryThreshold: threshold });
         localStorage.setItem(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, JSON.stringify(threshold));
+    },
+    setSepticTankSettings: (settings) => {
+        const newSettings = { ...get().septicTankSettings, ...settings };
+        set({ septicTankSettings: newSettings });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SEPTIC_TANK_SETTINGS, JSON.stringify(newSettings));
+    },
+    resetSepticTankTimer: () => {
+        get().setSepticTankSettings({ lastResetDate: new Date().toISOString() });
     },
 
     // --- Complex Actions ---

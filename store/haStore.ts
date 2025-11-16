@@ -69,7 +69,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   };
   
   const updateDerivedState = (entities: HassEntities, areas: HassArea[], devices: HassDevice[], entityRegistry: HassEntityRegistryEntry[]) => {
-      const { customizations, lowBatteryThreshold } = useAppStore.getState();
+      const { customizations, lowBatteryThreshold, septicTankSettings } = useAppStore.getState();
       const rooms = mapEntitiesToRooms(Object.values(entities), areas, devices, entityRegistry, customizations, true);
       const deviceMap = new Map<string, Device>();
       rooms.forEach(room => {
@@ -138,6 +138,13 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         }
       });
       
+      let widgetsRoom = rooms.find(r => r.id === 'internal::widgets');
+      if (!widgetsRoom) {
+          widgetsRoom = { id: 'internal::widgets', name: 'Виджеты', devices: [] };
+          rooms.push(widgetsRoom);
+      }
+      
+      // Battery Widget
       if (batteryDevicesList.length > 0) {
         const lowBatteryCount = batteryDevicesList.filter(d => d.batteryLevel <= lowBatteryThreshold).length;
         const batteryWidgetDevice: Device = {
@@ -149,16 +156,48 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           haDomain: 'internal',
         };
         deviceMap.set(batteryWidgetDevice.id, batteryWidgetDevice);
-
-        let widgetsRoom = rooms.find(r => r.id === 'internal::widgets');
-        if (!widgetsRoom) {
-          widgetsRoom = { id: 'internal::widgets', name: 'Виджеты', devices: [] };
-          rooms.push(widgetsRoom);
-        }
         if (!widgetsRoom.devices.some(d => d.id === batteryWidgetDevice.id)) {
             widgetsRoom.devices.push(batteryWidgetDevice);
         }
       }
+
+      // Septic Tank Widget
+      const { lastResetDate, cycleDays } = septicTankSettings;
+      let septicTankDevice: Device;
+      if (lastResetDate) {
+          const resetDate = new Date(lastResetDate);
+          const now = new Date();
+          const daysPassed = Math.floor((now.getTime() - resetDate.getTime()) / (1000 * 60 * 60 * 24));
+          const daysRemaining = Math.max(0, cycleDays - daysPassed);
+          const fillPercentage = Math.min(100, (daysPassed / cycleDays) * 100);
+
+          septicTankDevice = {
+              id: 'internal::septic_tank_widget',
+              name: 'Ассенизатор',
+              status: `Осталось ${daysRemaining} дн.`,
+              type: DeviceType.SepticTank,
+              haDomain: 'internal',
+              fillPercentage: fillPercentage,
+              daysRemaining: daysRemaining,
+              state: 'active'
+          };
+      } else {
+          septicTankDevice = {
+              id: 'internal::septic_tank_widget',
+              name: 'Ассенизатор',
+              status: 'Настройте таймер',
+              type: DeviceType.SepticTank,
+              haDomain: 'internal',
+              fillPercentage: 0,
+              daysRemaining: cycleDays,
+              state: 'inactive'
+          };
+      }
+      deviceMap.set(septicTankDevice.id, septicTankDevice);
+      if (!widgetsRoom.devices.some(d => d.id === septicTankDevice.id)) {
+          widgetsRoom.devices.push(septicTankDevice);
+      }
+
 
       const cameras = Array.from(deviceMap.values()).filter((d: Device) => d.haDomain === 'camera');
       // Сортируем список физических устройств по уровню заряда
@@ -213,7 +252,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   // Re-compute derived state whenever customizations change
   useAppStore.subscribe(
     (state, prevState) => {
-        if (state.customizations !== prevState.customizations || state.lowBatteryThreshold !== prevState.lowBatteryThreshold) {
+        if (state.customizations !== prevState.customizations || state.lowBatteryThreshold !== prevState.lowBatteryThreshold || state.septicTankSettings !== prevState.septicTankSettings) {
             const { entities, areas, devices, entityRegistry } = get();
             updateDerivedState(entities, areas, devices, entityRegistry);
         }
