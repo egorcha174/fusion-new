@@ -1,5 +1,5 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
-import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, SepticTankSettings } from '../types';
+import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget } from '../types';
 import ConfirmDialog from './ConfirmDialog';
 import { useAppStore } from '../store/appStore';
 import { useHAStore } from '../store/haStore';
@@ -181,7 +181,6 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
         yandexWeatherKey, setYandexWeatherKey,
         forecaApiKey, setForecaApiKey,
         lowBatteryThreshold, setLowBatteryThreshold,
-        septicTankSettings, setSepticTankSettings,
     } = useAppStore();
 
     const handleConnect = () => {
@@ -429,16 +428,6 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                  )}
             </Section>
 
-            <Section title="Виджет Ассенизатора" description="Настройки таймера для отслеживания заполнения септика.">
-                 <LabeledInput label="Интервал (дней)">
-                    <input type="number" min="1" max="365" value={septicTankSettings.cycleDays} onChange={e => setSepticTankSettings({ cycleDays: parseInt(e.target.value, 10) || 14 })} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"/>
-                </LabeledInput>
-                <div className="text-sm text-gray-700 dark:text-gray-300">
-                    <span className="font-medium">Последний сброс: </span>
-                    <span>{septicTankSettings.lastResetDate ? format(new Date(septicTankSettings.lastResetDate), 'd MMMM yyyy, HH:mm', { locale: ru }) : 'Никогда'}</span>
-                </div>
-            </Section>
-            
             <Section title="Прочее">
                 <LabeledInput label="Порог низкого заряда">
                     <div className="flex items-center gap-2">

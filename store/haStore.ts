@@ -1,5 +1,6 @@
 
 
+
 import { create } from 'zustand';
 import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device, Room, RoomWithPhysicalDevices, PhysicalDevice, DeviceType } from '../types';
 import { constructHaUrl } from '../utils/url';
@@ -69,7 +70,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   };
   
   const updateDerivedState = (entities: HassEntities, areas: HassArea[], devices: HassDevice[], entityRegistry: HassEntityRegistryEntry[]) => {
-      const { customizations, lowBatteryThreshold, septicTankSettings } = useAppStore.getState();
+      const { customizations, lowBatteryThreshold, eventTimerWidgets } = useAppStore.getState();
       const rooms = mapEntitiesToRooms(Object.values(entities), areas, devices, entityRegistry, customizations, true);
       const deviceMap = new Map<string, Device>();
       rooms.forEach(room => {
@@ -161,42 +162,51 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         }
       }
 
-      // Septic Tank Widget
-      const { lastResetDate, cycleDays } = septicTankSettings;
-      let septicTankDevice: Device;
-      if (lastResetDate) {
-          const resetDate = new Date(lastResetDate);
-          const now = new Date();
-          const daysPassed = Math.floor((now.getTime() - resetDate.getTime()) / (1000 * 60 * 60 * 24));
-          const daysRemaining = Math.max(0, cycleDays - daysPassed);
-          const fillPercentage = Math.min(100, (daysPassed / cycleDays) * 100);
+      // FIX: Loop through all event timer widgets and create a device for each.
+      eventTimerWidgets.forEach(widget => {
+        const { id, name, lastResetDate, cycleDays, buttonText } = widget;
+        let timerDevice: Device;
 
-          septicTankDevice = {
-              id: 'internal::septic_tank_widget',
-              name: 'Ассенизатор',
-              status: `Осталось ${daysRemaining} дн.`,
-              type: DeviceType.SepticTank,
-              haDomain: 'internal',
-              fillPercentage: fillPercentage,
-              daysRemaining: daysRemaining,
-              state: 'active'
-          };
-      } else {
-          septicTankDevice = {
-              id: 'internal::septic_tank_widget',
-              name: 'Ассенизатор',
-              status: 'Настройте таймер',
-              type: DeviceType.SepticTank,
-              haDomain: 'internal',
-              fillPercentage: 0,
-              daysRemaining: cycleDays,
-              state: 'inactive'
-          };
-      }
-      deviceMap.set(septicTankDevice.id, septicTankDevice);
-      if (!widgetsRoom.devices.some(d => d.id === septicTankDevice.id)) {
-          widgetsRoom.devices.push(septicTankDevice);
-      }
+        if (lastResetDate) {
+            const resetDate = new Date(lastResetDate);
+            const now = new Date();
+            const daysPassed = Math.floor((now.getTime() - resetDate.getTime()) / (1000 * 60 * 60 * 24));
+            const daysRemaining = Math.max(0, cycleDays - daysPassed);
+            const fillPercentage = Math.min(100, (daysPassed / cycleDays) * 100);
+
+            timerDevice = {
+                id: `internal::event-timer_${id}`,
+                name: name,
+                status: `Осталось ${daysRemaining} дн.`,
+                // FIX: Use the correct `EventTimer` DeviceType.
+                type: DeviceType.EventTimer,
+                haDomain: 'internal',
+                fillPercentage: fillPercentage,
+                daysRemaining: daysRemaining,
+                state: 'active',
+                widgetId: id,
+                buttonText: buttonText,
+            };
+        } else {
+            timerDevice = {
+                id: `internal::event-timer_${id}`,
+                name: name,
+                status: 'Настройте таймер',
+                 // FIX: Use the correct `EventTimer` DeviceType.
+                type: DeviceType.EventTimer,
+                haDomain: 'internal',
+                fillPercentage: 0,
+                daysRemaining: cycleDays,
+                state: 'inactive',
+                widgetId: id,
+                buttonText: buttonText,
+            };
+        }
+        deviceMap.set(timerDevice.id, timerDevice);
+        if (!widgetsRoom.devices.some(d => d.id === timerDevice.id)) {
+            widgetsRoom.devices.push(timerDevice);
+        }
+      });
 
 
       const cameras = Array.from(deviceMap.values()).filter((d: Device) => d.haDomain === 'camera');
@@ -252,7 +262,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   // Re-compute derived state whenever customizations change
   useAppStore.subscribe(
     (state, prevState) => {
-        if (state.customizations !== prevState.customizations || state.lowBatteryThreshold !== prevState.lowBatteryThreshold || state.septicTankSettings !== prevState.septicTankSettings) {
+        // FIX: Subscribe to `eventTimerWidgets` changes instead of the obsolete `septicTankSettings`.
+        if (state.customizations !== prevState.customizations || state.lowBatteryThreshold !== prevState.lowBatteryThreshold || state.eventTimerWidgets !== prevState.eventTimerWidgets) {
             const { entities, areas, devices, entityRegistry } = get();
             updateDerivedState(entities, areas, devices, entityRegistry);
         }

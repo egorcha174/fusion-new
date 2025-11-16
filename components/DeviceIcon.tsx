@@ -36,7 +36,7 @@ const iconMap: Record<DeviceType, { on: string; off: string; animation?: 'spin' 
   [DeviceType.Camera]: { on: 'mdi:cctv', off: 'mdi:cctv' },
   [DeviceType.BatteryWidget]: { on: 'mdi:battery-heart-variant-outline', off: 'mdi:battery-heart-variant-outline' },
   [DeviceType.Humidifier]: { on: 'mdi:air-humidifier', off: 'mdi:air-humidifier-off' },
-  [DeviceType.SepticTank]: { on: 'mdi:pump', off: 'mdi:pump' },
+  [DeviceType.EventTimer]: { on: 'mdi:pump', off: 'mdi:pump' },
   [DeviceType.Unknown]: { on: 'mdi:help-rhombus-outline', off: 'mdi:help-rhombus-outline' },
 };
 

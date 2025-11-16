@@ -1,5 +1,6 @@
 
 
+
 /**
  * Перечисление всех возможных типов устройств, используемых в приложении.
  * Это внутреннее представление, которое используется для определения иконки,
@@ -27,7 +28,7 @@ export enum DeviceType {
   Camera,
   BatteryWidget,
   Humidifier,
-  SepticTank, // Новый тип для виджета-таймера
+  EventTimer, // Новый тип для виджета-таймера
   Unknown, // Резервный тип для неопознанных устройств
 }
 
@@ -74,7 +75,9 @@ export interface Device {
   fanSpeed?: number; // Скорость вентилятора в процентах
   fanLevel?: string; // Текущий уровень скорости вентилятора (строка, для select)
   fanLevels?: string[]; // Доступные уровни скорости вентилятора (строки, для select)
-  // Для кастомных виджетов, например, SepticTank
+  // Для кастомных виджетов
+  widgetId?: string;
+  buttonText?: string;
   fillPercentage?: number;
   daysRemaining?: number;
 }
@@ -115,11 +118,15 @@ export interface Tab {
 // --- Типы для пользовательских настроек ---
 
 /**
- * Настройки виджета-таймера для ассенизатора.
+ * Настройки для одного экземпляра виджета-таймера.
  */
-export interface SepticTankSettings {
-  lastResetDate: string | null; // Дата последнего сброса в формате ISO
-  cycleDays: number; // Количество дней в цикле
+export interface EventTimerWidget {
+  id: string;
+  name: string;
+  cycleDays: number;
+  lastResetDate: string | null;
+  buttonText: string;
+  icon?: string;
 }
 
 /**

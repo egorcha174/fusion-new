@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
   CameraSettings, ColorScheme, CardTemplate, DeviceType, GridLayoutItem, DeviceCustomization,
-  CardElementId, SepticTankSettings
+  CardElementId, EventTimerWidget
 } from '../types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from '../components/DeviceIcon';
@@ -56,7 +56,8 @@ interface AppState {
     yandexWeatherKey: string;
     forecaApiKey: string;
     lowBatteryThreshold: number;
-    septicTankSettings: SepticTankSettings;
+    // FIX: Replaced single septic tank settings with a more generic array of event timer widgets to support multiple custom timers.
+    eventTimerWidgets: EventTimerWidget[];
     DEFAULT_COLOR_SCHEME: ColorScheme;
 }
 
@@ -88,8 +89,14 @@ interface AppActions {
     setYandexWeatherKey: (key: string) => void;
     setForecaApiKey: (key: string) => void;
     setLowBatteryThreshold: (threshold: number) => void;
-    setSepticTankSettings: (settings: Partial<SepticTankSettings>) => void;
-    resetSepticTankTimer: () => void;
+    
+    // FIX: Added actions to manage multiple event timer widgets, replacing the old single-widget logic.
+    setEventTimerWidgets: (widgets: EventTimerWidget[]) => void;
+    addCustomWidget: () => void;
+    updateCustomWidget: (widgetId: string, updates: Partial<Omit<EventTimerWidget, 'id'>>) => void;
+    resetCustomWidgetTimer: (widgetId: string) => void;
+    deleteCustomWidget: (widgetId: string) => void;
+
 
     onResetColorScheme: () => void;
     handleTabOrderChange: (newTabs: Tab[]) => void;
@@ -142,7 +149,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     yandexWeatherKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, ''),
     forecaApiKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.FORECA_KEY, ''),
     lowBatteryThreshold: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, DEFAULT_LOW_BATTERY_THRESHOLD),
-    septicTankSettings: loadAndMigrate<SepticTankSettings>(LOCAL_STORAGE_KEYS.SEPTIC_TANK_SETTINGS, { lastResetDate: null, cycleDays: 14 }),
+    // FIX: Replaced septicTankSettings with eventTimerWidgets and corrected the local storage key.
+    eventTimerWidgets: loadAndMigrate<EventTimerWidget[]>(LOCAL_STORAGE_KEYS.EVENT_TIMER_WIDGETS, []),
     DEFAULT_COLOR_SCHEME: DEFAULT_COLOR_SCHEME,
     
     // --- Actions ---
@@ -225,14 +233,34 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         set({ lowBatteryThreshold: threshold });
         localStorage.setItem(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, JSON.stringify(threshold));
     },
-    setSepticTankSettings: (settings) => {
-        const newSettings = { ...get().septicTankSettings, ...settings };
-        set({ septicTankSettings: newSettings });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.SEPTIC_TANK_SETTINGS, JSON.stringify(newSettings));
+    // FIX: Implement actions for managing multiple event timer widgets.
+    setEventTimerWidgets: (widgets) => {
+        set({ eventTimerWidgets: widgets });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.EVENT_TIMER_WIDGETS, JSON.stringify(widgets));
     },
-    resetSepticTankTimer: () => {
-        get().setSepticTankSettings({ lastResetDate: new Date().toISOString() });
+    addCustomWidget: () => {
+        const newWidget: EventTimerWidget = {
+            id: nanoid(),
+            name: `Таймер ${get().eventTimerWidgets.length + 1}`,
+            cycleDays: 14,
+            lastResetDate: null,
+            buttonText: 'Сброс',
+        };
+        get().setEventTimerWidgets([...get().eventTimerWidgets, newWidget]);
     },
+    updateCustomWidget: (widgetId, updates) => {
+        const newWidgets = get().eventTimerWidgets.map(w => w.id === widgetId ? { ...w, ...updates } : w);
+        get().setEventTimerWidgets(newWidgets);
+    },
+    resetCustomWidgetTimer: (widgetId) => {
+        const newWidgets = get().eventTimerWidgets.map(w => w.id === widgetId ? { ...w, lastResetDate: new Date().toISOString() } : w);
+        get().setEventTimerWidgets(newWidgets);
+    },
+    deleteCustomWidget: (widgetId) => {
+        const newWidgets = get().eventTimerWidgets.filter(w => w.id !== widgetId);
+        get().setEventTimerWidgets(newWidgets);
+    },
+
 
     // --- Complex Actions ---
     onResetColorScheme: () => get().setColorScheme(DEFAULT_COLOR_SCHEME),

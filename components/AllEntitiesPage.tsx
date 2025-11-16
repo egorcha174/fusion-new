@@ -1,5 +1,6 @@
 
 
+
 import React, { useState } from 'react';
 import { Room, Device } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -70,12 +71,25 @@ interface AllEntitiesPageProps {
  * сгруппированные по комнатам. Позволяет скрывать/показывать сущности и добавлять их на вкладки.
  */
 const AllEntitiesPage: React.FC<AllEntitiesPageProps> = ({ rooms }) => {
-    const { customizations, handleToggleVisibility } = useAppStore();
+    // FIX: Correctly destructure the `addCustomWidget` action which is now implemented in the store.
+    const { customizations, handleToggleVisibility, addCustomWidget } = useAppStore();
 
     return (
         <div className="container mx-auto">
-            <h1 className="text-3xl font-bold mb-8">Все сущности</h1>
-            <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-2xl">Здесь показаны все сущности, обнаруженные в вашем Home Assistant. Вы можете скрыть те, которые не хотите видеть на дашборде, или добавить их на одну из ваших вкладок.</p>
+            <div className="flex justify-between items-center mb-8">
+                <div>
+                    <h1 className="text-3xl font-bold">Все сущности</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-2 max-w-2xl">Здесь показаны все сущности из вашего Home Assistant. Скрывайте ненужные или добавляйте их на вкладки.</p>
+                </div>
+                <button
+                    onClick={() => addCustomWidget()}
+                    className="flex-shrink-0 bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                >
+                    <Icon icon="mdi:plus" className="w-5 h-5" />
+                    Создать виджет-таймер
+                </button>
+            </div>
+            
             <div className="space-y-10">
                 {rooms.map(room => (
                     <section key={room.id}>

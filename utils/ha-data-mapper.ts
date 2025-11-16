@@ -18,7 +18,7 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
 
   // --- Приоритет 0: Внутренние виджеты ---
   if (domain === 'internal') {
-    if (entityId.includes('septic_tank')) return DeviceType.SepticTank;
+    if (entityId.includes('event-timer')) return DeviceType.EventTimer;
     if (entityId.includes('battery')) return DeviceType.BatteryWidget;
   }
 

@@ -1,88 +1,87 @@
 import React from 'react';
 import { Device, ColorThemeSet } from '../types';
 import { useAppStore } from '../store/appStore';
-import { Icon } from '@iconify/react';
-import DeviceIcon from './DeviceIcon';
 
-interface SepticTankWidgetCardProps {
+interface EventTimerWidgetCardProps {
     device: Device;
     colorScheme: ColorThemeSet;
 }
 
-const SepticTankWidgetCard: React.FC<SepticTankWidgetCardProps> = ({ device, colorScheme }) => {
-    const { resetSepticTankTimer } = useAppStore();
+const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device }) => {
+    // FIX: Correctly destructure the `resetCustomWidgetTimer` action which is now implemented in the store.
+    const { resetCustomWidgetTimer } = useAppStore();
 
-    const { fillPercentage = 0, daysRemaining = 0, state } = device;
+    const { fillPercentage = 0, daysRemaining = 0, widgetId, buttonText = "Сброс" } = device;
 
     // Функция для определения цвета заливки в зависимости от процента
-    const getFillColor = (percentage: number) => {
-        if (percentage >= 85) return 'bg-red-500/80';
-        if (percentage >= 60) return 'bg-yellow-500/80';
-        return 'bg-green-500/80';
+    const getFillColor = (percentage: number): string => {
+        if (percentage >= 85) return '#ef4444'; // red-500
+        if (percentage >= 60) return '#f59e0b'; // amber-500
+        return '#22c55e'; // green-500
     };
-    
+
+    const fillColor = getFillColor(fillPercentage);
+
     const handleReset = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (window.confirm('Вы уверены, что хотите сбросить таймер? Это действие установит новую дату отсчета на сегодня.')) {
-            resetSepticTankTimer();
+        if (widgetId) {
+            resetCustomWidgetTimer(widgetId);
         }
     };
     
-    if (state === 'inactive') {
-        return (
-             <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center relative overflow-hidden">
-                <DeviceIcon icon={device.type} isOn={false} className="!w-1/3 !h-1/3 opacity-50" />
-                <p className="font-semibold mt-2" style={{ color: colorScheme.valueTextColor }}>Ассенизатор</p>
-                <p className="text-sm" style={{ color: colorScheme.statusTextColor }}>{device.status}</p>
-                <p className="text-xs mt-2 text-gray-500 dark:text-gray-400">Перейдите в Настройки → Интерфейс, чтобы задать интервал и запустить таймер.</p>
-            </div>
-        )
-    }
+    // SVG-путь для создания "волнистого" края
+    const wavePath = "M0,25 C150,50 350,0 500,25 L500,51 L0,51 Z";
 
     return (
-        <div className="w-full h-full relative overflow-hidden">
-            {/* Слой с заливкой */}
+        <div className="w-full h-full relative bg-gray-800 dark:bg-gray-900 rounded-2xl overflow-hidden text-white select-none">
+            {/* Слой с "жидкой" заливкой */}
             <div
-                className="absolute bottom-0 left-0 right-0 transition-all duration-500 ease-in-out"
-                style={{
-                    height: `${fillPercentage}%`,
-                    backgroundColor: getFillColor(fillPercentage),
-                }}
-            />
+                className="absolute bottom-0 left-0 right-0 transition-all duration-700 ease-in-out"
+                style={{ height: `${fillPercentage}%` }}
+            >
+                {/* Основной цвет заливки под волной */}
+                <div className="absolute inset-0" style={{ backgroundColor: fillColor }} />
 
-            {/* Контент поверх заливки */}
-            <div className="relative w-full h-full flex flex-col justify-between p-4">
-                <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-2">
-                         <DeviceIcon icon={device.type} isOn={true} className="!w-6 !h-6 !m-0" />
-                         <h3 className="font-semibold" style={{ color: colorScheme.nameTextColorOn }}>{device.name}</h3>
-                    </div>
-                    <button 
-                        onClick={handleReset}
-                        title="Сбросить таймер (зафиксировать приезд)"
-                        className="p-2 bg-black/10 dark:bg-white/10 rounded-full hover:bg-black/20 dark:hover:bg-white/20 transition-colors"
-                    >
-                        <Icon icon="mdi:restore" className="w-5 h-5" />
-                    </button>
-                </div>
+                {/* SVG для создания волнистого края */}
+                <svg
+                    className="absolute left-0 w-full"
+                    viewBox="0 0 500 50"
+                    preserveAspectRatio="none"
+                    style={{ height: '50px', top: '-50px' }}
+                >
+                    <path
+                        d={wavePath}
+                        style={{ stroke: 'none', fill: fillColor }}
+                    />
+                </svg>
+            </div>
 
+            {/* Слой с контентом */}
+            <div className="relative w-full h-full flex flex-col justify-between items-center p-4">
+                {/* Пустой div для выравнивания по flexbox */}
+                <div /> 
+
+                {/* Центральная часть: количество оставшихся дней */}
                 <div className="text-center">
-                    <p className="text-7xl font-bold tracking-tighter" style={{ color: colorScheme.valueTextColorOn }}>
+                    <p 
+                        className="text-7xl lg:text-8xl font-bold tracking-tighter"
+                        style={{ textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}
+                    >
                         {daysRemaining}
-                    </p>
-                    <p className="text-lg font-medium -mt-2" style={{ color: colorScheme.statusTextColorOn }}>
-                        {daysRemaining === 1 ? 'день' : (daysRemaining > 1 && daysRemaining < 5) ? 'дня' : 'дней'}
                     </p>
                 </div>
                 
-                <div className="text-center">
-                   <p className="text-sm font-medium" style={{ color: colorScheme.statusTextColorOn }}>
-                        Заполнено на {Math.round(fillPercentage)}%
-                    </p>
-                </div>
+                {/* Нижняя часть: кнопка сброса */}
+                <button
+                    onClick={handleReset}
+                    className="text-lg font-semibold hover:opacity-80 transition-opacity"
+                    style={{ textShadow: '0 1px 5px rgba(0,0,0,0.4)' }}
+                >
+                    {buttonText}
+                </button>
             </div>
         </div>
     );
 };
 
-export default SepticTankWidgetCard;
+export default EventTimerWidgetCard;

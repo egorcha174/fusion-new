@@ -1,5 +1,6 @@
 
 
+
 /**
  * Константы для ключей, используемых в localStorage.
  * Это позволяет избежать "магических строк" и обеспечивает единый источник истины
@@ -25,5 +26,6 @@ export const LOCAL_STORAGE_KEYS = {
   OPENWEATHERMAP_KEY: 'ha-openweathermap-key',
   YANDEX_WEATHER_KEY: 'ha-yandex-weather-key',
   FORECA_KEY: 'ha-foreca-key',
-  SEPTIC_TANK_SETTINGS: 'ha-septic-tank-settings',
+  // FIX: Replaced `CUSTOM_WIDGETS` with `EVENT_TIMER_WIDGETS` to better reflect the feature and resolve naming conflicts.
+  EVENT_TIMER_WIDGETS: 'ha-event-timer-widgets',
 } as const;

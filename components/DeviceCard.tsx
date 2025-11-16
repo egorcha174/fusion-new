@@ -6,7 +6,7 @@ import ThermostatDial from './ThermostatDial';
 import { Icon } from '@iconify/react';
 import { CameraStreamContent } from './CameraStreamContent';
 import BatteryWidgetCard from './BatteryWidgetCard';
-import SepticTankWidgetCard from './SepticTankWidgetCard';
+import EventTimerWidgetCard from './SepticTankWidgetCard';
 import { motion, AnimatePresence } from 'framer-motion';
 
 /**
@@ -294,7 +294,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
   };
   
   const isCamera = device.type === DeviceType.Camera;
-  const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && device.type !== DeviceType.Sensor && !isCamera && device.type !== DeviceType.SepticTank && device.type !== DeviceType.BatteryWidget;
+  const isTogglable = device.type !== DeviceType.Thermostat && device.type !== DeviceType.Climate && device.type !== DeviceType.Sensor && !isCamera && device.type !== DeviceType.EventTimer && device.type !== DeviceType.BatteryWidget;
   const deviceBindings = customizations[device.id]?.deviceBindings;
   
   const flashOnColor = isDark ? 'rgba(255, 255, 255, 0.5)' : 'rgba(200, 200, 200, 0.6)';
@@ -833,8 +833,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         )
       case DeviceType.BatteryWidget:
         return <BatteryWidgetCard colorScheme={colorScheme} />;
-      case DeviceType.SepticTank:
-        return <SepticTankWidgetCard device={device} colorScheme={colorScheme} />;
+      case DeviceType.EventTimer:
+        return <EventTimerWidgetCard device={device} colorScheme={colorScheme} />;
       case DeviceType.DimmableLight:
         return (
           <div className="flex flex-col h-full">
@@ -916,7 +916,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
 
   const getCardClasses = () => {
     const baseClasses = `w-full h-full rounded-2xl flex flex-col transition-all duration-300 ease-in-out select-none relative shadow-lg ring-1 ring-black/5 dark:ring-white/10 transform overflow-hidden`;
-    const layoutClasses = (isCamera || device.type === DeviceType.BatteryWidget || device.type === DeviceType.SepticTank) ? 'p-0' : styles.padding;
+    const layoutClasses = (isCamera || device.type === DeviceType.BatteryWidget || device.type === DeviceType.EventTimer) ? 'p-0' : styles.padding;
     const cursorClass = (isTogglable) && !isEditMode && !isPreview ? 'cursor-pointer' : '';
     const hoverClass = !isEditMode && !isPreview ? 'hover:shadow-xl hover:scale-[1.02]' : '';
     return `${baseClasses} ${layoutClasses} ${cursorClass} ${hoverClass}`;
