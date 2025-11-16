@@ -27,6 +27,7 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
     const [lastResetDate, setLastResetDate] = useState<string | null>(null);
     const [fillColors, setFillColors] = useState<[string, string, string]>(['#22c55e', '#f59e0b', '#ef4444']);
     const [animation, setAnimation] = useState<'smooth' | 'wave'>('smooth');
+    const [showName, setShowName] = useState(false);
 
     useEffect(() => {
         if (widget) {
@@ -36,6 +37,7 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
             setLastResetDate(widget.lastResetDate);
             setFillColors(widget.fillColors || ['#22c55e', '#f59e0b', '#ef4444']);
             setAnimation(widget.animation || 'smooth');
+            setShowName(widget.showName || false);
         }
     }, [widget]);
 
@@ -49,6 +51,7 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
             lastResetDate,
             fillColors,
             animation,
+            showName,
         });
         onClose();
     };
@@ -86,6 +89,15 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
                             <option value="wave">Волна</option>
                         </select>
                     </LabeledInput>
+                     <div className="flex items-center justify-between">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Показывать название</label>
+                        <button
+                          onClick={() => setShowName(!showName)}
+                          className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${showName ? 'bg-blue-600' : 'bg-gray-400 dark:bg-gray-600'}`}
+                        >
+                            <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${showName ? 'translate-x-6' : 'translate-x-1'}`}/>
+                        </button>
+                    </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Цвета градиента</label>
                         <div className="flex items-center justify-between gap-4">

@@ -37,7 +37,7 @@ const interpolateColor = (color1: string, color2: string, factor: number): strin
 const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, colorScheme, onContextMenu }) => {
     const { resetCustomWidgetTimer } = useAppStore();
 
-    const { fillPercentage = 0, daysRemaining = 0, widgetId, buttonText = "Сброс", fillColors, animation } = device;
+    const { fillPercentage = 0, daysRemaining = 0, widgetId, buttonText = "Сброс", fillColors, animation, showName, name } = device;
 
     // Функция для определения цвета заливки в зависимости от процента и настроек
     const getFillColor = (percentage: number): string => {
@@ -94,28 +94,39 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, col
             </div>
 
             {/* Слой с контентом */}
-            <div className="relative w-full h-full flex flex-col justify-between items-center p-4">
-                {/* Пустой div для выравнивания по flexbox */}
-                <div /> 
+            <div className="relative w-full h-full flex flex-col items-center p-4">
+                 {/* Title */}
+                <div className="h-8 flex-shrink-0 text-center pt-1">
+                    {showName && (
+                        <p 
+                            className="font-semibold text-lg" 
+                            style={{ textShadow: '0 1px 5px rgba(0,0,0,0.4)', color: colorScheme.nameTextColorOn }}
+                        >
+                            {name}
+                        </p>
+                    )}
+                </div>
 
-                {/* Центральная часть: количество оставшихся дней */}
-                <div className="text-center">
+                {/* Number */}
+                <div className="flex-grow flex items-center justify-center">
                     <p 
-                        className="text-7xl lg:text-8xl font-bold tracking-tighter"
+                        className="text-8xl xl:text-9xl font-bold tracking-tighter -mt-4" 
                         style={{ textShadow: '0 2px 10px rgba(0,0,0,0.5)', color: colorScheme.nameTextColorOn }}
                     >
                         {daysRemaining}
                     </p>
                 </div>
                 
-                {/* Нижняя часть: кнопка сброса */}
-                <button
-                    onClick={handleReset}
-                    className="text-lg font-semibold hover:opacity-80 transition-opacity"
-                    style={{ textShadow: '0 1px 5px rgba(0,0,0,0.4)', color: colorScheme.statusTextColorOn }}
-                >
-                    {buttonText}
-                </button>
+                {/* Button */}
+                <div className="h-8 flex-shrink-0 text-center pb-1">
+                    <button
+                        onClick={handleReset}
+                        className="text-lg font-semibold hover:opacity-80 transition-opacity"
+                        style={{ textShadow: '0 1px 5px rgba(0,0,0,0.4)', color: colorScheme.statusTextColorOn }}
+                    >
+                        {buttonText}
+                    </button>
+                </div>
             </div>
         </div>
     );

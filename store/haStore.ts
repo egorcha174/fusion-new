@@ -1,6 +1,7 @@
 
 
 
+
 import { create } from 'zustand';
 import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device, Room, RoomWithPhysicalDevices, PhysicalDevice, DeviceType } from '../types';
 import { constructHaUrl } from '../utils/url';
@@ -164,7 +165,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
 
       // FIX: Loop through all event timer widgets and create a device for each.
       eventTimerWidgets.forEach(widget => {
-        const { id, name, lastResetDate, cycleDays, buttonText } = widget;
+        const { id, name, lastResetDate, cycleDays, buttonText, fillColors, animation, showName } = widget;
         let timerDevice: Device;
 
         if (lastResetDate) {
@@ -186,6 +187,9 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                 state: 'active',
                 widgetId: id,
                 buttonText: buttonText,
+                fillColors: fillColors,
+                animation: animation,
+                showName: showName,
             };
         } else {
             timerDevice = {
@@ -200,6 +204,9 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                 state: 'inactive',
                 widgetId: id,
                 buttonText: buttonText,
+                fillColors: fillColors,
+                animation: animation,
+                showName: showName,
             };
         }
         deviceMap.set(timerDevice.id, timerDevice);
