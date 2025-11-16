@@ -419,6 +419,14 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                         {groupedLayout.map((group) => {
                             const firstItem = group[0];
                             if (!firstItem) return null;
+
+                            // Проверяем, существует ли хотя бы одно устройство в группе, прежде чем отрисовывать контейнер.
+                            // Это предотвращает появление "призрачных" пустых мест от удаленных устройств.
+                            const groupHasExistingDevices = group.some(item => allKnownDevices.has(item.deviceId));
+                            if (!groupHasExistingDevices) {
+                                return null;
+                            }
+                            
                             const groupKey = group.map(i => i.deviceId).join('-');
                             
                             return (

@@ -263,8 +263,18 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         get().setEventTimerWidgets(newWidgets);
     },
     deleteCustomWidget: (widgetId) => {
+        const deviceIdToDelete = `internal::event-timer_${widgetId}`;
+        
+        // Remove from widgets list
         const newWidgets = get().eventTimerWidgets.filter(w => w.id !== widgetId);
         get().setEventTimerWidgets(newWidgets);
+        
+        // Remove from all tabs to prevent ghost items
+        const newTabs = get().tabs.map(tab => ({
+            ...tab,
+            layout: tab.layout.filter(item => item.deviceId !== deviceIdToDelete)
+        }));
+        get().setTabs(newTabs);
     },
 
 
