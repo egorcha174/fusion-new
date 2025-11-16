@@ -353,9 +353,15 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         }
     };
     
+    // **ИСПРАВЛЕНИЕ**: Фильтруем layout *до* всех вычислений, чтобы убрать "призрачные" элементы.
+    const validLayout = useMemo(() => 
+        tab.layout.filter(item => allKnownDevices.has(item.deviceId)),
+    [tab.layout, allKnownDevices]);
+
+    // **ИСПРАВЛЕНИЕ**: Вычисляем занятые ячейки на основе отфильтрованного layout.
     const occupiedCells = useMemo(() => {
       const cells = new Set<string>();
-      tab.layout.forEach(item => {
+      validLayout.forEach(item => {
         const w = Math.ceil(item.width || 1);
         const h = Math.ceil(item.height || 1);
         for (let r_offset = 0; r_offset < h; r_offset++) {
@@ -365,7 +371,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         }
       });
       return cells;
-    }, [tab.layout]);
+    }, [validLayout]);
 
     const activeDevice = activeId ? allKnownDevices.get(activeId) : null;
     let activeDeviceTemplate: CardTemplate | undefined;
@@ -381,11 +387,10 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         activeDeviceTemplate = templateId ? templates[templateId] : undefined;
     }
 
-    // Группируем элементы layout по координатам, чтобы рендерить стопки (stacked) карточек.
+    // **ИСПРАВЛЕНИЕ**: Группируем элементы на основе отфильтрованного layout.
     const groupedLayout = useMemo(() => {
         const groups = new Map<string, GridLayoutItem[]>();
-        if (!tab.layout) return [];
-        tab.layout.forEach(item => {
+        validLayout.forEach(item => {
             const key = `${item.col},${item.row}`;
             if (!groups.has(key)) groups.set(key, []);
             groups.get(key)!.push(item);
@@ -393,7 +398,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         // Сортируем каждую группу, чтобы обеспечить стабильный порядок рендеринга для стеков
         groups.forEach(group => group.sort((a, b) => a.deviceId.localeCompare(b.deviceId)));
         return Array.from(groups.values());
-    }, [tab.layout]);
+    }, [validLayout]);
 
     // Не рендерим сетку, пока ее размеры не будут вычислены, чтобы избежать "схлопывания" в углу.
     if (gridMetrics.cellSize <= 0) {
@@ -419,13 +424,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                         {groupedLayout.map((group) => {
                             const firstItem = group[0];
                             if (!firstItem) return null;
-
-                            // Проверяем, существует ли хотя бы одно устройство в группе, прежде чем отрисовывать контейнер.
-                            // Это предотвращает появление "призрачных" пустых мест от удаленных устройств.
-                            const groupHasExistingDevices = group.some(item => allKnownDevices.has(item.deviceId));
-                            if (!groupHasExistingDevices) {
-                                return null;
-                            }
                             
                             const groupKey = group.map(i => i.deviceId).join('-');
                             
@@ -433,6 +431,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                                 <OccupiedCellWrapper key={groupKey} group={group} isEditMode={isEditMode} activeId={activeId} openMenuDeviceId={openMenuDeviceId} metrics={gridMetrics}>
                                     {group.map((item, index) => {
                                         const device = allKnownDevices.get(item.deviceId);
+                                        // Этот `if` теперь практически избыточен, но является дополнительной защитой.
                                         if (!device) return null;
 
                                         const custom = customizations[device.id];
