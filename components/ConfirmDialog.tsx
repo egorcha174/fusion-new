@@ -1,6 +1,4 @@
 
-
-
 import React from 'react';
 
 interface ConfirmDialogProps {
@@ -35,7 +33,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   return (
     <div
       // Оверлей, закрывающий диалог при клике на него
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-60 p-4 fade-in"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4 fade-in"
       onClick={onCancel}
     >
       <div
