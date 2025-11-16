@@ -28,6 +28,7 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
     const [lastResetDate, setLastResetDate] = useState<string | null>(null);
     const [fillColors, setFillColors] = useState<[string, string, string]>(['#22c55e', '#f59e0b', '#ef4444']);
     const [animation, setAnimation] = useState<'smooth' | 'wave' | 'bubbles' | 'none'>('smooth');
+    const [fillDirection, setFillDirection] = useState<'bottom-to-top' | 'top-to-bottom'>('bottom-to-top');
     const [showName, setShowName] = useState(false);
     const [nameFontSize, setNameFontSize] = useState<number | undefined>();
     const [namePosition, setNamePosition] = useState({ x: 50, y: 15 });
@@ -41,6 +42,7 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
             setLastResetDate(widget.lastResetDate);
             setFillColors(widget.fillColors || ['#22c55e', '#f59e0b', '#ef4444']);
             setAnimation(widget.animation || 'smooth');
+            setFillDirection(widget.fillDirection || 'bottom-to-top');
             setShowName(widget.showName || false);
             setNameFontSize(widget.nameFontSize);
             setNamePosition(widget.namePosition || { x: 50, y: 15 });
@@ -67,6 +69,7 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
             buttonText: 'Сброс',
             fillColors: fillColors,
             animation: animation,
+            fillDirection: fillDirection,
             showName: showName,
             nameFontSize,
             namePosition,
@@ -74,7 +77,7 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
             daysRemainingPosition,
         };
     }, [
-        widgetId, name, cycleDays, fillColors, animation, showName,
+        widgetId, name, cycleDays, fillColors, animation, fillDirection, showName,
         nameFontSize, namePosition, daysRemainingFontSize, daysRemainingPosition
     ]);
 
@@ -88,6 +91,7 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
             lastResetDate,
             fillColors,
             animation,
+            fillDirection,
             showName,
             nameFontSize,
             namePosition,
@@ -128,6 +132,12 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
                                 <option value="wave">Волна</option>
                                 <option value="bubbles">Пузырьки</option>
                                 <option value="none">Нет</option>
+                            </select>
+                        </LabeledInput>
+                        <LabeledInput label="Направление заливки">
+                            <select value={fillDirection} onChange={e => setFillDirection(e.target.value as 'bottom-to-top' | 'top-to-bottom')} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
+                                <option value="bottom-to-top">Снизу вверх</option>
+                                <option value="top-to-bottom">Сверху вниз</option>
                             </select>
                         </LabeledInput>
                         <div className="flex items-center justify-between">

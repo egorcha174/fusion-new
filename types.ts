@@ -1,7 +1,3 @@
-
-
-
-
 /**
  * Перечисление всех возможных типов устройств, используемых в приложении.
  * Это внутреннее представление, которое используется для определения иконки,
@@ -83,6 +79,7 @@ export interface Device {
   daysRemaining?: number;
   fillColors?: [string, string, string];
   animation?: 'wave' | 'smooth' | 'bubbles' | 'none';
+  fillDirection?: 'bottom-to-top' | 'top-to-bottom';
   showName?: boolean;
   nameFontSize?: number;
   namePosition?: { x: number; y: number };
@@ -137,6 +134,7 @@ export interface EventTimerWidget {
   icon?: string;
   fillColors?: [string, string, string];
   animation?: 'wave' | 'smooth' | 'bubbles' | 'none';
+  fillDirection?: 'bottom-to-top' | 'top-to-bottom';
   showName?: boolean;
   nameFontSize?: number;
   namePosition?: { x: number; y: number };

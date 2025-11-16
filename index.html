@@ -79,6 +79,19 @@
       opacity: 0;
     }
   }
+  @keyframes bubble-fall {
+    0% {
+      transform: translateY(0);
+      opacity: 0.8;
+    }
+    50% {
+      transform: translateX(var(--bubble-wobble, 10px));
+    }
+    100% {
+      transform: translateY(150%) scale(0.5);
+      opacity: 0;
+    }
+  }
 
   .animate-sunny { animation: sunny 4s ease-in-out infinite; }
   .animate-night { animation: night-twinkle 3s ease-in-out infinite; }

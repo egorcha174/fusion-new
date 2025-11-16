@@ -32,7 +32,7 @@ const interpolateColor = (color1: string, color2: string, factor: number): strin
     return rgbToHex(r, g, b);
 };
 
-const Bubbles = React.memo(() => {
+const Bubbles = React.memo<{ isTopDown?: boolean }>(({ isTopDown }) => {
     // Генерируем случайные свойства для пузырьков для создания естественного эффекта
     const bubbles = useMemo(() => Array.from({ length: 20 }).map((_, i) => ({
         id: i,
@@ -43,17 +43,20 @@ const Bubbles = React.memo(() => {
         wobble: `${(Math.random() - 0.5) * 20}px`
     })), []);
 
+    const animationName = isTopDown ? 'bubble-fall' : 'bubble-rise';
+    const positionClass = isTopDown ? 'top-0' : 'bottom-0';
+
     return (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
             {bubbles.map(bubble => (
                 <div
                     key={bubble.id}
-                    className="absolute bottom-0 rounded-full bg-white/20"
+                    className={`absolute rounded-full bg-white/20 ${positionClass}`}
                     style={{
                         left: bubble.left,
                         width: bubble.size,
                         height: bubble.size,
-                        animation: `bubble-rise ${bubble.duration} ${bubble.delay} infinite ease-in-out`,
+                        animation: `${animationName} ${bubble.duration} ${bubble.delay} infinite ease-in-out`,
                         '--bubble-wobble': bubble.wobble,
                     } as React.CSSProperties}
                 />
@@ -66,11 +69,12 @@ const Bubbles = React.memo(() => {
 const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, colorScheme, onContextMenu }) => {
     const { 
         fillPercentage = 0, daysRemaining = 0,
-        fillColors, animation, showName, name,
+        fillColors, animation, fillDirection, showName, name,
         nameFontSize, namePosition, daysRemainingFontSize, daysRemainingPosition 
     } = device;
 
     const effectiveAnimation = animation || 'smooth';
+    const effectiveFillDirection = fillDirection || 'bottom-to-top';
 
     const finalNamePosition = namePosition || { x: 50, y: 15 };
     const finalDaysPosition = daysRemainingPosition || { x: 50, y: 50 };
@@ -91,12 +95,14 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, col
     const fillColor = getFillColor(fillPercentage);
 
     const fillStyle: React.CSSProperties = {
-        height: `${100 - fillPercentage}%`,
+        height: `${fillPercentage}%`,
         backgroundColor: fillColor,
         transition: effectiveAnimation === 'smooth' 
             ? 'height 0.7s ease-in-out, background-color 0.5s linear' 
             : 'background-color 0.5s linear',
     };
+
+    const isTopDown = effectiveFillDirection === 'top-to-bottom';
 
     return (
         <div 
@@ -106,11 +112,11 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, col
         >
             {/* Слой с "жидкой" заливкой */}
             <div
-                className="absolute bottom-0 left-0 right-0"
+                className={`absolute left-0 right-0 ${isTopDown ? 'top-0' : 'bottom-0'}`}
                 style={fillStyle}
             >
                 {/* Условный рендеринг анимации пузырьков */}
-                {effectiveAnimation === 'bubbles' && <Bubbles />}
+                {effectiveAnimation === 'bubbles' && <Bubbles isTopDown={isTopDown} />}
 
                 {/* Условный рендеринг анимации волны */}
                 {effectiveAnimation === 'wave' && (
@@ -118,7 +124,13 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, col
                         className="absolute left-0 w-[200%] animate-wave"
                         viewBox="0 0 2000 50"
                         preserveAspectRatio="none"
-                        style={{ height: '50px', top: '-49px' }}
+                        style={{ 
+                            height: '50px', 
+                            ...(isTopDown 
+                                ? { bottom: '-49px', transform: 'scaleY(-1)' } 
+                                : { top: '-49px' }
+                            ) 
+                        }}
                     >
                         <path
                             d="M0,25 C300,50 700,0 1000,25 C1300,50 1700,0 2000,25 L2000,51 L0,51 Z"

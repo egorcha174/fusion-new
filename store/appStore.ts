@@ -259,6 +259,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             cycleDays: 14,
             lastResetDate: null,
             animation: 'smooth',
+            fillDirection: 'bottom-to-top',
         };
         get().setEventTimerWidgets([...get().eventTimerWidgets, newWidget]);
     },
