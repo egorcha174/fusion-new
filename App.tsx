@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
-import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet, GridLayoutItem } from './types';
+import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet, GridLayoutItem, EventTimerWidget } from './types';
 import { nanoid } from 'nanoid';
 import { useAppStore } from './store/appStore';
 import { useHAStore } from './store/haStore';
@@ -22,6 +22,8 @@ const ContextMenu = lazy(() => import('./components/ContextMenu.tsx'));
 const FloatingCameraWindow = lazy(() => import('./components/FloatingCameraWindow.tsx'));
 const TemplateEditorModal = lazy(() => import('./components/TemplateEditorModal.tsx'));
 const HistoryModal = lazy(() => import('./components/HistoryModal.tsx'));
+const EventTimerSettingsModal = lazy(() => import('./components/EventTimerSettingsModal.tsx'));
+const ConfirmDialog = lazy(() => import('./components/ConfirmDialog.tsx'));
 
 
 /**
@@ -185,12 +187,15 @@ const App: React.FC = () => {
         templates,
         sidebarWidth, setSidebarWidth, isSidebarVisible, theme,
         scheduleStartTime, scheduleEndTime,
-        colorScheme, getTemplateForDevice, createNewBlankTemplate
+        colorScheme, getTemplateForDevice, createNewBlankTemplate,
+        editingEventTimerId, setEditingEventTimerId, eventTimerWidgets,
+        resetCustomWidgetTimer, deleteCustomWidget,
     } = useAppStore();
 
     // Получение состояний модальных окон через хуки-селекторы для обеспечения реактивности
     const editingDevice = useAppStore(state => state.editingDevice);
     const floatingCamera = useAppStore(state => state.floatingCamera);
+    const [confirmingDeleteWidget, setConfirmingDeleteWidget] = useState<EventTimerWidget | null>(null);
 
 
   const isLg = useIsLg();
@@ -369,6 +374,7 @@ const App: React.FC = () => {
     const handleCloseTemplateEditor = useCallback(() => setEditingTemplate(null), [setEditingTemplate]);
     const handleCloseHistoryModal = useCallback(() => setHistoryModalEntityId(null), [setHistoryModalEntityId]);
     const handleCloseFloatingCamera = useCallback(() => setFloatingCamera(null), [setFloatingCamera]);
+    const handleCloseEventTimerSettings = useCallback(() => setEditingEventTimerId(null), [setEditingEventTimerId]);
 
   // --- Обработчики Контекстного Меню ---
 
@@ -538,6 +544,27 @@ const App: React.FC = () => {
               decimalPlaces={historyDecimalPlaces}
             />
           )}
+           
+          {editingEventTimerId && (
+            <EventTimerSettingsModal
+              widgetId={editingEventTimerId}
+              onClose={handleCloseEventTimerSettings}
+            />
+          )}
+           
+          {confirmingDeleteWidget && (
+            <ConfirmDialog
+              isOpen={!!confirmingDeleteWidget}
+              title="Удалить виджет?"
+              message={<>Вы уверены, что хотите удалить виджет <strong className="text-black dark:text-white">"{confirmingDeleteWidget.name}"</strong>? Он будет удален со всех вкладок. Это действие нельзя отменить.</>}
+              onConfirm={() => {
+                deleteCustomWidget(confirmingDeleteWidget.id);
+                setConfirmingDeleteWidget(null);
+              }}
+              onCancel={() => setConfirmingDeleteWidget(null)}
+              confirmText="Удалить"
+            />
+          )}
 
           {contextMenu && (
             <ContextMenu
@@ -546,82 +573,59 @@ const App: React.FC = () => {
               isOpen={!!contextMenu}
               onClose={handleCloseContextMenu}
             >
-                {/* Рендеринг пунктов контекстного меню для карточки устройства */}
-                {otherTabs.length > 0 && <div className="h-px bg-gray-300 dark:bg-gray-600/50 my-1" />}
-
-                {otherTabs.length > 0 && (
+                {contextMenuDevice?.type === DeviceType.EventTimer ? (
+                   <>
+                      <div onClick={() => { if(contextMenuDevice?.widgetId) setEditingEventTimerId(contextMenuDevice.widgetId); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80">Настроить виджет...</div>
+                      <div onClick={() => { if(contextMenuDevice?.widgetId) resetCustomWidgetTimer(contextMenuDevice.widgetId); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80">Сбросить таймер</div>
+                       <div className="h-px bg-gray-300 dark:bg-gray-600/50 my-1" />
+                      <div onClick={() => { const widget = eventTimerWidgets.find(w => w.id === contextMenuDevice?.widgetId); if (widget) setConfirmingDeleteWidget(widget); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md text-red-500 dark:text-red-400 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-300 cursor-pointer">Удалить виджет</div>
+                      <div className="h-px bg-gray-300 dark:bg-gray-600/50 my-1" />
+                   </>
+                ) : (
                     <>
-                        <SubMenuItem title="Копировать в...">
-                            {otherTabs.map(tab => (
-                                <div key={tab.id} onClick={() => { if (contextMenuDevice) useAppStore.getState().handleDeviceAddToTab(contextMenuDevice, tab.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80">{tab.name}</div>
-                            ))}
-                        </SubMenuItem>
+                        {/* Рендеринг пунктов контекстного меню для карточки устройства */}
+                        {otherTabs.length > 0 && <div className="h-px bg-gray-300 dark:bg-gray-600/50 my-1" />}
 
-                        <SubMenuItem title="Переместить в...">
-                             {otherTabs.map(tab => (
-                                <div key={tab.id} onClick={() => { if (contextMenuDevice) useAppStore.getState().handleDeviceMoveToTab(contextMenuDevice, contextMenu.tabId, tab.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80">{tab.name}</div>
+                        {otherTabs.length > 0 && (
+                            <>
+                                <SubMenuItem title="Копировать в...">
+                                    {otherTabs.map(tab => (
+                                        <div key={tab.id} onClick={() => { if (contextMenuDevice) useAppStore.getState().handleDeviceAddToTab(contextMenuDevice, tab.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80">{tab.name}</div>
+                                    ))}
+                                </SubMenuItem>
+
+                                <SubMenuItem title="Переместить в...">
+                                     {otherTabs.map(tab => (
+                                        <div key={tab.id} onClick={() => { if (contextMenuDevice) useAppStore.getState().handleDeviceMoveToTab(contextMenuDevice, contextMenu.tabId, tab.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80">{tab.name}</div>
+                                    ))}
+                                </SubMenuItem>
+                            </>
+                        )}
+                        <div className="h-px bg-gray-300 dark:bg-gray-600/50 my-1" />
+                        <SubMenuItem title="Размер">
+                            {[
+                                {w: 1, h: 1}, {w: 1, h: 0.5}, {w: 2, h: 1},
+                                {w: 2, h: 2}, {w: 3, h: 3}, {w: 2, h: 3}, {w: 3, h: 2}
+                            ].map(size => (
+                                <div key={`${size.w}x${size.h}`} onClick={() => { useAppStore.getState().handleDeviceResizeOnTab(contextMenu.tabId, contextMenu.deviceId, size.w, size.h); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80" >
+                                    {`${size.w} x ${String(size.h).replace('.', ',')}`}
+                                </div>
                             ))}
                         </SubMenuItem>
+                        <div className="h-px bg-gray-300 dark:bg-gray-600/50 my-1" />
+                        <div onClick={() => { const deviceToEdit = allKnownDevices.get(contextMenu.deviceId); if (deviceToEdit) setEditingDevice(deviceToEdit); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80" >
+                            Редактировать
+                        </div>
+                        {isTemplateable && currentTemplate && (
+                          <div onClick={() => { setEditingTemplate(currentTemplate); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80" >
+                              Редактировать шаблон
+                          </div>
+                        )}
                     </>
                 )}
-
-                <div className="h-px bg-gray-300 dark:bg-gray-600/50 my-1" />
-                
-                <SubMenuItem title="Размер">
-                    {[
-                        {w: 1, h: 1},
-                        {w: 1, h: 0.5},
-                        {w: 2, h: 1},
-                        {w: 2, h: 2}, 
-                        {w: 3, h: 3},
-                        {w: 2, h: 3},
-                        {w: 3, h: 2}
-                    ].map(size => (
-                        <div 
-                            key={`${size.w}x${size.h}`} 
-                            onClick={() => { 
-                                useAppStore.getState().handleDeviceResizeOnTab(contextMenu.tabId, contextMenu.deviceId, size.w, size.h); 
-                                handleCloseContextMenu(); 
-                            }} 
-                            className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80"
-                        >
-                            {`${size.w} x ${String(size.h).replace('.', ',')}`}
-                        </div>
-                    ))}
-                </SubMenuItem>
-
-                <div className="h-px bg-gray-300 dark:bg-gray-600/50 my-1" />
-                
-                <div 
-                  onClick={() => { 
-                    const deviceToEdit = allKnownDevices.get(contextMenu.deviceId);
-                    if (deviceToEdit) setEditingDevice(deviceToEdit);
-                    handleCloseContextMenu(); 
-                  }} 
-                  className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80"
-                >
-                    Редактировать
-                </div>
-
-                {isTemplateable && currentTemplate && (
-                  <div 
-                      onClick={() => { 
-                          setEditingTemplate(currentTemplate);
-                          handleCloseContextMenu(); 
-                      }} 
-                      className="px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80"
-                  >
-                      Редактировать шаблон
-                  </div>
-                )}
-
-                 <div 
-                    onClick={() => { useAppStore.getState().handleDeviceRemoveFromTab(contextMenu.deviceId, contextMenu.tabId); handleCloseContextMenu(); }} 
-                    className="px-3 py-1.5 rounded-md text-red-500 dark:text-red-400 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-300 cursor-pointer"
-                >
+                <div onClick={() => { useAppStore.getState().handleDeviceRemoveFromTab(contextMenu.deviceId, contextMenu.tabId); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md text-red-500 dark:text-red-400 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-300 cursor-pointer" >
                     Удалить с вкладки
                 </div>
-
             </ContextMenu>
           )}
 

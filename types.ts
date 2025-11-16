@@ -80,6 +80,8 @@ export interface Device {
   buttonText?: string;
   fillPercentage?: number;
   daysRemaining?: number;
+  fillColors?: [string, string, string];
+  animation?: 'wave' | 'smooth';
 }
 
 /**
@@ -127,6 +129,8 @@ export interface EventTimerWidget {
   lastResetDate: string | null;
   buttonText: string;
   icon?: string;
+  fillColors?: [string, string, string];
+  animation?: 'wave' | 'smooth';
 }
 
 /**

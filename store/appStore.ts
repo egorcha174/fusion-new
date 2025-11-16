@@ -38,6 +38,8 @@ interface AppState {
     contextMenu: { x: number, y: number, deviceId: string, tabId: string } | null;
     floatingCamera: Device | null;
     historyModalEntityId: string | null;
+    // FIX: Add editingEventTimerId to state for managing the event timer settings modal.
+    editingEventTimerId: string | null;
 
     tabs: Tab[];
     activeTabId: string | null;
@@ -71,6 +73,8 @@ interface AppActions {
     setContextMenu: (menu: AppState['contextMenu']) => void;
     setFloatingCamera: (device: Device | null) => void;
     setHistoryModalEntityId: (id: string | null) => void;
+    // FIX: Add setEditingEventTimerId to actions for managing the event timer settings modal.
+    setEditingEventTimerId: (id: string | null) => void;
 
     setTabs: (tabs: Tab[]) => void;
     setActiveTabId: (id: string | null) => void;
@@ -131,6 +135,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     contextMenu: null,
     floatingCamera: null,
     historyModalEntityId: null,
+    editingEventTimerId: null,
     
     tabs: loadAndMigrate<Tab[]>(LOCAL_STORAGE_KEYS.TABS, []),
     activeTabId: loadAndMigrate<string | null>(LOCAL_STORAGE_KEYS.ACTIVE_TAB, null),
@@ -163,6 +168,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     setContextMenu: (menu) => set({ contextMenu: menu }),
     setFloatingCamera: (device) => set({ floatingCamera: device }),
     setHistoryModalEntityId: (id) => set({ historyModalEntityId: id }),
+    setEditingEventTimerId: (id) => set({ editingEventTimerId: id }),
 
     // --- Actions with Persistence ---
     setTabs: (tabs) => {

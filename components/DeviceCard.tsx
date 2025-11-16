@@ -6,7 +6,7 @@ import ThermostatDial from './ThermostatDial';
 import { Icon } from '@iconify/react';
 import { CameraStreamContent } from './CameraStreamContent';
 import BatteryWidgetCard from './BatteryWidgetCard';
-import EventTimerWidgetCard from './SepticTankWidgetCard';
+import EventTimerWidgetCard from './EventTimerWidgetCard';
 import { motion, AnimatePresence } from 'framer-motion';
 
 /**
@@ -834,7 +834,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
       case DeviceType.BatteryWidget:
         return <BatteryWidgetCard colorScheme={colorScheme} />;
       case DeviceType.EventTimer:
-        return <EventTimerWidgetCard device={device} colorScheme={colorScheme} />;
+        return <EventTimerWidgetCard device={device} colorScheme={colorScheme} onContextMenu={onContextMenu} />;
       case DeviceType.DimmableLight:
         return (
           <div className="flex flex-col h-full">
