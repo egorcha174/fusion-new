@@ -250,7 +250,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             name: `Таймер ${get().eventTimerWidgets.length + 1}`,
             cycleDays: 14,
             lastResetDate: null,
-            buttonText: 'Сброс',
             animation: 'smooth',
         };
         get().setEventTimerWidgets([...get().eventTimerWidgets, newWidget]);

@@ -133,7 +133,7 @@ export interface EventTimerWidget {
   name: string;
   cycleDays: number;
   lastResetDate: string | null;
-  buttonText: string;
+  buttonText?: string;
   icon?: string;
   fillColors?: [string, string, string];
   animation?: 'wave' | 'smooth' | 'bubbles' | 'none';

@@ -25,7 +25,6 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
 
     const [name, setName] = useState('');
     const [cycleDays, setCycleDays] = useState(14);
-    const [buttonText, setButtonText] = useState('Сброс');
     const [lastResetDate, setLastResetDate] = useState<string | null>(null);
     const [fillColors, setFillColors] = useState<[string, string, string]>(['#22c55e', '#f59e0b', '#ef4444']);
     const [animation, setAnimation] = useState<'smooth' | 'wave' | 'bubbles' | 'none'>('smooth');
@@ -39,7 +38,6 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
         if (widget) {
             setName(widget.name);
             setCycleDays(widget.cycleDays);
-            setButtonText(widget.buttonText);
             setLastResetDate(widget.lastResetDate);
             setFillColors(widget.fillColors || ['#22c55e', '#f59e0b', '#ef4444']);
             setAnimation(widget.animation || 'smooth');
@@ -66,7 +64,7 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
             daysRemaining: daysRemaining,
             state: 'active',
             widgetId: widgetId,
-            buttonText: buttonText,
+            buttonText: 'Сброс',
             fillColors: fillColors,
             animation: animation,
             showName: showName,
@@ -76,7 +74,7 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
             daysRemainingPosition,
         };
     }, [
-        widgetId, name, cycleDays, buttonText, fillColors, animation, showName,
+        widgetId, name, cycleDays, fillColors, animation, showName,
         nameFontSize, namePosition, daysRemainingFontSize, daysRemainingPosition
     ]);
 
@@ -87,7 +85,6 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
         updateCustomWidget(widget.id, {
             name: name.trim() || "Безымянный таймер",
             cycleDays: cycleDays > 0 ? cycleDays : 1,
-            buttonText: buttonText.trim() || "Сброс",
             lastResetDate,
             fillColors,
             animation,
@@ -118,9 +115,6 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
                     <div className="w-1/2 p-6 space-y-4 max-h-[70vh] overflow-y-auto no-scrollbar border-r border-gray-200 dark:border-gray-700">
                         <LabeledInput label="Название">
                             <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                        </LabeledInput>
-                        <LabeledInput label="Текст кнопки сброса">
-                            <input type="text" value={buttonText} onChange={e => setButtonText(e.target.value)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                         </LabeledInput>
                         <LabeledInput label="Интервал (дней)">
                             <input type="number" min="1" value={cycleDays} onChange={e => setCycleDays(parseInt(e.target.value, 10) || 1)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
