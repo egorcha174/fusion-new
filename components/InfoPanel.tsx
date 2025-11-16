@@ -6,7 +6,6 @@ import WeatherWidget from './WeatherWidget';
 import { useAppStore } from '../store/appStore';
 import { useHAStore } from '../store/haStore';
 import { Icon } from '@iconify/react';
-import SepticTimerCard from './SepticTimerCard';
 
 interface ClockProps {
     settings: ClockSettings;
@@ -225,8 +224,6 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, ca
                     colorScheme={colorScheme}
                 />
             </div>
-
-                             <SepticTimerCard colorScheme={colorScheme} />
 
             {/* Невидимый элемент для захвата мыши при изменении размера */}
             <div
