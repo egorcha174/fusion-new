@@ -59,7 +59,6 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, col
     const fillColor = getFillColor(fillPercentage);
     
     // SVG-путь для создания "волнистого" края
-    const wavePath = "M0,25 C150,50 350,0 500,25 L500,51 L0,51 Z";
     const waveAnimationClass = animation === 'wave' ? 'animate-wave' : '';
 
     return (
@@ -79,12 +78,12 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, col
                 {/* SVG для создания волнистого края */}
                 <svg
                     className={`absolute left-0 w-[200%] ${waveAnimationClass}`} // Ширина 200% для плавной анимации
-                    viewBox="0 0 1000 50" // viewBox увеличен вдвое по ширине
+                    viewBox="0 0 2000 50" // viewBox увеличен вдвое по ширине
                     preserveAspectRatio="none"
                     style={{ height: '50px', top: '-49px' }} // -49px чтобы избежать щели
                 >
                     <path
-                        d="M0,25 C300,50 700,0 1000,25 L1000,51 L0,51 Z" // Путь также увеличен
+                        d="M0,25 C300,50 700,0 1000,25 C1300,50 1700,0 2000,25 L2000,51 L0,51 Z" // Путь также увеличен
                         style={{ stroke: 'none', fill: fillColor, transition: 'fill 0.5s linear' }}
                     />
                 </svg>
