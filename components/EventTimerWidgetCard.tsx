@@ -34,29 +34,31 @@ const interpolateColor = (color1: string, color2: string, factor: number): strin
 
 const Bubbles = React.memo(() => {
     // Генерируем случайные свойства для пузырьков для создания естественного эффекта
-    const bubbles = useMemo(() => Array.from({ length: 20 }).map((_, i) => ({
-        id: i,
-        left: `${Math.random() * 100}%`,
-        size: `${Math.random() * 12 + 4}px`, // Размер от 4px до 16px
-        duration: `${Math.random() * 8 + 4}s`, // Продолжительность от 4s до 12s
-        delay: `${Math.random() * 8}s`, // Задержка до 8s
-        wobble: `${(Math.random() - 0.5) * 20}px`
-    })), []);
-
-    const animationName = 'bubble-rise';
-    const positionClass = 'bottom-0';
+    const bubbles = useMemo(() => Array.from({ length: 20 }).map((_, i) => {
+        const willRise = Math.random() > 0.4; // 60% пузырьков будут всплывать доверху
+        return {
+            id: i,
+            left: `${Math.random() * 100}%`,
+            size: `${Math.random() * 12 + 4}px`, // Размер от 4px до 16px
+            duration: willRise ? `${Math.random() * 8 + 6}s` : `${Math.random() * 3 + 2}s`, // Всплывающие медленнее, лопающиеся быстрее
+            delay: `${Math.random() * 10}s`, // Задержка до 10s
+            wobble: `${(Math.random() - 0.5) * 20}px`,
+            animationName: willRise ? 'bubble-rise' : 'bubble-pop',
+            positionClass: 'bottom-0' // Все пузырьки появляются снизу
+        };
+    }), []);
 
     return (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
             {bubbles.map(bubble => (
                 <div
                     key={bubble.id}
-                    className={`absolute rounded-full bg-white/20 ${positionClass}`}
+                    className={`absolute rounded-full bg-white/20 ${bubble.positionClass}`}
                     style={{
                         left: bubble.left,
                         width: bubble.size,
                         height: bubble.size,
-                        animation: `${animationName} ${bubble.duration} ${bubble.delay} infinite ease-in-out`,
+                        animation: `${bubble.animationName} ${bubble.duration} ${bubble.delay} infinite ease-in-out`,
                         '--bubble-wobble': bubble.wobble,
                     } as React.CSSProperties}
                 />
