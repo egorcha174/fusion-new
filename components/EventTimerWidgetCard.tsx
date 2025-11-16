@@ -32,7 +32,7 @@ const interpolateColor = (color1: string, color2: string, factor: number): strin
     return rgbToHex(r, g, b);
 };
 
-const Bubbles = React.memo<{ isTopDown?: boolean }>(({ isTopDown }) => {
+const Bubbles = React.memo(() => {
     // Генерируем случайные свойства для пузырьков для создания естественного эффекта
     const bubbles = useMemo(() => Array.from({ length: 20 }).map((_, i) => ({
         id: i,
@@ -43,8 +43,8 @@ const Bubbles = React.memo<{ isTopDown?: boolean }>(({ isTopDown }) => {
         wobble: `${(Math.random() - 0.5) * 20}px`
     })), []);
 
-    const animationName = isTopDown ? 'bubble-fall' : 'bubble-rise';
-    const positionClass = isTopDown ? 'top-0' : 'bottom-0';
+    const animationName = 'bubble-rise';
+    const positionClass = 'bottom-0';
 
     return (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -93,16 +93,18 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, col
     };
 
     const fillColor = getFillColor(fillPercentage);
+    
+    const isTopDown = effectiveFillDirection === 'top-to-bottom';
+    // Если "сверху вниз", то визуальный процент заполнения - это инверсия прошедшего времени (эффект опустошения)
+    const visualFillPercentage = isTopDown ? 100 - fillPercentage : fillPercentage;
 
     const fillStyle: React.CSSProperties = {
-        height: `${fillPercentage}%`,
+        height: `${visualFillPercentage}%`,
         backgroundColor: fillColor,
         transition: effectiveAnimation === 'smooth' 
             ? 'height 0.7s ease-in-out, background-color 0.5s linear' 
             : 'background-color 0.5s linear',
     };
-
-    const isTopDown = effectiveFillDirection === 'top-to-bottom';
 
     return (
         <div 
@@ -110,15 +112,15 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, col
             style={{ backgroundColor: colorScheme.cardBackground }}
             onContextMenu={onContextMenu}
         >
-            {/* Слой с "жидкой" заливкой */}
+            {/* Слой с "жидкой" заливкой, всегда спозиционированный снизу */}
             <div
-                className={`absolute left-0 right-0 ${isTopDown ? 'top-0' : 'bottom-0'}`}
+                className={`absolute bottom-0 left-0 right-0`}
                 style={fillStyle}
             >
-                {/* Условный рендеринг анимации пузырьков */}
-                {effectiveAnimation === 'bubbles' && <Bubbles isTopDown={isTopDown} />}
+                {/* Пузырьки всегда поднимаются снизу */}
+                {effectiveAnimation === 'bubbles' && <Bubbles />}
 
-                {/* Условный рендеринг анимации волны */}
+                {/* Волна всегда располагается наверху жидкой части */}
                 {effectiveAnimation === 'wave' && (
                     <svg
                         className="absolute left-0 w-[200%] animate-wave"
@@ -126,10 +128,7 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, col
                         preserveAspectRatio="none"
                         style={{ 
                             height: '50px', 
-                            ...(isTopDown 
-                                ? { bottom: '-49px', transform: 'scaleY(-1)' } 
-                                : { top: '-49px' }
-                            ) 
+                            top: '-49px'
                         }}
                     >
                         <path
