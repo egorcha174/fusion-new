@@ -82,7 +82,7 @@ export interface Device {
   fillPercentage?: number;
   daysRemaining?: number;
   fillColors?: [string, string, string];
-  animation?: 'wave' | 'smooth';
+  animation?: 'wave' | 'smooth' | 'bubbles' | 'none';
   showName?: boolean;
   nameFontSize?: number;
   namePosition?: { x: number; y: number };
@@ -136,7 +136,7 @@ export interface EventTimerWidget {
   buttonText: string;
   icon?: string;
   fillColors?: [string, string, string];
-  animation?: 'wave' | 'smooth';
+  animation?: 'wave' | 'smooth' | 'bubbles' | 'none';
   showName?: boolean;
   nameFontSize?: number;
   namePosition?: { x: number; y: number };

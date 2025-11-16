@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Device, ColorThemeSet } from '../types';
 
 interface EventTimerWidgetCardProps {
@@ -32,6 +32,36 @@ const interpolateColor = (color1: string, color2: string, factor: number): strin
     return rgbToHex(r, g, b);
 };
 
+const Bubbles = React.memo(() => {
+    // Генерируем случайные свойства для пузырьков для создания естественного эффекта
+    const bubbles = useMemo(() => Array.from({ length: 20 }).map((_, i) => ({
+        id: i,
+        left: `${Math.random() * 100}%`,
+        size: `${Math.random() * 12 + 4}px`, // Размер от 4px до 16px
+        duration: `${Math.random() * 8 + 4}s`, // Продолжительность от 4s до 12s
+        delay: `${Math.random() * 8}s`, // Задержка до 8s
+        wobble: `${(Math.random() - 0.5) * 20}px`
+    })), []);
+
+    return (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {bubbles.map(bubble => (
+                <div
+                    key={bubble.id}
+                    className="absolute bottom-0 rounded-full bg-white/20"
+                    style={{
+                        left: bubble.left,
+                        width: bubble.size,
+                        height: bubble.size,
+                        animation: `bubble-rise ${bubble.duration} ${bubble.delay} infinite ease-in-out`,
+                        '--bubble-wobble': bubble.wobble,
+                    } as React.CSSProperties}
+                />
+            ))}
+        </div>
+    );
+});
+
 
 const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, colorScheme, onContextMenu }) => {
     const { 
@@ -39,6 +69,8 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, col
         fillColors, animation, showName, name,
         nameFontSize, namePosition, daysRemainingFontSize, daysRemainingPosition 
     } = device;
+
+    const effectiveAnimation = animation || 'smooth';
 
     const finalNamePosition = namePosition || { x: 50, y: 15 };
     const finalDaysPosition = daysRemainingPosition || { x: 50, y: 50 };
@@ -57,9 +89,14 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, col
     };
 
     const fillColor = getFillColor(fillPercentage);
-    
-    // SVG-путь для создания "волнистого" края
-    const waveAnimationClass = animation === 'wave' ? 'animate-wave' : '';
+
+    const fillStyle: React.CSSProperties = {
+        height: `${fillPercentage}%`,
+        backgroundColor: fillColor,
+        transition: effectiveAnimation === 'smooth' 
+            ? 'height 0.7s ease-in-out, background-color 0.5s linear' 
+            : 'background-color 0.5s linear',
+    };
 
     return (
         <div 
@@ -70,23 +107,25 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, col
             {/* Слой с "жидкой" заливкой */}
             <div
                 className="absolute bottom-0 left-0 right-0"
-                style={{ height: `${fillPercentage}%`, transition: animation === 'smooth' ? 'height 0.7s ease-in-out' : 'none' }}
+                style={fillStyle}
             >
-                {/* Основной цвет заливки под волной */}
-                <div className="absolute inset-0" style={{ backgroundColor: fillColor, transition: 'background-color 0.5s linear' }} />
+                {/* Условный рендеринг анимации пузырьков */}
+                {effectiveAnimation === 'bubbles' && <Bubbles />}
 
-                {/* SVG для создания волнистого края */}
-                <svg
-                    className={`absolute left-0 w-[200%] ${waveAnimationClass}`} // Ширина 200% для плавной анимации
-                    viewBox="0 0 2000 50" // viewBox увеличен вдвое по ширине
-                    preserveAspectRatio="none"
-                    style={{ height: '50px', top: '-49px' }} // -49px чтобы избежать щели
-                >
-                    <path
-                        d="M0,25 C300,50 700,0 1000,25 C1300,50 1700,0 2000,25 L2000,51 L0,51 Z" // Путь также увеличен
-                        style={{ stroke: 'none', fill: fillColor, transition: 'fill 0.5s linear' }}
-                    />
-                </svg>
+                {/* Условный рендеринг анимации волны */}
+                {effectiveAnimation === 'wave' && (
+                    <svg
+                        className="absolute left-0 w-[200%] animate-wave"
+                        viewBox="0 0 2000 50"
+                        preserveAspectRatio="none"
+                        style={{ height: '50px', top: '-49px' }}
+                    >
+                        <path
+                            d="M0,25 C300,50 700,0 1000,25 C1300,50 1700,0 2000,25 L2000,51 L0,51 Z"
+                            style={{ stroke: 'none', fill: fillColor, transition: 'fill 0.5s linear' }}
+                        />
+                    </svg>
+                )}
             </div>
 
             {/* Слой с контентом */}

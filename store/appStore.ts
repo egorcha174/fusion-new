@@ -251,6 +251,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             cycleDays: 14,
             lastResetDate: null,
             buttonText: 'Сброс',
+            animation: 'smooth',
         };
         get().setEventTimerWidgets([...get().eventTimerWidgets, newWidget]);
     },
@@ -409,7 +410,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
                 
                 // A stack of two is the maximum. If there's already one item, placing another is allowed.
                 if (itemsAtOrigin.length < 2) {
-                    continue; // This overlap is an allowed stack formation.
+                    continue; // This overlap is an allowed exception.
                 }
             }
             
