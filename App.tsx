@@ -549,6 +549,7 @@ const App: React.FC = () => {
             <EventTimerSettingsModal
               widgetId={editingEventTimerId}
               onClose={handleCloseEventTimerSettings}
+              currentColorScheme={currentColorScheme}
             />
           )}
            
