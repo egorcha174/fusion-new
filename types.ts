@@ -84,6 +84,10 @@ export interface Device {
   fillColors?: [string, string, string];
   animation?: 'wave' | 'smooth';
   showName?: boolean;
+  nameFontSize?: number;
+  namePosition?: { x: number; y: number };
+  daysRemainingFontSize?: number;
+  daysRemainingPosition?: { x: number; y: number };
 }
 
 /**
@@ -134,6 +138,10 @@ export interface EventTimerWidget {
   fillColors?: [string, string, string];
   animation?: 'wave' | 'smooth';
   showName?: boolean;
+  nameFontSize?: number;
+  namePosition?: { x: number; y: number };
+  daysRemainingFontSize?: number;
+  daysRemainingPosition?: { x: number; y: number };
 }
 
 /**

@@ -37,7 +37,15 @@ const interpolateColor = (color1: string, color2: string, factor: number): strin
 const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, colorScheme, onContextMenu }) => {
     const { resetCustomWidgetTimer } = useAppStore();
 
-    const { fillPercentage = 0, daysRemaining = 0, widgetId, buttonText = "Сброс", fillColors, animation, showName, name } = device;
+    const { 
+        fillPercentage = 0, daysRemaining = 0, widgetId, buttonText = "Сброс", 
+        fillColors, animation, showName, name,
+        nameFontSize, namePosition, daysRemainingFontSize, daysRemainingPosition 
+    } = device;
+
+    const finalNamePosition = namePosition || { x: 50, y: 15 };
+    const finalDaysPosition = daysRemainingPosition || { x: 50, y: 50 };
+    const finalButtonPosition = { x: 50, y: 92 };
 
     // Функция для определения цвета заливки в зависимости от процента и настроек
     const getFillColor = (percentage: number): string => {
@@ -94,31 +102,47 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, col
             </div>
 
             {/* Слой с контентом */}
-            <div className="relative w-full h-full flex flex-col items-center p-4">
-                 {/* Title */}
-                <div className="h-8 flex-shrink-0 text-center pt-1">
-                    {showName && (
-                        <p 
-                            className="font-semibold text-lg" 
-                            style={{ textShadow: '0 1px 5px rgba(0,0,0,0.4)', color: colorScheme.nameTextColorOn }}
-                        >
+            <div className="relative w-full h-full p-4">
+                {showName && (
+                    <div 
+                        className="absolute -translate-x-1/2 -translate-y-1/2 text-center"
+                        style={{
+                            top: `${finalNamePosition.y}%`,
+                            left: `${finalNamePosition.x}%`,
+                            color: colorScheme.nameTextColorOn,
+                            textShadow: '0 1px 5px rgba(0,0,0,0.4)',
+                        }}
+                    >
+                        <p className="font-semibold" style={{ fontSize: nameFontSize ? `${nameFontSize}px` : '1.125rem' }}>
                             {name}
                         </p>
-                    )}
-                </div>
+                    </div>
+                )}
 
-                {/* Number */}
-                <div className="flex-grow flex items-center justify-center">
+                <div 
+                    className="absolute -translate-x-1/2 -translate-y-1/2"
+                    style={{
+                        top: `${finalDaysPosition.y}%`,
+                        left: `${finalDaysPosition.x}%`,
+                        color: colorScheme.nameTextColorOn,
+                        textShadow: '0 2px 10px rgba(0,0,0,0.5)',
+                    }}
+                >
                     <p 
-                        className="text-8xl xl:text-9xl font-bold tracking-tighter -mt-4" 
-                        style={{ textShadow: '0 2px 10px rgba(0,0,0,0.5)', color: colorScheme.nameTextColorOn }}
+                        className="font-bold tracking-tighter"
+                        style={{ fontSize: daysRemainingFontSize ? `${daysRemainingFontSize}px` : '5.5rem' }}
                     >
                         {daysRemaining}
                     </p>
                 </div>
                 
-                {/* Button */}
-                <div className="h-8 flex-shrink-0 text-center pb-1">
+                <div 
+                    className="absolute -translate-x-1/2 -translate-y-1/2"
+                    style={{
+                        top: `${finalButtonPosition.y}%`,
+                        left: `${finalButtonPosition.x}%`
+                    }}
+                >
                     <button
                         onClick={handleReset}
                         className="text-lg font-semibold hover:opacity-80 transition-opacity"

@@ -165,7 +165,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
 
       // FIX: Loop through all event timer widgets and create a device for each.
       eventTimerWidgets.forEach(widget => {
-        const { id, name, lastResetDate, cycleDays, buttonText, fillColors, animation, showName } = widget;
+        const { id, name, lastResetDate, cycleDays, buttonText, fillColors, animation, showName, nameFontSize, namePosition, daysRemainingFontSize, daysRemainingPosition } = widget;
         let timerDevice: Device;
 
         if (lastResetDate) {
@@ -190,6 +190,10 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                 fillColors: fillColors,
                 animation: animation,
                 showName: showName,
+                nameFontSize,
+                namePosition,
+                daysRemainingFontSize,
+                daysRemainingPosition,
             };
         } else {
             timerDevice = {
@@ -207,6 +211,10 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                 fillColors: fillColors,
                 animation: animation,
                 showName: showName,
+                nameFontSize,
+                namePosition,
+                daysRemainingFontSize,
+                daysRemainingPosition,
             };
         }
         deviceMap.set(timerDevice.id, timerDevice);

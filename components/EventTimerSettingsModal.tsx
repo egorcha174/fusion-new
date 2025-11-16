@@ -28,6 +28,10 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
     const [fillColors, setFillColors] = useState<[string, string, string]>(['#22c55e', '#f59e0b', '#ef4444']);
     const [animation, setAnimation] = useState<'smooth' | 'wave'>('smooth');
     const [showName, setShowName] = useState(false);
+    const [nameFontSize, setNameFontSize] = useState<number | undefined>();
+    const [namePosition, setNamePosition] = useState({ x: 50, y: 15 });
+    const [daysRemainingFontSize, setDaysRemainingFontSize] = useState<number | undefined>();
+    const [daysRemainingPosition, setDaysRemainingPosition] = useState({ x: 50, y: 50 });
 
     useEffect(() => {
         if (widget) {
@@ -38,6 +42,10 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
             setFillColors(widget.fillColors || ['#22c55e', '#f59e0b', '#ef4444']);
             setAnimation(widget.animation || 'smooth');
             setShowName(widget.showName || false);
+            setNameFontSize(widget.nameFontSize);
+            setNamePosition(widget.namePosition || { x: 50, y: 15 });
+            setDaysRemainingFontSize(widget.daysRemainingFontSize);
+            setDaysRemainingPosition(widget.daysRemainingPosition || { x: 50, y: 50 });
         }
     }, [widget]);
 
@@ -52,6 +60,10 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
             fillColors,
             animation,
             showName,
+            nameFontSize,
+            namePosition,
+            daysRemainingFontSize,
+            daysRemainingPosition,
         });
         onClose();
     };
@@ -108,6 +120,39 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
                                </div>
                            ))}
                            <div className="flex-1 h-12 rounded-md" style={{ background: `linear-gradient(to right, ${fillColors[0]}, ${fillColors[1]}, ${fillColors[2]})` }}/>
+                        </div>
+                    </div>
+                     <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">Расположение элементов</h3>
+                        
+                        <div className="space-y-2 bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg">
+                            <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Название</p>
+                            <LabeledInput label="Размер шрифта (px)">
+                                <input type="number" placeholder="Авто (18px)" value={nameFontSize ?? ''} onChange={e => setNameFontSize(e.target.value ? parseInt(e.target.value) : undefined)} className="w-full bg-white dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                            </LabeledInput>
+                            <div className="grid grid-cols-2 gap-2">
+                                <LabeledInput label="Позиция X (%)">
+                                    <input type="number" min="0" max="100" value={namePosition.x} onChange={e => setNamePosition(p => ({ ...p, x: parseInt(e.target.value) || 0 }))} className="w-full bg-white dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                                </LabeledInput>
+                                <LabeledInput label="Позиция Y (%)">
+                                    <input type="number" min="0" max="100" value={namePosition.y} onChange={e => setNamePosition(p => ({ ...p, y: parseInt(e.target.value) || 0 }))} className="w-full bg-white dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                                </LabeledInput>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2 bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg mt-3">
+                            <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Оставшиеся дни</p>
+                            <LabeledInput label="Размер шрифта (px)">
+                                <input type="number" placeholder="Авто (88px)" value={daysRemainingFontSize ?? ''} onChange={e => setDaysRemainingFontSize(e.target.value ? parseInt(e.target.value) : undefined)} className="w-full bg-white dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                            </LabeledInput>
+                            <div className="grid grid-cols-2 gap-2">
+                                <LabeledInput label="Позиция X (%)">
+                                    <input type="number" min="0" max="100" value={daysRemainingPosition.x} onChange={e => setDaysRemainingPosition(p => ({ ...p, x: parseInt(e.target.value) || 0 }))} className="w-full bg-white dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                                </LabeledInput>
+                                <LabeledInput label="Позиция Y (%)">
+                                    <input type="number" min="0" max="100" value={daysRemainingPosition.y} onChange={e => setDaysRemainingPosition(p => ({ ...p, y: parseInt(e.target.value) || 0 }))} className="w-full bg-white dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                                </LabeledInput>
+                            </div>
                         </div>
                     </div>
                 </div>
