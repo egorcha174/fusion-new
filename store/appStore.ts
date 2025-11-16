@@ -25,6 +25,7 @@ import {
     DEFAULT_CLIMATE_TEMPLATE_ID,
     DEFAULT_HUMIDIFIER_TEMPLATE_ID
 } from '../config/defaults';
+import { set as setAtPath } from '../utils/obj-path';
 
 
 // --- State and Actions Interfaces ---
@@ -88,6 +89,7 @@ interface AppActions {
     setScheduleStartTime: (time: string) => void;
     setScheduleEndTime: (time: string) => void;
     setColorScheme: (scheme: ColorScheme) => void;
+    updateColorSchemeValue: (path: string, value: any) => void;
     setWeatherProvider: (provider: AppState['weatherProvider']) => void;
     setOpenWeatherMapKey: (key: string) => void;
     setYandexWeatherKey: (key: string) => void;
@@ -218,6 +220,12 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     setColorScheme: (scheme) => {
         set({ colorScheme: scheme });
         localStorage.setItem(LOCAL_STORAGE_KEYS.COLOR_SCHEME, JSON.stringify(scheme));
+    },
+    updateColorSchemeValue: (path, value) => {
+        // Deep clone to avoid mutation issues
+        const newScheme = JSON.parse(JSON.stringify(get().colorScheme));
+        setAtPath(newScheme, path, value);
+        get().setColorScheme(newScheme);
     },
     setWeatherProvider: (provider) => {
         set({ weatherProvider: provider });

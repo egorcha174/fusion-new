@@ -176,6 +176,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
         scheduleStartTime, setScheduleStartTime,
         scheduleEndTime, setScheduleEndTime,
         colorScheme, setColorScheme, onResetColorScheme, DEFAULT_COLOR_SCHEME,
+        updateColorSchemeValue,
         weatherProvider, setWeatherProvider,
         openWeatherMapKey, setOpenWeatherMapKey,
         yandexWeatherKey, setYandexWeatherKey,
@@ -315,6 +316,98 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
         </div>
     );
     
+    const [activeEditorTab, setActiveEditorTab] = useState<'light' | 'dark'>('light');
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, themeType: 'light' | 'dark') => {
+        const file = e.target.files?.[0];
+        if (!file || !file.type.startsWith('image')) return;
+        
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            updateColorSchemeValue(`${themeType}.dashboardBackgroundImage`, reader.result as string);
+        };
+        reader.readAsDataURL(file);
+    };
+    
+    const ColorInput: React.FC<{ label: string; path: string; value: string; }> = ({ label, path, value }) => (
+        <div className="grid grid-cols-2 items-center gap-4">
+            <label className="text-sm text-gray-700 dark:text-gray-300 truncate">{label}</label>
+            <input type="color" value={value || '#000000'} onChange={e => updateColorSchemeValue(path, e.target.value)} className="w-10 h-10 p-0 border-none rounded-md cursor-pointer bg-transparent"/>
+        </div>
+    );
+    
+    const RangeInput: React.FC<{ label: string; path: string; value: number; min: number; max: number; step: number; unit?: string; }> = ({ label, path, value, min, max, step, unit }) => (
+        <div className="grid grid-cols-2 items-center gap-4">
+            <label className="text-sm text-gray-700 dark:text-gray-300 truncate">{label}</label>
+            <div className="flex items-center gap-2">
+                <input type="range" min={min} max={max} step={step} value={value} onChange={e => updateColorSchemeValue(path, parseFloat(e.target.value))} className="w-full accent-blue-500"/>
+                <span className="text-xs font-mono text-gray-500 dark:text-gray-400">{value}{unit}</span>
+            </div>
+        </div>
+    );
+
+    const ThemeEditor: React.FC<{ themeType: 'light' | 'dark' }> = ({ themeType }) => {
+        const scheme = colorScheme[themeType];
+        const pathPrefix = themeType;
+
+        return (
+            <div className="space-y-4">
+                <Section title="Фон дашборда" defaultOpen={false}>
+                    <LabeledInput label="Тип фона">
+                        <select value={scheme.dashboardBackgroundType} onChange={e => updateColorSchemeValue(`${pathPrefix}.dashboardBackgroundType`, e.target.value)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm">
+                            <option value="color">Сплошной цвет</option>
+                            <option value="gradient">Градиент</option>
+                            <option value="image">Изображение</option>
+                        </select>
+                    </LabeledInput>
+                    {scheme.dashboardBackgroundType === 'image' ? (
+                        <>
+                            <LabeledInput label="Загрузить фон"><input type="file" accept="image/*" onChange={e => handleImageUpload(e, themeType)} className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/></LabeledInput>
+                            <RangeInput label="Размытие" path={`${pathPrefix}.dashboardBackgroundImageBlur`} value={scheme.dashboardBackgroundImageBlur || 0} min={0} max={50} step={1} unit="px" />
+                            <RangeInput label="Яркость" path={`${pathPrefix}.dashboardBackgroundImageBrightness`} value={scheme.dashboardBackgroundImageBrightness || 100} min={0} max={200} step={5} unit="%" />
+                        </>
+                    ) : (
+                         <>
+                            <ColorInput label="Цвет 1" path={`${pathPrefix}.dashboardBackgroundColor1`} value={scheme.dashboardBackgroundColor1} />
+                            {scheme.dashboardBackgroundType === 'gradient' && <ColorInput label="Цвет 2" path={`${pathPrefix}.dashboardBackgroundColor2`} value={scheme.dashboardBackgroundColor2 || '#ffffff'} />}
+                         </>
+                    )}
+                </Section>
+                 <Section title="Прозрачность" defaultOpen={false}>
+                    <RangeInput label="Карточки" path={`${pathPrefix}.cardOpacity`} value={scheme.cardOpacity || 1} min={0} max={1} step={0.05} />
+                    <RangeInput label="Панели" path={`${pathPrefix}.panelOpacity`} value={scheme.panelOpacity || 1} min={0} max={1} step={0.05} />
+                </Section>
+                <Section title="Карточки" defaultOpen={false}>
+                    <ColorInput label="Фон (Выкл)" path={`${pathPrefix}.cardBackground`} value={scheme.cardBackground} />
+                    <ColorInput label="Фон (Вкл)" path={`${pathPrefix}.cardBackgroundOn`} value={scheme.cardBackgroundOn} />
+                    <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 pt-2">Текст (Выкл)</h4>
+                    <ColorInput label="Название" path={`${pathPrefix}.nameTextColor`} value={scheme.nameTextColor} />
+                    <ColorInput label="Статус" path={`${pathPrefix}.statusTextColor`} value={scheme.statusTextColor} />
+                    <ColorInput label="Значение" path={`${pathPrefix}.valueTextColor`} value={scheme.valueTextColor} />
+                    <ColorInput label="Ед. изм." path={`${pathPrefix}.unitTextColor`} value={scheme.unitTextColor} />
+                     <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 pt-2">Текст (Вкл)</h4>
+                    <ColorInput label="Название" path={`${pathPrefix}.nameTextColorOn`} value={scheme.nameTextColorOn} />
+                    <ColorInput label="Статус" path={`${pathPrefix}.statusTextColorOn`} value={scheme.statusTextColorOn} />
+                    <ColorInput label="Значение" path={`${pathPrefix}.valueTextColorOn`} value={scheme.valueTextColorOn} />
+                    <ColorInput label="Ед. изм." path={`${pathPrefix}.unitTextColorOn`} value={scheme.unitTextColorOn} />
+                </Section>
+                 <Section title="Интерфейс" defaultOpen={false}>
+                    <ColorInput label="Текст вкладок" path={`${pathPrefix}.tabTextColor`} value={scheme.tabTextColor} />
+                    <ColorInput label="Активная вкладка" path={`${pathPrefix}.activeTabTextColor`} value={scheme.activeTabTextColor} />
+                    <ColorInput label="Индикатор вкладки" path={`${pathPrefix}.tabIndicatorColor`} value={scheme.tabIndicatorColor} />
+                    <ColorInput label="Цвет часов" path={`${pathPrefix}.clockTextColor`} value={scheme.clockTextColor} />
+                </Section>
+                <Section title="Термостат" defaultOpen={false}>
+                    <ColorInput label="Ручка" path={`${pathPrefix}.thermostatHandleColor`} value={scheme.thermostatHandleColor} />
+                    <ColorInput label="Текст цели" path={`${pathPrefix}.thermostatDialTextColor`} value={scheme.thermostatDialTextColor} />
+                    <ColorInput label="Подпись цели" path={`${pathPrefix}.thermostatDialLabelColor`} value={scheme.thermostatDialLabelColor} />
+                    <ColorInput label="Цвет нагрева" path={`${pathPrefix}.thermostatHeatingColor`} value={scheme.thermostatHeatingColor} />
+                    <ColorInput label="Цвет охлаждения" path={`${pathPrefix}.thermostatCoolingColor`} value={scheme.thermostatCoolingColor} />
+                </Section>
+            </div>
+        );
+    };
+
     const renderAppearanceTab = () => (
         <div className="space-y-4">
             <Section title="Тема оформления" description="Выберите готовую тему или настройте цвета вручную.">
@@ -333,6 +426,17 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                             </button>
                         </div>
                     ))}
+                </div>
+            </Section>
+
+            <Section title="Редактор темы" description="Настройте цвета текущей выбранной темы." defaultOpen={false}>
+                <div className="flex border-b border-gray-200 dark:border-gray-700">
+                    <button onClick={() => setActiveEditorTab('light')} className={`px-4 py-2 text-sm font-medium ${activeEditorTab === 'light' ? 'border-b-2 border-blue-500 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>Светлая</button>
+                    <button onClick={() => setActiveEditorTab('dark')} className={`px-4 py-2 text-sm font-medium ${activeEditorTab === 'dark' ? 'border-b-2 border-blue-500 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>Темная</button>
+                </div>
+                <div className="pt-4">
+                    {activeEditorTab === 'light' && <ThemeEditor themeType="light" />}
+                    {activeEditorTab === 'dark' && <ThemeEditor themeType="dark" />}
                 </div>
             </Section>
             
