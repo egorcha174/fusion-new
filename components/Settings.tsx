@@ -434,7 +434,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
         const currentSelectedServer = servers.find(s => s.id === selectedServerId);
 
         return (
-            <div className="flex h-full -m-6">
+            <div className="flex h-full">
                 {/* Левая колонка со списком серверов */}
                 <div className="w-2/5 border-r border-gray-200 dark:border-gray-700 flex flex-col">
                     <div className="p-4 flex-grow overflow-y-auto">
