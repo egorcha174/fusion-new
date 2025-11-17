@@ -1,4 +1,5 @@
 
+
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig } from '../types';
 import ConfirmDialog from './ConfirmDialog';
@@ -315,8 +316,9 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
     }, [activeServerId, selectedServerId]);
     
     useEffect(() => {
-        // Если выбранный сервер удалили, сбрасываем форму редактирования
-        if (editingServer && !servers.some(s => s.id === editingServer.id)) {
+        // Если выбранный сервер удалили, сбрасываем форму редактирования.
+        // Проверяем `editingServer.id`, чтобы не сбрасывать при создании нового сервера.
+        if (editingServer && editingServer.id && !servers.some(s => s.id === editingServer.id)) {
             setEditingServer(null);
         }
     }, [servers, editingServer]);
@@ -457,7 +459,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                         )}
                     </div>
                     <div className="p-3 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 flex items-center justify-between gap-2">
-                        <button onClick={() => setEditingServer({})} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" title="Добавить сервер"><Icon icon="mdi:plus" className="w-5 h-5" /></button>
+                        <button onClick={() => { setEditingServer({}); setSelectedServerId(null); }} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" title="Добавить сервер"><Icon icon="mdi:plus" className="w-5 h-5" /></button>
                         <button onClick={() => currentSelectedServer && setEditingServer(currentSelectedServer)} disabled={!currentSelectedServer} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed" title="Редактировать"><Icon icon="mdi:pencil" className="w-5 h-5" /></button>
                         <button onClick={() => currentSelectedServer && setServerToDelete(currentSelectedServer)} disabled={!currentSelectedServer} className="p-2 text-red-500 hover:bg-red-500/10 rounded-md disabled:opacity-50 disabled:cursor-not-allowed" title="Удалить"><Icon icon="mdi:trash-can-outline" className="w-5 h-5" /></button>
                     </div>
@@ -795,7 +797,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                 </aside>
                 <main className="flex-1 overflow-y-auto">
                     {/* HACK: Добавляем p-6 только если это не вкладка подключения, т.к. у нее свой внутренний layout */}
-                    <div className={activeTab === 'connection' ? '' : 'p-6'}>
+                    <div className={activeTab === 'connection' ? 'h-full' : 'p-6'}>
                         {tabs.find(t => t.id === activeTab)?.content}
                     </div>
                 </main>
