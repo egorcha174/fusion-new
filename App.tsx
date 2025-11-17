@@ -404,11 +404,8 @@ const App: React.FC = () => {
 
     if (deviceTarget && isEditMode) {
         // В режиме редактирования, ПКМ на карточке открывает меню действий
-        // FIX: Type 'unknown' is not assignable to type 'string'.
-        // Replaced truthiness check with `typeof` to properly narrow the type from `string | undefined`
-        // (or `unknown` in very strict contexts) to `string`.
-        const deviceId = deviceTarget.dataset.deviceId;
-        const tabId = deviceTarget.dataset.tabId;
+        // FIX: Use a type guard to ensure dataset properties are strings before use, preventing potential 'unknown' type errors.
+        const { deviceId, tabId } = deviceTarget.dataset;
         if (typeof deviceId === 'string' && typeof tabId === 'string') {
             handleDeviceContextMenu(event, deviceId, tabId);
         }
@@ -422,7 +419,13 @@ const App: React.FC = () => {
 
   // Если нет подключения, показываем страницу настроек.
   if (connectionStatus !== 'connected') {
-    return <Suspense fallback={<div />}><Settings onConnect={connect} connectionStatus={connectionStatus} error={error} /></Suspense>;
+    return (
+      <div className="flex min-h-screen w-screen items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
+        <Suspense fallback={<div />}>
+          <Settings onConnect={connect} connectionStatus={connectionStatus} error={error} />
+        </Suspense>
+      </div>
+    );
   }
   
   // Если идет загрузка данных, показываем спиннер.
