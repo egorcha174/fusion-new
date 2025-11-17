@@ -3,7 +3,7 @@ import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
   CameraSettings, ColorScheme, CardTemplate, DeviceType, GridLayoutItem, DeviceCustomization,
   CardElementId, EventTimerWidget, CustomCardWidget, PhysicalDevice, CardElement, WeatherSettings,
-  ServerConfig
+  ServerConfig, ThemeDefinition
 } from '../types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from '../components/DeviceIcon';
@@ -16,7 +16,7 @@ import {
     defaultCameraSettings,
     DEFAULT_SIDEBAR_WIDTH,
     DEFAULT_SIDEBAR_VISIBLE,
-    DEFAULT_THEME,
+    DEFAULT_THEME_MODE,
     DEFAULT_WEATHER_PROVIDER,
     DEFAULT_WEATHER_SETTINGS,
     DEFAULT_LOW_BATTERY_THRESHOLD,
@@ -25,7 +25,8 @@ import {
     DEFAULT_LIGHT_TEMPLATE_ID,
     DEFAULT_SWITCH_TEMPLATE_ID,
     DEFAULT_CLIMATE_TEMPLATE_ID,
-    DEFAULT_HUMIDIFIER_TEMPLATE_ID
+    DEFAULT_HUMIDIFIER_TEMPLATE_ID,
+    DEFAULT_THEMES
 } from '../config/defaults';
 import { set as setAtPath } from '../utils/obj-path';
 
@@ -41,7 +42,6 @@ interface AppState {
     contextMenu: { x: number, y: number, deviceId: string, tabId: string } | null;
     floatingCamera: Device | null;
     historyModalEntityId: string | null;
-    // FIX: Add editingEventTimerId to state for managing the event timer settings modal.
     editingEventTimerId: string | null;
 
     servers: ServerConfig[];
@@ -55,17 +55,21 @@ interface AppState {
     cameraSettings: CameraSettings;
     sidebarWidth: number;
     isSidebarVisible: boolean;
-    theme: 'day' | 'night' | 'auto' | 'schedule';
+    themeMode: 'day' | 'night' | 'auto' | 'schedule';
     scheduleStartTime: string;
     scheduleEndTime: string;
+    
+    // Theme Management
+    themes: ThemeDefinition[];
+    activeThemeId: string;
     colorScheme: ColorScheme;
+
     weatherProvider: 'openweathermap' | 'yandex' | 'foreca';
     openWeatherMapKey: string;
     yandexWeatherKey: string;
     forecaApiKey: string;
     weatherSettings: WeatherSettings;
     lowBatteryThreshold: number;
-    // FIX: Replaced single septic tank settings with a more generic array of event timer widgets to support multiple custom timers.
     eventTimerWidgets: EventTimerWidget[];
     customCardWidgets: CustomCardWidget[];
     isChristmasThemeEnabled: boolean;
@@ -82,7 +86,6 @@ interface AppActions {
     setContextMenu: (menu: AppState['contextMenu']) => void;
     setFloatingCamera: (device: Device | null) => void;
     setHistoryModalEntityId: (id: string | null) => void;
-    // FIX: Add setEditingEventTimerId to actions for managing the event timer settings modal.
     setEditingEventTimerId: (id: string | null) => void;
 
     // Server Management
@@ -101,11 +104,19 @@ interface AppActions {
     setCameraSettings: (settings: CameraSettings) => void;
     setSidebarWidth: (width: number) => void;
     setIsSidebarVisible: (isVisible: boolean) => void;
-    setTheme: (theme: AppState['theme']) => void;
+    setThemeMode: (theme: AppState['themeMode']) => void;
     setScheduleStartTime: (time: string) => void;
     setScheduleEndTime: (time: string) => void;
-    setColorScheme: (scheme: ColorScheme) => void;
+    
+    // Theme Management Actions
+    setThemes: (themes: ThemeDefinition[]) => void;
+    selectTheme: (themeId: string) => void;
+    updateTheme: (themeId: string, updates: Partial<Pick<ThemeDefinition, 'name' | 'scheme'>>) => void;
+    addTheme: (name: string, scheme: ColorScheme) => void;
+    deleteTheme: (themeId: string) => void;
     updateColorSchemeValue: (path: string, value: any) => void;
+    onResetColorScheme: () => void;
+
     setWeatherProvider: (provider: AppState['weatherProvider']) => void;
     setOpenWeatherMapKey: (key: string) => void;
     setYandexWeatherKey: (key: string) => void;
@@ -113,7 +124,6 @@ interface AppActions {
     setWeatherSettings: (settings: WeatherSettings) => void;
     setLowBatteryThreshold: (threshold: number) => void;
     
-    // FIX: Added actions to manage multiple event timer widgets, replacing the old single-widget logic.
     setEventTimerWidgets: (widgets: EventTimerWidget[]) => void;
     addCustomWidget: () => void;
     updateCustomWidget: (widgetId: string, updates: Partial<Omit<EventTimerWidget, 'id'>>) => void;
@@ -128,7 +138,6 @@ interface AppActions {
     deleteCustomCard: (widgetId: string) => void;
 
 
-    onResetColorScheme: () => void;
     handleTabOrderChange: (newTabs: Tab[]) => void;
     handleAddTab: () => void;
     handleUpdateTabSettings: (tabId: string, settings: { name: string; gridSettings: { cols: number; rows: number } }) => void;
@@ -142,7 +151,6 @@ interface AppActions {
     checkCollision: (layout: GridLayoutItem[], itemToPlace: { col: number; row: number; width: number; height: number; }, gridSettings: { cols: number; rows: number; }, ignoreDeviceId: string) => boolean;
     handleDeviceLayoutChange: (tabId: string, newLayout: GridLayoutItem[]) => void;
     handleDeviceResizeOnTab: (tabId: string, deviceId: string, newWidth: number, newHeight: number) => void;
-    // FIX: Add missing 'handleAddPhysicalDeviceAsCustomCard' action to enable adding physical devices as custom cards.
     handleAddPhysicalDeviceAsCustomCard: (physicalDevice: PhysicalDevice, tabId: string) => void;
 
     handleSaveCustomization: (originalDevice: Device, newValues: Omit<DeviceCustomization, 'name' | 'type' | 'icon' | 'isHidden'> & { name: string; type: DeviceType; icon: string; isHidden: boolean; }) => void;
@@ -164,15 +172,17 @@ if (initialServers.length === 0) {
     initialServers.push(migratedServer);
     initialActiveServerId = migratedServer.id;
     
-    // Clean up old keys after successful migration
     localStorage.removeItem('ha-url');
     localStorage.removeItem('ha-token');
     
-    // Save new structure
     localStorage.setItem(LOCAL_STORAGE_KEYS.SERVERS, JSON.stringify(initialServers));
     localStorage.setItem(LOCAL_STORAGE_KEYS.ACTIVE_SERVER_ID, JSON.stringify(initialActiveServerId));
   }
 }
+
+const initialThemes = loadAndMigrate<ThemeDefinition[]>(LOCAL_STORAGE_KEYS.THEMES, DEFAULT_THEMES);
+const initialActiveThemeId = loadAndMigrate<string>(LOCAL_STORAGE_KEYS.ACTIVE_THEME_ID, DEFAULT_THEMES[0].id);
+const initialColorScheme = initialThemes.find(t => t.id === initialActiveThemeId)?.scheme || DEFAULT_THEMES[0].scheme;
 
 
 export const useAppStore = create<AppState & AppActions>((set, get) => ({
@@ -199,17 +209,20 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     cameraSettings: loadAndMigrate<CameraSettings>(LOCAL_STORAGE_KEYS.CAMERA_SETTINGS, defaultCameraSettings),
     sidebarWidth: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.SIDEBAR_WIDTH, DEFAULT_SIDEBAR_WIDTH),
     isSidebarVisible: loadAndMigrate<boolean>(LOCAL_STORAGE_KEYS.SIDEBAR_VISIBLE, DEFAULT_SIDEBAR_VISIBLE),
-    theme: loadAndMigrate<'day' | 'night' | 'auto' | 'schedule'>(LOCAL_STORAGE_KEYS.THEME, DEFAULT_THEME),
+    themeMode: loadAndMigrate<'day' | 'night' | 'auto' | 'schedule'>(LOCAL_STORAGE_KEYS.THEME_MODE, DEFAULT_THEME_MODE),
     scheduleStartTime: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.SCHEDULE_START_TIME, '22:00'),
     scheduleEndTime: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.SCHEDULE_END_TIME, '07:00'),
-    colorScheme: loadAndMigrate<ColorScheme>(LOCAL_STORAGE_KEYS.COLOR_SCHEME, DEFAULT_COLOR_SCHEME),
+    
+    themes: initialThemes,
+    activeThemeId: initialActiveThemeId,
+    colorScheme: initialColorScheme,
+    
     weatherProvider: loadAndMigrate<'openweathermap' | 'yandex' | 'foreca'>(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, DEFAULT_WEATHER_PROVIDER),
     openWeatherMapKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, ''),
     yandexWeatherKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, ''),
     forecaApiKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.FORECA_KEY, ''),
     weatherSettings: loadAndMigrate<WeatherSettings>(LOCAL_STORAGE_KEYS.WEATHER_SETTINGS, DEFAULT_WEATHER_SETTINGS),
     lowBatteryThreshold: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, DEFAULT_LOW_BATTERY_THRESHOLD),
-    // FIX: Replaced septicTankSettings with eventTimerWidgets and corrected the local storage key.
     eventTimerWidgets: loadAndMigrate<EventTimerWidget[]>(LOCAL_STORAGE_KEYS.EVENT_TIMER_WIDGETS, []),
     customCardWidgets: loadAndMigrate<CustomCardWidget[]>(LOCAL_STORAGE_KEYS.CUSTOM_CARD_WIDGETS, []),
     isChristmasThemeEnabled: loadAndMigrate<boolean>(LOCAL_STORAGE_KEYS.CHRISTMAS_THEME_ENABLED, false),
@@ -287,9 +300,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         set({ isSidebarVisible: isVisible });
         localStorage.setItem(LOCAL_STORAGE_KEYS.SIDEBAR_VISIBLE, JSON.stringify(isVisible));
     },
-    setTheme: (theme) => {
-        set({ theme });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.THEME, theme);
+    setThemeMode: (theme) => {
+        set({ themeMode: theme });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.THEME_MODE, theme);
     },
     setScheduleStartTime: (time) => {
         set({ scheduleStartTime: time });
@@ -299,23 +312,63 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         set({ scheduleEndTime: time });
         localStorage.setItem(LOCAL_STORAGE_KEYS.SCHEDULE_END_TIME, time);
     },
-    setColorScheme: (scheme) => {
-        set({ colorScheme: scheme });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.COLOR_SCHEME, JSON.stringify(scheme));
+
+    setThemes: (themes) => {
+        set({ themes });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.THEMES, JSON.stringify(themes));
+    },
+    selectTheme: (themeId) => {
+        const theme = get().themes.find(t => t.id === themeId);
+        if (theme) {
+            set({ activeThemeId: themeId, colorScheme: theme.scheme });
+            localStorage.setItem(LOCAL_STORAGE_KEYS.ACTIVE_THEME_ID, JSON.stringify(themeId));
+        }
+    },
+    updateTheme: (themeId, updates) => {
+        const newThemes = get().themes.map(t => t.id === themeId ? { ...t, ...updates } : t);
+        get().setThemes(newThemes);
+        if (get().activeThemeId === themeId && updates.scheme) {
+            set({ colorScheme: updates.scheme });
+        }
+    },
+    addTheme: (name, scheme) => {
+        const newTheme: ThemeDefinition = { id: nanoid(), name, isCustom: true, scheme };
+        const newThemes = [...get().themes, newTheme];
+        get().setThemes(newThemes);
+        get().selectTheme(newTheme.id);
+    },
+    deleteTheme: (themeId) => {
+        const themeToDelete = get().themes.find(t => t.id === themeId);
+        if (!themeToDelete || !themeToDelete.isCustom) return;
+
+        const newThemes = get().themes.filter(t => t.id !== themeId);
+        get().setThemes(newThemes);
+
+        if (get().activeThemeId === themeId) {
+            get().selectTheme(DEFAULT_THEMES[0].id);
+        }
     },
     updateColorSchemeValue: (path, value) => {
-        const newScheme = JSON.parse(JSON.stringify(get().colorScheme));
+        const { activeThemeId, themes, updateTheme } = get();
+        const activeTheme = themes.find(t => t.id === activeThemeId);
+        if (!activeTheme) return;
+
+        const newScheme = JSON.parse(JSON.stringify(activeTheme.scheme));
         
-        // Специальная обработка для cardBorderRadius, чтобы он применялся к обеим темам
         if (path.endsWith('cardBorderRadius')) {
             newScheme.light.cardBorderRadius = value;
             newScheme.dark.cardBorderRadius = value;
         } else {
             setAtPath(newScheme, path, value);
         }
-
-        get().setColorScheme(newScheme);
+        
+        updateTheme(activeThemeId, { scheme: newScheme });
     },
+    onResetColorScheme: () => {
+        const { activeThemeId, updateTheme } = get();
+        updateTheme(activeThemeId, { scheme: DEFAULT_COLOR_SCHEME });
+    },
+
     setWeatherProvider: (provider) => {
         set({ weatherProvider: provider });
         localStorage.setItem(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, provider);
@@ -344,7 +397,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         set({ isChristmasThemeEnabled: enabled });
         localStorage.setItem(LOCAL_STORAGE_KEYS.CHRISTMAS_THEME_ENABLED, JSON.stringify(enabled));
     },
-    // FIX: Implement actions for managing multiple event timer widgets.
     setEventTimerWidgets: (widgets) => {
         set({ eventTimerWidgets: widgets });
         localStorage.setItem(LOCAL_STORAGE_KEYS.EVENT_TIMER_WIDGETS, JSON.stringify(widgets));
@@ -371,11 +423,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     deleteCustomWidget: (widgetId) => {
         const deviceIdToDelete = `internal::event-timer_${widgetId}`;
         
-        // Remove from widgets list
         const newWidgets = get().eventTimerWidgets.filter(w => w.id !== widgetId);
         get().setEventTimerWidgets(newWidgets);
         
-        // Remove from all tabs to prevent ghost items
         const newTabs = get().tabs.map(tab => ({
             ...tab,
             layout: tab.layout.filter(item => item.deviceId !== deviceIdToDelete)
@@ -394,23 +444,19 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             name: `Кастомная карточка ${get().customCardWidgets.length + 1}`,
         };
 
-        // 1. Создаем уникальный шаблон для этой новой карточки
         const newTemplate = get().createNewBlankTemplate('custom');
-        newTemplate.id = `custom-card-template-${newWidget.id}`; // Уникальный, предсказуемый ID
-        newTemplate.name = newWidget.name; // Изначально имя шаблона совпадает с именем виджета
+        newTemplate.id = `custom-card-template-${newWidget.id}`;
+        newTemplate.name = newWidget.name;
 
-        // 2. Добавляем новый шаблон в состояние шаблонов
         const newTemplates = { ...get().templates, [newTemplate.id]: newTemplate };
         
-        // 3. Создаем кастомизацию для связи устройства с этим шаблоном
         const deviceId = `internal::custom-card_${newWidget.id}`;
         const newCustomization: DeviceCustomization = {
-            ...get().customizations[deviceId], // сохраняем существующую кастомизацию (маловероятно, но безопасно)
+            ...get().customizations[deviceId],
             templateId: newTemplate.id,
         };
         const newCustomizations = { ...get().customizations, [deviceId]: newCustomization };
 
-        // 4. Обновляем состояние
         get().setTemplates(newTemplates);
         get().setCustomizations(newCustomizations);
         get().setCustomCardWidgets([...get().customCardWidgets, newWidget]);
@@ -423,23 +469,19 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         const deviceIdToDelete = `internal::custom-card_${widgetId}`;
         const templateIdToDelete = `custom-card-template-${widgetId}`;
 
-        // 1. Удаляем виджет
         const newWidgets = get().customCardWidgets.filter(w => w.id !== widgetId);
         get().setCustomCardWidgets(newWidgets);
 
-        // 2. Удаляем с вкладок
         const newTabs = get().tabs.map(tab => ({
             ...tab,
             layout: tab.layout.filter(item => item.deviceId !== deviceIdToDelete)
         }));
         get().setTabs(newTabs);
 
-        // 3. Удаляем связанный шаблон
         const newTemplates = { ...get().templates };
         delete newTemplates[templateIdToDelete];
         get().setTemplates(newTemplates);
 
-        // 4. Удаляем кастомизацию
         const newCustomizations = { ...get().customizations };
         delete newCustomizations[deviceIdToDelete];
         get().setCustomizations(newCustomizations);
@@ -447,7 +489,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
 
     // --- Complex Actions ---
-    onResetColorScheme: () => get().setColorScheme(DEFAULT_COLOR_SCHEME),
     handleTabOrderChange: (newTabs) => get().setTabs(newTabs),
     handleAddTab: () => {
         const newTabName = `Вкладка ${get().tabs.length + 1}`;
@@ -550,12 +591,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     checkCollision: (layout, itemToPlace, gridSettings, ignoreDeviceId) => {
         const { col, row, width, height } = itemToPlace;
     
-        // 1. Boundary check
         if (col < 0 || row < 0 || col + Math.ceil(width) > gridSettings.cols || row + Math.ceil(height) > gridSettings.rows) {
             return true;
         }
     
-        // 2. Overlap check with other items
         for (const existingItem of layout) {
             if (existingItem.deviceId === ignoreDeviceId) {
                 continue;
@@ -572,34 +611,29 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             );
     
             if (!isOverlapping) {
-                continue; // No collision with this item
+                continue;
             }
     
-            // --- Overlap detected, check for allowed stacking exception ---
             const isPlacingStackable = height === 0.5;
             const isExistingStackable = existingHeight === 0.5;
             const isAtSameOrigin = col === existingItem.col && row === existingItem.row;
     
-            // Stacking is only allowed if widths match
             if (isPlacingStackable && isExistingStackable && isAtSameOrigin && width === existingWidth) {
-                // This is a potential stack. We need to count how many items are ALREADY at this origin.
                 const itemsAtOrigin = layout.filter(item => 
                     item.col === col && 
                     item.row === row &&
                     item.deviceId !== ignoreDeviceId 
                 );
                 
-                // A stack of two is the maximum. If there's already one item, placing another is allowed.
                 if (itemsAtOrigin.length < 2) {
-                    continue; // This overlap is an allowed exception.
+                    continue;
                 }
             }
             
-            // If the overlap was not an allowed exception, it's a real collision.
             return true;
         }
     
-        return false; // No collisions found
+        return false;
     },
     handleDeviceLayoutChange: (tabId, newLayout) => {
         const newTabs = get().tabs.map(tab => (tab.id === tabId) ? { ...tab, layout: newLayout } : tab);
@@ -617,9 +651,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             const itemToResize = tab.layout[itemIndex];
             const newItem = { ...itemToResize, width: newWidth, height: newHeight };
     
-            // Use the most up-to-date 'get' for the collision check inside the updater function
             if (get().checkCollision(tab.layout, newItem, tab.gridSettings, deviceId)) {
-                return state; // Collision detected, do not update state
+                return state;
             }
     
             const newLayout = [...tab.layout];
@@ -641,36 +674,29 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         let widget = customCardWidgets.find(w => w.id === widgetId);
         let template = templates[templateId];
 
-        // Step 1: Create widget if it doesn't exist. This will trigger haStore to create the device.
         if (!widget) {
-            widget = {
-                id: widgetId,
-                name: physicalDevice.name,
-            };
+            widget = { id: widgetId, name: physicalDevice.name };
             setCustomCardWidgets([...customCardWidgets, widget]);
         }
 
-        // Step 2: Create template if it doesn't exist
         if (!template) {
             template = createNewBlankTemplate('custom');
             template.id = templateId;
             template.name = physicalDevice.name;
-            template.interactionType = 'passive'; // It's just a container
+            template.interactionType = 'passive';
 
-            // Sensible defaults for a physical device card
             template.width = 2;
             const entityRows = Math.ceil(physicalDevice.entities.length / 2);
-            template.height = Math.max(2, 1 + entityRows); // Minimum height of 2
+            template.height = Math.max(2, 1 + entityRows);
 
-            const nameElementHeight = 15; // %
+            const nameElementHeight = 15;
             template.elements = [
                 { id: 'name', uniqueId: nanoid(), visible: true, position: { x: 5, y: 5 }, size: { width: 90, height: nameElementHeight - 5 }, zIndex: 1, styles: { fontSize: 16 } },
             ];
 
-            // Layout entities in a 2-column grid inside the card
             const entitiesPerRow = 2;
-            const startY = nameElementHeight; // Start below the name
-            const availableHeight = 100 - startY - 5; // 5% bottom margin
+            const startY = nameElementHeight;
+            const availableHeight = 100 - startY - 5;
             const rowHeight = availableHeight / entityRows;
             const colWidth = 45;
             const startX = 2.5;
@@ -690,7 +716,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
                     },
                     size: {
                         width: colWidth,
-                        height: rowHeight * 0.9, // 90% of row height for margin
+                        height: rowHeight * 0.9,
                     },
                     zIndex: 2,
                     styles: {
@@ -702,7 +728,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
             setTemplates({ ...get().templates, [templateId]: template });
 
-            // Create customization to link device to template
             const newCustomization: DeviceCustomization = {
                 ...customizations[deviceId],
                 templateId: templateId,
@@ -710,8 +735,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             setCustomizations({ ...get().customizations, [deviceId]: newCustomization });
         }
 
-        // Step 3: Add device to tab.
-        // Create a temporary device object to add to the tab, as the real one might not exist yet in haStore's state
         const deviceToAdd: Device = {
             id: deviceId,
             name: physicalDevice.name,

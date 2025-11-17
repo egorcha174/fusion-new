@@ -186,7 +186,8 @@ const App: React.FC = () => {
         historyModalEntityId, setHistoryModalEntityId,
         tabs, setTabs, activeTabId, setActiveTabId,
         templates,
-        sidebarWidth, setSidebarWidth, isSidebarVisible, theme,
+// FIX: The 'theme' property was renamed to 'themeMode' in the app store. This updates the destructuring to correctly access the theme mode state.
+        sidebarWidth, setSidebarWidth, isSidebarVisible, themeMode,
         scheduleStartTime, scheduleEndTime,
         colorScheme, getTemplateForDevice, createNewBlankTemplate,
         editingEventTimerId, setEditingEventTimerId, eventTimerWidgets,
@@ -214,7 +215,8 @@ const App: React.FC = () => {
 
   // Эффект для режима "По расписанию"
   useEffect(() => {
-    if (theme !== 'schedule') return;
+// FIX: The 'theme' property was renamed to 'themeMode' in the app store. This updates the condition to use the correct state property.
+    if (themeMode !== 'schedule') return;
 
     const calculateSchedulePhase = () => {
         try {
@@ -246,7 +248,8 @@ const App: React.FC = () => {
     const intervalId = window.setInterval(calculateSchedulePhase, 60 * 1000);
 
     return () => clearInterval(intervalId);
-  }, [theme, scheduleStartTime, scheduleEndTime]);
+// FIX: The 'theme' property was renamed to 'themeMode' in the app store. This updates the effect's dependency array to use the correct state property.
+  }, [themeMode, scheduleStartTime, scheduleEndTime]);
 
 
   // Эффект для управления темой (светлая/темная).
@@ -257,7 +260,8 @@ const App: React.FC = () => {
     
     const updateTheme = () => {
         let isDark = false;
-        switch (theme) {
+// FIX: The 'theme' property was renamed to 'themeMode' in the app store. This updates the switch statement to use the correct state property for determining the theme.
+        switch (themeMode) {
             case 'night': isDark = true; break;
             case 'day': isDark = false; break;
             case 'schedule': isDark = isDarkBySchedule; break;
@@ -270,7 +274,8 @@ const App: React.FC = () => {
     updateTheme();
     mediaQuery.addEventListener('change', updateTheme); // Следим за системными изменениями
     return () => mediaQuery.removeEventListener('change', updateTheme);
-  }, [theme, isDarkBySchedule]);
+// FIX: The 'theme' property was renamed to 'themeMode' in the app store. This updates the effect's dependency array to use the correct state property.
+  }, [themeMode, isDarkBySchedule]);
 
   // Эффект, гарантирующий наличие хотя бы одной вкладки и установку активной вкладки.
   // Запускается после успешного подключения и загрузки данных.
@@ -352,14 +357,16 @@ const App: React.FC = () => {
     // Мемоизированные значения для определения текущей цветовой схемы.
     const isSystemDark = useMemo(() => window.matchMedia('(prefers-color-scheme: dark)').matches, []);
     const isDark = useMemo(() => {
-        switch (theme) {
+// FIX: The 'theme' property was renamed to 'themeMode' in the app store. This updates the switch statement to use the correct state property for determining if the dark theme should be active.
+        switch (themeMode) {
             case 'night': return true;
             case 'day': return false;
             case 'schedule': return isDarkBySchedule;
             case 'auto':
             default: return isSystemDark;
         }
-    }, [theme, isSystemDark, isDarkBySchedule]);
+// FIX: The 'theme' property was renamed to 'themeMode' in the app store. This updates the memo's dependency array to use the correct state property.
+    }, [themeMode, isSystemDark, isDarkBySchedule]);
     const currentColorScheme = useMemo(() => isDark ? colorScheme.dark : colorScheme.light, [isDark, colorScheme]);
 
     // Мемоизированный стиль для фона дашборда

@@ -4,8 +4,8 @@
  * для всего, что сохраняется в локальном хранилище браузера.
  */
 export const LOCAL_STORAGE_KEYS = {
-  URL: 'ha-url',
-  TOKEN: 'ha-token',
+  SERVERS: 'ha-servers',
+  ACTIVE_SERVER_ID: 'ha-active-server-id',
   TABS: 'ha-tabs',
   ACTIVE_TAB: 'ha-active-tab',
   CUSTOMIZATIONS: 'ha-device-customizations',
@@ -13,10 +13,11 @@ export const LOCAL_STORAGE_KEYS = {
   CARD_TEMPLATES: 'ha-card-templates',
   SIDEBAR_WIDTH: 'ha-sidebar-width',
   CAMERA_SETTINGS: 'ha-camera-settings',
-  THEME: 'ha-theme',
+  THEME_MODE: 'ha-theme-mode', // Renamed from THEME for clarity
+  THEMES: 'ha-themes', // For storing all theme definitions
+  ACTIVE_THEME_ID: 'ha-active-theme-id',
   SCHEDULE_START_TIME: 'ha-schedule-start-time',
   SCHEDULE_END_TIME: 'ha-schedule-end-time',
-  COLOR_SCHEME: 'ha-color-scheme',
   SIDEBAR_VISIBLE: 'ha-sidebar-visible',
   LOW_BATTERY_THRESHOLD: 'ha-low-battery-threshold',
   WEATHER_PROVIDER: 'ha-weather-provider',
@@ -24,7 +25,6 @@ export const LOCAL_STORAGE_KEYS = {
   YANDEX_WEATHER_KEY: 'ha-yandex-weather-key',
   FORECA_KEY: 'ha-foreca-key',
   WEATHER_SETTINGS: 'ha-weather-settings',
-  // FIX: Replaced `CUSTOM_WIDGETS` with `EVENT_TIMER_WIDGETS` to better reflect the feature and resolve naming conflicts.
   EVENT_TIMER_WIDGETS: 'ha-event-timer-widgets',
   CUSTOM_CARD_WIDGETS: 'ha-custom-card-widgets',
   CHRISTMAS_THEME_ENABLED: 'ha-christmas-theme-enabled',

@@ -1,5 +1,6 @@
 
 
+
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig } from '../types';
 import ConfirmDialog from './ConfirmDialog';
@@ -295,10 +296,11 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
         clockSettings, setClockSettings,
         sidebarWidth, setSidebarWidth,
         isSidebarVisible, setIsSidebarVisible,
-        theme, setTheme,
+// FIX: The 'theme' and 'setTheme' properties were renamed to 'themeMode' and 'setThemeMode' in the app store. 'setColorScheme' was replaced by 'selectTheme'. This updates the destructuring to use the correct state and actions.
+        themeMode, setThemeMode,
         scheduleStartTime, setScheduleStartTime,
         scheduleEndTime, setScheduleEndTime,
-        colorScheme, setColorScheme, onResetColorScheme, DEFAULT_COLOR_SCHEME,
+        colorScheme, selectTheme, onResetColorScheme, DEFAULT_COLOR_SCHEME,
         updateColorSchemeValue,
         weatherProvider, setWeatherProvider,
         openWeatherMapKey, setOpenWeatherMapKey,
@@ -414,7 +416,8 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
 
     const handleResetAppearance = () => {
         onResetColorScheme();
-        setTheme('auto');
+// FIX: The 'setTheme' action was renamed to 'setThemeMode'. This updates the call to use the correct action name.
+        setThemeMode('auto');
         alert("Настройки внешнего вида сброшены к значениям по умолчанию.");
     };
     
@@ -521,7 +524,8 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                     {THEMES.map(themeOption => (
                         <div key={themeOption.value} className="text-center">
                             <button
-                                onClick={() => setColorScheme(themeOption.scheme)}
+// FIX: The 'setColorScheme' action was replaced with 'selectTheme', which takes a theme ID. This updates the onClick handler to pass the theme's ID (`themeOption.value`) instead of the entire scheme object.
+                                onClick={() => selectTheme(themeOption.value)}
                                 className="w-full aspect-video rounded-lg border-2 dark:border-gray-600 transition-all flex items-center justify-center text-xs font-semibold"
                                 style={{
                                     backgroundImage: `linear-gradient(135deg, ${themeOption.scheme.light.dashboardBackgroundColor1} 50%, ${themeOption.scheme.dark.dashboardBackgroundColor1} 50%)`,
@@ -547,13 +551,15 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
             </Section>
             
             <Section title="Режим день/ночь" description="Автоматически переключает светлую и темную тему.">
-                 <select value={theme} onChange={(e) => setTheme(e.target.value as any)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+// FIX: The 'theme' state and 'setTheme' action were renamed to 'themeMode' and 'setThemeMode'. This updates the select input to use the correct state and action.
+                 <select value={themeMode} onChange={(e) => setThemeMode(e.target.value as any)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="auto">Как в системе</option>
                     <option value="day">Всегда светлая</option>
                     <option value="night">Всегда темная</option>
                     <option value="schedule">По расписанию</option>
                 </select>
-                {theme === 'schedule' && (
+// FIX: The 'theme' property was renamed to 'themeMode'. This updates the condition to correctly check if the schedule-based theme is active.
+                {themeMode === 'schedule' && (
                     <div className="grid grid-cols-2 gap-4 mt-2">
                         <div>
                             <label className="text-xs text-gray-500 dark:text-gray-400">Начало ночи</label>

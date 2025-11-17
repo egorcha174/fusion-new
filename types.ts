@@ -313,6 +313,16 @@ export interface ColorScheme {
   dark: ColorThemeSet;
 }
 
+/**
+ * Представление одной темы в списке тем.
+ */
+export interface ThemeDefinition {
+  id: string;
+  name: string;
+  isCustom: boolean;
+  scheme: ColorScheme;
+}
+
 
 // --- Система шаблонов карточек ---
 

@@ -13,10 +13,12 @@ export const LOCAL_STORAGE_KEYS = {
   CARD_TEMPLATES: 'ha-card-templates',
   SIDEBAR_WIDTH: 'ha-sidebar-width',
   CAMERA_SETTINGS: 'ha-camera-settings',
-  THEME: 'ha-theme',
+// FIX: Renamed 'THEME' to 'THEME_MODE' and added 'THEMES' and 'ACTIVE_THEME_ID' to support the new multi-theme architecture. Removed obsolete 'COLOR_SCHEME' key.
+  THEME_MODE: 'ha-theme-mode', // For storing current mode (auto, day, night, schedule)
+  THEMES: 'ha-themes', // For storing all theme definitions
+  ACTIVE_THEME_ID: 'ha-active-theme-id', // For storing the ID of the currently active theme
   SCHEDULE_START_TIME: 'ha-schedule-start-time',
   SCHEDULE_END_TIME: 'ha-schedule-end-time',
-  COLOR_SCHEME: 'ha-color-scheme',
   SIDEBAR_VISIBLE: 'ha-sidebar-visible',
   LOW_BATTERY_THRESHOLD: 'ha-low-battery-threshold',
   WEATHER_PROVIDER: 'ha-weather-provider',

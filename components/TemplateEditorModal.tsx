@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot, ColorScheme } from '../types';
 import DeviceCard from './DeviceCard';
@@ -238,7 +239,8 @@ const SortableLayerItem: React.FC<SortableLayerItemProps> = React.memo(({ elemen
 });
 
 const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdit, onClose }) => {
-  const { handleSaveTemplate, colorScheme, theme } = useAppStore();
+// FIX: The 'theme' property was renamed to 'themeMode' in the app store. This updates the destructuring to use the correct state property.
+  const { handleSaveTemplate, colorScheme, themeMode } = useAppStore();
   const { allKnownDevices } = useHAStore();
   
   const [editedTemplate, setEditedTemplate] = useState<CardTemplate>({
@@ -254,7 +256,8 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const isSystemDark = useMemo(() => window.matchMedia('(prefers-color-scheme: dark)').matches, []);
-  const isDark = useMemo(() => theme === 'night' || (theme === 'auto' && isSystemDark), [theme, isSystemDark]);
+// FIX: The 'theme' property was renamed to 'themeMode'. This updates the memo to correctly determine if the dark theme is active based on the 'themeMode' state.
+  const isDark = useMemo(() => themeMode === 'night' || (themeMode === 'auto' && isSystemDark), [themeMode, isSystemDark]);
   const currentColorScheme = useMemo(() => isDark ? colorScheme.dark : colorScheme.light, [isDark, colorScheme]);
 
   const sampleDevice = useMemo(() => {
