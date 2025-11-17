@@ -3,9 +3,9 @@
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot, ColorScheme } from '../types';
 import DeviceCard from './DeviceCard';
-import { DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, useDraggable } from '@d-kit/core';
-import { SortableContext, useSortable, arrayMove } from '@d-kit/sortable';
-import { CSS } from '@d-kit/utilities';
+import { DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, useDraggable } from '@dnd-kit/core';
+import { SortableContext, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import ContextMenu from './ContextMenu';
 import { nanoid } from 'nanoid';
 import { Icon } from '@iconify/react';
