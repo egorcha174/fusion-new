@@ -284,6 +284,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
     const importTemplatesRef = useRef<HTMLInputElement>(null);
     const [activeTab, setActiveTab] = useState<SettingsTab>('connection');
     const [isConfirmingReset, setIsConfirmingReset] = useState(false);
+    const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
     
     const {
         templates, setTemplates, handleDeleteTemplate,
@@ -572,29 +573,72 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
         </div>
     );
     
-    const renderTemplatesTab = () => (
-        <div className="space-y-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Шаблоны позволяют полностью кастомизировать внешний вид карточек для определенных типов устройств.</p>
-            <div className="space-y-3">
-            {Object.values(templates).map((template: CardTemplate) => (
-                <div key={template.id} className="bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg flex items-center justify-between">
-                    <div>
-                        <p className="font-semibold text-gray-900 dark:text-white">{template.name}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Тип: {template.deviceType}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => useAppStore.getState().setEditingTemplate(template)} className="p-2 text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 rounded-md">
-                            <Icon icon="mdi:pencil" className="w-5 h-5" />
+    const renderTemplatesTab = () => {
+        const templateTypesToCreate: { label: string; type: DeviceType | 'custom' }[] = [
+            { label: 'Сенсор', type: DeviceType.Sensor },
+            { label: 'Светильник', type: DeviceType.Light },
+            { label: 'Переключатель', type: DeviceType.Switch },
+            { label: 'Климат', type: DeviceType.Thermostat },
+            { label: 'Увлажнитель', type: DeviceType.Humidifier },
+            { label: 'Кастомный', type: 'custom' },
+        ];
+        return (
+            <div className="space-y-4">
+                <p className="text-sm text-gray-500 dark:text-gray-400">Шаблоны позволяют полностью кастомизировать внешний вид карточек для определенных типов устройств.</p>
+                <div className="flex justify-end">
+                    <div className="relative">
+                        <button 
+                            onClick={() => setIsCreateMenuOpen(prev => !prev)}
+                            className="flex items-center gap-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-md py-2 px-4 transition-colors"
+                        >
+                            <Icon icon="mdi:plus" className="w-5 h-5" />
+                            Создать шаблон
                         </button>
-                        <button onClick={() => handleDeleteTemplate(template.id)} className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded-md">
-                             <Icon icon="mdi:trash-can-outline" className="w-5 h-5" />
-                        </button>
+                        {isCreateMenuOpen && (
+                            <div 
+                                onMouseLeave={() => setIsCreateMenuOpen(false)}
+                                className="absolute right-0 mt-2 w-48 bg-gray-100 dark:bg-gray-700 rounded-md shadow-lg z-10 ring-1 ring-black/5 dark:ring-white/10 overflow-hidden fade-in"
+                            >
+                                <div className="py-1">
+                                    {templateTypesToCreate.map(item => (
+                                        <button
+                                            key={item.label}
+                                            onClick={() => {
+                                                const newTemplate = useAppStore.getState().createNewBlankTemplate(item.type);
+                                                useAppStore.getState().setEditingTemplate(newTemplate);
+                                                setIsCreateMenuOpen(false);
+                                            }}
+                                            className="block w-full text-left px-4 py-2 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600"
+                                        >
+                                            {item.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
-            ))}
+                <div className="space-y-3">
+                {Object.values(templates).map((template: CardTemplate) => (
+                    <div key={template.id} className="bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg flex items-center justify-between">
+                        <div>
+                            <p className="font-semibold text-gray-900 dark:text-white">{template.name}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Тип: {template.deviceType}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => useAppStore.getState().setEditingTemplate(template)} className="p-2 text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 rounded-md">
+                                <Icon icon="mdi:pencil" className="w-5 h-5" />
+                            </button>
+                            <button onClick={() => handleDeleteTemplate(template.id)} className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded-md">
+                                 <Icon icon="mdi:trash-can-outline" className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </div>
+                ))}
+                </div>
             </div>
-        </div>
-    );
+        );
+    };
     
     const renderBackupTab = () => (
          <div className="space-y-6">

@@ -562,7 +562,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         });
         get().setCustomizations(newCustomizations);
     },
-    createNewBlankTemplate: (deviceType) => {
+    createNewBlankTemplate: (deviceType: DeviceType | 'custom') => {
         if (deviceType === 'custom') {
             return {
                 id: nanoid(),

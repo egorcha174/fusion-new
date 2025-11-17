@@ -1,10 +1,11 @@
 
+
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot, ColorScheme } from '../types';
 import DeviceCard from './DeviceCard';
-import { DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, useDraggable } from '@dnd-kit/core';
-import { SortableContext, useSortable, arrayMove } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, useDraggable } from '@d-kit/core';
+import { SortableContext, useSortable, arrayMove } from '@d-kit/sortable';
+import { CSS } from '@d-kit/utilities';
 import ContextMenu from './ContextMenu';
 import { nanoid } from 'nanoid';
 import { Icon } from '@iconify/react';
@@ -21,6 +22,15 @@ const FONT_FAMILIES = [
     { name: 'Arial', value: 'Arial, Helvetica, sans-serif' },
     { name: 'Times New Roman', value: '"Times New Roman", Times, serif' },
 ];
+
+const ALLOWED_ELEMENTS_FOR_TYPE: Record<CardTemplate['deviceType'], CardElementId[]> = {
+    sensor: ['name', 'icon', 'value', 'unit', 'chart', 'status', 'battery', 'linked-entity'],
+    light: ['name', 'icon', 'status', 'slider', 'battery', 'linked-entity'],
+    switch: ['name', 'icon', 'status', 'battery', 'linked-entity'],
+    climate: ['name', 'status', 'temperature', 'target-temperature', 'hvac-modes', 'battery', 'linked-entity'],
+    humidifier: ['name', 'status', 'temperature', 'target-temperature', 'hvac-modes', 'battery', 'linked-entity', 'fan-speed-control', 'value'],
+    custom: ['name', 'icon', 'value', 'unit', 'chart', 'status', 'battery', 'linked-entity', 'fan-speed-control'],
+};
 
 // --- Draggable Resize Handle ---
 const ResizeHandle: React.FC<{
@@ -255,6 +265,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
     if (templateToEdit.deviceType === 'light') return { ...baseDevice, id: 'light.sample_dimmable', name: 'Лампа в гостиной', status: 'Включено', type: DeviceType.DimmableLight, brightness: 80, state: 'on', haDomain: 'light' };
     if (templateToEdit.deviceType === 'switch') return { ...baseDevice, id: 'switch.sample_outlet', name: 'Розетка на кухне', status: 'Включено', type: DeviceType.Switch, state: 'on', haDomain: 'switch' };
     if (templateToEdit.deviceType === 'humidifier') return { ...baseDevice, id: 'humidifier.sample', name: 'Увлажнитель', status: 'Увлажнение', type: DeviceType.Humidifier, targetHumidity: 60, currentHumidity: 45, minTemp: 30, maxTemp: 80, presetModes: ['auto', 'sleep', 'turbo'], presetMode: 'auto', state: 'on', haDomain: 'humidifier' };
+    if (templateToEdit.deviceType === 'custom') return { ...baseDevice, id: 'internal::custom-card_123', name: 'Моя карточка', status: 'Активна', type: DeviceType.Custom, state: 'active', haDomain: 'internal' };
     return { ...baseDevice, id: 'sensor.sample_temperature', name: 'Температура в кабинете', status: '25.9', type: DeviceType.Sensor, unit: '°C', history: Array.from({ length: 20 }, (_, i) => 25 + Math.sin(i / 3) + (Math.random() - 0.5)), state: '25.9', haDomain: 'sensor' };
   }, [templateToEdit.deviceType]);
   
@@ -508,7 +519,11 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   const selectedElement = useMemo(() => editedTemplate.elements.find(el => selectedElementIds.length === 1 && el.id === selectedElementIds[0]), [selectedElementIds, editedTemplate.elements]);
   const selectedSlot = useMemo(() => editedTemplate.deviceSlots?.find(s => s.id === selectedSlotId), [selectedSlotId, editedTemplate.deviceSlots]);
   const isTextElementSelected = selectedElement && ['name', 'status', 'value', 'unit', 'temperature', 'battery'].includes(selectedElement.id);
-  const availableElementsToAdd = Object.keys(elementLabels).filter(id => !editedTemplate.elements.some(el => el.id === id));
+  
+  const availableElementsToAdd = useMemo(() => {
+    const allowed = ALLOWED_ELEMENTS_FOR_TYPE[editedTemplate.deviceType] || Object.keys(elementLabels);
+    return allowed.filter(id => !editedTemplate.elements.some(el => el.id === id));
+  }, [editedTemplate.deviceType, editedTemplate.elements, elementLabels]);
 
 
   return (

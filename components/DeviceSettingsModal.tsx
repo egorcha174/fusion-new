@@ -124,12 +124,13 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   
   const isTemplateable = [
     DeviceType.Sensor, DeviceType.Light, DeviceType.DimmableLight,
-    DeviceType.Switch, DeviceType.Thermostat, DeviceType.Humidifier
+    DeviceType.Switch, DeviceType.Thermostat, DeviceType.Humidifier,
+    DeviceType.Custom,
   ].includes(device.type);
 
   const isSensor = type === DeviceType.Sensor;
   
-  const getTemplateTypeString = (deviceType: DeviceType): 'sensor' | 'light' | 'switch' | 'climate' | 'humidifier' => {
+  const getTemplateTypeString = (deviceType: DeviceType): 'sensor' | 'light' | 'switch' | 'climate' | 'humidifier' | 'custom' => {
     switch (deviceType) {
         case DeviceType.Light:
         case DeviceType.DimmableLight:
@@ -140,6 +141,8 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
             return 'climate';
         case DeviceType.Humidifier:
             return 'humidifier';
+        case DeviceType.Custom:
+            return 'custom';
         case DeviceType.Sensor:
         default:
             return 'sensor';
