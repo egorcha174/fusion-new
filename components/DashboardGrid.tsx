@@ -54,6 +54,14 @@ const DraggableDevice: React.FC<{
   const handleClick = useCallback((e: React.MouseEvent) => {
     if (isEditMode) { e.preventDefault(); e.stopPropagation(); return; }
     
+    if (device.type === DeviceType.Custom) {
+        if (template?.interactionType === 'active' && template.mainActionEntityId) {
+            onDeviceToggle(template.mainActionEntityId);
+        }
+        // Пассивные кастомные карточки ничего не делают по клику
+        return;
+    }
+    
     // Для сенсоров клик открывает историю
     if (device.type === DeviceType.Sensor) {
       onShowHistory(device.id);
@@ -65,7 +73,7 @@ const DraggableDevice: React.FC<{
     if (isTogglable) {
       onDeviceToggle(device.id);
     }
-  }, [isEditMode, device.type, device.id, onShowHistory, onDeviceToggle]);
+  }, [isEditMode, device, template, onDeviceToggle, onShowHistory]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();

@@ -739,8 +739,13 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
       }
     };
     
+    let isCardTogglable = isTogglable;
+    if (device.type === DeviceType.Custom) {
+        isCardTogglable = template.interactionType === 'active' && !!template.mainActionEntityId;
+    }
+
     const hoverClass = !isEditMode && !isPreview ? 'hover:shadow-xl hover:scale-[1.02]' : '';
-    const cursorClass = isTogglable && !isEditMode && !isPreview ? 'cursor-pointer' : '';
+    const cursorClass = isCardTogglable && !isEditMode && !isPreview ? 'cursor-pointer' : '';
     const overflowClass = openMenuDeviceId === device.id ? '' : 'overflow-hidden';
 
     return (

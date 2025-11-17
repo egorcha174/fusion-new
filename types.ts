@@ -380,6 +380,9 @@ export interface CardTemplate {
   width?: number; // Ширина по умолчанию в ячейках
   height?: number; // Высота по умолчанию в ячейках
   deviceSlots?: DeviceSlot[]; // Слоты для индикаторов
+  // For custom cards
+  interactionType?: 'passive' | 'active';
+  mainActionEntityId?: string;
 }
 
 // Словарь шаблонов, где ключ - ID шаблона.
