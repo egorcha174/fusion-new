@@ -565,11 +565,12 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             }
     
             // --- Overlap detected, check for allowed stacking exception ---
-            const isPlacingStackable = width === 1 && height === 0.5;
-            const isExistingStackable = existingWidth === 1 && existingHeight === 0.5;
+            const isPlacingStackable = height === 0.5;
+            const isExistingStackable = existingHeight === 0.5;
             const isAtSameOrigin = col === existingItem.col && row === existingItem.row;
     
-            if (isPlacingStackable && isExistingStackable && isAtSameOrigin) {
+            // Stacking is only allowed if widths match
+            if (isPlacingStackable && isExistingStackable && isAtSameOrigin && width === existingWidth) {
                 // This is a potential stack. We need to count how many items are ALREADY at this origin.
                 const itemsAtOrigin = layout.filter(item => 
                     item.col === col && 

@@ -169,8 +169,9 @@ const OccupiedCellWrapper: React.FC<{
     });
     
     // Определяем, является ли группа одиночной карточкой 1x0.5, чтобы сделать ее контейнер 1x1 для drop-зоны.
-    const isSingleStackable = group.length === 1 && firstItem.height === 0.5 && (firstItem.width || 1) === 1;
-    const isStackedPair = group.length === 2 && group.every(item => item.height === 0.5 && (item.width || 1) === 1);
+    const isSingleStackable = group.length === 1 && firstItem.height === 0.5;
+    // Check that both items in the pair have the same width.
+    const isStackedPair = group.length === 2 && group.every(item => item.height === 0.5) && group[0].width === group[1].width;
     
     const width = firstItem.width || 1;
     // Если это одиночная карточка 1x0.5 или уже стопка, контейнер должен быть высотой в 1 ячейку.
@@ -458,8 +459,9 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                                         }
                                         const templateToUse = templateId ? templates[templateId] : undefined;
                                         
-                                        const isStackedPair = group.length === 2 && group.every(i => i.height === 0.5 && (i.width || 1) === 1);
-                                        const isSingleStackableItem = group.length === 1 && item.height === 0.5 && (item.width || 1) === 1;
+                                        // Ensure both items in the pair have the same width for correct stacking.
+                                        const isStackedPair = group.length === 2 && group.every(i => i.height === 0.5) && group[0].width === group[1].width;
+                                        const isSingleStackableItem = group.length === 1 && item.height === 0.5;
 
                                         const wrapperStyle: React.CSSProperties = {
                                             position: 'absolute',
