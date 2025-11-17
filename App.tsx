@@ -405,11 +405,11 @@ const App: React.FC = () => {
     if (deviceTarget && isEditMode) {
         // В режиме редактирования, ПКМ на карточке открывает меню действий
         // FIX: Type 'unknown' is not assignable to type 'string'.
-        // Added a type guard to ensure deviceId and tabId are strings before use,
-        // as properties from `dataset` can be `undefined`.
+        // Replaced truthiness check with `typeof` to properly narrow the type from `string | undefined`
+        // (or `unknown` in very strict contexts) to `string`.
         const deviceId = deviceTarget.dataset.deviceId;
         const tabId = deviceTarget.dataset.tabId;
-        if (deviceId && tabId) {
+        if (typeof deviceId === 'string' && typeof tabId === 'string') {
             handleDeviceContextMenu(event, deviceId, tabId);
         }
     } else if (!deviceTarget) {
@@ -508,7 +508,7 @@ const App: React.FC = () => {
           </Suspense>
           <main className="flex-1 overflow-y-auto">
             <Suspense fallback={<div className="flex h-full w-full items-center justify-center"><LoadingSpinner /></div>}>
-              <div className="p-4" style={{ height: `calc(100vh - 73px)` }}>{renderPage()}</div>
+              <div className="p-4 h-full">{renderPage()}</div>
             </Suspense>
           </main>
         </div>

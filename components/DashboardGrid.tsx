@@ -423,7 +423,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
     }
 
     return (
-        <div ref={viewportRef} className="w-full h-full flex items-center justify-center p-4">
+        <div ref={viewportRef} className="w-full h-full flex items-center justify-center">
             <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={pointerWithin}>
                 <div className="relative dashboard-grid-container" style={{ width: gridMetrics.containerWidth, height: gridMetrics.containerHeight }}>
                     {isEditMode && Array.from({ length: tab.gridSettings.cols * tab.gridSettings.rows }).map((_, index) => {
