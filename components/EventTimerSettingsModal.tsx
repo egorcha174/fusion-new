@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { EventTimerWidget, Device, DeviceType, ColorThemeSet } from '../types';
 import { useAppStore } from '../store/appStore';
-// FIX: Changed import for parseISO to a subpath import to fix module resolution error.
-import { format } from 'date-fns';
-import { parseISO } from 'date-fns/parseISO';
+import { format, parseISO } from 'date-fns';
 import EventTimerWidgetCard from './EventTimerWidgetCard';
 
 interface EventTimerSettingsModalProps {

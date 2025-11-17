@@ -267,15 +267,40 @@ const App: React.FC = () => {
         if (connectionStatus === 'connected' && !isLoading && !initializationDone.current) {
             initializationDone.current = true; // Выполняем только один раз
             if (tabs.length === 0 && allKnownDevices.size > 0) {
+                const { checkCollision, getTemplateForDevice } = useAppStore.getState();
                 const allDeviceIds = Array.from(allKnownDevices.keys());
+                const newLayout: GridLayoutItem[] = [];
+                const gridSettings = { cols: 8, rows: 5 };
+
+                for (const deviceId of allDeviceIds) {
+                    const device = allKnownDevices.get(deviceId);
+                    if (!device) continue;
+
+                    const template = getTemplateForDevice(device);
+                    const itemWidth = template?.width || 1;
+                    const itemHeight = template?.height || 1;
+
+                    let placed = false;
+                    for (let r = 0; r <= gridSettings.rows - Math.ceil(itemHeight); r++) {
+                        for (let c = 0; c <= gridSettings.cols - Math.ceil(itemWidth); c++) {
+                            const itemToPlace = { col: c, row: r, width: itemWidth, height: itemHeight };
+                            if (!checkCollision(newLayout, itemToPlace, gridSettings, deviceId)) {
+                                newLayout.push({ deviceId, ...itemToPlace });
+                                placed = true;
+                                break;
+                            }
+                        }
+                        if (placed) break;
+                    }
+                }
+
                 const newTab: Tab = {
                     id: nanoid(),
                     name: 'Главная',
-                    // Автоматически размещаем все устройства на первой вкладке
-                    // FIX: Explicitly type the 'id' parameter in the map function to resolve a TypeScript inference issue where it was being inferred as 'unknown'.
-                    layout: allDeviceIds.map((id: string): GridLayoutItem => ({ deviceId: id, col: 0, row: 0, width: 1, height: 1 })),
-                    gridSettings: { cols: 8, rows: 5 }
+                    layout: newLayout,
+                    gridSettings: gridSettings
                 };
+
                 setTabs([newTab]);
                 setActiveTabId(newTab.id);
             } else if (!activeTabId || !tabs.some(t => t.id === activeTabId)) {
@@ -399,7 +424,8 @@ const App: React.FC = () => {
     if (deviceTarget && isEditMode) {
         // В режиме редактирования, ПКМ на карточке открывает меню действий
         const { deviceId, tabId } = deviceTarget.dataset;
-        if (deviceId && tabId) {
+        // FIX: The type of dataset properties can be inferred as `unknown` in some strict TypeScript configurations. Using `typeof` provides a more robust type guard than a simple truthiness check, resolving the "Type 'unknown' is not assignable to type 'string'" error.
+        if (typeof deviceId === 'string' && typeof tabId === 'string') {
             handleDeviceContextMenu(event, deviceId, tabId);
         }
     } else if (!deviceTarget) {
