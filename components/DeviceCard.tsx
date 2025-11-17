@@ -752,7 +752,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         isCardTogglable = template.interactionType === 'active' && !!template.mainActionEntityId;
     }
 
-    const hoverClass = !isEditMode && !isPreview ? 'hover:shadow-xl hover:scale-[1.02]' : '';
+    const hoverClass = !isEditMode && !isPreview ? 'hover:shadow-xl' : '';
     const cursorClass = isCardTogglable && !isEditMode && !isPreview ? 'cursor-pointer' : '';
     const overflowClass = openMenuDeviceId === device.id ? '' : 'overflow-hidden';
 
@@ -934,7 +934,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
     const baseClasses = `w-full h-full rounded-2xl flex flex-col transition-shadow duration-300 ease-in-out select-none relative shadow-lg ring-1 ring-black/5 dark:ring-white/10 ${overflowClass}`;
     const layoutClasses = (isCamera || device.type === DeviceType.BatteryWidget || device.type === DeviceType.EventTimer) ? 'p-0' : styles.padding;
     const cursorClass = (isTogglable) && !isEditMode && !isPreview ? 'cursor-pointer' : '';
-    const hoverClass = !isEditMode && !isPreview ? 'hover:shadow-xl hover:scale-[1.02]' : '';
+    const hoverClass = !isEditMode && !isPreview ? 'hover:shadow-xl' : '';
     return `${baseClasses} ${layoutClasses} ${cursorClass} ${hoverClass}`;
   }
 
