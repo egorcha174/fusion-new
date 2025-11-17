@@ -2,7 +2,8 @@ import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
   CameraSettings, ColorScheme, CardTemplate, DeviceType, GridLayoutItem, DeviceCustomization,
-  CardElementId, EventTimerWidget, CustomCardWidget, PhysicalDevice, CardElement, WeatherSettings
+  CardElementId, EventTimerWidget, CustomCardWidget, PhysicalDevice, CardElement, WeatherSettings,
+  ServerConfig
 } from '../types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from '../components/DeviceIcon';
@@ -43,6 +44,9 @@ interface AppState {
     // FIX: Add editingEventTimerId to state for managing the event timer settings modal.
     editingEventTimerId: string | null;
 
+    servers: ServerConfig[];
+    activeServerId: string | null;
+
     tabs: Tab[];
     activeTabId: string | null;
     customizations: DeviceCustomizations;
@@ -80,6 +84,14 @@ interface AppActions {
     setHistoryModalEntityId: (id: string | null) => void;
     // FIX: Add setEditingEventTimerId to actions for managing the event timer settings modal.
     setEditingEventTimerId: (id: string | null) => void;
+
+    // Server Management
+    setServers: (servers: ServerConfig[]) => void;
+    setActiveServerId: (id: string | null) => void;
+    addServer: (serverData: Omit<ServerConfig, 'id'>) => ServerConfig;
+    updateServer: (serverData: ServerConfig) => void;
+    deleteServer: (serverId: string) => void;
+
 
     setTabs: (tabs: Tab[]) => void;
     setActiveTabId: (id: string | null) => void;
@@ -139,6 +151,28 @@ interface AppActions {
     createNewBlankTemplate: (deviceType: DeviceType | 'custom') => CardTemplate;
 }
 
+// --- Migration logic for single-server to multi-server ---
+const initialServers = loadAndMigrate<ServerConfig[]>(LOCAL_STORAGE_KEYS.SERVERS, []);
+let initialActiveServerId = loadAndMigrate<string | null>(LOCAL_STORAGE_KEYS.ACTIVE_SERVER_ID, null);
+
+if (initialServers.length === 0) {
+  const oldUrl = localStorage.getItem('ha-url');
+  const oldToken = localStorage.getItem('ha-token');
+  if (oldUrl && oldToken) {
+    const migratedServer: ServerConfig = { id: nanoid(), name: 'Home Assistant', url: oldUrl, token: oldToken };
+    initialServers.push(migratedServer);
+    initialActiveServerId = migratedServer.id;
+    
+    // Clean up old keys after successful migration
+    localStorage.removeItem('ha-url');
+    localStorage.removeItem('ha-token');
+    
+    // Save new structure
+    localStorage.setItem(LOCAL_STORAGE_KEYS.SERVERS, JSON.stringify(initialServers));
+    localStorage.setItem(LOCAL_STORAGE_KEYS.ACTIVE_SERVER_ID, JSON.stringify(initialActiveServerId));
+  }
+}
+
 
 export const useAppStore = create<AppState & AppActions>((set, get) => ({
     // --- State Initialization from LocalStorage ---
@@ -153,6 +187,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     historyModalEntityId: null,
     editingEventTimerId: null,
     
+    servers: initialServers,
+    activeServerId: initialActiveServerId,
+
     tabs: loadAndMigrate<Tab[]>(LOCAL_STORAGE_KEYS.TABS, []),
     activeTabId: loadAndMigrate<string | null>(LOCAL_STORAGE_KEYS.ACTIVE_TAB, null),
     customizations: loadAndMigrate<DeviceCustomizations>(LOCAL_STORAGE_KEYS.CUSTOMIZATIONS, {}),
@@ -188,6 +225,33 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     setFloatingCamera: (device) => set({ floatingCamera: device }),
     setHistoryModalEntityId: (id) => set({ historyModalEntityId: id }),
     setEditingEventTimerId: (id) => set({ editingEventTimerId: id }),
+
+    // --- Server Management Actions ---
+    setServers: (servers) => {
+        set({ servers });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SERVERS, JSON.stringify(servers));
+    },
+    setActiveServerId: (id) => {
+        set({ activeServerId: id });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.ACTIVE_SERVER_ID, JSON.stringify(id));
+    },
+    addServer: (serverData) => {
+        const newServer = { ...serverData, id: nanoid() };
+        get().setServers([...get().servers, newServer]);
+        return newServer;
+    },
+    updateServer: (serverData) => {
+        const newServers = get().servers.map(s => s.id === serverData.id ? serverData : s);
+        get().setServers(newServers);
+    },
+    deleteServer: (serverId) => {
+        const newServers = get().servers.filter(s => s.id !== serverId);
+        get().setServers(newServers);
+        if (get().activeServerId === serverId) {
+            get().setActiveServerId(newServers[0]?.id || null);
+        }
+    },
+
 
     // --- Actions with Persistence ---
     setTabs: (tabs) => {

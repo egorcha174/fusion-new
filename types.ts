@@ -127,6 +127,16 @@ export interface Tab {
 // --- Типы для пользовательских настроек ---
 
 /**
+ * Конфигурация для одного сервера Home Assistant.
+ */
+export interface ServerConfig {
+  id: string;
+  name: string;
+  url: string;
+  token: string;
+}
+
+/**
  * Настройки для одного экземпляра виджета-таймера.
  */
 export interface EventTimerWidget {

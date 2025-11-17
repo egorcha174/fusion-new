@@ -360,7 +360,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                         sendMessage({ type: 'auth', access_token: token });
                         break;
                     case 'auth_ok':
-                        set({ connectionStatus: 'connected' });
+                        set({ connectionStatus: 'connected', haUrl: url });
                         const initialFetchIds = new Set<number>();
                         const fetches = {
                             states: { id: messageIdRef++, type: 'get_states' },

@@ -4,8 +4,8 @@
  * для всего, что сохраняется в локальном хранилище браузера.
  */
 export const LOCAL_STORAGE_KEYS = {
-  URL: 'ha-url',
-  TOKEN: 'ha-token',
+  SERVERS: 'ha-servers',
+  ACTIVE_SERVER_ID: 'ha-active-server-id',
   TABS: 'ha-tabs',
   ACTIVE_TAB: 'ha-active-tab',
   CUSTOMIZATIONS: 'ha-device-customizations',
@@ -23,11 +23,9 @@ export const LOCAL_STORAGE_KEYS = {
   OPENWEATHERMAP_KEY: 'ha-openweathermap-key',
   YANDEX_WEATHER_KEY: 'ha-yandex-weather-key',
   FORECA_KEY: 'ha-foreca-key',
-  // FIX: Added missing WEATHER_SETTINGS key to resolve TypeScript errors in appStore.
   WEATHER_SETTINGS: 'ha-weather-settings',
   // FIX: Replaced `CUSTOM_WIDGETS` with `EVENT_TIMER_WIDGETS` to better reflect the feature and resolve naming conflicts.
   EVENT_TIMER_WIDGETS: 'ha-event-timer-widgets',
   CUSTOM_CARD_WIDGETS: 'ha-custom-card-widgets',
-  // FIX: Add missing 'CHRISTMAS_THEME_ENABLED' key.
   CHRISTMAS_THEME_ENABLED: 'ha-christmas-theme-enabled',
 } as const;
