@@ -1,5 +1,3 @@
-
-
 import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization, WeatherForecast } from '../types';
 
 /**
@@ -20,6 +18,7 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
   if (domain === 'internal') {
     if (entityId.includes('event-timer')) return DeviceType.EventTimer;
     if (entityId.includes('battery')) return DeviceType.BatteryWidget;
+    if (entityId.includes('custom-card')) return DeviceType.Custom;
   }
 
   // --- Приоритет 1: Прямое сопоставление домена (однозначные случаи) ---

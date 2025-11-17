@@ -67,7 +67,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   };
   
   const updateDerivedState = (entities: HassEntities, areas: HassArea[], devices: HassDevice[], entityRegistry: HassEntityRegistryEntry[]) => {
-      const { customizations, lowBatteryThreshold, eventTimerWidgets } = useAppStore.getState();
+      const { customizations, lowBatteryThreshold, eventTimerWidgets, customCardWidgets } = useAppStore.getState();
       const rooms = mapEntitiesToRooms(Object.values(entities), areas, devices, entityRegistry, customizations, true);
       const deviceMap = new Map<string, Device>();
       rooms.forEach(room => {
@@ -220,6 +220,23 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             widgetsRoom.devices.push(timerDevice);
         }
       });
+      
+      // Custom Card Widgets
+      customCardWidgets.forEach(widget => {
+          const cardDevice: Device = {
+              id: `internal::custom-card_${widget.id}`,
+              name: widget.name,
+              status: 'Кастомная карточка',
+              type: DeviceType.Custom,
+              haDomain: 'internal',
+              state: 'active',
+              widgetId: widget.id,
+          };
+          deviceMap.set(cardDevice.id, cardDevice);
+          if (!widgetsRoom.devices.some(d => d.id === cardDevice.id)) {
+              widgetsRoom.devices.push(cardDevice);
+          }
+      });
 
 
       const cameras = Array.from(deviceMap.values()).filter((d: Device) => d.haDomain === 'camera');
@@ -275,8 +292,12 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   // Re-compute derived state whenever customizations change
   useAppStore.subscribe(
     (state, prevState) => {
-        // FIX: Subscribe to `eventTimerWidgets` changes instead of the obsolete `septicTankSettings`.
-        if (state.customizations !== prevState.customizations || state.lowBatteryThreshold !== prevState.lowBatteryThreshold || state.eventTimerWidgets !== prevState.eventTimerWidgets) {
+        const shouldUpdate = state.customizations !== prevState.customizations ||
+                             state.lowBatteryThreshold !== prevState.lowBatteryThreshold ||
+                             state.eventTimerWidgets !== prevState.eventTimerWidgets ||
+                             state.customCardWidgets !== prevState.customCardWidgets;
+        
+        if (shouldUpdate) {
             const { entities, areas, devices, entityRegistry } = get();
             updateDerivedState(entities, areas, devices, entityRegistry);
         }

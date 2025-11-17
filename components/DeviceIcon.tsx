@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import { DeviceType } from '../types';
 import { Icon } from '@iconify/react';
@@ -37,6 +35,7 @@ const iconMap: Record<DeviceType, { on: string; off: string; animation?: 'spin' 
   [DeviceType.BatteryWidget]: { on: 'mdi:battery-heart-variant-outline', off: 'mdi:battery-heart-variant-outline' },
   [DeviceType.Humidifier]: { on: 'mdi:air-humidifier', off: 'mdi:air-humidifier-off' },
   [DeviceType.EventTimer]: { on: 'mdi:pump', off: 'mdi:pump' },
+  [DeviceType.Custom]: { on: 'mdi:view-dashboard-variant-outline', off: 'mdi:view-dashboard-variant-outline' },
   [DeviceType.Unknown]: { on: 'mdi:help-rhombus-outline', off: 'mdi:help-rhombus-outline' },
 };
 

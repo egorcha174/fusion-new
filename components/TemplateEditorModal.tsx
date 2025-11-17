@@ -372,6 +372,8 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
     setIsAddLayerMenuOpen(false);
     const newElement: CardElement = {
         id: elementId,
+        // FIX: Add missing 'uniqueId' property required by the CardElement type.
+        uniqueId: nanoid(),
         visible: true,
         position: { x: 30, y: 30 },
         size: { width: 40, height: 20 },

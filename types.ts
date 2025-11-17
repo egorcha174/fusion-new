@@ -26,6 +26,7 @@ export enum DeviceType {
   BatteryWidget,
   Humidifier,
   EventTimer, // Новый тип для виджета-таймера
+  Custom, // Новый тип для кастомных карточек-контейнеров
   Unknown, // Резервный тип для неопознанных устройств
 }
 
@@ -140,6 +141,14 @@ export interface EventTimerWidget {
   namePosition?: { x: number; y: number };
   daysRemainingFontSize?: number;
   daysRemainingPosition?: { x: number; y: number };
+}
+
+/**
+ * Настройки для одного экземпляра виджета кастомной карточки.
+ */
+export interface CustomCardWidget {
+  id: string;
+  name: string;
 }
 
 /**
@@ -294,7 +303,8 @@ export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'stat
  * Описывает один элемент (например, иконку, название) внутри шаблона карточки.
  */
 export interface CardElement {
-  id: CardElementId;
+  id: CardElementId; // Тип элемента
+  uniqueId: string; // Уникальный идентификатор экземпляра элемента
   visible: boolean; // Виден ли элемент
   position: { x: number; y: number }; // Позиция в % от левого верхнего угла
   size: { width: number; height: number }; // Размер в %
@@ -362,7 +372,7 @@ export interface ThresholdRule {
 export interface CardTemplate {
   id: string;
   name: string;
-  deviceType: 'sensor' | 'light' | 'switch' | 'climate' | 'humidifier'; // Для какого типа устройств этот шаблон
+  deviceType: 'sensor' | 'light' | 'switch' | 'climate' | 'humidifier' | 'custom'; // Для какого типа устройств этот шаблон
   elements: CardElement[]; // Элементы внутри карточки
   styles: { // Общие стили для карточки
     // Стили фона перенесены в глобальную ColorScheme

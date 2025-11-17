@@ -6,6 +6,7 @@ import {
     ClockSettings,
     CameraSettings
 } from '../types';
+import { nanoid } from 'nanoid';
 
 // --- Default Template IDs ---
 export const DEFAULT_SENSOR_TEMPLATE_ID = 'default-sensor';
@@ -22,12 +23,12 @@ const defaultSensorTemplate: CardTemplate = {
   id: DEFAULT_SENSOR_TEMPLATE_ID, name: 'Стандартный сенсор', deviceType: 'sensor',
   styles: { },
   elements: [
-    { id: 'name', visible: true, position: { x: 8, y: 7 }, size: { width: 65, height: 22 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 16 } },
-    { id: 'icon', visible: true, position: { x: 80, y: 7 }, size: { width: 15, height: 15 }, zIndex: 2, styles: {} },
-    { id: 'value', visible: true, position: { x: 8, y: 35 }, size: { width: 70, height: 40 }, zIndex: 2, styles: { decimalPlaces: 1, fontFamily: DEFAULT_FONT_FAMILY, fontSize: 52 } },
-    { id: 'unit', visible: true, position: { x: 70, y: 40 }, size: { width: 25, height: 25 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 24 } },
-    { id: 'chart', visible: true, position: { x: 0, y: 82 }, size: { width: 100, height: 18 }, zIndex: 1, styles: { chartTimeRange: 24, chartTimeRangeUnit: 'hours', chartType: 'gradient' } },
-    { id: 'status', visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
+    { id: 'name', uniqueId: nanoid(), visible: true, position: { x: 8, y: 7 }, size: { width: 65, height: 22 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 16 } },
+    { id: 'icon', uniqueId: nanoid(), visible: true, position: { x: 80, y: 7 }, size: { width: 15, height: 15 }, zIndex: 2, styles: {} },
+    { id: 'value', uniqueId: nanoid(), visible: true, position: { x: 8, y: 35 }, size: { width: 70, height: 40 }, zIndex: 2, styles: { decimalPlaces: 1, fontFamily: DEFAULT_FONT_FAMILY, fontSize: 52 } },
+    { id: 'unit', uniqueId: nanoid(), visible: true, position: { x: 70, y: 40 }, size: { width: 25, height: 25 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 24 } },
+    { id: 'chart', uniqueId: nanoid(), visible: true, position: { x: 0, y: 82 }, size: { width: 100, height: 18 }, zIndex: 1, styles: { chartTimeRange: 24, chartTimeRangeUnit: 'hours', chartType: 'gradient' } },
+    { id: 'status', uniqueId: nanoid(), visible: false, position: { x: 0, y: 0}, size: { width: 0, height: 0 }, zIndex: 0, styles: {} },
   ],
 };
 
@@ -35,10 +36,10 @@ const defaultLightTemplate: CardTemplate = {
     id: DEFAULT_LIGHT_TEMPLATE_ID, name: 'Стандартный светильник', deviceType: 'light',
     styles: { },
     elements: [
-      { id: 'icon', visible: true, position: { x: 8, y: 8 }, size: { width: 20, height: 20 }, zIndex: 2, styles: { onColor: 'rgb(59 130 246 / 1)' } },
-      { id: 'name', visible: true, position: { x: 8, y: 35 }, size: { width: 84, height: 22 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 16 } },
-      { id: 'status', visible: true, position: { x: 8, y: 58 }, size: { width: 84, height: 12 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 14 } },
-      { id: 'slider', visible: true, position: { x: 8, y: 78 }, size: { width: 84, height: 14 }, zIndex: 2, styles: {} },
+      { id: 'icon', uniqueId: nanoid(), visible: true, position: { x: 8, y: 8 }, size: { width: 20, height: 20 }, zIndex: 2, styles: { onColor: 'rgb(59 130 246 / 1)' } },
+      { id: 'name', uniqueId: nanoid(), visible: true, position: { x: 8, y: 35 }, size: { width: 84, height: 22 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 16 } },
+      { id: 'status', uniqueId: nanoid(), visible: true, position: { x: 8, y: 58 }, size: { width: 84, height: 12 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 14 } },
+      { id: 'slider', uniqueId: nanoid(), visible: true, position: { x: 8, y: 78 }, size: { width: 84, height: 14 }, zIndex: 2, styles: {} },
     ],
 };
 
@@ -46,9 +47,9 @@ const defaultSwitchTemplate: CardTemplate = {
     id: DEFAULT_SWITCH_TEMPLATE_ID, name: 'Стандартный переключатель', deviceType: 'switch',
     styles: { },
     elements: [
-      { id: 'icon', visible: true, position: { x: 8, y: 8 }, size: { width: 20, height: 20 }, zIndex: 2, styles: { onColor: 'rgb(59 130 246 / 1)' } },
-      { id: 'name', visible: true, position: { x: 8, y: 35 }, size: { width: 84, height: 22 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 16 } },
-      { id: 'status', visible: true, position: { x: 8, y: 58 }, size: { width: 84, height: 12 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 14 } },
+      { id: 'icon', uniqueId: nanoid(), visible: true, position: { x: 8, y: 8 }, size: { width: 20, height: 20 }, zIndex: 2, styles: { onColor: 'rgb(59 130 246 / 1)' } },
+      { id: 'name', uniqueId: nanoid(), visible: true, position: { x: 8, y: 35 }, size: { width: 84, height: 22 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 16 } },
+      { id: 'status', uniqueId: nanoid(), visible: true, position: { x: 8, y: 58 }, size: { width: 84, height: 12 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 14 } },
     ],
 };
 
@@ -56,12 +57,12 @@ const defaultClimateTemplate: CardTemplate = {
   id: DEFAULT_CLIMATE_TEMPLATE_ID, name: 'Стандартный климат', deviceType: 'climate',
   styles: { },
   elements: [
-    { id: 'temperature', visible: true, position: { x: 8, y: 15 }, size: { width: 40, height: 15 }, zIndex: 2, styles: { decimalPlaces: 0, fontFamily: DEFAULT_FONT_FAMILY, fontSize: 24 } },
-    { id: 'name', visible: true, position: { x: 8, y: 32 }, size: { width: 40, height: 10 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 16 } },
-    { id: 'status', visible: true, position: { x: 8, y: 44 }, size: { width: 40, height: 8 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 14 } },
-    { id: 'target-temperature', visible: true, position: { x: 25, y: 5 }, size: { width: 90, height: 90 }, zIndex: 1, styles: {} },
-    { id: 'hvac-modes', visible: true, position: { x: 80, y: 25 }, size: { width: 15, height: 50 }, zIndex: 2, styles: {} },
-    { id: 'linked-entity', visible: false, position: { x: 8, y: 8 }, size: { width: 10, height: 10 }, zIndex: 2, styles: { linkedEntityId: '', showValue: false } },
+    { id: 'temperature', uniqueId: nanoid(), visible: true, position: { x: 8, y: 15 }, size: { width: 40, height: 15 }, zIndex: 2, styles: { decimalPlaces: 0, fontFamily: DEFAULT_FONT_FAMILY, fontSize: 24 } },
+    { id: 'name', uniqueId: nanoid(), visible: true, position: { x: 8, y: 32 }, size: { width: 40, height: 10 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 16 } },
+    { id: 'status', uniqueId: nanoid(), visible: true, position: { x: 8, y: 44 }, size: { width: 40, height: 8 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 14 } },
+    { id: 'target-temperature', uniqueId: nanoid(), visible: true, position: { x: 25, y: 5 }, size: { width: 90, height: 90 }, zIndex: 1, styles: {} },
+    { id: 'hvac-modes', uniqueId: nanoid(), visible: true, position: { x: 80, y: 25 }, size: { width: 15, height: 50 }, zIndex: 2, styles: {} },
+    { id: 'linked-entity', uniqueId: nanoid(), visible: false, position: { x: 8, y: 8 }, size: { width: 10, height: 10 }, zIndex: 2, styles: { linkedEntityId: '', showValue: false } },
   ],
 };
 
@@ -73,43 +74,22 @@ const humidifierTemplate: CardTemplate = {
   width: 2,
   height: 2,
   elements: [
-    { id: 'name', visible: true, position: { x: 5, y: 5 }, size: { width: 90, height: 8 }, zIndex: 2, styles: { textAlign: 'center', fontSize: 16 } },
-    { id: 'status', visible: true, position: { x: 5, y: 14 }, size: { width: 90, height: 7 }, zIndex: 2, styles: { textAlign: 'center', fontSize: 12 } },
-    { id: 'temperature', visible: true, position: { x: 5, y: 22 }, size: { width: 90, height: 7 }, zIndex: 2, styles: { textAlign: 'center', fontSize: 12 } },
-    { id: 'target-temperature', visible: true, position: { x: 20, y: 30 }, size: { width: 60, height: 60 }, zIndex: 1, styles: {} },
-    { id: 'fan-speed-control', visible: true, position: { x: 5, y: 85 }, size: { width: 90, height: 12 }, zIndex: 3, styles: { linkedFanEntityId: '' } }
+    { id: 'name', uniqueId: nanoid(), visible: true, position: { x: 5, y: 5 }, size: { width: 90, height: 8 }, zIndex: 2, styles: { textAlign: 'center', fontSize: 16 } },
+    { id: 'status', uniqueId: nanoid(), visible: true, position: { x: 5, y: 14 }, size: { width: 90, height: 7 }, zIndex: 2, styles: { textAlign: 'center', fontSize: 12 } },
+    { id: 'temperature', uniqueId: nanoid(), visible: true, position: { x: 5, y: 22 }, size: { width: 90, height: 7 }, zIndex: 2, styles: { textAlign: 'center', fontSize: 12 } },
+    { id: 'target-temperature', uniqueId: nanoid(), visible: true, position: { x: 20, y: 30 }, size: { width: 60, height: 60 }, zIndex: 1, styles: {} },
+    { id: 'fan-speed-control', uniqueId: nanoid(), visible: true, position: { x: 5, y: 85 }, size: { width: 90, height: 12 }, zIndex: 3, styles: { linkedFanEntityId: '' } }
   ],
 };
 
-const acTemplate: CardTemplate = {
-  id: "ac-card",
-  name: "Кондиционер",
-  deviceType: "climate",
-  styles: {},
-  elements: [
-    { id: "name", visible: true, position: { x: 8, y: 8 }, size: { width: 50, height: 15 }, zIndex: 2, styles: {} },
-    { id: "temperature", visible: true, position: { x: 8, y: 25 }, size: { width: 30, height: 20 }, zIndex: 2, styles: { decimalPlaces: 0 } },
-    { id: 'status', visible: true, position: { x: 8, y: 45 }, size: { width: 40, height: 10 }, zIndex: 2, styles: {} },
-    { id: "target-temperature", visible: true, position: { x: 50, y: 5 }, size: { width: 50, height: 90 }, zIndex: 1, styles: {} },
-    { id: "hvac-modes", visible: true, position: { x: 8, y: 65 }, size: { width: 35, height: 25 }, zIndex: 2, styles: {} }
-  ],
-  width: 3,
-  height: 2,
-};
-
-const blindsTemplate: CardTemplate = {
-  id: "blinds-card",
-  name: "Жалюзи",
-  deviceType: "switch",
-  styles: {},
-  elements: [
-    { id: "icon", visible: true, position: { x: 10, y: 10 }, size: { width: 20, height: 20 }, zIndex: 1, styles: {} },
-    { id: "name", visible: true, position: { x: 35, y: 10 }, size: { width: 60, height: 10 }, zIndex: 1, styles: {} },
-    { id: "status", visible: true, position: { x: 35, y: 30 }, size: { width: 60, height: 10 }, zIndex: 1, styles: {} },
-    { id: "slider", visible: true, position: { x: 10, y: 50 }, size: { width: 80, height: 20 }, zIndex: 2, styles: {} }
-  ],
-  width: 2,
-  height: 2,
+const customCardTemplate: CardTemplate = {
+    id: 'custom-template', name: 'Стандартная кастомная', deviceType: 'custom',
+    styles: { },
+    width: 2,
+    height: 2,
+    elements: [
+      { id: 'name', uniqueId: nanoid(), visible: true, position: { x: 8, y: 8 }, size: { width: 84, height: 15 }, zIndex: 1, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 16 } },
+    ],
 };
 
 export const defaultTemplates: CardTemplates = {
@@ -118,8 +98,7 @@ export const defaultTemplates: CardTemplates = {
     [DEFAULT_SWITCH_TEMPLATE_ID]: defaultSwitchTemplate,
     [DEFAULT_CLIMATE_TEMPLATE_ID]: defaultClimateTemplate,
     'humidifier-card': humidifierTemplate,
-    'ac-card': acTemplate,
-    'blinds-card': blindsTemplate,
+    'custom-template': customCardTemplate,
 };
 
 // --- Default Color Scheme ---

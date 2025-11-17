@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
   CameraSettings, ColorScheme, CardTemplate, DeviceType, GridLayoutItem, DeviceCustomization,
-  CardElementId, EventTimerWidget
+  CardElementId, EventTimerWidget, CustomCardWidget
 } from '../types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from '../components/DeviceIcon';
@@ -61,6 +61,7 @@ interface AppState {
     lowBatteryThreshold: number;
     // FIX: Replaced single septic tank settings with a more generic array of event timer widgets to support multiple custom timers.
     eventTimerWidgets: EventTimerWidget[];
+    customCardWidgets: CustomCardWidget[];
     DEFAULT_COLOR_SCHEME: ColorScheme;
 }
 
@@ -103,6 +104,12 @@ interface AppActions {
     resetCustomWidgetTimer: (widgetId: string) => void;
     deleteCustomWidget: (widgetId: string) => void;
 
+    // Actions for Custom Cards
+    setCustomCardWidgets: (widgets: CustomCardWidget[]) => void;
+    addCustomCard: () => void;
+    updateCustomCard: (widgetId: string, updates: Partial<Omit<CustomCardWidget, 'id'>>) => void;
+    deleteCustomCard: (widgetId: string) => void;
+
 
     onResetColorScheme: () => void;
     handleTabOrderChange: (newTabs: Tab[]) => void;
@@ -122,7 +129,7 @@ interface AppActions {
     handleToggleVisibility: (device: Device, isHidden: boolean) => void;
     handleSaveTemplate: (template: CardTemplate) => void;
     handleDeleteTemplate: (templateId: string) => void;
-    createNewBlankTemplate: (deviceType: DeviceType) => CardTemplate;
+    createNewBlankTemplate: (deviceType: DeviceType | 'custom') => CardTemplate;
 }
 
 
@@ -158,6 +165,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     lowBatteryThreshold: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, DEFAULT_LOW_BATTERY_THRESHOLD),
     // FIX: Replaced septicTankSettings with eventTimerWidgets and corrected the local storage key.
     eventTimerWidgets: loadAndMigrate<EventTimerWidget[]>(LOCAL_STORAGE_KEYS.EVENT_TIMER_WIDGETS, []),
+    customCardWidgets: loadAndMigrate<CustomCardWidget[]>(LOCAL_STORAGE_KEYS.CUSTOM_CARD_WIDGETS, []),
     DEFAULT_COLOR_SCHEME: DEFAULT_COLOR_SCHEME,
     
     // --- Actions ---
@@ -279,6 +287,33 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         get().setEventTimerWidgets(newWidgets);
         
         // Remove from all tabs to prevent ghost items
+        const newTabs = get().tabs.map(tab => ({
+            ...tab,
+            layout: tab.layout.filter(item => item.deviceId !== deviceIdToDelete)
+        }));
+        get().setTabs(newTabs);
+    },
+    
+    // --- Custom Card Actions ---
+    setCustomCardWidgets: (widgets) => {
+        set({ customCardWidgets: widgets });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.CUSTOM_CARD_WIDGETS, JSON.stringify(widgets));
+    },
+    addCustomCard: () => {
+        const newWidget: CustomCardWidget = {
+            id: nanoid(),
+            name: `Кастомная карточка ${get().customCardWidgets.length + 1}`,
+        };
+        get().setCustomCardWidgets([...get().customCardWidgets, newWidget]);
+    },
+    updateCustomCard: (widgetId, updates) => {
+        const newWidgets = get().customCardWidgets.map(w => w.id === widgetId ? { ...w, ...updates } : w);
+        get().setCustomCardWidgets(newWidgets);
+    },
+    deleteCustomCard: (widgetId) => {
+        const deviceIdToDelete = `internal::custom-card_${widgetId}`;
+        const newWidgets = get().customCardWidgets.filter(w => w.id !== widgetId);
+        get().setCustomCardWidgets(newWidgets);
         const newTabs = get().tabs.map(tab => ({
             ...tab,
             layout: tab.layout.filter(item => item.deviceId !== deviceIdToDelete)
@@ -528,6 +563,25 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         get().setCustomizations(newCustomizations);
     },
     createNewBlankTemplate: (deviceType) => {
+        if (deviceType === 'custom') {
+            return {
+                id: nanoid(),
+                name: 'Новая кастомная карточка',
+                deviceType: 'custom',
+                elements: [{
+                    id: 'name',
+                    uniqueId: nanoid(),
+                    visible: true,
+                    position: { x: 8, y: 8 },
+                    size: { width: 84, height: 15 },
+                    zIndex: 1,
+                    styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 16 },
+                }],
+                styles: {},
+                width: 2,
+                height: 2,
+            };
+        }
         const baseMap = {
             [DeviceType.Sensor]: get().templates[DEFAULT_SENSOR_TEMPLATE_ID],
             [DeviceType.Light]: get().templates[DEFAULT_LIGHT_TEMPLATE_ID],

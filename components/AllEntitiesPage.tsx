@@ -1,6 +1,3 @@
-
-
-
 import React, { useState } from 'react';
 import { Room, Device } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -72,22 +69,31 @@ interface AllEntitiesPageProps {
  */
 const AllEntitiesPage: React.FC<AllEntitiesPageProps> = ({ rooms }) => {
     // FIX: Correctly destructure the `addCustomWidget` action which is now implemented in the store.
-    const { customizations, handleToggleVisibility, addCustomWidget } = useAppStore();
+    const { customizations, handleToggleVisibility, addCustomWidget, addCustomCard } = useAppStore();
 
     return (
         <div className="container mx-auto">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-wrap justify-between items-center gap-4 mb-8">
                 <div>
                     <h1 className="text-3xl font-bold">Все сущности</h1>
                     <p className="text-gray-500 dark:text-gray-400 mt-2 max-w-2xl">Здесь показаны все сущности из вашего Home Assistant. Скрывайте ненужные или добавляйте их на вкладки.</p>
                 </div>
-                <button
-                    onClick={() => addCustomWidget()}
-                    className="flex-shrink-0 bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                >
-                    <Icon icon="mdi:plus" className="w-5 h-5" />
-                    Создать виджет-таймер
-                </button>
+                <div className="flex-shrink-0 flex items-center gap-2">
+                    <button
+                        onClick={() => addCustomCard()}
+                        className="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                    >
+                        <Icon icon="mdi:view-dashboard-plus-outline" className="w-5 h-5" />
+                        Создать кастомную карточку
+                    </button>
+                    <button
+                        onClick={() => addCustomWidget()}
+                        className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                    >
+                        <Icon icon="mdi:plus" className="w-5 h-5" />
+                        Создать виджет-таймер
+                    </button>
+                </div>
             </div>
             
             <div className="space-y-10">
