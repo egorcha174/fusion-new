@@ -454,7 +454,11 @@ const App: React.FC = () => {
   
   // Подготовка данных для модальных окон и контекстных меню
   const contextMenuDevice = contextMenu ? allKnownDevices.get(contextMenu.deviceId) : null;
-  const isTemplateable = contextMenuDevice?.type === DeviceType.Sensor || contextMenuDevice?.type === DeviceType.DimmableLight || contextMenuDevice?.type === DeviceType.Light || contextMenuDevice?.type === DeviceType.Switch || contextMenuDevice?.type === DeviceType.Thermostat || contextMenuDevice?.type === DeviceType.Humidifier;
+  const isTemplateable = contextMenuDevice ? [
+    DeviceType.Sensor, DeviceType.DimmableLight, DeviceType.Light,
+    DeviceType.Switch, DeviceType.Thermostat, DeviceType.Humidifier,
+    DeviceType.Custom
+  ].includes(contextMenuDevice.type) : false;
   const currentTemplate = getTemplateForDevice(contextMenuDevice);
   const historyDevice = historyModalEntityId ? allKnownDevices.get(historyModalEntityId) : null;
   const historyDeviceTemplate = getTemplateForDevice(historyDevice);
