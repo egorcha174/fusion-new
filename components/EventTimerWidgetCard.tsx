@@ -110,8 +110,11 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, col
 
     return (
         <div 
-            className="w-full h-full relative rounded-2xl overflow-hidden text-white select-none"
-            style={{ backgroundColor: colorScheme.cardBackground }}
+            className="w-full h-full relative overflow-hidden text-white select-none"
+            style={{ 
+                backgroundColor: colorScheme.cardBackground,
+                borderRadius: `${colorScheme.cardBorderRadius}px`
+            }}
             onContextMenu={onContextMenu}
         >
             {/* Слой с "жидкой" заливкой, всегда спозиционированный снизу */}
