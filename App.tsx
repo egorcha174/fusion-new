@@ -198,6 +198,16 @@ const App: React.FC = () => {
     const floatingCamera = useAppStore(state => state.floatingCamera);
     const [confirmingDeleteWidget, setConfirmingDeleteWidget] = useState<EventTimerWidget | null>(null);
 
+    const cardSizes = [
+        { w: 1, h: 0.5 },
+        { w: 1, h: 1 },
+        { w: 1, h: 2 },
+        { w: 2, h: 0.5 },
+        { w: 2, h: 1 },
+        { w: 2, h: 2 },
+        { w: 3, h: 1 },
+        { w: 3, h: 2 },
+    ];
 
   const isLg = useIsLg();
   const [isDarkBySchedule, setIsDarkBySchedule] = useState(false);
@@ -558,6 +568,20 @@ const App: React.FC = () => {
                       handleCloseContextMenu();
                   }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">Редактор шаблона</div>
                 )}
+                <SubMenuItem title="Размер">
+                    {cardSizes.map(size => (
+                        <div
+                            key={`${size.w}x${size.h}`}
+                            onClick={() => {
+                                useAppStore.getState().handleDeviceResizeOnTab(contextMenu.tabId, contextMenu.deviceId, size.w, size.h);
+                                handleCloseContextMenu();
+                            }}
+                            className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm"
+                        >
+                            {`${size.w} × ${String(size.h).replace('.', ',')}`}
+                        </div>
+                    ))}
+                </SubMenuItem>
                 <div className="h-px bg-gray-300 dark:bg-gray-600 my-1 mx-1" />
                 {otherTabs.length > 0 && (
                     <SubMenuItem title="Переместить">
@@ -575,6 +599,20 @@ const App: React.FC = () => {
             {contextMenuDevice?.type === DeviceType.EventTimer && contextMenuDevice.widgetId && (
               <>
                 <div onClick={() => { setEditingEventTimerId(contextMenuDevice.widgetId!); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">Настроить виджет</div>
+                <SubMenuItem title="Размер">
+                    {cardSizes.map(size => (
+                        <div
+                            key={`${size.w}x${size.h}`}
+                            onClick={() => {
+                                useAppStore.getState().handleDeviceResizeOnTab(contextMenu.tabId, contextMenu.deviceId, size.w, size.h);
+                                handleCloseContextMenu();
+                            }}
+                            className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm"
+                        >
+                            {`${size.w} × ${String(size.h).replace('.', ',')}`}
+                        </div>
+                    ))}
+                </SubMenuItem>
                 <div onClick={() => { 
                     const widget = eventTimerWidgets.find(w => w.id === contextMenuDevice.widgetId);
                     if (widget) setConfirmingDeleteWidget(widget);
