@@ -7,7 +7,7 @@ interface EventTimerWidgetCardProps {
     colorScheme: ColorThemeSet;
 }
 
-const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device }) => {
+const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, colorScheme }) => {
     const { resetCustomWidgetTimer } = useAppStore();
 
     const { fillPercentage = 0, daysRemaining = 0, widgetId, buttonText = "Сброс" } = device;
@@ -32,7 +32,13 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device }) =
     const wavePath = "M0,25 C150,50 350,0 500,25 L500,51 L0,51 Z";
 
     return (
-        <div className="w-full h-full relative bg-gray-800 dark:bg-gray-900 rounded-2xl overflow-hidden text-white select-none">
+        <div 
+            className="w-full h-full relative overflow-hidden text-white select-none"
+            style={{
+                backgroundColor: colorScheme.cardBackground,
+                borderRadius: `${colorScheme.cardBorderRadius ?? 16}px`
+            }}
+        >
             {/* Слой с "жидкой" заливкой */}
             <div
                 className="absolute bottom-0 left-0 right-0 transition-all duration-700 ease-in-out"
