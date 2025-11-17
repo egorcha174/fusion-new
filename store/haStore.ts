@@ -165,7 +165,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         }
       }
 
-      // FIX: Loop through all event timer widgets and create a device for each.
       eventTimerWidgets.forEach(widget => {
         const { id, name, lastResetDate, cycleDays, buttonText, fillColors, animation, fillDirection, showName, nameFontSize, namePosition, daysRemainingFontSize, daysRemainingPosition } = widget;
         let timerDevice: Device;
@@ -181,7 +180,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                 id: `internal::event-timer_${id}`,
                 name: name,
                 status: `Осталось ${daysRemaining} дн.`,
-                // FIX: Use the correct `EventTimer` DeviceType.
                 type: DeviceType.EventTimer,
                 haDomain: 'internal',
                 fillPercentage: fillPercentage,
@@ -203,7 +201,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                 id: `internal::event-timer_${id}`,
                 name: name,
                 status: 'Настройте таймер',
-                 // FIX: Use the correct `EventTimer` DeviceType.
                 type: DeviceType.EventTimer,
                 haDomain: 'internal',
                 fillPercentage: 0,

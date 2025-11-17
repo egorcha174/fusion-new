@@ -1,6 +1,3 @@
-
-
-
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig } from '../types';
 import ConfirmDialog from './ConfirmDialog';
@@ -16,7 +13,6 @@ import { ru } from 'date-fns/locale/ru';
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'failed';
 type SettingsTab = 'appearance' | 'interface' | 'templates' | 'connection' | 'backup';
 
-// FIX: Define a type for theme objects to ensure they conform to the ColorScheme interface, which prevents TypeScript from inferring 'dashboardBackgroundType' as a generic string.
 type ThemeObject = {
   colorScheme: ColorScheme;
 };
@@ -296,7 +292,6 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
         clockSettings, setClockSettings,
         sidebarWidth, setSidebarWidth,
         isSidebarVisible, setIsSidebarVisible,
-// FIX: The 'theme' and 'setTheme' properties were renamed to 'themeMode' and 'setThemeMode' in the app store. 'setColorScheme' was replaced by 'selectTheme'. This updates the destructuring to use the correct state and actions.
         themeMode, setThemeMode,
         scheduleStartTime, setScheduleStartTime,
         scheduleEndTime, setScheduleEndTime,
@@ -343,9 +338,6 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
             // Собираем все настройки из localStorage
             const settingsToExport: { [key: string]: any } = {};
             for (const key of Object.values(LOCAL_STORAGE_KEYS)) {
-                // FIX: Removed a check for legacy 'ha-url' and 'ha-token' keys.
-                // These values are no longer part of the `LOCAL_STORAGE_KEYS` type, which was causing a TypeScript error.
-                // The app's migration logic already handles these legacy keys, making the check unnecessary.
                 const value = localStorage.getItem(key);
                 if (value !== null) {
                     try {
@@ -416,7 +408,6 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
 
     const handleResetAppearance = () => {
         onResetColorScheme();
-// FIX: The 'setTheme' action was renamed to 'setThemeMode'. This updates the call to use the correct action name.
         setThemeMode('auto');
         alert("Настройки внешнего вида сброшены к значениям по умолчанию.");
     };
@@ -524,7 +515,6 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                     {THEMES.map(themeOption => (
                         <div key={themeOption.value} className="text-center">
                             <button
-// FIX: The 'setColorScheme' action was replaced with 'selectTheme', which takes a theme ID. This updates the onClick handler to pass the theme's ID (`themeOption.value`) instead of the entire scheme object.
                                 onClick={() => selectTheme(themeOption.value)}
                                 className="w-full aspect-video rounded-lg border-2 dark:border-gray-600 transition-all flex items-center justify-center text-xs font-semibold"
                                 style={{
@@ -551,14 +541,12 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
             </Section>
             
             <Section title="Режим день/ночь" description="Автоматически переключает светлую и темную тему.">
-// FIX: The 'theme' state and 'setTheme' action were renamed to 'themeMode' and 'setThemeMode'. This updates the select input to use the correct state and action.
                  <select value={themeMode} onChange={(e) => setThemeMode(e.target.value as any)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="auto">Как в системе</option>
                     <option value="day">Всегда светлая</option>
                     <option value="night">Всегда темная</option>
                     <option value="schedule">По расписанию</option>
                 </select>
-// FIX: The 'theme' property was renamed to 'themeMode'. This updates the condition to correctly check if the schedule-based theme is active.
                 {themeMode === 'schedule' && (
                     <div className="grid grid-cols-2 gap-4 mt-2">
                         <div>

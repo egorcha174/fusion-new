@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot, ColorScheme } from '../types';
 import DeviceCard from './DeviceCard';
@@ -239,7 +236,6 @@ const SortableLayerItem: React.FC<SortableLayerItemProps> = React.memo(({ elemen
 });
 
 const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdit, onClose }) => {
-// FIX: The 'theme' property was renamed to 'themeMode' in the app store. This updates the destructuring to use the correct state property.
   const { handleSaveTemplate, colorScheme, themeMode } = useAppStore();
   const { allKnownDevices } = useHAStore();
   
@@ -256,7 +252,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const isSystemDark = useMemo(() => window.matchMedia('(prefers-color-scheme: dark)').matches, []);
-// FIX: The 'theme' property was renamed to 'themeMode'. This updates the memo to correctly determine if the dark theme is active based on the 'themeMode' state.
   const isDark = useMemo(() => themeMode === 'night' || (themeMode === 'auto' && isSystemDark), [themeMode, isSystemDark]);
   const currentColorScheme = useMemo(() => isDark ? colorScheme.dark : colorScheme.light, [isDark, colorScheme]);
 
@@ -386,7 +381,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
     setIsAddLayerMenuOpen(false);
     const newElement: CardElement = {
         id: elementId,
-        // FIX: Add missing 'uniqueId' property required by the CardElement type.
         uniqueId: nanoid(),
         visible: true,
         position: { x: 30, y: 30 },
@@ -634,7 +628,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                       signPath={async()=>({path:''})} 
                       getCameraStreamUrl={async()=>({url: ''})} 
                       colorScheme={currentColorScheme}
-// FIX: Pass the 'isDark' prop to DeviceCard as it is required.
                       isDark={isDark} />
                   {editedTemplate.elements.map(element => <DraggableCanvasElement key={element.id} element={element} isSelected={selectedElementIds.includes(element.id)} onSelect={(id, multi) => handleSelect('element', id, multi)} showResizeHandles={selectedElementIds.length === 1 && selectedElementIds[0] === element.id}/>)}
                   {editedTemplate.deviceSlots?.map(slot => <DraggableIndicatorSlot key={slot.id} slot={slot} isSelected={selectedSlotId === slot.id} onSelect={() => handleSelect('slot', slot.id)} />)}
@@ -797,7 +790,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                             >
                                 <option value="">-- Выберите устройство --</option>
                                 <option value="self">Это же устройство</option>
-                                {/* FIX: Explicitly type array method parameters to resolve 'unknown' type errors. */}
                                 {Array.from(allKnownDevices.values()).sort((a: Device, b: Device) => a.name.localeCompare(b.name)).map((d: Device) => (
                                     <option key={d.id} value={d.id}>{d.name}</option>
                                 ))}
@@ -822,7 +814,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                                 className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
                             >
                                 <option value="">-- Выберите вентилятор --</option>
-                                {/* FIX: Explicitly type array method parameters to resolve 'unknown' type errors. */}
                                 {Array.from(allKnownDevices.values())
                                     .filter((d: Device) => d.haDomain === 'fan' || (d.haDomain === 'select' && (d.id.includes('fan_level') || d.id.includes('speed'))))
                                     .sort((a: Device, b: Device) => a.name.localeCompare(b.name)).map((d: Device) => (

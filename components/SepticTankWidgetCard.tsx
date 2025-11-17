@@ -8,7 +8,6 @@ interface EventTimerWidgetCardProps {
 }
 
 const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device }) => {
-    // FIX: Correctly destructure the `resetCustomWidgetTimer` action which is now implemented in the store.
     const { resetCustomWidgetTimer } = useAppStore();
 
     const { fillPercentage = 0, daysRemaining = 0, widgetId, buttonText = "Сброс" } = device;

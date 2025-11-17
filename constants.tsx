@@ -13,8 +13,8 @@ export const LOCAL_STORAGE_KEYS = {
   CARD_TEMPLATES: 'ha-card-templates',
   SIDEBAR_WIDTH: 'ha-sidebar-width',
   CAMERA_SETTINGS: 'ha-camera-settings',
-  THEME_MODE: 'ha-theme-mode', // Renamed from THEME for clarity
-  THEMES: 'ha-themes', // For storing all theme definitions
+  THEME_MODE: 'ha-theme-mode',
+  THEMES: 'ha-themes',
   ACTIVE_THEME_ID: 'ha-active-theme-id',
   SCHEDULE_START_TIME: 'ha-schedule-start-time',
   SCHEDULE_END_TIME: 'ha-schedule-end-time',

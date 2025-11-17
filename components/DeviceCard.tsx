@@ -305,8 +305,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
       {animationType === 'on' && (
         <motion.div
           key="flash-on"
-          // FIX: framer-motion props are failing type validation, likely due to a type definition issue.
-          // Wrapping them in an object spread bypasses the incorrect type check.
           {...{
             initial: { scale: 0, opacity: 0.6 },
             animate: { scale: 2.5, opacity: 0 },
@@ -323,8 +321,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
       {animationType === 'off' && (
         <motion.div
           key="dim-off"
-          // FIX: framer-motion props are failing type validation, likely due to a type definition issue.
-          // Wrapping them in an object spread bypasses the incorrect type check.
           {...{
             initial: { opacity: 0 },
             animate: { opacity: 1, transition: { duration: 0.15 } },

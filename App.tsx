@@ -36,7 +36,6 @@ const ChristmasTheme = lazy(() => import('./components/ChristmasTheme.tsx'));
  */
 function getSunriseSunset(latitude: number, longitude: number, date = new Date()) {
     const toRad = (deg: number) => deg * Math.PI / 180;
-    // FIX: Corrected a recursive division by itself to division by Math.PI.
     const toDeg = (rad: number) => rad * 180 / Math.PI;
 
     const dayOfYear = (d: Date) => Math.floor((d.getTime() - new Date(d.getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24);
@@ -186,7 +185,6 @@ const App: React.FC = () => {
         historyModalEntityId, setHistoryModalEntityId,
         tabs, setTabs, activeTabId, setActiveTabId,
         templates,
-// FIX: The 'theme' property was renamed to 'themeMode' in the app store. This updates the destructuring to correctly access the theme mode state.
         sidebarWidth, setSidebarWidth, isSidebarVisible, themeMode,
         scheduleStartTime, scheduleEndTime,
         colorScheme, getTemplateForDevice, createNewBlankTemplate,
@@ -215,7 +213,6 @@ const App: React.FC = () => {
 
   // Эффект для режима "По расписанию"
   useEffect(() => {
-// FIX: The 'theme' property was renamed to 'themeMode' in the app store. This updates the condition to use the correct state property.
     if (themeMode !== 'schedule') return;
 
     const calculateSchedulePhase = () => {
@@ -248,7 +245,6 @@ const App: React.FC = () => {
     const intervalId = window.setInterval(calculateSchedulePhase, 60 * 1000);
 
     return () => clearInterval(intervalId);
-// FIX: The 'theme' property was renamed to 'themeMode' in the app store. This updates the effect's dependency array to use the correct state property.
   }, [themeMode, scheduleStartTime, scheduleEndTime]);
 
 
@@ -260,7 +256,6 @@ const App: React.FC = () => {
     
     const updateTheme = () => {
         let isDark = false;
-// FIX: The 'theme' property was renamed to 'themeMode' in the app store. This updates the switch statement to use the correct state property for determining the theme.
         switch (themeMode) {
             case 'night': isDark = true; break;
             case 'day': isDark = false; break;
@@ -274,7 +269,6 @@ const App: React.FC = () => {
     updateTheme();
     mediaQuery.addEventListener('change', updateTheme); // Следим за системными изменениями
     return () => mediaQuery.removeEventListener('change', updateTheme);
-// FIX: The 'theme' property was renamed to 'themeMode' in the app store. This updates the effect's dependency array to use the correct state property.
   }, [themeMode, isDarkBySchedule]);
 
   // Эффект, гарантирующий наличие хотя бы одной вкладки и установку активной вкладки.
@@ -357,7 +351,6 @@ const App: React.FC = () => {
     // Мемоизированные значения для определения текущей цветовой схемы.
     const isSystemDark = useMemo(() => window.matchMedia('(prefers-color-scheme: dark)').matches, []);
     const isDark = useMemo(() => {
-// FIX: The 'theme' property was renamed to 'themeMode' in the app store. This updates the switch statement to use the correct state property for determining if the dark theme should be active.
         switch (themeMode) {
             case 'night': return true;
             case 'day': return false;
@@ -365,7 +358,6 @@ const App: React.FC = () => {
             case 'auto':
             default: return isSystemDark;
         }
-// FIX: The 'theme' property was renamed to 'themeMode' in the app store. This updates the memo's dependency array to use the correct state property.
     }, [themeMode, isSystemDark, isDarkBySchedule]);
     const currentColorScheme = useMemo(() => isDark ? colorScheme.dark : colorScheme.light, [isDark, colorScheme]);
 
@@ -421,7 +413,6 @@ const App: React.FC = () => {
 
     if (deviceTarget && isEditMode) {
         // В режиме редактирования, ПКМ на карточке открывает меню действий
-        // FIX: Use a type guard to ensure dataset properties are strings before use, preventing potential 'unknown' type errors.
         const { deviceId, tabId } = deviceTarget.dataset;
         if (typeof deviceId === 'string' && typeof tabId === 'string') {
             handleDeviceContextMenu(event, deviceId, tabId);
@@ -644,5 +635,4 @@ const App: React.FC = () => {
     </>
   );
 };
-// FIX: Add default export for the App component.
 export default App;
