@@ -111,9 +111,8 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, col
     return (
         <div 
             className="w-full h-full relative overflow-hidden text-white select-none"
-            style={{ 
-                backgroundColor: colorScheme.cardBackground,
-                borderRadius: `${colorScheme.cardBorderRadius}px`
+            style={{
+                borderRadius: `${colorScheme.cardBorderRadius}px`,
             }}
             onContextMenu={onContextMenu}
         >

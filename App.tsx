@@ -413,8 +413,12 @@ const App: React.FC = () => {
 
     if (deviceTarget && isEditMode) {
         // В режиме редактирования, ПКМ на карточке открывает меню действий
-        const { deviceId, tabId } = deviceTarget.dataset;
-        if (typeof deviceId === 'string' && typeof tabId === 'string') {
+        const deviceId = deviceTarget.dataset.deviceId;
+        const tabId = deviceTarget.dataset.tabId;
+        // FIX: Replaced `typeof ... === 'string'` with a truthiness check (`if (deviceId && tabId)`).
+        // This is more robust as it also handles empty strings and can resolve potential subtle type inference issues
+        // with `dataset` properties that may have caused the 'unknown' type error.
+        if (deviceId && tabId) {
             handleDeviceContextMenu(event, deviceId, tabId);
         }
     } else if (!deviceTarget) {
