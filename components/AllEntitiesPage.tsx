@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Room, Device } from '../types';
+import { Room, Device, DeviceType } from '../types';
 import DeviceIcon from './DeviceIcon';
 import { useAppStore } from '../store/appStore';
 import { Icon } from '@iconify/react';
+import ConfirmDialog from './ConfirmDialog';
 
 /**
  * Компонент-кнопка с выпадающим списком для добавления устройства на вкладку.
@@ -68,8 +69,8 @@ interface AllEntitiesPageProps {
  * сгруппированные по комнатам. Позволяет скрывать/показывать сущности и добавлять их на вкладки.
  */
 const AllEntitiesPage: React.FC<AllEntitiesPageProps> = ({ rooms }) => {
-    // FIX: Correctly destructure the `addCustomWidget` action which is now implemented in the store.
-    const { customizations, handleToggleVisibility, addCustomWidget, addCustomCard } = useAppStore();
+    const { customizations, handleToggleVisibility, addCustomWidget, addCustomCard, deleteCustomCard, deleteCustomWidget } = useAppStore();
+    const [deletingWidget, setDeletingWidget] = useState<Device | null>(null);
 
     return (
         <div className="container mx-auto">
@@ -104,6 +105,8 @@ const AllEntitiesPage: React.FC<AllEntitiesPageProps> = ({ rooms }) => {
                             {room.devices.map(device => {
                                 const isHidden = customizations[device.id]?.isHidden ?? false;
                                 const isOn = device.state === 'on';
+                                const isCustomWidget = device.type === DeviceType.Custom || device.type === DeviceType.EventTimer;
+
                                 return (
                                     <div key={device.id} className="bg-white/80 dark:bg-gray-800/80 p-4 rounded-lg flex items-center justify-between ring-1 ring-black/5 dark:ring-white/5">
                                         <div className="flex items-center gap-4 overflow-hidden">
@@ -120,17 +123,27 @@ const AllEntitiesPage: React.FC<AllEntitiesPageProps> = ({ rooms }) => {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2 flex-shrink-0">
-                                            <button
-                                                onClick={() => handleToggleVisibility(device, !isHidden)}
-                                                title={isHidden ? 'Показать' : 'Скрыть'}
-                                                className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                                            >
-                                                {isHidden ? (
-                                                    <Icon icon="mdi:eye-off-outline" className="h-5 w-5" />
-                                                ) : (
-                                                    <Icon icon="mdi:eye-outline" className="h-5 w-5" />
-                                                )}
-                                            </button>
+                                            {isCustomWidget ? (
+                                                <button
+                                                    onClick={() => setDeletingWidget(device)}
+                                                    title="Удалить виджет"
+                                                    className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400"
+                                                >
+                                                    <Icon icon="mdi:trash-can-outline" className="h-5 w-5" />
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleToggleVisibility(device, !isHidden)}
+                                                    title={isHidden ? 'Показать' : 'Скрыть'}
+                                                    className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                                                >
+                                                    {isHidden ? (
+                                                        <Icon icon="mdi:eye-off-outline" className="h-5 w-5" />
+                                                    ) : (
+                                                        <Icon icon="mdi:eye-outline" className="h-5 w-5" />
+                                                    )}
+                                                </button>
+                                            )}
                                             <AddToTabButton device={device} />
                                         </div>
                                     </div>
@@ -140,6 +153,32 @@ const AllEntitiesPage: React.FC<AllEntitiesPageProps> = ({ rooms }) => {
                     </section>
                 ))}
             </div>
+
+            {deletingWidget && (
+                <ConfirmDialog
+                    isOpen={!!deletingWidget}
+                    title={deletingWidget.type === DeviceType.Custom ? "Удалить кастомную карточку?" : "Удалить виджет-таймер?"}
+                    message={
+                        <>
+                            Вы уверены, что хотите удалить <strong className="text-black dark:text-white">"{deletingWidget.name}"</strong>?
+                            <br />
+                            Это действие нельзя отменить. Связанный шаблон (если есть) также будет удален.
+                        </>
+                    }
+                    onConfirm={() => {
+                        if (deletingWidget.widgetId) {
+                            if (deletingWidget.type === DeviceType.Custom) {
+                                deleteCustomCard(deletingWidget.widgetId);
+                            } else if (deletingWidget.type === DeviceType.EventTimer) {
+                                deleteCustomWidget(deletingWidget.widgetId);
+                            }
+                        }
+                        setDeletingWidget(null);
+                    }}
+                    onCancel={() => setDeletingWidget(null)}
+                    confirmText="Удалить"
+                />
+            )}
         </div>
     );
 };
