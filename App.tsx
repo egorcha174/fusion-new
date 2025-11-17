@@ -424,7 +424,9 @@ const App: React.FC = () => {
     if (deviceTarget && isEditMode) {
         // В режиме редактирования, ПКМ на карточке открывает меню действий
         const { deviceId, tabId } = deviceTarget.dataset;
-        // FIX: Add type guard for dataset properties. In some strict TypeScript configurations, they can be inferred as `unknown`. This ensures they are strings before being passed to `handleDeviceContextMenu`, resolving the "Type 'unknown' is not assignable to type 'string'" error.
+        // Fix for: Type 'unknown' is not assignable to type 'string'.
+        // Added a type guard to ensure deviceId and tabId are strings before use,
+        // as properties from `dataset` can be `undefined` or inferred as `unknown` in strict mode.
         if (typeof deviceId === 'string' && typeof tabId === 'string') {
             handleDeviceContextMenu(event, deviceId, tabId);
         }
