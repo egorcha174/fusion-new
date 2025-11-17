@@ -1,21 +1,18 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
-import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig } from '../types';
+import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition } from '../types';
 import ConfirmDialog from './ConfirmDialog';
 import { useAppStore } from '../store/appStore';
 import { useHAStore } from '../store/haStore';
 import JSZip from 'jszip';
 import { Icon } from '@iconify/react';
-import appleTheme from '../apple-inspired-light.theme.json';
 import { LOCAL_STORAGE_KEYS } from '../constants';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale/ru';
+import { nanoid } from 'nanoid';
+import { set as setAtPath } from '../utils/obj-path';
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'failed';
 type SettingsTab = 'appearance' | 'interface' | 'templates' | 'connection' | 'backup';
-
-type ThemeObject = {
-  colorScheme: ColorScheme;
-};
 
 const FONT_FAMILIES = [
     { name: 'Системный', value: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"` },
@@ -27,112 +24,12 @@ const FONT_FAMILIES = [
     { name: 'Times New Roman', value: '"Times New Roman", Times, serif' },
 ];
 
-// --- Новые темы ---
-const appleGraphiteTheme: ThemeObject = {
-  "colorScheme": {
-    "light": {
-      "dashboardBackgroundType": "gradient", "dashboardBackgroundColor1": "#EAEAEB", "dashboardBackgroundColor2": "#DCDCDC", "dashboardBackgroundImageBlur": 0, "dashboardBackgroundImageBrightness": 100, "cardOpacity": 0.85, "panelOpacity": 0.75, "cardBorderRadius": 16,
-      "cardBackground": "rgba(255, 255, 255, 0.8)", "cardBackgroundOn": "rgba(255, 255, 255, 0.95)", "tabTextColor": "#515154", "activeTabTextColor": "#1D1D1F", "tabIndicatorColor": "#1D1D1F",
-      "thermostatHandleColor": "#FFFFFF", "thermostatDialTextColor": "#1D1D1F", "thermostatDialLabelColor": "#515154", "thermostatHeatingColor": "#F97316", "thermostatCoolingColor": "#3B82F6", "clockTextColor": "#1D1D1F",
-      "weatherIconSize": 96, "weatherForecastIconSize": 48, "weatherCurrentTempFontSize": 36, "weatherCurrentDescFontSize": 14, "weatherForecastDayFontSize": 12, "weatherForecastMaxTempFontSize": 18, "weatherForecastMinTempFontSize": 14,
-      "nameTextColor": "#1D1D1F", "statusTextColor": "#515154", "valueTextColor": "#1D1D1F", "unitTextColor": "#1D1D1F", "nameTextColorOn": "#1D1D1F", "statusTextColorOn": "#515154", "valueTextColorOn": "#1D1D1F", "unitTextColorOn": "#1D1D1F"
-    },
-    "dark": {
-      "dashboardBackgroundType": "color", "dashboardBackgroundColor1": "#1C1C1E", "dashboardBackgroundColor2": "#2C2C2E", "dashboardBackgroundImageBlur": 0, "dashboardBackgroundImageBrightness": 100, "cardOpacity": 0.8, "panelOpacity": 0.75, "cardBorderRadius": 16,
-      "cardBackground": "rgba(44, 44, 46, 0.8)", "cardBackgroundOn": "rgba(60, 60, 62, 0.85)", "tabTextColor": "#8E8E93", "activeTabTextColor": "#F5F5F7", "tabIndicatorColor": "#F5F5F7",
-      "thermostatHandleColor": "#1C1C1E", "thermostatDialTextColor": "#F5F5F7", "thermostatDialLabelColor": "#8E8E93", "thermostatHeatingColor": "#F28C18", "thermostatCoolingColor": "#0A84FF", "clockTextColor": "#F5F5F7",
-      "weatherIconSize": 96, "weatherForecastIconSize": 48, "weatherCurrentTempFontSize": 36, "weatherCurrentDescFontSize": 14, "weatherForecastDayFontSize": 12, "weatherForecastMaxTempFontSize": 18, "weatherForecastMinTempFontSize": 14,
-      "nameTextColor": "#F5F5F7", "statusTextColor": "#8E8E93", "valueTextColor": "#F5F5F7", "unitTextColor": "#F5F5F7", "nameTextColorOn": "#F5F5F7", "statusTextColorOn": "#8E8E93", "valueTextColorOn": "#F5F5F7", "unitTextColorOn": "#F5F5F7"
-    }
-  }
-};
-const appleMintTheme: ThemeObject = {
-  "colorScheme": {
-    "light": {
-      "dashboardBackgroundType": "gradient", "dashboardBackgroundColor1": "#F0F7F6", "dashboardBackgroundColor2": "#E6F0EF", "dashboardBackgroundImageBlur": 0, "dashboardBackgroundImageBrightness": 100, "cardOpacity": 0.85, "panelOpacity": 0.75, "cardBorderRadius": 16,
-      "cardBackground": "rgba(255, 255, 255, 0.8)", "cardBackgroundOn": "rgba(255, 255, 255, 0.95)", "tabTextColor": "#374151", "activeTabTextColor": "#065F46", "tabIndicatorColor": "#059669",
-      "thermostatHandleColor": "#FFFFFF", "thermostatDialTextColor": "#065F46", "thermostatDialLabelColor": "#374151", "thermostatHeatingColor": "#F97316", "thermostatCoolingColor": "#3B82F6", "clockTextColor": "#065F46",
-      "weatherIconSize": 96, "weatherForecastIconSize": 48, "weatherCurrentTempFontSize": 36, "weatherCurrentDescFontSize": 14, "weatherForecastDayFontSize": 12, "weatherForecastMaxTempFontSize": 18, "weatherForecastMinTempFontSize": 14,
-      "nameTextColor": "#374151", "statusTextColor": "#6B7280", "valueTextColor": "#065F46", "unitTextColor": "#065F46", "nameTextColorOn": "#065F46", "statusTextColorOn": "#374151", "valueTextColorOn": "#065F46", "unitTextColorOn": "#065F46"
-    },
-    "dark": {
-      "dashboardBackgroundType": "color", "dashboardBackgroundColor1": "#1A2421", "dashboardBackgroundColor2": "#212E2A", "dashboardBackgroundImageBlur": 0, "dashboardBackgroundImageBrightness": 100, "cardOpacity": 0.8, "panelOpacity": 0.75, "cardBorderRadius": 16,
-      "cardBackground": "rgba(30, 41, 59, 0.8)", "cardBackgroundOn": "rgba(38, 52, 75, 0.85)", "tabTextColor": "#9CA3AF", "activeTabTextColor": "#A7F3D0", "tabIndicatorColor": "#34D399",
-      "thermostatHandleColor": "#1A2421", "thermostatDialTextColor": "#A7F3D0", "thermostatDialLabelColor": "#9CA3AF", "thermostatHeatingColor": "#F28C18", "thermostatCoolingColor": "#0A84FF", "clockTextColor": "#A7F3D0",
-      "weatherIconSize": 96, "weatherForecastIconSize": 48, "weatherCurrentTempFontSize": 36, "weatherCurrentDescFontSize": 14, "weatherForecastDayFontSize": 12, "weatherForecastMaxTempFontSize": 18, "weatherForecastMinTempFontSize": 14,
-      "nameTextColor": "#D1D5DB", "statusTextColor": "#9CA3AF", "valueTextColor": "#A7F3D0", "unitTextColor": "#A7F3D0", "nameTextColorOn": "#A7F3D0", "statusTextColorOn": "#9CA3AF", "valueTextColorOn": "#A7F3D0", "unitTextColorOn": "#A7F3D0"
-    }
-  }
-};
-
-const futuristicTheme: ThemeObject = {
-  "colorScheme": {
-    "light": {
-      "dashboardBackgroundType": "gradient", "dashboardBackgroundColor1": "#f5f7fa", "dashboardBackgroundColor2": "#eef2f7", "cardOpacity": 0.8, "panelOpacity": 0.7, "cardBorderRadius": 16,
-      "cardBackground": "rgba(255, 255, 255, 0.8)", "cardBackgroundOn": "rgba(255, 255, 255, 1.0)", "tabTextColor": "#5c677d", "activeTabTextColor": "#007a7a", "tabIndicatorColor": "#007a7a",
-      "thermostatHandleColor": "#FFFFFF", "thermostatDialTextColor": "#005a5a", "thermostatDialLabelColor": "#5c677d", "thermostatHeatingColor": "#ff6b6b", "thermostatCoolingColor": "#4d96ff", "clockTextColor": "#005a5a",
-      "nameTextColor": "#333d4f", "statusTextColor": "#5c677d", "valueTextColor": "#005a5a", "unitTextColor": "#005a5a", "nameTextColorOn": "#005a5a", "statusTextColorOn": "#5c677d", "valueTextColorOn": "#005a5a", "unitTextColorOn": "#005a5a"
-    },
-    "dark": {
-      "dashboardBackgroundType": "gradient", "dashboardBackgroundColor1": "#1a2a3a", "dashboardBackgroundColor2": "#101a24", "cardOpacity": 0.8, "panelOpacity": 0.7, "cardBorderRadius": 16,
-      "cardBackground": "rgba(20, 30, 40, 0.8)", "cardBackgroundOn": "rgba(25, 35, 45, 1.0)", "tabTextColor": "#9cb3cc", "activeTabTextColor": "#00dada", "tabIndicatorColor": "#00dada",
-      "thermostatHandleColor": "#1a2a3a", "thermostatDialTextColor": "#00dada", "thermostatDialLabelColor": "#9cb3cc", "thermostatHeatingColor": "#ff8787", "thermostatCoolingColor": "#74afff", "clockTextColor": "#00dada",
-      "nameTextColor": "#c0d4e7", "statusTextColor": "#9cb3cc", "valueTextColor": "#00dada", "unitTextColor": "#00dada", "nameTextColorOn": "#00dada", "statusTextColorOn": "#9cb3cc", "valueTextColorOn": "#00dada", "unitTextColorOn": "#00dada"
-    }
-  }
-};
-
-const deepSpaceTheme: ThemeObject = {
-  "colorScheme": {
-    "light": {
-      "dashboardBackgroundType": "gradient", "dashboardBackgroundColor1": "#D4DEE7", "dashboardBackgroundColor2": "#BCC8D6", "cardOpacity": 0.85, "panelOpacity": 0.75, "cardBorderRadius": 16,
-      "cardBackground": "rgba(255, 255, 255, 0.7)", "cardBackgroundOn": "rgba(255, 255, 255, 0.9)", "tabTextColor": "#4A5568", "activeTabTextColor": "#1A202C", "tabIndicatorColor": "#2D3748",
-      "thermostatHandleColor": "#FFFFFF", "thermostatDialTextColor": "#1A202C", "thermostatDialLabelColor": "#4A5568", "thermostatHeatingColor": "#DD6B20", "thermostatCoolingColor": "#3182CE", "clockTextColor": "#1A202C",
-      "nameTextColor": "#2D3748", "statusTextColor": "#718096", "valueTextColor": "#1A202C", "unitTextColor": "#1A202C", "nameTextColorOn": "#1A202C", "statusTextColorOn": "#2D3748", "valueTextColorOn": "#1A202C", "unitTextColorOn": "#1A202C"
-    },
-    "dark": {
-      "dashboardBackgroundType": "color",
-      "dashboardBackgroundColor1": "#0a0f14",
-      "dashboardBackgroundColor2": "#10161d",
-      "cardOpacity": 0.8,
-      "panelOpacity": 0.7,
-      "cardBorderRadius": 16,
-      "cardBackground": "rgba(18, 25, 35, 0.8)",
-      "cardBackgroundOn": "rgba(25, 33, 45, 0.9)",
-      "tabTextColor": "#9FB1CC",
-      "activeTabTextColor": "#EAF0F6",
-      "tabIndicatorColor": "#89B3F8",
-      "thermostatHandleColor": "#121923",
-      "thermostatDialTextColor": "#EAF0F6",
-      "thermostatDialLabelColor": "#9FB1CC",
-      "thermostatHeatingColor": "#F6AD55",
-      "thermostatCoolingColor": "#63B3ED",
-      "clockTextColor": "#EAF0F6",
-      "nameTextColor": "#CBD5E0",
-      "statusTextColor": "#A0AEC0",
-      "valueTextColor": "#EAF0F6",
-      "unitTextColor": "#EAF0F6",
-      "nameTextColorOn": "#EAF0F6",
-      "statusTextColorOn": "#CBD5E0",
-      "valueTextColorOn": "#EAF0F6",
-      "unitTextColorOn": "#EAF0F6"
-    }
-  }
-};
-
-const THEMES = [
-    { name: 'Стандартная', value: 'apple-default', scheme: (appleTheme as ThemeObject).colorScheme },
-    { name: 'Графит', value: 'apple-graphite', scheme: appleGraphiteTheme.colorScheme },
-    { name: 'Мята', value: 'apple-mint', scheme: appleMintTheme.colorScheme },
-    { name: 'Футуристика', value: 'futuristic', scheme: futuristicTheme.colorScheme },
-    { name: 'Глубокий космос', value: 'deep-space', scheme: deepSpaceTheme.colorScheme },
-];
 
 // --- Вспомогательные компоненты ---
-const Section: React.FC<{ title: string, children: React.ReactNode, defaultOpen?: boolean, description?: string }> = ({ title, children, defaultOpen = true, description }) => {
+const Section: React.FC<{ title: string, children: React.ReactNode, defaultOpen?: boolean, description?: string, key?: string }> = ({ title, children, defaultOpen = true, description, key }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   return (
-    <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+    <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4" key={key}>
       <button onClick={() => setIsOpen(!isOpen)} className="w-full flex justify-between items-center text-left">
         <div>
             <h3 className="text-base font-semibold text-gray-900 dark:text-white">{title}</h3>
@@ -295,8 +192,8 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
         themeMode, setThemeMode,
         scheduleStartTime, setScheduleStartTime,
         scheduleEndTime, setScheduleEndTime,
-        colorScheme, selectTheme, onResetColorScheme, DEFAULT_COLOR_SCHEME,
-        updateColorSchemeValue,
+        themes, activeThemeId, selectTheme, saveTheme, deleteTheme,
+        onResetColorScheme,
         weatherProvider, setWeatherProvider,
         openWeatherMapKey, setOpenWeatherMapKey,
         yandexWeatherKey, setYandexWeatherKey,
@@ -306,6 +203,9 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
         isChristmasThemeEnabled, setIsChristmasThemeEnabled,
         servers, activeServerId, addServer, updateServer, deleteServer, setActiveServerId,
     } = useAppStore();
+
+    const [editingTheme, setEditingTheme] = useState<ThemeDefinition | null>(null);
+    const [confirmingDeleteTheme, setConfirmingDeleteTheme] = useState<ThemeDefinition | null>(null);
 
     useEffect(() => {
         // При первой загрузке выбрать активный сервер
@@ -427,6 +327,54 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
         setEditingServer(null);
     };
 
+    // --- Theme Management Handlers ---
+    const handleCreateNewTheme = () => {
+        const baseTheme = themes.find(t => t.id === 'apple-default') || themes[0];
+        const newTheme: ThemeDefinition = {
+            id: nanoid(),
+            name: `Новая тема ${themes.filter(t => t.isCustom).length + 1}`,
+            isCustom: true,
+            scheme: JSON.parse(JSON.stringify(baseTheme.scheme)),
+        };
+        setEditingTheme(newTheme);
+    };
+    
+    const handleEditTheme = (theme: ThemeDefinition) => {
+        if (theme.isCustom) {
+            setEditingTheme(JSON.parse(JSON.stringify(theme)));
+        } else {
+            const newTheme: ThemeDefinition = {
+                id: nanoid(),
+                name: `${theme.name} (копия)`,
+                isCustom: true,
+                scheme: JSON.parse(JSON.stringify(theme.scheme)),
+            };
+            setEditingTheme(newTheme);
+        }
+    };
+    
+    const handleSaveTheme = () => {
+        if (editingTheme) {
+            saveTheme(editingTheme);
+            setEditingTheme(null);
+        }
+    };
+    
+    const handleUpdateEditingThemeValue = (path: string, value: any) => {
+        setEditingTheme(currentTheme => {
+            if (!currentTheme) return null;
+            const newTheme = JSON.parse(JSON.stringify(currentTheme));
+            if (path.endsWith('cardBorderRadius')) {
+                newTheme.scheme.light.cardBorderRadius = value;
+                newTheme.scheme.dark.cardBorderRadius = value;
+            } else {
+                setAtPath(newTheme.scheme, path, value);
+            }
+            return newTheme;
+        });
+    };
+
+
     // --- JSX для рендеринга каждой вкладки ---
     const renderConnectionTab = () => {
         const currentSelectedServer = servers.find(s => s.id === selectedServerId);
@@ -510,35 +458,71 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
     
     const renderAppearanceTab = () => (
         <div className="space-y-4">
-            <Section title="Тема оформления" description="Выберите готовую тему или настройте цвета вручную.">
+            <Section title="Тема оформления" description="Выберите готовую тему или нажмите на нее для создания копии и редактирования.">
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    {THEMES.map(themeOption => (
-                        <div key={themeOption.value} className="text-center">
+                    {themes.map(theme => (
+                        <div key={theme.id} className="text-center group relative">
                             <button
-                                onClick={() => selectTheme(themeOption.value)}
+                                onClick={() => {
+                                    selectTheme(theme.id);
+                                    handleEditTheme(theme);
+                                }}
                                 className="w-full aspect-video rounded-lg border-2 dark:border-gray-600 transition-all flex items-center justify-center text-xs font-semibold"
                                 style={{
-                                    backgroundImage: `linear-gradient(135deg, ${themeOption.scheme.light.dashboardBackgroundColor1} 50%, ${themeOption.scheme.dark.dashboardBackgroundColor1} 50%)`,
-                                    borderColor: colorScheme.light.dashboardBackgroundColor1 === themeOption.scheme.light.dashboardBackgroundColor1 ? '#3b82f6' : 'transparent'
+                                    backgroundImage: `linear-gradient(135deg, ${theme.scheme.light.dashboardBackgroundColor1} 50%, ${theme.scheme.dark.dashboardBackgroundColor1} 50%)`,
+                                    borderColor: activeThemeId === theme.id ? '#3b82f6' : 'transparent'
                                 }}
                             >
-                                <span className="bg-white/50 dark:bg-black/50 px-2 py-1 rounded-md backdrop-blur-sm">{themeOption.name}</span>
+                                <span className="bg-white/50 dark:bg-black/50 px-2 py-1 rounded-md backdrop-blur-sm">{theme.name}</span>
                             </button>
+                            {theme.isCustom && (
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); setConfirmingDeleteTheme(theme); }}
+                                    className="absolute top-1 right-1 z-10 p-1 bg-gray-800/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/80"
+                                    title="Удалить тему"
+                                >
+                                    <Icon icon="mdi:trash-can-outline" className="w-4 h-4" />
+                                </button>
+                            )}
                         </div>
                     ))}
+                    <div className="text-center">
+                        <button
+                            onClick={handleCreateNewTheme}
+                            className="w-full aspect-video rounded-lg border-2 border-dashed border-gray-400 dark:border-gray-600 transition-all flex items-center justify-center hover:bg-gray-200/50 dark:hover:bg-gray-700/50"
+                        >
+                            <Icon icon="mdi:plus" className="w-10 h-10 text-gray-400 dark:text-gray-500" />
+                        </button>
+                    </div>
                 </div>
             </Section>
 
-            <Section title="Редактор темы" description="Настройте цвета текущей выбранной темы." defaultOpen={false}>
-                <div className="flex border-b border-gray-200 dark:border-gray-700">
-                    <button onClick={() => setActiveEditorTab('light')} className={`px-4 py-2 text-sm font-medium ${activeEditorTab === 'light' ? 'border-b-2 border-blue-500 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>Светлая</button>
-                    <button onClick={() => setActiveEditorTab('dark')} className={`px-4 py-2 text-sm font-medium ${activeEditorTab === 'dark' ? 'border-b-2 border-blue-500 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>Темная</button>
-                </div>
-                <div className="pt-4">
-                    {activeEditorTab === 'light' && <ThemeEditor themeType="light" colorScheme={colorScheme} onUpdate={updateColorSchemeValue} />}
-                    {activeEditorTab === 'dark' && <ThemeEditor themeType="dark" colorScheme={colorScheme} onUpdate={updateColorSchemeValue} />}
-                </div>
-            </Section>
+            {editingTheme && (
+                <Section key={editingTheme.id} title={editingTheme.isCustom ? `Редактирование "${editingTheme.name}"` : `Создание копии "${editingTheme.name}"`} description="Настройте цвета и сохраните тему." defaultOpen={true}>
+                    {editingTheme.isCustom && (
+                        <LabeledInput label="Название темы">
+                            <input
+                                type="text"
+                                value={editingTheme.name}
+                                onChange={e => setEditingTheme(t => t ? { ...t, name: e.target.value } : null)}
+                                className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </LabeledInput>
+                    )}
+                    <div className="flex border-b border-gray-200 dark:border-gray-700 mt-4">
+                        <button onClick={() => setActiveEditorTab('light')} className={`px-4 py-2 text-sm font-medium ${activeEditorTab === 'light' ? 'border-b-2 border-blue-500 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>Светлая</button>
+                        <button onClick={() => setActiveEditorTab('dark')} className={`px-4 py-2 text-sm font-medium ${activeEditorTab === 'dark' ? 'border-b-2 border-blue-500 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>Темная</button>
+                    </div>
+                    <div className="pt-4">
+                        {activeEditorTab === 'light' && <ThemeEditor themeType="light" colorScheme={editingTheme.scheme} onUpdate={handleUpdateEditingThemeValue} />}
+                        {activeEditorTab === 'dark' && <ThemeEditor themeType="dark" colorScheme={editingTheme.scheme} onUpdate={handleUpdateEditingThemeValue} />}
+                    </div>
+                    <div className="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <button onClick={() => setEditingTheme(null)} className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors">Отмена</button>
+                        <button onClick={handleSaveTheme} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Сохранить</button>
+                    </div>
+                </Section>
+            )}
             
             <Section title="Режим день/ночь" description="Автоматически переключает светлую и темную тему.">
                  <select value={themeMode} onChange={(e) => setThemeMode(e.target.value as any)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -647,7 +631,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                 <LabeledInput label="Порог низкого заряда">
                     <div className="flex items-center gap-2">
                         <input type="range" min="5" max="50" step="5" value={lowBatteryThreshold} onChange={e => setLowBatteryThreshold(Number(e.target.value))} className="w-full accent-blue-500"/>
-                        <span className="text-sm font-mono">{lowBatteryThreshold}%</span>
+                        <span className="text-sm font-mono">{lowBatteryThreshold}px</span>
                     </div>
                 </LabeledInput>
                 <LabeledInput label="Новогодняя тема">
@@ -769,7 +753,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
     // Если подключение уже есть, открываем вкладку интерфейса по умолчанию
     useEffect(() => {
         if (connectionStatus === 'connected' && activeTab === 'connection') {
-            setActiveTab('interface');
+            setActiveTab('appearance');
         }
     }, [connectionStatus, activeTab]);
 
@@ -808,6 +792,21 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                         setServerToDelete(null);
                     }}
                     onCancel={() => setServerToDelete(null)}
+                />
+            )}
+             {confirmingDeleteTheme && (
+                <ConfirmDialog
+                    isOpen={!!confirmingDeleteTheme}
+                    title="Удалить тему?"
+                    message={<>Вы уверены, что хотите удалить тему <strong className="text-black dark:text-white">"{confirmingDeleteTheme.name}"</strong>? Это действие нельзя отменить.</>}
+                    onConfirm={() => {
+                        deleteTheme(confirmingDeleteTheme.id);
+                        if (editingTheme?.id === confirmingDeleteTheme.id) {
+                            setEditingTheme(null);
+                        }
+                        setConfirmingDeleteTheme(null);
+                    }}
+                    onCancel={() => setConfirmingDeleteTheme(null)}
                 />
             )}
         </>

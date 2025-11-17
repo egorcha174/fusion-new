@@ -111,10 +111,8 @@ interface AppActions {
     // Theme Management Actions
     setThemes: (themes: ThemeDefinition[]) => void;
     selectTheme: (themeId: string) => void;
-    updateTheme: (themeId: string, updates: Partial<Pick<ThemeDefinition, 'name' | 'scheme'>>) => void;
-    addTheme: (name: string, scheme: ColorScheme) => void;
+    saveTheme: (themeToSave: ThemeDefinition) => void;
     deleteTheme: (themeId: string) => void;
-    updateColorSchemeValue: (path: string, value: any) => void;
     onResetColorScheme: () => void;
 
     setWeatherProvider: (provider: AppState['weatherProvider']) => void;
@@ -324,49 +322,37 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             localStorage.setItem(LOCAL_STORAGE_KEYS.ACTIVE_THEME_ID, JSON.stringify(themeId));
         }
     },
-    updateTheme: (themeId, updates) => {
-        const newThemes = get().themes.map(t => t.id === themeId ? { ...t, ...updates } : t);
-        get().setThemes(newThemes);
-        if (get().activeThemeId === themeId && updates.scheme) {
-            set({ colorScheme: updates.scheme });
+    saveTheme: (themeToSave) => {
+        const { themes, setThemes, activeThemeId } = get();
+        const themeExists = themes.some(t => t.id === themeToSave.id);
+        const newThemes = themeExists
+            ? themes.map(t => t.id === themeToSave.id ? themeToSave : t)
+            : [...themes, themeToSave];
+        
+        setThemes(newThemes);
+    
+        if (activeThemeId === themeToSave.id) {
+            set({ colorScheme: themeToSave.scheme });
         }
-    },
-    addTheme: (name, scheme) => {
-        const newTheme: ThemeDefinition = { id: nanoid(), name, isCustom: true, scheme };
-        const newThemes = [...get().themes, newTheme];
-        get().setThemes(newThemes);
-        get().selectTheme(newTheme.id);
     },
     deleteTheme: (themeId) => {
-        const themeToDelete = get().themes.find(t => t.id === themeId);
+        const { themes, setThemes, activeThemeId, selectTheme } = get();
+        const themeToDelete = themes.find(t => t.id === themeId);
         if (!themeToDelete || !themeToDelete.isCustom) return;
-
-        const newThemes = get().themes.filter(t => t.id !== themeId);
-        get().setThemes(newThemes);
-
-        if (get().activeThemeId === themeId) {
-            get().selectTheme(DEFAULT_THEMES[0].id);
+    
+        const newThemes = themes.filter(t => t.id !== themeId);
+        setThemes(newThemes);
+    
+        if (activeThemeId === themeId) {
+            selectTheme(DEFAULT_THEMES[0].id);
         }
-    },
-    updateColorSchemeValue: (path, value) => {
-        const { activeThemeId, themes, updateTheme } = get();
-        const activeTheme = themes.find(t => t.id === activeThemeId);
-        if (!activeTheme) return;
-
-        const newScheme = JSON.parse(JSON.stringify(activeTheme.scheme));
-        
-        if (path.endsWith('cardBorderRadius')) {
-            newScheme.light.cardBorderRadius = value;
-            newScheme.dark.cardBorderRadius = value;
-        } else {
-            setAtPath(newScheme, path, value);
-        }
-        
-        updateTheme(activeThemeId, { scheme: newScheme });
     },
     onResetColorScheme: () => {
-        const { activeThemeId, updateTheme } = get();
-        updateTheme(activeThemeId, { scheme: DEFAULT_COLOR_SCHEME });
+        const { activeThemeId, saveTheme, themes } = get();
+        const activeTheme = themes.find(t => t.id === activeThemeId);
+        if (activeTheme) {
+            saveTheme({...activeTheme, scheme: DEFAULT_COLOR_SCHEME});
+        }
     },
 
     setWeatherProvider: (provider) => {
