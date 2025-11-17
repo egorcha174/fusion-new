@@ -138,6 +138,7 @@ interface AppActions {
     handleDeviceAddToTab: (device: Device, tabId: string) => void;
     handleDeviceRemoveFromTab: (deviceId: string, tabId: string) => void;
     handleDeviceMoveToTab: (device: Device, fromTabId: string, toTabId: string) => void;
+    handleDeviceCopyToTab: (device: Device, toTabId: string) => void;
     checkCollision: (layout: GridLayoutItem[], itemToPlace: { col: number; row: number; width: number; height: number; }, gridSettings: { cols: number; rows: number; }, ignoreDeviceId: string) => boolean;
     handleDeviceLayoutChange: (tabId: string, newLayout: GridLayoutItem[]) => void;
     handleDeviceResizeOnTab: (tabId: string, deviceId: string, newWidth: number, newHeight: number) => void;
@@ -490,7 +491,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     handleDeviceAddToTab: (device, tabId) => {
         const getTemplateForDevice = get().getTemplateForDevice;
         const newTabs = get().tabs.map(tab => {
-            if (tab.id !== tabId || tab.layout.some(item => item.deviceId === device.id)) return tab;
+            if (tab.id !== tabId) return tab;
             
             const template = getTemplateForDevice(device);
             const templateWidth = template?.width || 1;
@@ -542,6 +543,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         if (fromTabId === toTabId) return;
         get().handleDeviceAddToTab(device, toTabId);
         get().handleDeviceRemoveFromTab(device.id, fromTabId);
+    },
+    handleDeviceCopyToTab: (device, toTabId) => {
+        get().handleDeviceAddToTab(device, toTabId);
     },
     checkCollision: (layout, itemToPlace, gridSettings, ignoreDeviceId) => {
         const { col, row, width, height } = itemToPlace;

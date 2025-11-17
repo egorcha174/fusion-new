@@ -592,6 +592,15 @@ const App: React.FC = () => {
                         ))}
                     </SubMenuItem>
                 )}
+                {otherTabs.length > 0 && (
+                    <SubMenuItem title="Копировать">
+                         {otherTabs.map(tab => (
+                            <div key={tab.id} onClick={() => { useAppStore.getState().handleDeviceCopyToTab(contextMenuDevice, tab.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">
+                                {tab.name}
+                            </div>
+                        ))}
+                    </SubMenuItem>
+                )}
                 <div onClick={() => { useAppStore.getState().handleDeviceRemoveFromTab(contextMenu.deviceId, contextMenu.tabId); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm text-red-600 dark:text-red-400">Удалить с вкладки</div>
               </>
             )}
