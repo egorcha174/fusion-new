@@ -303,9 +303,16 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         localStorage.setItem(LOCAL_STORAGE_KEYS.COLOR_SCHEME, JSON.stringify(scheme));
     },
     updateColorSchemeValue: (path, value) => {
-        // Deep clone to avoid mutation issues
         const newScheme = JSON.parse(JSON.stringify(get().colorScheme));
-        setAtPath(newScheme, path, value);
+        
+        // Специальная обработка для cardBorderRadius, чтобы он применялся к обеим темам
+        if (path.endsWith('cardBorderRadius')) {
+            newScheme.light.cardBorderRadius = value;
+            newScheme.dark.cardBorderRadius = value;
+        } else {
+            setAtPath(newScheme, path, value);
+        }
+
         get().setColorScheme(newScheme);
     },
     setWeatherProvider: (provider) => {
