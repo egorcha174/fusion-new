@@ -313,9 +313,10 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
             exit: { opacity: 0 },
             transition: { duration: 0.4, ease: 'easeOut' },
           }}
-          className="absolute inset-0 rounded-2xl pointer-events-none z-10"
+          className="absolute inset-0 pointer-events-none z-10"
           style={{
-            background: `radial-gradient(circle, ${flashOnColor} 0%, rgba(0,0,0,0) 70%)`
+            background: `radial-gradient(circle, ${flashOnColor} 0%, rgba(0,0,0,0) 70%)`,
+            borderRadius: `${colorScheme.cardBorderRadius}px`,
           }}
         />
       )}
@@ -329,9 +330,10 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
             animate: { opacity: 1, transition: { duration: 0.15 } },
             exit: { opacity: 0, transition: { duration: 0.25 } },
           }}
-          className="absolute inset-0 rounded-2xl pointer-events-none z-10"
+          className="absolute inset-0 pointer-events-none z-10"
           style={{
             backgroundColor: dimOffColor,
+            borderRadius: `${colorScheme.cardBorderRadius}px`,
           }}
         />
       )}
@@ -758,8 +760,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
 
     return (
       <div
-        className={`w-full h-full relative rounded-2xl transition-all duration-300 ease-in-out select-none transform ${hoverClass} ${cursorClass} shadow-lg ring-1 ring-black/5 dark:ring-white/10 ${overflowClass}`}
-        style={{ backgroundColor: applyOpacity(dynamicBackgroundColor, colorScheme.cardOpacity), backdropFilter: 'blur(16px)' }}
+        className={`w-full h-full relative transition-all duration-300 ease-in-out select-none transform ${hoverClass} ${cursorClass} shadow-lg ring-1 ring-black/5 dark:ring-white/10 ${overflowClass}`}
+        style={{ backgroundColor: applyOpacity(dynamicBackgroundColor, colorScheme.cardOpacity), backdropFilter: 'blur(16px)', borderRadius: `${colorScheme.cardBorderRadius}px` }}
         onContextMenu={onContextMenu}
       >
         {animationOverlay}
@@ -931,7 +933,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
   const getCardClasses = () => {
     const isMenuOpen = device.type === DeviceType.Thermostat && isPresetMenuOpen;
     const overflowClass = isMenuOpen ? '' : 'overflow-hidden';
-    const baseClasses = `w-full h-full rounded-2xl flex flex-col transition-all duration-300 ease-in-out select-none relative shadow-lg ring-1 ring-black/5 dark:ring-white/10 transform ${overflowClass}`;
+    const baseClasses = `w-full h-full flex flex-col transition-all duration-300 ease-in-out select-none relative shadow-lg ring-1 ring-black/5 dark:ring-white/10 transform ${overflowClass}`;
     const layoutClasses = (isCamera || device.type === DeviceType.BatteryWidget || device.type === DeviceType.EventTimer) ? 'p-0' : styles.padding;
     const cursorClass = (isTogglable) && !isEditMode && !isPreview ? 'cursor-pointer' : '';
     const hoverClass = !isEditMode && !isPreview ? 'hover:shadow-xl hover:scale-[1.02]' : '';
@@ -942,6 +944,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
       return { 
           backgroundColor: applyOpacity(isOn ? colorScheme.cardBackgroundOn : colorScheme.cardBackground, colorScheme.cardOpacity),
           backdropFilter: 'blur(16px)',
+          borderRadius: `${colorScheme.cardBorderRadius}px`,
       };
   }
 

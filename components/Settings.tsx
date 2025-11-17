@@ -34,14 +34,14 @@ const FONT_FAMILIES = [
 const appleGraphiteTheme: ThemeObject = {
   "colorScheme": {
     "light": {
-      "dashboardBackgroundType": "gradient", "dashboardBackgroundColor1": "#EAEAEB", "dashboardBackgroundColor2": "#DCDCDC", "dashboardBackgroundImageBlur": 0, "dashboardBackgroundImageBrightness": 100, "cardOpacity": 0.85, "panelOpacity": 0.75,
+      "dashboardBackgroundType": "gradient", "dashboardBackgroundColor1": "#EAEAEB", "dashboardBackgroundColor2": "#DCDCDC", "dashboardBackgroundImageBlur": 0, "dashboardBackgroundImageBrightness": 100, "cardOpacity": 0.85, "panelOpacity": 0.75, "cardBorderRadius": 16,
       "cardBackground": "rgba(255, 255, 255, 0.8)", "cardBackgroundOn": "rgba(255, 255, 255, 0.95)", "tabTextColor": "#515154", "activeTabTextColor": "#1D1D1F", "tabIndicatorColor": "#1D1D1F",
       "thermostatHandleColor": "#FFFFFF", "thermostatDialTextColor": "#1D1D1F", "thermostatDialLabelColor": "#515154", "thermostatHeatingColor": "#F97316", "thermostatCoolingColor": "#3B82F6", "clockTextColor": "#1D1D1F",
       "weatherIconSize": 96, "weatherForecastIconSize": 48, "weatherCurrentTempFontSize": 36, "weatherCurrentDescFontSize": 14, "weatherForecastDayFontSize": 12, "weatherForecastMaxTempFontSize": 18, "weatherForecastMinTempFontSize": 14,
       "nameTextColor": "#1D1D1F", "statusTextColor": "#515154", "valueTextColor": "#1D1D1F", "unitTextColor": "#1D1D1F", "nameTextColorOn": "#1D1D1F", "statusTextColorOn": "#515154", "valueTextColorOn": "#1D1D1F", "unitTextColorOn": "#1D1D1F"
     },
     "dark": {
-      "dashboardBackgroundType": "color", "dashboardBackgroundColor1": "#1C1C1E", "dashboardBackgroundColor2": "#2C2C2E", "dashboardBackgroundImageBlur": 0, "dashboardBackgroundImageBrightness": 100, "cardOpacity": 0.8, "panelOpacity": 0.75,
+      "dashboardBackgroundType": "color", "dashboardBackgroundColor1": "#1C1C1E", "dashboardBackgroundColor2": "#2C2C2E", "dashboardBackgroundImageBlur": 0, "dashboardBackgroundImageBrightness": 100, "cardOpacity": 0.8, "panelOpacity": 0.75, "cardBorderRadius": 16,
       "cardBackground": "rgba(44, 44, 46, 0.8)", "cardBackgroundOn": "rgba(60, 60, 62, 0.85)", "tabTextColor": "#8E8E93", "activeTabTextColor": "#F5F5F7", "tabIndicatorColor": "#F5F5F7",
       "thermostatHandleColor": "#1C1C1E", "thermostatDialTextColor": "#F5F5F7", "thermostatDialLabelColor": "#8E8E93", "thermostatHeatingColor": "#F28C18", "thermostatCoolingColor": "#0A84FF", "clockTextColor": "#F5F5F7",
       "weatherIconSize": 96, "weatherForecastIconSize": 48, "weatherCurrentTempFontSize": 36, "weatherCurrentDescFontSize": 14, "weatherForecastDayFontSize": 12, "weatherForecastMaxTempFontSize": 18, "weatherForecastMinTempFontSize": 14,
@@ -52,14 +52,14 @@ const appleGraphiteTheme: ThemeObject = {
 const appleMintTheme: ThemeObject = {
   "colorScheme": {
     "light": {
-      "dashboardBackgroundType": "gradient", "dashboardBackgroundColor1": "#F0F7F6", "dashboardBackgroundColor2": "#E6F0EF", "dashboardBackgroundImageBlur": 0, "dashboardBackgroundImageBrightness": 100, "cardOpacity": 0.85, "panelOpacity": 0.75,
+      "dashboardBackgroundType": "gradient", "dashboardBackgroundColor1": "#F0F7F6", "dashboardBackgroundColor2": "#E6F0EF", "dashboardBackgroundImageBlur": 0, "dashboardBackgroundImageBrightness": 100, "cardOpacity": 0.85, "panelOpacity": 0.75, "cardBorderRadius": 16,
       "cardBackground": "rgba(255, 255, 255, 0.8)", "cardBackgroundOn": "rgba(255, 255, 255, 0.95)", "tabTextColor": "#374151", "activeTabTextColor": "#065F46", "tabIndicatorColor": "#059669",
       "thermostatHandleColor": "#FFFFFF", "thermostatDialTextColor": "#065F46", "thermostatDialLabelColor": "#374151", "thermostatHeatingColor": "#F97316", "thermostatCoolingColor": "#3B82F6", "clockTextColor": "#065F46",
       "weatherIconSize": 96, "weatherForecastIconSize": 48, "weatherCurrentTempFontSize": 36, "weatherCurrentDescFontSize": 14, "weatherForecastDayFontSize": 12, "weatherForecastMaxTempFontSize": 18, "weatherForecastMinTempFontSize": 14,
       "nameTextColor": "#374151", "statusTextColor": "#6B7280", "valueTextColor": "#065F46", "unitTextColor": "#065F46", "nameTextColorOn": "#065F46", "statusTextColorOn": "#374151", "valueTextColorOn": "#065F46", "unitTextColorOn": "#065F46"
     },
     "dark": {
-      "dashboardBackgroundType": "color", "dashboardBackgroundColor1": "#1A2421", "dashboardBackgroundColor2": "#212E2A", "dashboardBackgroundImageBlur": 0, "dashboardBackgroundImageBrightness": 100, "cardOpacity": 0.8, "panelOpacity": 0.75,
+      "dashboardBackgroundType": "color", "dashboardBackgroundColor1": "#1A2421", "dashboardBackgroundColor2": "#212E2A", "dashboardBackgroundImageBlur": 0, "dashboardBackgroundImageBrightness": 100, "cardOpacity": 0.8, "panelOpacity": 0.75, "cardBorderRadius": 16,
       "cardBackground": "rgba(30, 41, 59, 0.8)", "cardBackgroundOn": "rgba(38, 52, 75, 0.85)", "tabTextColor": "#9CA3AF", "activeTabTextColor": "#A7F3D0", "tabIndicatorColor": "#34D399",
       "thermostatHandleColor": "#1A2421", "thermostatDialTextColor": "#A7F3D0", "thermostatDialLabelColor": "#9CA3AF", "thermostatHeatingColor": "#F28C18", "thermostatCoolingColor": "#0A84FF", "clockTextColor": "#A7F3D0",
       "weatherIconSize": 96, "weatherForecastIconSize": 48, "weatherCurrentTempFontSize": 36, "weatherCurrentDescFontSize": 14, "weatherForecastDayFontSize": 12, "weatherForecastMaxTempFontSize": 18, "weatherForecastMinTempFontSize": 14,
@@ -71,13 +71,13 @@ const appleMintTheme: ThemeObject = {
 const futuristicTheme: ThemeObject = {
   "colorScheme": {
     "light": {
-      "dashboardBackgroundType": "gradient", "dashboardBackgroundColor1": "#f5f7fa", "dashboardBackgroundColor2": "#eef2f7", "cardOpacity": 0.8, "panelOpacity": 0.7,
+      "dashboardBackgroundType": "gradient", "dashboardBackgroundColor1": "#f5f7fa", "dashboardBackgroundColor2": "#eef2f7", "cardOpacity": 0.8, "panelOpacity": 0.7, "cardBorderRadius": 16,
       "cardBackground": "rgba(255, 255, 255, 0.8)", "cardBackgroundOn": "rgba(255, 255, 255, 1.0)", "tabTextColor": "#5c677d", "activeTabTextColor": "#007a7a", "tabIndicatorColor": "#007a7a",
       "thermostatHandleColor": "#FFFFFF", "thermostatDialTextColor": "#005a5a", "thermostatDialLabelColor": "#5c677d", "thermostatHeatingColor": "#ff6b6b", "thermostatCoolingColor": "#4d96ff", "clockTextColor": "#005a5a",
       "nameTextColor": "#333d4f", "statusTextColor": "#5c677d", "valueTextColor": "#005a5a", "unitTextColor": "#005a5a", "nameTextColorOn": "#005a5a", "statusTextColorOn": "#5c677d", "valueTextColorOn": "#005a5a", "unitTextColorOn": "#005a5a"
     },
     "dark": {
-      "dashboardBackgroundType": "gradient", "dashboardBackgroundColor1": "#1a2a3a", "dashboardBackgroundColor2": "#101a24", "cardOpacity": 0.8, "panelOpacity": 0.7,
+      "dashboardBackgroundType": "gradient", "dashboardBackgroundColor1": "#1a2a3a", "dashboardBackgroundColor2": "#101a24", "cardOpacity": 0.8, "panelOpacity": 0.7, "cardBorderRadius": 16,
       "cardBackground": "rgba(20, 30, 40, 0.8)", "cardBackgroundOn": "rgba(25, 35, 45, 1.0)", "tabTextColor": "#9cb3cc", "activeTabTextColor": "#00dada", "tabIndicatorColor": "#00dada",
       "thermostatHandleColor": "#1a2a3a", "thermostatDialTextColor": "#00dada", "thermostatDialLabelColor": "#9cb3cc", "thermostatHeatingColor": "#ff8787", "thermostatCoolingColor": "#74afff", "clockTextColor": "#00dada",
       "nameTextColor": "#c0d4e7", "statusTextColor": "#9cb3cc", "valueTextColor": "#00dada", "unitTextColor": "#00dada", "nameTextColorOn": "#00dada", "statusTextColorOn": "#9cb3cc", "valueTextColorOn": "#00dada", "unitTextColorOn": "#00dada"
@@ -88,7 +88,7 @@ const futuristicTheme: ThemeObject = {
 const deepSpaceTheme: ThemeObject = {
   "colorScheme": {
     "light": {
-      "dashboardBackgroundType": "gradient", "dashboardBackgroundColor1": "#D4DEE7", "dashboardBackgroundColor2": "#BCC8D6", "cardOpacity": 0.85, "panelOpacity": 0.75,
+      "dashboardBackgroundType": "gradient", "dashboardBackgroundColor1": "#D4DEE7", "dashboardBackgroundColor2": "#BCC8D6", "cardOpacity": 0.85, "panelOpacity": 0.75, "cardBorderRadius": 16,
       "cardBackground": "rgba(255, 255, 255, 0.7)", "cardBackgroundOn": "rgba(255, 255, 255, 0.9)", "tabTextColor": "#4A5568", "activeTabTextColor": "#1A202C", "tabIndicatorColor": "#2D3748",
       "thermostatHandleColor": "#FFFFFF", "thermostatDialTextColor": "#1A202C", "thermostatDialLabelColor": "#4A5568", "thermostatHeatingColor": "#DD6B20", "thermostatCoolingColor": "#3182CE", "clockTextColor": "#1A202C",
       "nameTextColor": "#2D3748", "statusTextColor": "#718096", "valueTextColor": "#1A202C", "unitTextColor": "#1A202C", "nameTextColorOn": "#1A202C", "statusTextColorOn": "#2D3748", "valueTextColorOn": "#1A202C", "unitTextColorOn": "#1A202C"
@@ -99,6 +99,7 @@ const deepSpaceTheme: ThemeObject = {
       "dashboardBackgroundColor2": "#10161d",
       "cardOpacity": 0.8,
       "panelOpacity": 0.7,
+      "cardBorderRadius": 16,
       "cardBackground": "rgba(18, 25, 35, 0.8)",
       "cardBackgroundOn": "rgba(25, 33, 45, 0.9)",
       "tabTextColor": "#9FB1CC",
@@ -232,6 +233,7 @@ const ThemeEditor: React.FC<{
                 <RangeInput onUpdate={onUpdate} label="Панели" path={`${pathPrefix}.panelOpacity`} value={scheme.panelOpacity || 1} min={0} max={1} step={0.05} />
             </Section>
             <Section title="Карточки" defaultOpen={false}>
+                <RangeInput onUpdate={onUpdate} label="Скругление углов" path={`${pathPrefix}.cardBorderRadius`} value={scheme.cardBorderRadius ?? 16} min={0} max={24} step={1} unit="px" />
                 <ColorInput onUpdate={onUpdate} label="Фон (Выкл)" path={`${pathPrefix}.cardBackground`} value={scheme.cardBackground} />
                 <ColorInput onUpdate={onUpdate} label="Фон (Вкл)" path={`${pathPrefix}.cardBackgroundOn`} value={scheme.cardBackgroundOn} />
                 <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 pt-2">Текст (Выкл)</h4>

@@ -128,13 +128,14 @@ const DroppableCell: React.FC<{
   row: number;
   isEditMode: boolean;
   metrics: { cellSize: number; gap: number; };
-}> = React.memo(({ col, row, isEditMode, metrics }) => {
+  borderRadius: number;
+}> = React.memo(({ col, row, isEditMode, metrics, borderRadius }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: `cell-${col}-${row}`,
     data: { type: 'cell', col, row }
   });
 
-  const baseClasses = 'absolute transition-colors duration-200 rounded-xl';
+  const baseClasses = 'absolute transition-colors duration-200';
   const editModeClasses = isEditMode ? 'bg-gray-800/50 border-2 border-dashed border-gray-700/50' : '';
   const overClasses = isOver ? 'bg-blue-500/20 border-solid border-blue-400' : '';
   
@@ -143,6 +144,7 @@ const DroppableCell: React.FC<{
     height: `${metrics.cellSize}px`,
     left: `${col * (metrics.cellSize + metrics.gap)}px`,
     top: `${row * (metrics.cellSize + metrics.gap)}px`,
+    borderRadius: `${borderRadius}px`,
   };
 
   return (
@@ -161,7 +163,8 @@ const OccupiedCellWrapper: React.FC<{
     activeId: string | null;
     openMenuDeviceId: string | null;
     metrics: { cellSize: number; gap: number; };
-}> = React.memo(({ group, children, isEditMode, activeId, openMenuDeviceId, metrics }) => {
+    borderRadius: number;
+}> = React.memo(({ group, children, isEditMode, activeId, openMenuDeviceId, metrics, borderRadius }) => {
     const firstItem = group[0];
     const { setNodeRef, isOver } = useDroppable({
         id: `cell-${firstItem.col}-${firstItem.row}`,
@@ -188,13 +191,14 @@ const OccupiedCellWrapper: React.FC<{
         left: `${firstItem.col * (metrics.cellSize + metrics.gap)}px`,
         top: `${firstItem.row * (metrics.cellSize + metrics.gap)}px`,
         zIndex: groupHasOpenMenu ? 40 : (groupIsActive ? 0 : 1),
+        borderRadius: `${borderRadius}px`,
     };
 
     return (
         <motion.div
             ref={setNodeRef}
             style={style}
-            className={`relative rounded-xl transition-colors duration-200 ${overClasses}`}
+            className={`relative transition-colors duration-200 ${overClasses}`}
             // FIX: framer-motion props are failing type validation, likely due to a type definition issue.
             // Wrapping them in an object spread bypasses the incorrect type check.
             {...{
@@ -241,7 +245,7 @@ interface DashboardGridProps {
  * Отвечает за рендеринг сетки, обработку Drag-and-Drop и позиционирование карточек.
  */
 const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
-    const { tab, allKnownDevices, isEditMode, onDeviceLayoutChange, searchTerm, templates, customizations, onDeviceToggle, onShowHistory } = props;
+    const { tab, allKnownDevices, isEditMode, onDeviceLayoutChange, searchTerm, templates, customizations, onDeviceToggle, onShowHistory, colorScheme } = props;
     const viewportRef = useRef<HTMLDivElement>(null);
     const [gridMetrics, setGridMetrics] = useState({ containerWidth: 0, containerHeight: 0, cellSize: 0, gap: 16 });
     const [activeId, setActiveId] = useState<string | null>(null);
@@ -413,6 +417,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         groups.forEach(group => group.sort((a, b) => a.deviceId.localeCompare(b.deviceId)));
         return Array.from(groups.values());
     }, [validLayout]);
+    
+    const borderRadius = colorScheme.cardBorderRadius ?? 16;
 
     // Не рендерим сетку, пока ее размеры не будут вычислены, чтобы избежать "схлопывания" в углу.
     if (gridMetrics.cellSize <= 0) {
@@ -432,7 +438,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                         const row = Math.floor(index / tab.gridSettings.cols);
                         const isOccupied = occupiedCells.has(`${col},${row}`);
                         if (isOccupied) return null;
-                        return <DroppableCell key={`cell-${col}-${row}`} col={col} row={row} isEditMode={isEditMode} metrics={gridMetrics} />;
+                        return <DroppableCell key={`cell-${col}-${row}`} col={col} row={row} isEditMode={isEditMode} metrics={gridMetrics} borderRadius={borderRadius} />;
                     })}
                     <AnimatePresence>
                         {groupedLayout.map((group) => {
@@ -442,7 +448,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                             const groupKey = group.map(i => i.deviceId).join('-');
                             
                             return (
-                                <OccupiedCellWrapper key={groupKey} group={group} isEditMode={isEditMode} activeId={activeId} openMenuDeviceId={openMenuDeviceId} metrics={gridMetrics}>
+                                <OccupiedCellWrapper key={groupKey} group={group} isEditMode={isEditMode} activeId={activeId} openMenuDeviceId={openMenuDeviceId} metrics={gridMetrics} borderRadius={borderRadius}>
                                     {group.map((item, index) => {
                                         const device = allKnownDevices.get(item.deviceId);
                                         // Этот `if` теперь практически избыточен, но является дополнительной защитой.
@@ -506,10 +512,10 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                  <DragOverlay dropAnimation={null} modifiers={[snapCenterToCursor]}>
                     {activeDevice && activeDragItemRect ? (
                       <motion.div
-                        className="rounded-2xl"
                         style={{
                           width: activeDragItemRect.width,
                           height: activeDragItemRect.height,
+                          borderRadius: `${borderRadius}px`,
                         }}
                         // FIX: framer-motion props are failing type validation, likely due to a type definition issue.
                         // Wrapping them in an object spread bypasses the incorrect type check.

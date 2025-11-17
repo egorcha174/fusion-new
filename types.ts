@@ -237,6 +237,8 @@ export interface ColorThemeSet {
   panelOpacity?: number;
 
   // --- Карточки (Общие) ---
+  /** Радиус скругления углов карточек в пикселях. */
+  cardBorderRadius?: number;
   /** Цвет фона карточки в выключенном состоянии. */
   cardBackground: string;
   /** Цвет фона карточки во включенном состоянии. */
