@@ -31,6 +31,9 @@ interface HAState {
   allRoomsWithPhysicalDevices: RoomWithPhysicalDevices[];
   allCameras: Device[];
   batteryDevices: BatteryDevice[];
+  allScenes: Device[];
+  allAutomations: Device[];
+  allScripts: Device[];
 }
 
 interface HAActions {
@@ -49,6 +52,9 @@ interface HAActions {
   handleBrightnessChange: (deviceId: string, brightness: number) => void;
   handlePresetChange: (deviceId: string, preset: string) => void;
   handleFanSpeedChange: (deviceId: string, value: number | string) => void;
+  triggerScene: (entityId: string) => void;
+  triggerAutomation: (entityId: string) => void;
+  triggerScript: (entityId: string) => void;
 }
 
 export const useHAStore = create<HAState & HAActions>((set, get) => {
@@ -240,6 +246,10 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
 
 
       const cameras = Array.from(deviceMap.values()).filter((d: Device) => d.haDomain === 'camera');
+      const scenes = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Scene);
+      const automations = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Automation);
+      const scripts = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Script);
+      
       // Сортируем список физических устройств по уровню заряда
       batteryDevicesList.sort((a, b) => a.batteryLevel - b.batteryLevel);
       
@@ -286,7 +296,16 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           .filter(room => room.devices.length > 0)
           .sort((a,b) => a.name.localeCompare(b.name));
 
-      set({ allKnownDevices: deviceMap, allRoomsForDevicePage: rooms, allCameras: cameras, batteryDevices: batteryDevicesList, allRoomsWithPhysicalDevices });
+      set({ 
+        allKnownDevices: deviceMap, 
+        allRoomsForDevicePage: rooms, 
+        allCameras: cameras, 
+        batteryDevices: batteryDevicesList, 
+        allRoomsWithPhysicalDevices,
+        allScenes: scenes.sort((a,b) => a.name.localeCompare(b.name)),
+        allAutomations: automations.sort((a,b) => a.name.localeCompare(b.name)),
+        allScripts: scripts.sort((a,b) => a.name.localeCompare(b.name)),
+    });
   };
   
   // Re-compute derived state whenever customizations change
@@ -318,6 +337,9 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     allRoomsWithPhysicalDevices: [],
     allCameras: [],
     batteryDevices: [],
+    allScenes: [],
+    allAutomations: [],
+    allScripts: [],
 
     connect: (url, token) => {
         if (socketRef) socketRef.close();
@@ -505,6 +527,15 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         } else if (typeof value === 'string') {
             get().callService('select', 'select_option', { entity_id: deviceId, option: value });
         }
+    },
+    triggerScene: (entityId) => {
+        get().callService('scene', 'turn_on', { entity_id: entityId });
+    },
+    triggerAutomation: (entityId) => {
+        get().callService('automation', 'trigger', { entity_id: entityId });
+    },
+    triggerScript: (entityId) => {
+        get().callService('script', 'turn_on', { entity_id: entityId });
     },
   };
 });

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
   CameraSettings, ColorScheme, CardTemplate, DeviceType, GridLayoutItem, DeviceCustomization,
-  CardElementId, EventTimerWidget, CustomCardWidget
+  CardElementId, EventTimerWidget, CustomCardWidget, PhysicalDevice, CardElement
 } from '../types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from '../components/DeviceIcon';
@@ -124,6 +124,8 @@ interface AppActions {
     checkCollision: (layout: GridLayoutItem[], itemToPlace: { col: number; row: number; width: number; height: number; }, gridSettings: { cols: number; rows: number; }, ignoreDeviceId: string) => boolean;
     handleDeviceLayoutChange: (tabId: string, newLayout: GridLayoutItem[]) => void;
     handleDeviceResizeOnTab: (tabId: string, deviceId: string, newWidth: number, newHeight: number) => void;
+    // FIX: Add missing 'handleAddPhysicalDeviceAsCustomCard' action to enable adding physical devices as custom cards.
+    handleAddPhysicalDeviceAsCustomCard: (physicalDevice: PhysicalDevice, tabId: string) => void;
 
     handleSaveCustomization: (originalDevice: Device, newValues: Omit<DeviceCustomization, 'name' | 'type' | 'icon' | 'isHidden'> & { name: string; type: DeviceType; icon: string; isHidden: boolean; }) => void;
     handleToggleVisibility: (device: Device, isHidden: boolean) => void;
@@ -537,6 +539,98 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             localStorage.setItem(LOCAL_STORAGE_KEYS.TABS, JSON.stringify(newTabs));
             return { tabs: newTabs };
         });
+    },
+    handleAddPhysicalDeviceAsCustomCard: (physicalDevice, tabId) => {
+        const { customCardWidgets, templates, customizations, setCustomCardWidgets, setTemplates, setCustomizations, handleDeviceAddToTab, createNewBlankTemplate } = get();
+
+        const widgetId = `physdev-${physicalDevice.id}`;
+        const deviceId = `internal::custom-card_${widgetId}`;
+        const templateId = `custom-card-template-${widgetId}`;
+
+        let widget = customCardWidgets.find(w => w.id === widgetId);
+        let template = templates[templateId];
+
+        // Step 1: Create widget if it doesn't exist. This will trigger haStore to create the device.
+        if (!widget) {
+            widget = {
+                id: widgetId,
+                name: physicalDevice.name,
+            };
+            setCustomCardWidgets([...customCardWidgets, widget]);
+        }
+
+        // Step 2: Create template if it doesn't exist
+        if (!template) {
+            template = createNewBlankTemplate('custom');
+            template.id = templateId;
+            template.name = physicalDevice.name;
+            template.interactionType = 'passive'; // It's just a container
+
+            // Sensible defaults for a physical device card
+            template.width = 2;
+            const entityRows = Math.ceil(physicalDevice.entities.length / 2);
+            template.height = Math.max(2, 1 + entityRows); // Minimum height of 2
+
+            const nameElementHeight = 15; // %
+            template.elements = [
+                { id: 'name', uniqueId: nanoid(), visible: true, position: { x: 5, y: 5 }, size: { width: 90, height: nameElementHeight - 5 }, zIndex: 1, styles: { fontSize: 16 } },
+            ];
+
+            // Layout entities in a 2-column grid inside the card
+            const entitiesPerRow = 2;
+            const startY = nameElementHeight; // Start below the name
+            const availableHeight = 100 - startY - 5; // 5% bottom margin
+            const rowHeight = availableHeight / entityRows;
+            const colWidth = 45;
+            const startX = 2.5;
+            const colGap = 5;
+
+            physicalDevice.entities.forEach((entity, index) => {
+                const row = Math.floor(index / entitiesPerRow);
+                const col = index % entitiesPerRow;
+
+                template!.elements.push({
+                    id: 'linked-entity',
+                    uniqueId: nanoid(),
+                    visible: true,
+                    position: {
+                        x: startX + col * (colWidth + colGap),
+                        y: startY + row * rowHeight,
+                    },
+                    size: {
+                        width: colWidth,
+                        height: rowHeight * 0.9, // 90% of row height for margin
+                    },
+                    zIndex: 2,
+                    styles: {
+                        linkedEntityId: entity.id,
+                        showValue: true,
+                    }
+                });
+            });
+
+            setTemplates({ ...get().templates, [templateId]: template });
+
+            // Create customization to link device to template
+            const newCustomization: DeviceCustomization = {
+                ...customizations[deviceId],
+                templateId: templateId,
+            };
+            setCustomizations({ ...get().customizations, [deviceId]: newCustomization });
+        }
+
+        // Step 3: Add device to tab.
+        // Create a temporary device object to add to the tab, as the real one might not exist yet in haStore's state
+        const deviceToAdd: Device = {
+            id: deviceId,
+            name: physicalDevice.name,
+            status: `${physicalDevice.entities.length} сущ.`,
+            type: DeviceType.Custom,
+            haDomain: 'internal',
+            state: 'active',
+            widgetId: widgetId,
+        };
+        handleDeviceAddToTab(deviceToAdd, tabId);
     },
     handleSaveCustomization: (originalDevice, newValues) => {
         const deviceId = originalDevice.id;
