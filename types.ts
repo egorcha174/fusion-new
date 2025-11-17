@@ -196,6 +196,11 @@ export interface CameraSettings {
   selectedEntityId: string | null;
 }
 
+export interface WeatherSettings {
+  iconPack: 'default' | 'meteocons' | 'weather-icons' | 'material-symbols-light';
+  forecastDays: number;
+}
+
 /**
  * Набор цветов для одной темы (светлой или темной).
  * Определяет все цвета, используемые в интерфейсе.

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
   CameraSettings, ColorScheme, CardTemplate, DeviceType, GridLayoutItem, DeviceCustomization,
-  CardElementId, EventTimerWidget, CustomCardWidget, PhysicalDevice, CardElement
+  CardElementId, EventTimerWidget, CustomCardWidget, PhysicalDevice, CardElement, WeatherSettings
 } from '../types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from '../components/DeviceIcon';
@@ -17,6 +17,7 @@ import {
     DEFAULT_SIDEBAR_VISIBLE,
     DEFAULT_THEME,
     DEFAULT_WEATHER_PROVIDER,
+    DEFAULT_WEATHER_SETTINGS,
     DEFAULT_LOW_BATTERY_THRESHOLD,
     DEFAULT_FONT_FAMILY,
     DEFAULT_SENSOR_TEMPLATE_ID,
@@ -58,6 +59,7 @@ interface AppState {
     openWeatherMapKey: string;
     yandexWeatherKey: string;
     forecaApiKey: string;
+    weatherSettings: WeatherSettings;
     lowBatteryThreshold: number;
     // FIX: Replaced single septic tank settings with a more generic array of event timer widgets to support multiple custom timers.
     eventTimerWidgets: EventTimerWidget[];
@@ -96,6 +98,7 @@ interface AppActions {
     setOpenWeatherMapKey: (key: string) => void;
     setYandexWeatherKey: (key: string) => void;
     setForecaApiKey: (key: string) => void;
+    setWeatherSettings: (settings: WeatherSettings) => void;
     setLowBatteryThreshold: (threshold: number) => void;
     
     // FIX: Added actions to manage multiple event timer widgets, replacing the old single-widget logic.
@@ -166,6 +169,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     openWeatherMapKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, ''),
     yandexWeatherKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, ''),
     forecaApiKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.FORECA_KEY, ''),
+    weatherSettings: loadAndMigrate<WeatherSettings>(LOCAL_STORAGE_KEYS.WEATHER_SETTINGS, DEFAULT_WEATHER_SETTINGS),
     lowBatteryThreshold: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, DEFAULT_LOW_BATTERY_THRESHOLD),
     // FIX: Replaced septicTankSettings with eventTimerWidgets and corrected the local storage key.
     eventTimerWidgets: loadAndMigrate<EventTimerWidget[]>(LOCAL_STORAGE_KEYS.EVENT_TIMER_WIDGETS, []),
@@ -255,6 +259,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     setForecaApiKey: (key) => {
         set({ forecaApiKey: key });
         localStorage.setItem(LOCAL_STORAGE_KEYS.FORECA_KEY, key);
+    },
+    setWeatherSettings: (settings) => {
+        set({ weatherSettings: settings });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.WEATHER_SETTINGS, JSON.stringify(settings));
     },
     setLowBatteryThreshold: (threshold) => {
         set({ lowBatteryThreshold: threshold });

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ColorScheme } from '../types';
+import { ColorScheme, WeatherSettings } from '../types';
 import AnimatedWeatherIcon from './AnimatedWeatherIcon';
 
 // --- Типы данных для погоды ---
@@ -28,6 +28,7 @@ interface WeatherWidgetProps {
     forecaApiKey: string;
     getConfig: () => Promise<any>;
     colorScheme: ColorScheme['light'];
+    weatherSettings: WeatherSettings;
 }
 
 // --- MAPPINGS FOR YANDEX WEATHER ---
@@ -82,12 +83,13 @@ const forecaSymbolToOwmCode = (symbol: string): string => {
  * Виджет для отображения текущей погоды и прогноза на несколько дней.
  * Получает данные из OpenWeatherMap API, используя координаты из конфигурации Home Assistant.
  */
-const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, getConfig, colorScheme }) => {
+const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, getConfig, colorScheme, weatherSettings }) => {
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        const { forecastDays } = weatherSettings;
         const fetchOpenWeatherMapWeather = async () => {
             if (!openWeatherMapKey) throw new Error("Ключ API OpenWeatherMap не настроен.");
             
@@ -113,7 +115,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeat
                 days[dayKey].push(item);
             }
 
-            const forecast = Object.entries(days).slice(0, 4).map(([dayKey, arr]) => {
+            const forecast = Object.entries(days).slice(0, forecastDays).map(([dayKey, arr]) => {
                 const dt = new Date(dayKey);
                 const dayName = dt.toLocaleDateString("ru-RU", { weekday: "short" });
                 const tempMax = Math.max(...arr.map((e) => e.main.temp_max));
@@ -137,7 +139,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeat
             const { latitude: lat, longitude: lon } = haConfig;
             if (!lat || !lon) throw new Error("В конфигурации HA не найдены широта или долгота.");
             
-            const url = `https://api.weather.yandex.ru/v2/forecast?lat=${lat}&lon=${lon}&lang=ru_RU&limit=4`;
+            const url = `https://api.weather.yandex.ru/v2/forecast?lat=${lat}&lon=${lon}&lang=ru_RU&limit=${forecastDays}`;
 
             const response = await fetch(url, {
                 method: 'GET',
@@ -166,7 +168,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeat
                     desc: yandexConditionToText[now.condition] || now.condition,
                     icon: yandexIconToOwmCode[now.icon] || '01d',
                 },
-                forecast: forecasts.slice(0, 4).map((f: any) => ({
+                forecast: forecasts.slice(0, forecastDays).map((f: any) => ({
                     day: new Date(f.date).toLocaleDateString("ru-RU", { weekday: "short" }),
                     tempMax: f.parts.day.temp_max,
                     tempMin: f.parts.day.temp_min,
@@ -199,7 +201,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeat
             // 2. Fetch current and forecast data
             const [currentResponse, forecastResponse] = await Promise.all([
                 fetch(`https://fnw-ws.foreca.com/api/v1/current/${locationId}`, { headers: { 'Authorization': `Bearer ${forecaApiKey}` } }),
-                fetch(`https://fnw-ws.foreca.com/api/v1/forecast/daily/${locationId}?dataset=full&periods=4&lang=ru`, { headers: { 'Authorization': `Bearer ${forecaApiKey}` } })
+                fetch(`https://fnw-ws.foreca.com/api/v1/forecast/daily/${locationId}?dataset=full&periods=${forecastDays}&lang=ru`, { headers: { 'Authorization': `Bearer ${forecaApiKey}` } })
             ]);
 
             if (!currentResponse.ok || !forecastResponse.ok) {
@@ -222,7 +224,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeat
                     desc: current.symbolPhrase,
                     icon: forecaSymbolToOwmCode(current.symbol),
                 },
-                forecast: forecast.slice(0, 4).map((f: any) => ({
+                forecast: forecast.slice(0, forecastDays).map((f: any) => ({
                     day: new Date(f.date).toLocaleDateString("ru-RU", { weekday: "short" }),
                     tempMax: f.maxTemp,
                     tempMin: f.minTemp,
@@ -258,7 +260,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeat
         };
 
         fetchWeather();
-    }, [weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, getConfig]);
+    }, [weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, getConfig, weatherSettings]);
 
     if (loading) {
         return ( // Скелет загрузки
@@ -293,6 +295,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeat
                 <div className="flex items-center gap-2">
                     <AnimatedWeatherIcon
                       iconCode={current.icon}
+                      iconPack={weatherSettings.iconPack}
                       className="w-24 h-24 flex-shrink-0"
                       style={{ width: currentIconSize, height: currentIconSize }}
                     />
@@ -307,8 +310,8 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeat
                 </div>
             </div>
 
-            {/* Прогноз на 4 дня */}
-            <div className="mt-4 grid grid-cols-4 gap-2 text-center">
+            {/* Прогноз на N дней */}
+            <div className={`mt-4 grid grid-cols-${weatherSettings.forecastDays} gap-2 text-center`}>
                 {forecast.map((day, index) => (
                     <div key={index} className="flex flex-col items-center space-y-1">
                         <p className="text-xs font-medium capitalize" style={{ color: colorScheme.nameTextColor, fontSize: colorScheme.weatherForecastDayFontSize ? `${colorScheme.weatherForecastDayFontSize}px` : undefined, }}>
@@ -316,6 +319,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeat
                         </p>
                          <AnimatedWeatherIcon
                             iconCode={day.icon}
+                            iconPack={weatherSettings.iconPack}
                             className="w-12 h-12"
                             style={{ width: forecastIconSize, height: forecastIconSize }}
                         />

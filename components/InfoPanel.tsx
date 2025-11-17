@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ClockSettings, Device, ClockSize, CameraSettings, ColorScheme } from '../types';
+import { ClockSettings, Device, ClockSize, CameraSettings, ColorScheme, WeatherSettings } from '../types';
 import { CameraStreamContent } from './CameraStreamContent';
 import ContextMenu from './ContextMenu';
 import WeatherWidget from './WeatherWidget';
@@ -163,7 +163,7 @@ interface InfoPanelProps {
  */
 const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, cameras, haUrl, signPath, getCameraStreamUrl, getConfig, colorScheme, isDark }) => {
     const [isResizing, setIsResizing] = useState(false);
-    const { clockSettings, weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey } = useAppStore();
+    const { clockSettings, weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, weatherSettings } = useAppStore();
 
     // Обработчик начала перетаскивания для изменения размера
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -220,6 +220,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, ca
                     openWeatherMapKey={openWeatherMapKey}
                     yandexWeatherKey={yandexWeatherKey}
                     forecaApiKey={forecaApiKey}
+                    weatherSettings={weatherSettings}
                     getConfig={getConfig} 
                     colorScheme={colorScheme}
                 />

@@ -4,7 +4,8 @@ import {
     CardTemplate,
     DeviceType,
     ClockSettings,
-    CameraSettings
+    CameraSettings,
+    WeatherSettings
 } from '../types';
 import { nanoid } from 'nanoid';
 
@@ -155,4 +156,8 @@ export const DEFAULT_SIDEBAR_VISIBLE = true;
 // FIX: The `theme` type in the store is `'day' | 'night' | 'auto' | 'schedule'`. The type here was `... | 'sun'`, which caused a type mismatch. Corrected to `'schedule'`.
 export const DEFAULT_THEME: 'day' | 'night' | 'auto' | 'schedule' = 'auto';
 export const DEFAULT_WEATHER_PROVIDER: 'openweathermap' | 'yandex' | 'foreca' = 'openweathermap';
+export const DEFAULT_WEATHER_SETTINGS: WeatherSettings = {
+  iconPack: 'default',
+  forecastDays: 4,
+};
 export const DEFAULT_LOW_BATTERY_THRESHOLD = 20;

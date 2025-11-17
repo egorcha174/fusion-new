@@ -1,5 +1,5 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
-import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget } from '../types';
+import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings } from '../types';
 import ConfirmDialog from './ConfirmDialog';
 import { useAppStore } from '../store/appStore';
 import { useHAStore } from '../store/haStore';
@@ -300,6 +300,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
         openWeatherMapKey, setOpenWeatherMapKey,
         yandexWeatherKey, setYandexWeatherKey,
         forecaApiKey, setForecaApiKey,
+        weatherSettings, setWeatherSettings,
         lowBatteryThreshold, setLowBatteryThreshold,
         isChristmasThemeEnabled, setIsChristmasThemeEnabled,
     } = useAppStore();
@@ -560,6 +561,17 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                         <input type="password" value={forecaApiKey} onChange={e => setForecaApiKey(e.target.value)} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"/>
                     </LabeledInput>
                  )}
+                 <LabeledInput label="Набор иконок">
+                    <select value={weatherSettings.iconPack} onChange={e => setWeatherSettings({ ...weatherSettings, iconPack: e.target.value as any })} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm">
+                        <option value="default">Стандартные (анимированные)</option>
+                        <option value="meteocons">Meteocons</option>
+                        <option value="weather-icons">Weather Icons</option>
+                        <option value="material-symbols-light">Material Symbols</option>
+                    </select>
+                </LabeledInput>
+                <LabeledInput label="Дней для прогноза">
+                    <input type="number" min="1" max="7" value={weatherSettings.forecastDays} onChange={e => setWeatherSettings({ ...weatherSettings, forecastDays: Math.max(1, Math.min(7, parseInt(e.target.value, 10) || 4)) })} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm"/>
+                </LabeledInput>
             </Section>
 
             <Section title="Прочее">
