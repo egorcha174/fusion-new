@@ -4,7 +4,6 @@ import { Device, ColorThemeSet } from '../types';
 interface EventTimerWidgetCardProps {
     device: Device;
     colorScheme: ColorThemeSet;
-    onContextMenu?: (event: React.MouseEvent) => void;
 }
 
 // Вспомогательные функции для работы с цветом
@@ -68,7 +67,7 @@ const Bubbles = React.memo(() => {
 });
 
 
-const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, colorScheme, onContextMenu }) => {
+const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, colorScheme }) => {
     const { 
         fillPercentage = 0, daysRemaining = 0,
         fillColors, animation, fillDirection, showName, name,
@@ -114,7 +113,6 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, col
             style={{
                 borderRadius: `${colorScheme.cardBorderRadius}px`,
             }}
-            onContextMenu={onContextMenu}
         >
             {/* Слой с "жидкой" заливкой, всегда спозиционированный снизу */}
             <div

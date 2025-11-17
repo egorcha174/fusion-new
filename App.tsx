@@ -397,10 +397,8 @@ const App: React.FC = () => {
     setContextMenu(null);
   }, [setContextMenu]);
   
-  const handleDeviceContextMenu = useCallback((event: React.MouseEvent, deviceId: string, tabId: string) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setContextMenu({ x: event.clientX, y: event.clientY, deviceId, tabId });
+  const handleDeviceContextMenu = useCallback((deviceId: string, tabId: string, x: number, y: number) => {
+    setContextMenu({ x, y, deviceId, tabId });
   }, [setContextMenu]);
   
   /**
@@ -409,23 +407,34 @@ const App: React.FC = () => {
    */
   const handleGlobalContextMenu = useCallback((event: React.MouseEvent) => {
     const target = event.target as HTMLElement;
+    const isDashboard = currentPage === 'dashboard';
+
+    // Отключаем стандартное меню на дашборде, но не на интерактивных элементах (поля ввода и т.д.).
+    if (isDashboard) {
+      const isInteractiveElement = target.closest('input, textarea, [contenteditable="true"], select');
+      if (!isInteractiveElement) {
+        event.preventDefault();
+      }
+    }
+
     const deviceTarget = target.closest('[data-device-id]') as HTMLElement | null;
 
     if (deviceTarget && isEditMode) {
-        // В режиме редактирования, ПКМ на карточке открывает меню действий
+        // Показываем кастомное меню для устройства в режиме редактирования
         const deviceId = deviceTarget.dataset.deviceId;
         const tabId = deviceTarget.dataset.tabId;
-        // FIX: Replaced `typeof ... === 'string'` with a truthiness check (`if (deviceId && tabId)`).
-        // This is more robust as it also handles empty strings and can resolve potential subtle type inference issues
-        // with `dataset` properties that may have caused the 'unknown' type error.
-        if (deviceId && tabId) {
-            handleDeviceContextMenu(event, deviceId, tabId);
+        // FIX: The type of dataset properties can be 'unknown' in some TypeScript configurations.
+        // A `typeof` check correctly narrows the type to 'string' for the function call.
+        if (typeof deviceId === 'string' && typeof tabId === 'string') {
+            handleDeviceContextMenu(deviceId, tabId, event.clientX, event.clientY);
+        } else {
+             setContextMenu(null);
         }
-    } else if (!deviceTarget) {
-        // Если клик был не на карточке, закрываем любое открытое меню
+    } else {
+        // В остальных случаях (не в режиме редактирования, или клик по фону) просто закрываем меню.
         setContextMenu(null);
     }
-  }, [isEditMode, handleDeviceContextMenu, setContextMenu]);
+  }, [isEditMode, handleDeviceContextMenu, setContextMenu, currentPage]);
 
   // --- ЛОГИКА РЕНДЕРИНГА ---
 
@@ -483,7 +492,6 @@ const App: React.FC = () => {
             key={activeTab.id}
             tab={activeTab}
             isEditMode={isEditMode}
-            onDeviceContextMenu={handleDeviceContextMenu}
             currentColorScheme={currentColorScheme}
             isDark={isDark}
           />

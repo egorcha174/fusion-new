@@ -1,6 +1,3 @@
-
-
-
 import React, { useMemo } from 'react';
 import DashboardGrid from './DashboardGrid';
 import { Tab, Device, GridLayoutItem, CardTemplates, DeviceCustomizations, ColorScheme, ColorThemeSet } from '../types';
@@ -10,7 +7,6 @@ import { useAppStore } from '../store/appStore';
 interface TabContentProps {
   tab: Tab;
   isEditMode: boolean;
-  onDeviceContextMenu: (event: React.MouseEvent, deviceId: string, tabId: string) => void;
   currentColorScheme: ColorThemeSet;
   isDark: boolean;
 }

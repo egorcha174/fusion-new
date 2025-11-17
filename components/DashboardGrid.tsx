@@ -75,11 +75,6 @@ const DraggableDevice: React.FC<{
     }
   }, [isEditMode, device, template, onDeviceToggle, onShowHistory]);
 
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    cardProps.onDeviceContextMenu(e, device.id, cardProps.tab.id);
-  }, [cardProps.onDeviceContextMenu, device.id, cardProps.tab.id]);
-
   return (
     <div
       ref={setNodeRef}
@@ -111,7 +106,6 @@ const DraggableDevice: React.FC<{
         openMenuDeviceId={cardProps.openMenuDeviceId}
         setOpenMenuDeviceId={cardProps.setOpenMenuDeviceId}
         colorScheme={colorScheme}
-        onContextMenu={handleContextMenu}
         isDark={isDark}
       />
     </div>
@@ -218,7 +212,6 @@ const OccupiedCellWrapper: React.FC<{
 interface DashboardGridProps {
   tab: Tab;
   isEditMode: boolean;
-  onDeviceContextMenu: (event: React.MouseEvent, deviceId: string, tabId: string) => void;
   allKnownDevices: Map<string, Device>;
   searchTerm: string;
   onDeviceLayoutChange: (tabId: string, newLayout: GridLayoutItem[]) => void;
@@ -545,7 +538,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                           onFanSpeedChange={() => {}}
                           onCameraCardClick={() => {}}
                           onEditDevice={() => {}}
-                          onContextMenu={() => {}}
                         />
                       </motion.div>
                     ) : null}

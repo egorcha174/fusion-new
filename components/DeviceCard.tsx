@@ -159,7 +159,6 @@ interface DeviceCardProps {
   openMenuDeviceId?: string | null; // Для управления открытым меню HVAC
   setOpenMenuDeviceId?: (id: string | null) => void;
   colorScheme: ColorScheme['light']; // Текущая цветовая схема
-  onContextMenu?: (event: React.MouseEvent) => void;
   isOnPreview?: boolean; // Для переключения состояния в редакторе
   isDark: boolean;
 }
@@ -170,7 +169,7 @@ interface DeviceCardProps {
  * 1. На основе шаблона (template): универсальный рендерер, который строит UI по заданной структуре.
  * 2. Резервный (legacy): рендерит предопределенный UI для каждого типа устройства.
  */
-const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, customizations, onDeviceToggle, onTemperatureChange, onBrightnessChange, onHvacModeChange, onPresetChange, onFanSpeedChange, onCameraCardClick, isEditMode, isPreview = false, onEditDevice, onRemoveFromTab, haUrl, signPath, getCameraStreamUrl, template, openMenuDeviceId, setOpenMenuDeviceId, colorScheme, onContextMenu, isOnPreview, isDark }) => {
+const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, customizations, onDeviceToggle, onTemperatureChange, onBrightnessChange, onHvacModeChange, onPresetChange, onFanSpeedChange, onCameraCardClick, isEditMode, isPreview = false, onEditDevice, onRemoveFromTab, haUrl, signPath, getCameraStreamUrl, template, openMenuDeviceId, setOpenMenuDeviceId, colorScheme, isOnPreview, isDark }) => {
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
   const presetMenuRef = useRef<HTMLDivElement>(null);
   const hvacModesRef = useRef<HTMLDivElement>(null);
@@ -758,7 +757,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
       <div
         className={`w-full h-full relative transition-all duration-300 ease-in-out select-none transform ${hoverClass} ${cursorClass} shadow-lg ring-1 ring-black/5 dark:ring-white/10 ${overflowClass}`}
         style={{ backgroundColor: applyOpacity(dynamicBackgroundColor, colorScheme.cardOpacity), backdropFilter: 'blur(16px)', borderRadius: `${colorScheme.cardBorderRadius}px` }}
-        onContextMenu={onContextMenu}
       >
         {animationOverlay}
         
@@ -846,7 +844,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
       case DeviceType.BatteryWidget:
         return <BatteryWidgetCard colorScheme={colorScheme} />;
       case DeviceType.EventTimer:
-        return <EventTimerWidgetCard device={device} colorScheme={colorScheme} onContextMenu={onContextMenu} />;
+        return <EventTimerWidgetCard device={device} colorScheme={colorScheme} />;
       case DeviceType.DimmableLight:
         return (
           <div className="flex flex-col h-full">
@@ -945,7 +943,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
   }
 
   return (
-    <div className={getCardClasses()} style={getCardStyle()} onContextMenu={onContextMenu}>
+    <div className={getCardClasses()} style={getCardStyle()}>
        {animationOverlay}
        {renderContent()}
     </div>
