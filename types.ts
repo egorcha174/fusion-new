@@ -30,6 +30,7 @@ export enum DeviceType {
   Scene,
   Automation,
   Script,
+  MediaPlayer, // Новый тип для медиа-плееров
   Unknown, // Резервный тип для неопознанных устройств
 }
 
@@ -89,6 +90,11 @@ export interface Device {
   namePosition?: { x: number; y: number };
   daysRemainingFontSize?: number;
   daysRemainingPosition?: { x: number; y: number };
+  // Для медиа-плееров
+  entityPictureUrl?: string;
+  mediaTitle?: string;
+  mediaArtist?: string;
+  appName?: string;
 }
 
 /**

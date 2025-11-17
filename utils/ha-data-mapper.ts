@@ -32,6 +32,7 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
     case 'scene': return DeviceType.Scene;
     case 'automation': return DeviceType.Automation;
     case 'script': return DeviceType.Script;
+    case 'media_player': return DeviceType.MediaPlayer;
   }
 
   // --- Приоритет 2: Домен + Атрибуты/Класс устройства ---
@@ -46,10 +47,6 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
       return DeviceType.Light;
     }
   }
-  
-  if (domain === 'media_player') {
-    if (attributes.device_class === 'tv') return DeviceType.TV;
-  }
 
   // --- Приоритет 3: Поиск по ключевым словам в имени/ID (для неоднозначных доменов) ---
   const combinedName = `${friendlyName} ${entityIdLower}`;
@@ -63,7 +60,6 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
   
   // --- Приоритет 4: Резервный вариант для оставшихся доменов ---
   if (domain === 'switch') return DeviceType.Switch;
-  if (domain === 'media_player') return DeviceType.Speaker;
 
   // --- Финальный резервный вариант ---
   return DeviceType.Unknown;
@@ -104,6 +100,19 @@ const getStatusText = (entity: HassEntity): string => {
         // В противном случае показываем общий режим/состояние.
         return stateTranslations[state] || state.charAt(0).toUpperCase() + state.slice(1);
     }
+    
+    // Специальная логика для медиа-плееров
+    if (domain === 'media_player') {
+        if ((entity.state === 'playing' || entity.state === 'paused') && attributes.media_title) {
+            if (attributes.media_artist) {
+                return `${attributes.media_artist} - ${attributes.media_title}`;
+            }
+            return attributes.media_title;
+        }
+        const stateTranslations: Record<string, string> = { 'playing': 'Воспроизведение', 'paused': 'Пауза', 'idle': 'Ожидание', 'off': 'Выключено', 'on': 'Включено' };
+        return stateTranslations[entity.state] || entity.state;
+    }
+
 
     // Специальная логика для погоды
     if (domain === 'weather') {
@@ -202,6 +211,13 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
     device.fanLevels = attributes.options;
   }
   
+    if (device.type === DeviceType.MediaPlayer) {
+        device.entityPictureUrl = attributes.entity_picture;
+        device.mediaTitle = attributes.media_title;
+        device.mediaArtist = attributes.media_artist;
+        device.appName = attributes.app_name;
+    }
+
   if (device.type === DeviceType.Weather) {
       device.temperature = attributes.temperature;
       device.condition = entity.state;

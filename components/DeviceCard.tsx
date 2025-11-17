@@ -845,6 +845,33 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         return <BatteryWidgetCard colorScheme={colorScheme} />;
       case DeviceType.EventTimer:
         return <EventTimerWidgetCard device={device} colorScheme={colorScheme} />;
+      case DeviceType.MediaPlayer:
+        if ((device.state === 'playing' || device.state === 'paused') && device.entityPictureUrl) {
+            const imageUrl = `${haUrl}${device.entityPictureUrl}`;
+            return (
+                <div 
+                    className="w-full h-full bg-cover bg-center"
+                    style={{ 
+                        backgroundImage: `url(${imageUrl})`, 
+                        borderRadius: `${colorScheme.cardBorderRadius}px` 
+                    }}
+                >
+                    <div 
+                        className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" 
+                        style={{ borderRadius: `${colorScheme.cardBorderRadius}px` }}
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 p-3 text-white flex items-end gap-2">
+                        <Icon icon="mdi:cast" className="w-5 h-5 flex-shrink-0 opacity-80" />
+                        <div className="overflow-hidden">
+                            <p className="font-semibold text-sm leading-tight truncate">{device.name}</p>
+                            <p className="text-xs opacity-80 truncate">{device.status}</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        // Fallback to default rendering if not playing or no picture
+        // FALLTHROUGH INTENDED
       case DeviceType.DimmableLight:
         return (
           <div className="flex flex-col h-full">
@@ -926,15 +953,25 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
 
   const getCardClasses = () => {
     const isMenuOpen = device.type === DeviceType.Thermostat && isPresetMenuOpen;
-    const overflowClass = isMenuOpen ? '' : 'overflow-hidden';
+    let overflowClass = isMenuOpen ? '' : 'overflow-hidden';
+    if (device.type === DeviceType.MediaPlayer && (device.state === 'playing' || device.state === 'paused') && device.entityPictureUrl) {
+      overflowClass = 'overflow-hidden'; // Ensure media player card clips the image
+    }
     const baseClasses = `w-full h-full flex flex-col transition-all duration-300 ease-in-out select-none relative shadow-lg ring-1 ring-black/5 dark:ring-white/10 transform ${overflowClass}`;
-    const layoutClasses = (isCamera || device.type === DeviceType.BatteryWidget || device.type === DeviceType.EventTimer) ? 'p-0' : styles.padding;
+    const layoutClasses = (isCamera || device.type === DeviceType.BatteryWidget || device.type === DeviceType.EventTimer || device.type === DeviceType.MediaPlayer) ? 'p-0' : styles.padding;
     const cursorClass = (isTogglable) && !isEditMode && !isPreview ? 'cursor-pointer' : '';
     const hoverClass = !isEditMode && !isPreview ? 'hover:shadow-xl hover:scale-[1.02]' : '';
     return `${baseClasses} ${layoutClasses} ${cursorClass} ${hoverClass}`;
   }
 
   const getCardStyle = (): React.CSSProperties => {
+      // For media player, we don't set a background color, as the image will be the background
+      if (device.type === DeviceType.MediaPlayer && (device.state === 'playing' || device.state === 'paused') && device.entityPictureUrl) {
+          return {
+              backgroundColor: '#000', // Fallback color
+              borderRadius: `${colorScheme.cardBorderRadius}px`,
+          };
+      }
       return { 
           backgroundColor: applyOpacity(isOn ? colorScheme.cardBackgroundOn : colorScheme.cardBackground, colorScheme.cardOpacity),
           backdropFilter: 'blur(16px)',
