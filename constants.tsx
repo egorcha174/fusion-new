@@ -1,6 +1,3 @@
-
-
-
 /**
  * Константы для ключей, используемых в localStorage.
  * Это позволяет избежать "магических строк" и обеспечивает единый источник истины
@@ -28,4 +25,6 @@ export const LOCAL_STORAGE_KEYS = {
   FORECA_KEY: 'ha-foreca-key',
   // FIX: Replaced `CUSTOM_WIDGETS` with `EVENT_TIMER_WIDGETS` to better reflect the feature and resolve naming conflicts.
   EVENT_TIMER_WIDGETS: 'ha-event-timer-widgets',
+  CUSTOM_CARD_WIDGETS: 'ha-custom-card-widgets',
+  CHRISTMAS_THEME_ENABLED: 'ha-christmas-theme-enabled',
 } as const;

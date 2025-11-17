@@ -93,6 +93,33 @@
       opacity: 0;
     }
   }
+  
+  /* Christmas Theme Animations */
+  @keyframes snow-fall {
+    0% {
+      transform: translateY(-10vh) translateX(var(--x-start)) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(105vh) translateX(var(--x-end)) rotate(var(--rotate));
+      opacity: var(--opacity);
+    }
+  }
+
+  .snowflake {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--size);
+    height: var(--size);
+    background: white;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1;
+    animation-name: snow-fall;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
 
   .animate-sunny { animation: sunny 4s ease-in-out infinite; }
   .animate-night { animation: night-twinkle 3s ease-in-out infinite; }

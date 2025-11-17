@@ -301,6 +301,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
         yandexWeatherKey, setYandexWeatherKey,
         forecaApiKey, setForecaApiKey,
         lowBatteryThreshold, setLowBatteryThreshold,
+        isChristmasThemeEnabled, setIsChristmasThemeEnabled,
     } = useAppStore();
 
     const handleConnect = () => {
@@ -567,6 +568,11 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                         <input type="range" min="5" max="50" step="5" value={lowBatteryThreshold} onChange={e => setLowBatteryThreshold(Number(e.target.value))} className="w-full accent-blue-500"/>
                         <span className="text-sm font-mono">{lowBatteryThreshold}%</span>
                     </div>
+                </LabeledInput>
+                <LabeledInput label="Новогодняя тема">
+                    <button onClick={() => setIsChristmasThemeEnabled(!isChristmasThemeEnabled)} className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${isChristmasThemeEnabled ? 'bg-blue-600' : 'bg-gray-400 dark:bg-gray-600'}`}>
+                        <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${isChristmasThemeEnabled ? 'translate-x-6' : 'translate-x-1'}`}/>
+                    </button>
                 </LabeledInput>
             </Section>
 

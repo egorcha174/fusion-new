@@ -62,6 +62,7 @@ interface AppState {
     // FIX: Replaced single septic tank settings with a more generic array of event timer widgets to support multiple custom timers.
     eventTimerWidgets: EventTimerWidget[];
     customCardWidgets: CustomCardWidget[];
+    isChristmasThemeEnabled: boolean;
     DEFAULT_COLOR_SCHEME: ColorScheme;
 }
 
@@ -103,6 +104,7 @@ interface AppActions {
     updateCustomWidget: (widgetId: string, updates: Partial<Omit<EventTimerWidget, 'id'>>) => void;
     resetCustomWidgetTimer: (widgetId: string) => void;
     deleteCustomWidget: (widgetId: string) => void;
+    setIsChristmasThemeEnabled: (enabled: boolean) => void;
 
     // Actions for Custom Cards
     setCustomCardWidgets: (widgets: CustomCardWidget[]) => void;
@@ -168,6 +170,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     // FIX: Replaced septicTankSettings with eventTimerWidgets and corrected the local storage key.
     eventTimerWidgets: loadAndMigrate<EventTimerWidget[]>(LOCAL_STORAGE_KEYS.EVENT_TIMER_WIDGETS, []),
     customCardWidgets: loadAndMigrate<CustomCardWidget[]>(LOCAL_STORAGE_KEYS.CUSTOM_CARD_WIDGETS, []),
+    isChristmasThemeEnabled: loadAndMigrate<boolean>(LOCAL_STORAGE_KEYS.CHRISTMAS_THEME_ENABLED, false),
     DEFAULT_COLOR_SCHEME: DEFAULT_COLOR_SCHEME,
     
     // --- Actions ---
@@ -256,6 +259,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     setLowBatteryThreshold: (threshold) => {
         set({ lowBatteryThreshold: threshold });
         localStorage.setItem(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, JSON.stringify(threshold));
+    },
+    setIsChristmasThemeEnabled: (enabled) => {
+        set({ isChristmasThemeEnabled: enabled });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.CHRISTMAS_THEME_ENABLED, JSON.stringify(enabled));
     },
     // FIX: Implement actions for managing multiple event timer widgets.
     setEventTimerWidgets: (widgets) => {
