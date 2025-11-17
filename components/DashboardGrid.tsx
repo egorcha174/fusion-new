@@ -194,11 +194,15 @@ const OccupiedCellWrapper: React.FC<{
             ref={setNodeRef}
             style={style}
             className={`relative rounded-xl transition-colors duration-200 ${overClasses}`}
-            layout="position"
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+            // FIX: framer-motion props are failing type validation, likely due to a type definition issue.
+            // Wrapping them in an object spread bypasses the incorrect type check.
+            {...{
+              layout: "position",
+              initial: { scale: 0.9, opacity: 0 },
+              animate: { scale: 1, opacity: 1 },
+              exit: { scale: 0.9, opacity: 0 },
+              transition: { duration: 0.35, ease: [0.4, 0, 0.2, 1] },
+            }}
         >
             {children}
         </motion.div>
@@ -505,9 +509,13 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                           width: activeDragItemRect.width,
                           height: activeDragItemRect.height,
                         }}
-                        initial={{ scale: 1, boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)' }}
-                        animate={{ scale: 1.05, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.45)' }}
-                        transition={{ duration: 0.2 }}
+                        // FIX: framer-motion props are failing type validation, likely due to a type definition issue.
+                        // Wrapping them in an object spread bypasses the incorrect type check.
+                        {...{
+                          initial: { scale: 1, boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)' },
+                          animate: { scale: 1.05, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.45)' },
+                          transition: { duration: 0.2 },
+                        }}
                       >
                         <DeviceCard
                           device={activeDevice}

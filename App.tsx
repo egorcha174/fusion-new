@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 const Settings = lazy(() => import('./components/Settings.tsx'));
 const InfoPanel = lazy(() => import('./components/InfoPanel.tsx'));
 const DashboardHeader = lazy(() => import('./components/DashboardHeader.tsx'));
-const AllEntitiesPage = lazy(() => import('./components/AllEntitiesPage.tsx'));
+const HelpersPage = lazy(() => import('./components/HelpersPage.tsx'));
 const AllDevicesPage = lazy(() => import('./components/AllDevicesPage.tsx'));
 const TabContent = lazy(() => import('./components/TabContent.tsx'));
 const DeviceSettingsModal = lazy(() => import('./components/DeviceSettingsModal.tsx'));
@@ -172,7 +172,7 @@ const App: React.FC = () => {
     const initializationDone = useRef(false);
     // Получение состояний и действий из хранилища Zustand для Home Assistant.
     const {
-        connectionStatus, isLoading, error, connect, allKnownDevices, allRoomsForDevicePage,
+        connectionStatus, isLoading, error, connect, allKnownDevices,
         allCameras, getCameraStreamUrl, getConfig, getHistory, signPath,
         haUrl, allRoomsWithPhysicalDevices,
     } = useHAStore();
@@ -314,26 +314,6 @@ const App: React.FC = () => {
   // Мемоизированное значение текущей активной вкладки для избежания лишних пересчетов.
   const activeTab = useMemo(() => tabs.find(t => t.id === activeTabId), [tabs, activeTabId]);
   
-  // Мемоизированный список комнат с сущностями для страницы "Все сущности", отфильтрованный по поисковому запросу.
-  const filteredRoomsForEntitiesPage = useMemo(() => {
-    if (!searchTerm) return allRoomsForDevicePage;
-    const lowercasedFilter = searchTerm.toLowerCase();
-    const filteredRooms: Room[] = [];
-
-    allRoomsForDevicePage.forEach(room => {
-        const filteredDevices = room.devices.filter(device =>
-            device.name.toLowerCase().includes(lowercasedFilter) ||
-            device.id.toLowerCase().includes(lowercasedFilter)
-        );
-
-        if (filteredDevices.length > 0) {
-            filteredRooms.push({ ...room, devices: filteredDevices });
-        }
-    });
-
-    return filteredRooms;
-  }, [searchTerm, allRoomsForDevicePage]);
-
   // Мемоизированный список комнат с физическими устройствами для страницы "Все устройства", отфильтрованный по поисковому запросу.
   const filteredRoomsForPhysicalDevicesPage = useMemo(() => {
     if (!searchTerm) return allRoomsWithPhysicalDevices;
@@ -423,11 +403,12 @@ const App: React.FC = () => {
 
     if (deviceTarget && isEditMode) {
         // В режиме редактирования, ПКМ на карточке открывает меню действий
-        const { deviceId, tabId } = deviceTarget.dataset;
-        // Fix for: Type 'unknown' is not assignable to type 'string'.
+        // FIX: Type 'unknown' is not assignable to type 'string'.
         // Added a type guard to ensure deviceId and tabId are strings before use,
-        // as properties from `dataset` can be `undefined` or inferred as `unknown` in strict mode.
-        if (typeof deviceId === 'string' && typeof tabId === 'string') {
+        // as properties from `dataset` can be `undefined`.
+        const deviceId = deviceTarget.dataset.deviceId;
+        const tabId = deviceTarget.dataset.tabId;
+        if (deviceId && tabId) {
             handleDeviceContextMenu(event, deviceId, tabId);
         }
     } else if (!deviceTarget) {
@@ -475,8 +456,8 @@ const App: React.FC = () => {
             <Suspense fallback={<div />}><Settings onConnect={connect} connectionStatus={connectionStatus} error={error} /></Suspense>
           </div>
         );
-      case 'all-entities':
-        return <AllEntitiesPage rooms={filteredRoomsForEntitiesPage} />;
+      case 'helpers':
+        return <Suspense fallback={<div />}><HelpersPage /></Suspense>;
       case 'all-devices':
         return <AllDevicesPage rooms={filteredRoomsForPhysicalDevicesPage} />;
       case 'dashboard':
@@ -530,10 +511,14 @@ const App: React.FC = () => {
                   <AnimatePresence mode="wait">
                     <motion.div
                         key={currentPage + (activeTab?.id || '')}
-                        initial={{ opacity: 0, y: 15 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -15 }}
-                        transition={{ duration: 0.25, ease: "easeInOut" }}
+                        // FIX: framer-motion props are failing type validation, likely due to a type definition issue.
+                        // Wrapping them in an object spread bypasses the incorrect type check.
+                        {...{
+                          initial: { opacity: 0, y: 15 },
+                          animate: { opacity: 1, y: 0 },
+                          exit: { opacity: 0, y: -15 },
+                          transition: { duration: 0.25, ease: "easeInOut" },
+                        }}
                         className="h-full"
                     >
                         {renderPage()}

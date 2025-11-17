@@ -27,6 +27,9 @@ export enum DeviceType {
   Humidifier,
   EventTimer, // Новый тип для виджета-таймера
   Custom, // Новый тип для кастомных карточек-контейнеров
+  Scene,
+  Automation,
+  Script,
   Unknown, // Резервный тип для неопознанных устройств
 }
 
@@ -179,7 +182,7 @@ export interface DeviceCustomization {
 // Словарь кастомизаций, где ключ - это ID устройства (entity_id).
 export type DeviceCustomizations = Record<string, DeviceCustomization>;
 
-export type Page = 'dashboard' | 'settings' | 'all-devices' | 'all-entities';
+export type Page = 'dashboard' | 'settings' | 'all-devices' | 'helpers';
 
 export type ClockSize = 'sm' | 'md' | 'lg';
 

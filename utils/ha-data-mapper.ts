@@ -29,6 +29,9 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
     case 'climate': return DeviceType.Thermostat;
     case 'fan': return DeviceType.Fan;
     case 'humidifier': return DeviceType.Humidifier;
+    case 'scene': return DeviceType.Scene;
+    case 'automation': return DeviceType.Automation;
+    case 'script': return DeviceType.Script;
   }
 
   // --- Приоритет 2: Домен + Атрибуты/Класс устройства ---
@@ -112,6 +115,20 @@ const getStatusText = (entity: HassEntity): string => {
             'windy': 'Ветрено', 'windy-variant': 'Ветрено',
         };
         return stateMap[entity.state] || entity.state.charAt(0).toUpperCase() + entity.state.slice(1);
+    }
+
+    if (domain === 'automation') {
+        if (entity.state === 'on') return 'Включена';
+        if (entity.state === 'off') return 'Выключена';
+    }
+
+    if (domain === 'script') {
+        if (entity.state === 'on') return 'Выполняется';
+        return 'Готов к запуску';
+    }
+
+    if (domain === 'scene') {
+        return 'Активировать';
     }
     
     // Для сенсоров возвращаем "сырое" значение, форматирование будет на стороне компонента.

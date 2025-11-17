@@ -36,6 +36,9 @@ const iconMap: Record<DeviceType, { on: string; off: string; animation?: 'spin' 
   [DeviceType.Humidifier]: { on: 'mdi:air-humidifier', off: 'mdi:air-humidifier-off' },
   [DeviceType.EventTimer]: { on: 'mdi:pump', off: 'mdi:pump' },
   [DeviceType.Custom]: { on: 'mdi:view-dashboard-variant-outline', off: 'mdi:view-dashboard-variant-outline' },
+  [DeviceType.Scene]: { on: 'mdi:palette-outline', off: 'mdi:palette-outline' },
+  [DeviceType.Automation]: { on: 'mdi:robot-outline', off: 'mdi:robot-off-outline' },
+  [DeviceType.Script]: { on: 'mdi:script-text-play-outline', off: 'mdi:script-text-outline' },
   [DeviceType.Unknown]: { on: 'mdi:help-rhombus-outline', off: 'mdi:help-rhombus-outline' },
 };
 

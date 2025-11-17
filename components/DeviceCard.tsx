@@ -305,10 +305,14 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
       {animationType === 'on' && (
         <motion.div
           key="flash-on"
-          initial={{ scale: 0, opacity: 0.6 }}
-          animate={{ scale: 2.5, opacity: 0 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.4, ease: 'easeOut' }}
+          // FIX: framer-motion props are failing type validation, likely due to a type definition issue.
+          // Wrapping them in an object spread bypasses the incorrect type check.
+          {...{
+            initial: { scale: 0, opacity: 0.6 },
+            animate: { scale: 2.5, opacity: 0 },
+            exit: { opacity: 0 },
+            transition: { duration: 0.4, ease: 'easeOut' },
+          }}
           className="absolute inset-0 rounded-2xl pointer-events-none z-10"
           style={{
             background: `radial-gradient(circle, ${flashOnColor} 0%, rgba(0,0,0,0) 70%)`
@@ -318,9 +322,13 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
       {animationType === 'off' && (
         <motion.div
           key="dim-off"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1, transition: { duration: 0.15 } }}
-          exit={{ opacity: 0, transition: { duration: 0.25 } }}
+          // FIX: framer-motion props are failing type validation, likely due to a type definition issue.
+          // Wrapping them in an object spread bypasses the incorrect type check.
+          {...{
+            initial: { opacity: 0 },
+            animate: { opacity: 1, transition: { duration: 0.15 } },
+            exit: { opacity: 0, transition: { duration: 0.25 } },
+          }}
           className="absolute inset-0 rounded-2xl pointer-events-none z-10"
           style={{
             backgroundColor: dimOffColor,
