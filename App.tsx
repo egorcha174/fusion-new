@@ -508,7 +508,7 @@ const App: React.FC = () => {
           </Suspense>
           <main className="flex-1 overflow-y-auto">
             <Suspense fallback={<div className="flex h-full w-full items-center justify-center"><LoadingSpinner /></div>}>
-              <div className="p-4" style={{ height: `calc(100vh - 73px)` }}>{renderPage()}</div>
+              <div className="p-4 h-full">{renderPage()}</div>
             </Suspense>
           </main>
         </div>
