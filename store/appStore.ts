@@ -304,6 +304,26 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             id: nanoid(),
             name: `Кастомная карточка ${get().customCardWidgets.length + 1}`,
         };
+
+        // 1. Создаем уникальный шаблон для этой новой карточки
+        const newTemplate = get().createNewBlankTemplate('custom');
+        newTemplate.id = `custom-card-template-${newWidget.id}`; // Уникальный, предсказуемый ID
+        newTemplate.name = newWidget.name; // Изначально имя шаблона совпадает с именем виджета
+
+        // 2. Добавляем новый шаблон в состояние шаблонов
+        const newTemplates = { ...get().templates, [newTemplate.id]: newTemplate };
+        
+        // 3. Создаем кастомизацию для связи устройства с этим шаблоном
+        const deviceId = `internal::custom-card_${newWidget.id}`;
+        const newCustomization: DeviceCustomization = {
+            ...get().customizations[deviceId], // сохраняем существующую кастомизацию (маловероятно, но безопасно)
+            templateId: newTemplate.id,
+        };
+        const newCustomizations = { ...get().customizations, [deviceId]: newCustomization };
+
+        // 4. Обновляем состояние
+        get().setTemplates(newTemplates);
+        get().setCustomizations(newCustomizations);
         get().setCustomCardWidgets([...get().customCardWidgets, newWidget]);
     },
     updateCustomCard: (widgetId, updates) => {
@@ -312,13 +332,28 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     },
     deleteCustomCard: (widgetId) => {
         const deviceIdToDelete = `internal::custom-card_${widgetId}`;
+        const templateIdToDelete = `custom-card-template-${widgetId}`;
+
+        // 1. Удаляем виджет
         const newWidgets = get().customCardWidgets.filter(w => w.id !== widgetId);
         get().setCustomCardWidgets(newWidgets);
+
+        // 2. Удаляем с вкладок
         const newTabs = get().tabs.map(tab => ({
             ...tab,
             layout: tab.layout.filter(item => item.deviceId !== deviceIdToDelete)
         }));
         get().setTabs(newTabs);
+
+        // 3. Удаляем связанный шаблон
+        const newTemplates = { ...get().templates };
+        delete newTemplates[templateIdToDelete];
+        get().setTemplates(newTemplates);
+
+        // 4. Удаляем кастомизацию
+        const newCustomizations = { ...get().customizations };
+        delete newCustomizations[deviceIdToDelete];
+        get().setCustomizations(newCustomizations);
     },
 
 
