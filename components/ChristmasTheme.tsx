@@ -28,7 +28,7 @@ const ChristmasTheme = () => {
     }, []);
 
     return (
-        <div className="fixed inset-0 pointer-events-none -z-[5]">
+        <div className="fixed inset-0 pointer-events-none -z-[5] overflow-hidden">
             {/* Snowflakes */}
             {snowflakes.map(flake => (
                 <div key={flake.id} className="snowflake" style={flake.style} />
