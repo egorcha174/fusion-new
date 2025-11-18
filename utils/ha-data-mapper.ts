@@ -158,9 +158,14 @@ const getStatusText = (entity: HassEntity): string => {
  * применяя при этом пользовательские настройки.
  * @param {HassEntity} entity - Сущность Home Assistant.
  * @param {DeviceCustomization} [customization={}] - Пользовательские настройки для этой сущности.
+ * @param {WeatherForecast[]} [sideLoadedForecast] - Данные прогноза, полученные через сервисный вызов (приоритет).
  * @returns {Device | null} - Объект устройства или null, если не удалось преобразовать.
  */
-const entityToDevice = (entity: HassEntity, customization: DeviceCustomization = {}): Device | null => {
+const entityToDevice = (
+    entity: HassEntity, 
+    customization: DeviceCustomization = {}, 
+    sideLoadedForecast?: WeatherForecast[]
+): Device | null => {
   const attributes = entity.attributes || {};
   const originalType = getDeviceType(entity);
   
@@ -222,32 +227,41 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
       device.temperature = attributes.temperature;
       device.condition = entity.state;
 
-      // Устойчивый парсинг прогноза погоды, который может приходить в разных форматах.
-      let forecastArray: any[] | undefined = undefined;
-      const forecastAttr = attributes.forecast;
-
-      if (Array.isArray(forecastAttr)) {
-          forecastArray = forecastAttr;
-      } else if (typeof forecastAttr === 'object' && forecastAttr !== null) {
-          if (Array.isArray(forecastAttr.daily)) forecastArray = forecastAttr.daily;
-          else if (Array.isArray(forecastAttr.forecast)) forecastArray = forecastAttr.forecast;
-      }
-
-      if (forecastArray) {
-        device.forecast = forecastArray.map((fc: any): WeatherForecast | null => {
-          // Гибко ищем свойства, так как разные интеграции называют их по-разному.
+      // Универсальный маппер для одного элемента прогноза
+      const mapForecastItem = (fc: any): WeatherForecast | null => {
           const temp = fc.temperature ?? fc.max_temp ?? fc.temp;
           const lowTemp = fc.templow ?? fc.min_temp;
           const condition = fc.condition ?? fc.state;
           const dt = fc.datetime ?? fc.date;
-          
+
           if (dt && condition && temp !== undefined) {
-            return { datetime: dt, condition, temperature: temp, templow: lowTemp };
+              return { datetime: dt, condition, temperature: temp, templow: lowTemp };
           }
           return null;
-        }).filter((fc): fc is WeatherForecast => fc !== null); // Убираем невалидные записи
+      };
+
+      // Логика получения прогноза: Service Call (sideLoaded) > Attribute (legacy)
+      if (sideLoadedForecast && sideLoadedForecast.length > 0) {
+          device.forecast = sideLoadedForecast;
       } else {
-        device.forecast = [];
+          // Fallback to attribute
+          let forecastArray: any[] | undefined = undefined;
+          const forecastAttr = attributes.forecast;
+
+          if (Array.isArray(forecastAttr)) {
+              forecastArray = forecastAttr;
+          } else if (typeof forecastAttr === 'object' && forecastAttr !== null) {
+              if (Array.isArray(forecastAttr.daily)) forecastArray = forecastAttr.daily;
+              else if (Array.isArray(forecastAttr.forecast)) forecastArray = forecastAttr.forecast;
+          }
+
+          if (forecastArray) {
+              device.forecast = forecastArray
+                  .map(mapForecastItem)
+                  .filter((fc): fc is WeatherForecast => fc !== null);
+          } else {
+              device.forecast = [];
+          }
       }
   }
 
@@ -268,6 +282,7 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
  * @param {HassEntityRegistryEntry[]} entityRegistry - Реестр сущностей для связей.
  * @param {DeviceCustomizations} customizations - Пользовательские настройки.
  * @param {boolean} [showHidden=false] - Показывать ли скрытые устройства.
+ * @param {Record<string, WeatherForecast[]>} [forecasts={}] - Данные прогнозов погоды, полученные через сервисы.
  * @returns {Room[]} - Массив комнат с устройствами.
  */
 export const mapEntitiesToRooms = (
@@ -276,7 +291,8 @@ export const mapEntitiesToRooms = (
     haDevices: HassDevice[], 
     entityRegistry: HassEntityRegistryEntry[],
     customizations: DeviceCustomizations,
-    showHidden: boolean = false
+    showHidden: boolean = false,
+    forecasts: Record<string, WeatherForecast[]> = {}
 ): Room[] => {
   const roomsMap: Map<string, Room> = new Map();
 
@@ -301,7 +317,10 @@ export const mapEntitiesToRooms = (
     const customization = customizations[entity.entity_id] || {};
     if (customization.isHidden && !showHidden) return; // Пропускаем скрытые
 
-    const device = entityToDevice(entity, customization);
+    // Pass the side-loaded forecast if available for this entity
+    const sideLoadedForecast = forecasts[entity.entity_id];
+    const device = entityToDevice(entity, customization, sideLoadedForecast);
+
     // Добавляем только успешно преобразованные устройства (включая "неизвестные")
     if (device) {
         // Определяем, к какой комнате принадлежит устройство (O(1) операции)

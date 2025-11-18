@@ -174,7 +174,7 @@ const App: React.FC = () => {
     const {
         connectionStatus, isLoading, error, connect, allKnownDevices,
         allCameras, getCameraStreamUrl, getConfig, getHistory, signPath,
-        haUrl, allRoomsWithPhysicalDevices,
+        haUrl, allRoomsWithPhysicalDevices, fetchWeatherForecasts
     } = useHAStore();
 
     // Получение состояний и действий из хранилища Zustand для UI приложения.
@@ -320,6 +320,32 @@ const App: React.FC = () => {
             }
         }
     }, [connectionStatus, isLoading, tabs, activeTabId, allKnownDevices, setTabs, setActiveTabId]);
+
+    // Эффект для периодического обновления прогноза погоды (weather.get_forecasts)
+    useEffect(() => {
+        if (connectionStatus !== 'connected') return;
+
+        const fetchWeather = () => {
+            const weatherEntities = Array.from(useHAStore.getState().allKnownDevices.values())
+                .filter(d => d.type === DeviceType.Weather && d.haDomain === 'weather')
+                .map(d => d.id);
+
+            if (weatherEntities.length > 0) {
+                fetchWeatherForecasts(weatherEntities);
+            }
+        };
+
+        // Initial fetch after connection (small delay to ensure entities are loaded)
+        const initialTimer = setTimeout(fetchWeather, 5000);
+        
+        // Periodic fetch every 30 minutes
+        const intervalId = setInterval(fetchWeather, 30 * 60 * 1000);
+
+        return () => {
+            clearTimeout(initialTimer);
+            clearInterval(intervalId);
+        };
+    }, [connectionStatus, fetchWeatherForecasts]);
 
   // Мемоизированное значение текущей активной вкладки для избежания лишних пересчетов.
   const activeTab = useMemo(() => tabs.find(t => t.id === activeTabId), [tabs, activeTabId]);

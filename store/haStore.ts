@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device, Room, RoomWithPhysicalDevices, PhysicalDevice, DeviceType } from '../types';
+import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device, Room, RoomWithPhysicalDevices, PhysicalDevice, DeviceType, WeatherForecast } from '../types';
 import { constructHaUrl } from '../utils/url';
 import { mapEntitiesToRooms } from '../utils/ha-data-mapper';
 import { useAppStore } from './appStore';
@@ -26,6 +26,9 @@ interface HAState {
   devices: HassDevice[];
   entityRegistry: HassEntityRegistryEntry[];
   
+  // Store separately fetched forecasts from weather.get_forecasts
+  forecasts: Record<string, WeatherForecast[]>;
+
   allKnownDevices: Map<string, Device>;
   allRoomsForDevicePage: Room[];
   allRoomsWithPhysicalDevices: RoomWithPhysicalDevices[];
@@ -39,11 +42,12 @@ interface HAState {
 interface HAActions {
   connect: (url: string, token: string) => void;
   disconnect: () => void;
-  callService: (domain: string, service: string, service_data: object) => void;
+  callService: (domain: string, service: string, service_data: object, returnResponse?: boolean) => Promise<any>;
   signPath: (path: string) => Promise<{ path: string }>;
   getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
   getConfig: () => Promise<any>;
   getHistory: (entityIds: string[], startTime: string, endTime?: string) => Promise<any>;
+  fetchWeatherForecasts: (entityIds: string[]) => Promise<void>;
 
   // Derived actions for convenience
   handleDeviceToggle: (deviceId: string) => void;
@@ -64,6 +68,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   const cameraStreamCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
   const configCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
   const historyPeriodCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
+  const serviceReturnCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
   let brightnessTimeoutRef: number | null = null;
 
   const sendMessage = (message: object) => {
@@ -74,7 +79,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   
   const updateDerivedState = (entities: HassEntities, areas: HassArea[], devices: HassDevice[], entityRegistry: HassEntityRegistryEntry[]) => {
       const { customizations, lowBatteryThreshold, eventTimerWidgets, customCardWidgets } = useAppStore.getState();
-      const rooms = mapEntitiesToRooms(Object.values(entities), areas, devices, entityRegistry, customizations, true);
+      // Pass stored forecasts to mapper
+      const rooms = mapEntitiesToRooms(Object.values(entities), areas, devices, entityRegistry, customizations, true, get().forecasts);
       const deviceMap = new Map<string, Device>();
       rooms.forEach(room => {
           room.devices.forEach(device => {
@@ -329,6 +335,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     areas: [],
     devices: [],
     entityRegistry: [],
+    forecasts: {},
     allKnownDevices: new Map(),
     allRoomsForDevicePage: [],
     allRoomsWithPhysicalDevices: [],
@@ -374,14 +381,16 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                         socketRef!.onmessage = (event: MessageEvent) => {
                             const data = JSON.parse(event.data);
                             if (data.type === 'result') {
-                                const callbacks = [signPathCallbacks, cameraStreamCallbacks, configCallbacks, historyPeriodCallbacks];
+                                const callbacks = [signPathCallbacks, cameraStreamCallbacks, configCallbacks, historyPeriodCallbacks, serviceReturnCallbacks];
                                 for (const cbMap of callbacks) {
                                     if (cbMap.has(data.id)) {
                                         const callback = cbMap.get(data.id);
                                         if (data.success) callback?.resolve(data.result);
                                         else callback?.reject(data.error);
                                         cbMap.delete(data.id);
-                                        return;
+                                        // Don't return here, some generic fetches (like init) might share ID logic or be parallel, though unlikely with unique IDs.
+                                        // But typically a message ID is unique per request.
+                                        return; 
                                     }
                                 }
             
@@ -447,7 +456,21 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         socketRef?.close();
         set({ connectionStatus: 'idle', entities: {}, areas: [], devices: [], entityRegistry: [], error: null, isLoading: false });
     },
-    callService: (domain, service, service_data) => sendMessage({ id: messageIdRef++, type: 'call_service', domain, service, service_data }),
+    callService: (domain, service, service_data, returnResponse = false) => new Promise((resolve, reject) => {
+        const id = messageIdRef++;
+        if (returnResponse) {
+            serviceReturnCallbacks.set(id, { resolve, reject });
+        }
+        sendMessage({ 
+            id, 
+            type: 'call_service', 
+            domain, 
+            service, 
+            service_data,
+            return_response: returnResponse 
+        });
+        if (!returnResponse) resolve(null);
+    }),
     signPath: (path) => new Promise((resolve, reject) => {
         const id = messageIdRef++;
         signPathCallbacks.set(id, { resolve, reject });
@@ -468,6 +491,47 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         historyPeriodCallbacks.set(id, { resolve, reject });
         sendMessage({ id, type: 'history/history_during_period', entity_ids: entityIds, start_time: startTime, end_time: endTime, minimal_response: true });
     }),
+    fetchWeatherForecasts: async (entityIds) => {
+        if (!entityIds.length) return;
+        const forecastsMap: Record<string, WeatherForecast[]> = { ...get().forecasts };
+        
+        try {
+            // Fetch sequentially or parallel depending on load preference. Parallel is faster.
+            const promises = entityIds.map(async (entityId) => {
+                try {
+                    // Try to fetch daily forecast first
+                    const response = await get().callService('weather', 'get_forecasts', { entity_id: entityId, type: 'daily' }, true);
+                    
+                    if (response && response[entityId] && response[entityId].forecast) {
+                        const rawForecast = response[entityId].forecast;
+                        
+                        // Normalize
+                        const normalized: WeatherForecast[] = rawForecast.map((fc: any) => ({
+                             datetime: fc.datetime || fc.date,
+                             condition: fc.condition || fc.state,
+                             temperature: fc.temperature ?? fc.max_temp ?? fc.temp,
+                             templow: fc.templow ?? fc.min_temp
+                        })).filter((f: any) => f.datetime && f.temperature !== undefined);
+
+                        forecastsMap[entityId] = normalized;
+                    }
+                } catch (e) {
+                    console.warn(`Failed to fetch forecast service for ${entityId}`, e);
+                    // Don't throw, just skip updating this entity's forecast
+                }
+            });
+            
+            await Promise.all(promises);
+            
+            // Update state and re-calculate derived state
+            set({ forecasts: forecastsMap });
+            const s = get();
+            updateDerivedState(s.entities, s.areas, s.devices, s.entityRegistry);
+
+        } catch (e) {
+            console.error("Global forecast fetch failed", e);
+        }
+    },
 
     // --- Derived Actions ---
     handleDeviceToggle: (deviceId) => {
