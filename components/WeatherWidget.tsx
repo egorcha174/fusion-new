@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ColorScheme, WeatherSettings, Device } from '../types';
 import AnimatedWeatherIcon from './AnimatedWeatherIcon';
 
@@ -108,6 +108,9 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = (props) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Мемоизируем сущность погоды, чтобы использовать ее в качестве зависимости
+    const weatherEntity = useMemo(() => weatherEntityId ? allKnownDevices.get(weatherEntityId) : null, [allKnownDevices, weatherEntityId]);
+
     useEffect(() => {
         const { forecastDays } = weatherSettings;
 
@@ -120,9 +123,8 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = (props) => {
                 throw new Error("Сущность погоды Home Assistant не выбрана.");
             }
             
-            const entity = allKnownDevices.get(weatherEntityId);
-            
-            if (!entity || entity.haDomain !== 'weather') {
+            // Используем мемоизированную сущность
+            if (!weatherEntity || weatherEntity.haDomain !== 'weather') {
                 throw new Error("Выбранная сущность не является погодной интеграцией или не найдена.");
             }
 
@@ -143,16 +145,16 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = (props) => {
             }
 
             // Fallback: если сервис не вернул данные, пытаемся взять их из атрибутов сущности (для старых интеграций)
-            if (forecastData.length === 0 && entity.forecast && entity.forecast.length > 0) {
+            if (forecastData.length === 0 && weatherEntity.forecast && weatherEntity.forecast.length > 0) {
                 console.log('Используется прогноз из атрибутов сущности (fallback).');
-                forecastData = entity.forecast;
+                forecastData = weatherEntity.forecast;
             }
     
             return {
                 current: {
-                    temp: Math.round(entity.temperature ?? 0),
-                    desc: entity.status,
-                    icon: haConditionToOwmCode(entity.condition ?? 'sunny'),
+                    temp: Math.round(weatherEntity.temperature ?? 0),
+                    desc: weatherEntity.status,
+                    icon: haConditionToOwmCode(weatherEntity.condition ?? 'sunny'),
                 },
                 forecast: forecastData.slice(0, forecastDays).map((f) => ({
                     day: new Date(f.datetime).toLocaleDateString("ru-RU", { weekday: "short" }),
@@ -336,7 +338,18 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = (props) => {
         };
 
         fetchWeather();
-    }, [weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, weatherEntityId, getConfig, weatherSettings, allKnownDevices, getWeatherForecasts]);
+    }, [
+        weatherProvider,
+        openWeatherMapKey,
+        yandexWeatherKey,
+        forecaApiKey,
+        weatherEntityId,
+        getConfig,
+        getWeatherForecasts,
+        weatherSettings.forecastDays,
+        // Используем строковое представление сущности для отслеживания изменений по значению, а не по ссылке
+        JSON.stringify(weatherEntity)
+    ]);
 
     if (loading) {
         return ( // Скелет загрузки
@@ -387,29 +400,31 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = (props) => {
             </div>
 
             {/* Прогноз на N дней */}
-            <div className={`mt-4 grid grid-cols-${weatherSettings.forecastDays} gap-2 text-center`}>
-                {forecast.map((day, index) => (
-                    <div key={index} className="flex flex-col items-center space-y-1">
-                        <p className="text-xs font-medium capitalize" style={{ color: colorScheme.nameTextColor, fontSize: colorScheme.weatherForecastDayFontSize ? `${colorScheme.weatherForecastDayFontSize}px` : undefined, }}>
-                          {day.day}
-                        </p>
-                         <AnimatedWeatherIcon
-                            iconCode={day.icon}
-                            iconPack={weatherSettings.iconPack}
-                            className="w-12 h-12"
-                            style={{ width: forecastIconSize, height: forecastIconSize }}
-                        />
-                        <div>
-                            <p className="text-lg font-semibold" style={{ color: colorScheme.valueTextColor, fontSize: colorScheme.weatherForecastMaxTempFontSize ? `${colorScheme.weatherForecastMaxTempFontSize}px` : undefined, }}>
-                              {Math.round(day.tempMax)}°
+            {forecast && forecast.length > 0 && (
+                <div className={`mt-4 grid grid-cols-${weatherSettings.forecastDays} gap-2 text-center`}>
+                    {forecast.map((day, index) => (
+                        <div key={index} className="flex flex-col items-center space-y-1">
+                            <p className="text-xs font-medium capitalize" style={{ color: colorScheme.nameTextColor, fontSize: colorScheme.weatherForecastDayFontSize ? `${colorScheme.weatherForecastDayFontSize}px` : undefined, }}>
+                              {day.day}
                             </p>
-                            <p className="text-sm -mt-1" style={{ color: colorScheme.statusTextColor, fontSize: colorScheme.weatherForecastMinTempFontSize ? `${colorScheme.weatherForecastMinTempFontSize}px` : undefined, }}>
-                              {Math.round(day.tempMin)}°
-                            </p>
+                             <AnimatedWeatherIcon
+                                iconCode={day.icon}
+                                iconPack={weatherSettings.iconPack}
+                                className="w-12 h-12"
+                                style={{ width: forecastIconSize, height: forecastIconSize }}
+                            />
+                            <div>
+                                <p className="text-lg font-semibold" style={{ color: colorScheme.valueTextColor, fontSize: colorScheme.weatherForecastMaxTempFontSize ? `${colorScheme.weatherForecastMaxTempFontSize}px` : undefined, }}>
+                                  {Math.round(day.tempMax)}°
+                                </p>
+                                <p className="text-sm -mt-1" style={{ color: colorScheme.statusTextColor, fontSize: colorScheme.weatherForecastMinTempFontSize ? `${colorScheme.weatherForecastMinTempFontSize}px` : undefined, }}>
+                                  {Math.round(day.tempMin)}°
+                                </p>
+                            </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };
