@@ -64,11 +64,12 @@ interface AppState {
     activeThemeId: string;
     colorScheme: ColorScheme;
 
-    weatherProvider: 'openweathermap' | 'yandex' | 'foreca';
+    weatherProvider: 'openweathermap' | 'yandex' | 'foreca' | 'homeassistant';
     openWeatherMapKey: string;
     yandexWeatherKey: string;
     forecaApiKey: string;
     weatherSettings: WeatherSettings;
+    weatherEntityId: string | null;
     lowBatteryThreshold: number;
     eventTimerWidgets: EventTimerWidget[];
     customCardWidgets: CustomCardWidget[];
@@ -120,6 +121,7 @@ interface AppActions {
     setYandexWeatherKey: (key: string) => void;
     setForecaApiKey: (key: string) => void;
     setWeatherSettings: (settings: WeatherSettings) => void;
+    setWeatherEntityId: (id: string | null) => void;
     setLowBatteryThreshold: (threshold: number) => void;
     
     setEventTimerWidgets: (widgets: EventTimerWidget[]) => void;
@@ -215,11 +217,12 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     activeThemeId: initialActiveThemeId,
     colorScheme: initialColorScheme,
     
-    weatherProvider: loadAndMigrate<'openweathermap' | 'yandex' | 'foreca'>(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, DEFAULT_WEATHER_PROVIDER),
+    weatherProvider: loadAndMigrate<'openweathermap' | 'yandex' | 'foreca' | 'homeassistant'>(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, DEFAULT_WEATHER_PROVIDER),
     openWeatherMapKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, ''),
     yandexWeatherKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, ''),
     forecaApiKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.FORECA_KEY, ''),
     weatherSettings: loadAndMigrate<WeatherSettings>(LOCAL_STORAGE_KEYS.WEATHER_SETTINGS, DEFAULT_WEATHER_SETTINGS),
+    weatherEntityId: loadAndMigrate<string | null>(LOCAL_STORAGE_KEYS.WEATHER_ENTITY_ID, null),
     lowBatteryThreshold: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, DEFAULT_LOW_BATTERY_THRESHOLD),
     eventTimerWidgets: loadAndMigrate<EventTimerWidget[]>(LOCAL_STORAGE_KEYS.EVENT_TIMER_WIDGETS, []),
     customCardWidgets: loadAndMigrate<CustomCardWidget[]>(LOCAL_STORAGE_KEYS.CUSTOM_CARD_WIDGETS, []),
@@ -374,6 +377,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     setWeatherSettings: (settings) => {
         set({ weatherSettings: settings });
         localStorage.setItem(LOCAL_STORAGE_KEYS.WEATHER_SETTINGS, JSON.stringify(settings));
+    },
+    setWeatherEntityId: (id) => {
+        set({ weatherEntityId: id });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.WEATHER_ENTITY_ID, JSON.stringify(id));
     },
     setLowBatteryThreshold: (threshold) => {
         set({ lowBatteryThreshold: threshold });

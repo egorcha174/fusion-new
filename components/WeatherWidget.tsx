@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ColorScheme, WeatherSettings } from '../types';
+import { ColorScheme, WeatherSettings, Device } from '../types';
 import AnimatedWeatherIcon from './AnimatedWeatherIcon';
 
 // --- Типы данных для погоды ---
@@ -22,13 +22,15 @@ interface WeatherData {
 }
 
 interface WeatherWidgetProps {
-    weatherProvider: 'openweathermap' | 'yandex' | 'foreca';
+    weatherProvider: 'openweathermap' | 'yandex' | 'foreca' | 'homeassistant';
     openWeatherMapKey: string;
     yandexWeatherKey: string;
     forecaApiKey: string;
     getConfig: () => Promise<any>;
     colorScheme: ColorScheme['light'];
     weatherSettings: WeatherSettings;
+    allKnownDevices: Map<string, Device>;
+    weatherEntityId: string | null;
 }
 
 // --- MAPPINGS FOR YANDEX WEATHER ---
@@ -78,18 +80,66 @@ const forecaSymbolToOwmCode = (symbol: string): string => {
     return `01${dayNight}`; // Default to clear
 };
 
+/**
+ * Преобразует состояние погоды из Home Assistant в код иконки OpenWeatherMap.
+ * @param {string} condition - Состояние из Home Assistant (например, 'partlycloudy').
+ * @returns {string} - Код иконки OWM (например, '02d').
+ */
+const haConditionToOwmCode = (condition: string): string => {
+    const mapping: { [key: string]: string } = {
+        'clear-night': '01n', 'sunny': '01d', 'cloudy': '03d',
+        'partlycloudy': '02d', 'fog': '50d', 'hail': '09d',
+        'rainy': '10d', 'pouring': '09d', 'snowy': '13d',
+        'snowy-rainy': '13d', 'lightning': '11d', 'lightning-rainy': '11d',
+        'windy': '02d', 'windy-variant': '02d', 'exceptional': '01d',
+    };
+    return mapping[condition] || '01d';
+};
+
 
 /**
  * Виджет для отображения текущей погоды и прогноза на несколько дней.
  * Получает данные из OpenWeatherMap API, используя координаты из конфигурации Home Assistant.
  */
-const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, getConfig, colorScheme, weatherSettings }) => {
+const WeatherWidget: React.FC<WeatherWidgetProps> = (props) => {
+    const { weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, getConfig, colorScheme, weatherSettings, allKnownDevices, weatherEntityId } = props;
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const { forecastDays } = weatherSettings;
+
+        /**
+         * Получает и обрабатывает данные из встроенной интеграции погоды Home Assistant.
+         * @returns {Promise<WeatherData>} - Обработанные данные о погоде.
+         */
+        const fetchHomeAssistantWeather = async (): Promise<WeatherData> => {
+            if (!weatherEntityId) {
+                throw new Error("Сущность погоды Home Assistant не выбрана.");
+            }
+            
+            const entity = allKnownDevices.get(weatherEntityId);
+            
+            if (!entity || entity.haDomain !== 'weather') {
+                throw new Error("Выбранная сущность не является погодной интеграцией или не найдена.");
+            }
+    
+            return {
+                current: {
+                    temp: Math.round(entity.temperature ?? 0),
+                    desc: entity.status,
+                    icon: haConditionToOwmCode(entity.condition ?? 'sunny'),
+                },
+                forecast: (entity.forecast || []).slice(0, forecastDays).map((f) => ({
+                    day: new Date(f.datetime).toLocaleDateString("ru-RU", { weekday: "short" }),
+                    tempMax: f.temperature,
+                    tempMin: f.templow,
+                    icon: haConditionToOwmCode(f.condition),
+                }))
+            };
+        };
+        
         const fetchOpenWeatherMapWeather = async () => {
             if (!openWeatherMapKey) throw new Error("Ключ API OpenWeatherMap не настроен.");
             
@@ -239,6 +289,9 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeat
             try {
                 let fetchFn;
                 switch (weatherProvider) {
+                    case 'homeassistant':
+                        fetchFn = fetchHomeAssistantWeather;
+                        break;
                     case 'yandex':
                         fetchFn = fetchYandexWeather;
                         break;
@@ -260,7 +313,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeat
         };
 
         fetchWeather();
-    }, [weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, getConfig, weatherSettings]);
+    }, [weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, weatherEntityId, getConfig, weatherSettings, allKnownDevices]);
 
     if (loading) {
         return ( // Скелет загрузки

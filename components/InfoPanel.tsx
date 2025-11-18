@@ -155,15 +155,16 @@ interface InfoPanelProps {
     getConfig: () => Promise<any>;
     colorScheme: ColorScheme['light'];
     isDark: boolean;
+    allKnownDevices: Map<string, Device>;
 }
 
 /**
  * Боковая информационная панель, содержащая часы, виджет камеры и виджет погоды.
  * Поддерживает изменение ширины путем перетаскивания правого края.
  */
-const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, cameras, haUrl, signPath, getCameraStreamUrl, getConfig, colorScheme, isDark }) => {
+const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, cameras, haUrl, signPath, getCameraStreamUrl, getConfig, colorScheme, isDark, allKnownDevices }) => {
     const [isResizing, setIsResizing] = useState(false);
-    const { clockSettings, weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, weatherSettings } = useAppStore();
+    const { clockSettings, weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, weatherSettings, weatherEntityId } = useAppStore();
 
     // Обработчик начала перетаскивания для изменения размера
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -223,6 +224,8 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, ca
                     weatherSettings={weatherSettings}
                     getConfig={getConfig} 
                     colorScheme={colorScheme}
+                    allKnownDevices={allKnownDevices}
+                    weatherEntityId={weatherEntityId}
                 />
             </div>
 

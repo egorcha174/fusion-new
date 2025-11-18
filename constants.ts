@@ -26,6 +26,7 @@ export const LOCAL_STORAGE_KEYS = {
   YANDEX_WEATHER_KEY: 'ha-yandex-weather-key',
   FORECA_KEY: 'ha-foreca-key',
   WEATHER_SETTINGS: 'ha-weather-settings',
+  WEATHER_ENTITY_ID: 'ha-weather-entity-id', // NEW: Added key for HA weather entity
   // FIX: Replaced `CUSTOM_WIDGETS` with `EVENT_TIMER_WIDGETS` to better reflect the feature and resolve naming conflicts.
   EVENT_TIMER_WIDGETS: 'ha-event-timer-widgets',
   CUSTOM_CARD_WIDGETS: 'ha-custom-card-widgets',
