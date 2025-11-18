@@ -159,12 +159,20 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = (props) => {
                     desc: weatherEntity.status,
                     icon: haConditionToOwmCode(weatherEntity.condition ?? 'sunny'),
                 },
-                forecast: forecastData.slice(0, forecastDays).map((f) => ({
-                    day: new Date(f.datetime).toLocaleDateString("ru-RU", { weekday: "short" }),
-                    tempMax: f.temperature, // HA daily forecast usually uses 'temperature' for max temp
-                    tempMin: f.templow,
-                    icon: haConditionToOwmCode(f.condition),
-                }))
+                forecast: forecastData.slice(0, forecastDays).map((f: any) => {
+                    // Гибко ищем свойства, так как разные интеграции называют их по-разному.
+                    const tempMax = f.temperature ?? f.max_temp ?? f.temp;
+                    const tempMin = f.templow ?? f.min_temp;
+                    const condition = f.condition ?? f.state;
+                    const dt = f.datetime ?? f.date;
+
+                    return {
+                        day: new Date(dt).toLocaleDateString("ru-RU", { weekday: "short" }),
+                        tempMax,
+                        tempMin,
+                        icon: haConditionToOwmCode(condition || 'sunny'),
+                    };
+                })
             };
         };
         

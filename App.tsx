@@ -405,7 +405,7 @@ const App: React.FC = () => {
    * Глобальный обработчик контекстного меню (правый клик на всем приложении).
    * Открывает меню действий для карточки устройства, если включен режим редактирования.
    */
-  // FIX: In `handleGlobalContextMenu`, refactored the logic to access dataset properties more directly. This resolves a potential type inference issue where properties were being incorrectly typed as 'unknown' by combining the null check for `deviceTarget` with the property access using optional chaining and relying on truthiness to validate the dataset strings.
+  // FIX: Refactored logic to be more concise and safely handle dataset properties.
   const handleGlobalContextMenu = useCallback((event: React.MouseEvent) => {
     const target = event.target as HTMLElement;
     const isDashboard = currentPage === 'dashboard';
@@ -419,10 +419,12 @@ const App: React.FC = () => {
     }
 
     const deviceTarget = target.closest('[data-device-id]') as HTMLElement | null;
+    const deviceId = deviceTarget?.dataset.deviceId;
+    const tabId = deviceTarget?.dataset.tabId;
 
-    if (isEditMode && deviceTarget?.dataset.deviceId && deviceTarget?.dataset.tabId) {
-        // We can safely access deviceId and tabId here as they are now confirmed to be truthy strings.
-        handleDeviceContextMenu(deviceTarget.dataset.deviceId, deviceTarget.dataset.tabId, event.clientX, event.clientY);
+    if (isEditMode && deviceTarget && typeof deviceId === 'string' && typeof tabId === 'string') {
+        // Показываем кастомное меню для устройства в режиме редактирования
+        handleDeviceContextMenu(deviceId, tabId, event.clientX, event.clientY);
     } else {
         // В остальных случаях (не в режиме редактирования, или клик по фону) просто закрываем меню.
         setContextMenu(null);
