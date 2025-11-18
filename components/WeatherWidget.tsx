@@ -133,24 +133,25 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = (props) => {
 
             let forecastData: any[] = [];
 
-            // 1. Попробовать получить прогноз из атрибутов сущности (предпочтительный и быстрый способ)
-            if (weatherEntity.forecast && weatherEntity.forecast.length > 0) {
-                console.log('Используется прогноз из атрибутов сущности.');
-                forecastData = weatherEntity.forecast;
-            } else {
-                // 2. Fallback: если в атрибутах прогноза нет, вызываем сервис (для современных интеграций)
-                console.log('Прогноз в атрибутах не найден, вызываем сервис weather.get_forecasts.');
-                try {
-                    const forecastResult = await getWeatherForecasts(weatherEntityId, 'daily');
-                    if (forecastResult && forecastResult[weatherEntityId] && forecastResult[weatherEntityId].forecast) {
-                        forecastData = forecastResult[weatherEntityId].forecast;
-                    } else {
-                        console.warn('Прогноз погоды не был получен от сервиса get_forecasts.');
-                    }
-                } catch (e) {
-                    console.error("Ошибка при вызове сервиса weather.get_forecasts:", e);
-                    // Оставляем forecastData пустым, чтобы виджет показал ошибку или отсутствие прогноза
+            // Для современных интеграций (например, Met.no) прогноз получается через сервис.
+            // Пробуем этот способ в первую очередь.
+            try {
+                console.log('Вызываем сервис weather.get_forecasts для получения прогноза.');
+                const forecastResult = await getWeatherForecasts(weatherEntityId, 'daily');
+                if (forecastResult && forecastResult[weatherEntityId] && forecastResult[weatherEntityId].forecast) {
+                    forecastData = forecastResult[weatherEntityId].forecast;
+                } else {
+                    console.warn('Прогноз погоды не был получен от сервиса get_forecasts.');
                 }
+            } catch (e) {
+                console.error("Ошибка при вызове сервиса weather.get_forecasts:", e);
+                // Ошибка при вызове сервиса, продолжаем, чтобы попробовать старый метод.
+            }
+            
+            // Резервный вариант для старых интеграций, которые все еще используют атрибут `forecast`.
+            if (forecastData.length === 0 && weatherEntity.forecast && weatherEntity.forecast.length > 0) {
+                console.log('Используется резервный прогноз из атрибутов сущности.');
+                forecastData = weatherEntity.forecast;
             }
     
             return {

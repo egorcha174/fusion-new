@@ -405,7 +405,7 @@ const App: React.FC = () => {
    * Глобальный обработчик контекстного меню (правый клик на всем приложении).
    * Открывает меню действий для карточки устройства, если включен режим редактирования.
    */
-  // FIX: Refactored logic to be more concise and safely handle dataset properties.
+// FIX: The properties on `HTMLElement.dataset` can be `undefined`. To ensure type safety, added explicit `typeof ... === 'string'` checks before passing the `deviceId` and `tabId` to `handleDeviceContextMenu`. This guarantees that only valid strings are used and prevents potential runtime errors.
   const handleGlobalContextMenu = useCallback((event: React.MouseEvent) => {
     const target = event.target as HTMLElement;
     const isDashboard = currentPage === 'dashboard';

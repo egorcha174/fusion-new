@@ -209,7 +209,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
     const [editingTheme, setEditingTheme] = useState<ThemeDefinition | null>(null);
     const [confirmingDeleteTheme, setConfirmingDeleteTheme] = useState<ThemeDefinition | null>(null);
 
-    // FIX: Added explicit type annotation `(d: Device)` to the filter callback to resolve type inference issues where `d` was being treated as `unknown`. This ensures `d.haDomain` and subsequent property access on the filtered items are correctly typed.
+    // FIX: Added an explicit type annotation `(d: Device)` to the callback in the `.filter()` method. This resolves a TypeScript inference issue where the parameter `d` was being incorrectly typed as `unknown`, causing errors when accessing its properties like `d.haDomain` and later `entity.id` and `entity.name` during mapping.
     const weatherEntities = useMemo(() => 
         Array.from(allKnownDevices.values()).filter((d: Device) => d.haDomain === 'weather'), 
         [allKnownDevices]
