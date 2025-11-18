@@ -347,14 +347,15 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = (props) => {
         yandexWeatherKey,
         forecaApiKey,
         weatherEntityId,
-        getConfig,
-        getWeatherForecasts,
         weatherSettings.forecastDays,
         // Более точные зависимости для предотвращения лишних перезагрузок
         temperature,
         status,
         condition,
         forecastJson,
+        // Функции из пропсов
+        getConfig,
+        getWeatherForecasts
     ]);
 
     if (loading) {
