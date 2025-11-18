@@ -131,26 +131,26 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = (props) => {
                 throw new Error("Выбранная сущность не является погодной интеграцией.");
             }
 
-            // Получение прогноза через сервис
             let forecastData: any[] = [];
-            try {
-                // Запрашиваем ежедневный прогноз
-                const forecastResult = await getWeatherForecasts(weatherEntityId, 'daily');
-                // Ответ содержит ключ с entity_id, внутри которого находится массив forecast
-                if (forecastResult && forecastResult[weatherEntityId] && forecastResult[weatherEntityId].forecast) {
-                    forecastData = forecastResult[weatherEntityId].forecast;
-                } else {
-                    console.warn('Прогноз погоды не был получен от сервиса get_forecasts.');
-                }
-            } catch (e) {
-                console.error("Ошибка при вызове сервиса weather.get_forecasts:", e);
-                // Если сервис не сработал, не прерываем выполнение, а просто оставляем прогноз пустым
-            }
 
-            // Fallback: если сервис не вернул данные, пытаемся взять их из атрибутов сущности (для старых интеграций)
-            if (forecastData.length === 0 && weatherEntity.forecast && weatherEntity.forecast.length > 0) {
-                console.log('Используется прогноз из атрибутов сущности (fallback).');
+            // 1. Попробовать получить прогноз из атрибутов сущности (предпочтительный и быстрый способ)
+            if (weatherEntity.forecast && weatherEntity.forecast.length > 0) {
+                console.log('Используется прогноз из атрибутов сущности.');
                 forecastData = weatherEntity.forecast;
+            } else {
+                // 2. Fallback: если в атрибутах прогноза нет, вызываем сервис (для современных интеграций)
+                console.log('Прогноз в атрибутах не найден, вызываем сервис weather.get_forecasts.');
+                try {
+                    const forecastResult = await getWeatherForecasts(weatherEntityId, 'daily');
+                    if (forecastResult && forecastResult[weatherEntityId] && forecastResult[weatherEntityId].forecast) {
+                        forecastData = forecastResult[weatherEntityId].forecast;
+                    } else {
+                        console.warn('Прогноз погоды не был получен от сервиса get_forecasts.');
+                    }
+                } catch (e) {
+                    console.error("Ошибка при вызове сервиса weather.get_forecasts:", e);
+                    // Оставляем forecastData пустым, чтобы виджет показал ошибку или отсутствие прогноза
+                }
             }
     
             return {

@@ -209,8 +209,9 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
     const [editingTheme, setEditingTheme] = useState<ThemeDefinition | null>(null);
     const [confirmingDeleteTheme, setConfirmingDeleteTheme] = useState<ThemeDefinition | null>(null);
 
+    // FIX: Added explicit type annotation `(d: Device)` to the filter callback to resolve type inference issues where `d` was being treated as `unknown`. This ensures `d.haDomain` and subsequent property access on the filtered items are correctly typed.
     const weatherEntities = useMemo(() => 
-        Array.from(allKnownDevices.values()).filter(d => d.haDomain === 'weather'), 
+        Array.from(allKnownDevices.values()).filter((d: Device) => d.haDomain === 'weather'), 
         [allKnownDevices]
     );
 
