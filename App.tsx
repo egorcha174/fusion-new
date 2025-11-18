@@ -281,38 +281,16 @@ const App: React.FC = () => {
         if (connectionStatus === 'connected' && !isLoading && !initializationDone.current) {
             initializationDone.current = true; // Выполняем только один раз
             if (tabs.length === 0 && allKnownDevices.size > 0) {
-                const { checkCollision, getTemplateForDevice } = useAppStore.getState();
+                // Упрощенная логика: добавляем все устройства в левый верхний угол.
+                // Пользователь сможет расставить их сам в режиме редактирования.
                 const allDeviceIds = Array.from(allKnownDevices.keys());
-                const newLayout: GridLayoutItem[] = [];
-                const gridSettings = { cols: 8, rows: 5 };
-
-                for (const deviceId of allDeviceIds) {
-                    const device = allKnownDevices.get(deviceId);
-                    if (!device) continue;
-
-                    const template = getTemplateForDevice(device);
-                    const itemWidth = template?.width || 1;
-                    const itemHeight = template?.height || 1;
-
-                    let placed = false;
-                    for (let r = 0; r <= gridSettings.rows - Math.ceil(itemHeight); r++) {
-                        for (let c = 0; c <= gridSettings.cols - Math.ceil(itemWidth); c++) {
-                            const itemToPlace = { col: c, row: r, width: itemWidth, height: itemHeight };
-                            if (!checkCollision(newLayout, itemToPlace, gridSettings, deviceId)) {
-                                newLayout.push({ deviceId, ...itemToPlace });
-                                placed = true;
-                                break;
-                            }
-                        }
-                        if (placed) break;
-                    }
-                }
+                const newLayout = allDeviceIds.map(id => ({ deviceId: id, col: 0, row: 0, width: 1, height: 1 }));
 
                 const newTab: Tab = {
                     id: nanoid(),
                     name: 'Главная',
                     layout: newLayout,
-                    gridSettings: gridSettings
+                    gridSettings: { cols: 8, rows: 5 }
                 };
 
                 setTabs([newTab]);

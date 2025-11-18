@@ -167,6 +167,10 @@ const entityToDevice = (entity: HassEntity, customization: DeviceCustomization =
   const attributes = entity.attributes || {};
   const originalType = getDeviceType(entity);
   
+  if (originalType === DeviceType.Unknown) {
+    console.warn(`[Data Mapper] Unrecognized entity type, falling back to 'Unknown': ${entity.entity_id}`);
+  }
+
   // Создаем базовый объект устройства
   const device: Device = {
     id: entity.entity_id,
@@ -305,7 +309,8 @@ export const mapEntitiesToRooms = (
     if (customization.isHidden && !showHidden) return; // Пропускаем скрытые
 
     const device = entityToDevice(entity, customization);
-    // Добавляем только успешно преобразованные устройства (включая "неизвестные")
+    
+    // Убеждаемся, что все устройства, включая неопознанные, добавляются.
     if (device) {
         // Определяем, к какой комнате принадлежит устройство (O(1) операции)
         let areaId: string | undefined | null = entityIdToAreaIdMap.get(entity.entity_id);
@@ -324,11 +329,12 @@ export const mapEntitiesToRooms = (
 };
 
 /**
- * Создает плоскую карту всех известных устройств.
- * @param entities - Все сущности.
- * @param customizations - Пользовательские настройки.
- * @param showHidden - Показывать ли скрытые устройства.
- * @returns - Map<string, Device>.
+ * Создает плоскую карту всех известных устройств (Map<entity_id, Device>).
+ * Эта функция является основным источником данных для всего приложения.
+ * @param {HassEntity[]} entities - Все сущности из Home Assistant.
+ * @param {DeviceCustomizations} customizations - Пользовательские настройки.
+ * @param {boolean} [showHidden=false] - Показывать ли скрытые устройства.
+ * @returns {Map<string, Device>} - Карта всех преобразованных устройств.
  */
 export const mapToAllKnownDevices = (
   entities: HassEntity[],
@@ -340,7 +346,10 @@ export const mapToAllKnownDevices = (
     if (!entity) return;
     const customization = customizations[entity.entity_id] || {};
     if (customization.isHidden && !showHidden) return;
+
     const device = entityToDevice(entity, customization);
+    
+    // Убеждаемся, что все устройства, включая неопознанные, добавляются.
     if (device) {
       deviceMap.set(device.id, device);
     }
@@ -349,12 +358,13 @@ export const mapToAllKnownDevices = (
 };
 
 /**
- * Группирует устройства по физическим устройствам и комнатам.
- * @param allKnownDevices - Карта всех преобразованных устройств.
- * @param areas - Все области (комнаты).
- * @param haDevices - Все физические устройства.
- * @param entityRegistry - Реестр сущностей для связей.
- * @returns - Массив комнат с физическими устройствами.
+ * Группирует все известные устройства по физическим устройствам (HassDevice),
+ * а затем по комнатам (HassArea). Используется для страницы "Все устройства".
+ * @param {Map<string, Device>} allKnownDevices - Карта всех преобразованных устройств из `mapToAllKnownDevices`.
+ * @param {HassArea[]} areas - Все области (комнаты) из Home Assistant.
+ * @param {HassDevice[]} haDevices - Все физические устройства из Home Assistant.
+ * @param {HassEntityRegistryEntry[]} entityRegistry - Реестр сущностей для связей.
+ * @returns {RoomWithPhysicalDevices[]} - Массив комнат, содержащий физические устройства с их сущностями.
  */
 export const mapToRoomsWithPhysicalDevices = (
     allKnownDevices: Map<string, Device>,
