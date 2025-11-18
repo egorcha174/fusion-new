@@ -386,6 +386,31 @@ const App: React.FC = () => {
         return style;
     }, [currentColorScheme]);
 
+    // FIX: Moved useMemo hook to the top of the component to prevent conditional rendering error.
+    const allDevices = useMemo((): Map<string, Device> => {
+        const { groups } = useAppStore.getState();
+        const groupDevicesMap = new Map<string, Device>();
+        
+        // The `groups` property is not in the provided store definition, so we must handle it being potentially undefined and cast to the correct type.
+        if (Array.isArray(groups)) {
+            for (const group of (groups as Group[])) {
+              const deviceId = `internal::group_${group.id}`;
+              // This creates a virtual "Device" object for each group
+              groupDevicesMap.set(deviceId, {
+                id: deviceId,
+                widgetId: group.id, // The widgetId links back to the actual group
+                name: group.name,
+                status: `${group.deviceIds.length} устройств`,
+                type: DeviceType.Group,
+                state: 'on',
+                haDomain: 'internal'
+              });
+            }
+        }
+    
+        return new Map([...allKnownDevices, ...groupDevicesMap.entries()]);
+      }, [allKnownDevices, tabs]);
+
     // --- Обработчики закрытия модальных окон ---
     const handleCloseDeviceSettings = useCallback(() => setEditingDevice(null), [setEditingDevice]);
     const handleCloseTabSettings = useCallback(() => setEditingTab(null), [setEditingTab]);
@@ -424,7 +449,8 @@ const App: React.FC = () => {
     const deviceId = deviceTarget?.dataset.deviceId;
     const tabId = deviceTarget?.dataset.tabId;
 
-    if (isEditMode && deviceId && tabId) {
+    // FIX: Replaced truthiness check with an explicit `typeof` check to satisfy strict TypeScript rules and prevent "Type 'unknown' is not assignable to type 'string'" error.
+    if (isEditMode && typeof deviceId === 'string' && typeof tabId === 'string') {
         handleDeviceContextMenu(deviceId, tabId, event.clientX, event.clientY);
     } else {
         setContextMenu(null);
@@ -454,30 +480,6 @@ const App: React.FC = () => {
   }
   
   // Подготовка данных для модальных окон и контекстных меню
-  // FIX: Explicitly typed `useMemo` to return `Map<string, Device>` and added safe access for `groups` to resolve multiple TypeScript errors related to `contextMenuDevice` being inferred as `unknown`.
-  const allDevices = useMemo((): Map<string, Device> => {
-    const { groups } = useAppStore.getState();
-    const groupDevicesMap = new Map<string, Device>();
-    
-    // The `groups` property is not in the provided store definition, so we must handle it being potentially undefined and cast to the correct type.
-    if (Array.isArray(groups)) {
-        for (const group of (groups as Group[])) {
-          const deviceId = `internal::group_${group.id}`;
-          // This creates a virtual "Device" object for each group
-          groupDevicesMap.set(deviceId, {
-            id: deviceId,
-            widgetId: group.id, // The widgetId links back to the actual group
-            name: group.name,
-            status: `${group.deviceIds.length} устройств`,
-            type: DeviceType.Group,
-            state: 'on',
-            haDomain: 'internal'
-          });
-        }
-    }
-
-    return new Map([...allKnownDevices, ...groupDevicesMap.entries()]);
-  }, [allKnownDevices, tabs]);
   const contextMenuDevice = contextMenu ? allDevices.get(contextMenu.deviceId) : null;
   const isTemplateable = contextMenuDevice ? [
     DeviceType.Sensor, DeviceType.DimmableLight, DeviceType.Light,
