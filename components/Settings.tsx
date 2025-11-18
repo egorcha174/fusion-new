@@ -1,5 +1,5 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
-import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device } from '../types';
+import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition } from '../types';
 import ConfirmDialog from './ConfirmDialog';
 import { useAppStore } from '../store/appStore';
 import { useHAStore } from '../store/haStore';
@@ -199,21 +199,13 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
         yandexWeatherKey, setYandexWeatherKey,
         forecaApiKey, setForecaApiKey,
         weatherSettings, setWeatherSettings,
-        weatherEntityId, setWeatherEntityId,
         lowBatteryThreshold, setLowBatteryThreshold,
         isChristmasThemeEnabled, setIsChristmasThemeEnabled,
         servers, activeServerId, addServer, updateServer, deleteServer, setActiveServerId,
     } = useAppStore();
-    const { allKnownDevices } = useHAStore();
 
     const [editingTheme, setEditingTheme] = useState<ThemeDefinition | null>(null);
     const [confirmingDeleteTheme, setConfirmingDeleteTheme] = useState<ThemeDefinition | null>(null);
-
-    // FIX: Added an explicit type annotation `(d: Device)` to the callback in the `.filter()` method. This resolves a TypeScript inference issue where the parameter `d` was being incorrectly typed as `unknown`, causing errors when accessing its properties like `d.haDomain` and later `entity.id` and `entity.name` during mapping.
-    const weatherEntities = useMemo(() => 
-        Array.from(allKnownDevices.values()).filter((d: Device) => d.haDomain === 'weather'), 
-        [allKnownDevices]
-    );
 
     useEffect(() => {
         // При первой загрузке выбрать активный сервер
@@ -602,22 +594,11 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
             <Section title="Виджет Погоды">
                  <LabeledInput label="Поставщик погоды">
                     <select value={weatherProvider} onChange={e => setWeatherProvider(e.target.value as any)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm">
-                        <option value="homeassistant">Home Assistant</option>
                         <option value="openweathermap">OpenWeatherMap</option>
                         <option value="yandex">Яндекс Погода</option>
                         <option value="foreca">Foreca</option>
                     </select>
                  </LabeledInput>
-                 {weatherProvider === 'homeassistant' && (
-                    <LabeledInput label="Сущность погоды">
-                        <select value={weatherEntityId || ''} onChange={e => setWeatherEntityId(e.target.value || null)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm">
-                            <option value="">-- Выберите сущность --</option>
-                            {weatherEntities.map(entity => (
-                                <option key={entity.id} value={entity.id}>{entity.name}</option>
-                            ))}
-                        </select>
-                    </LabeledInput>
-                 )}
                  {weatherProvider === 'openweathermap' && (
                      <LabeledInput label="Ключ API OpenWeatherMap">
                         <input type="password" value={openWeatherMapKey} onChange={e => setOpenWeatherMapKey(e.target.value)} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"/>

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { ColorScheme, WeatherSettings, Device } from '../types';
+import React, { useState, useEffect } from 'react';
+import { ColorScheme, WeatherSettings } from '../types';
 import AnimatedWeatherIcon from './AnimatedWeatherIcon';
 
 // --- Типы данных для погоды ---
@@ -22,16 +22,13 @@ interface WeatherData {
 }
 
 interface WeatherWidgetProps {
-    weatherProvider: 'openweathermap' | 'yandex' | 'foreca' | 'homeassistant';
+    weatherProvider: 'openweathermap' | 'yandex' | 'foreca';
     openWeatherMapKey: string;
     yandexWeatherKey: string;
     forecaApiKey: string;
     getConfig: () => Promise<any>;
     colorScheme: ColorScheme['light'];
     weatherSettings: WeatherSettings;
-    allKnownDevices: Map<string, Device>;
-    weatherEntityId: string | null;
-    getWeatherForecasts: (entityId: string, type: 'daily' | 'hourly') => Promise<any>;
 }
 
 // --- MAPPINGS FOR YANDEX WEATHER ---
@@ -81,102 +78,18 @@ const forecaSymbolToOwmCode = (symbol: string): string => {
     return `01${dayNight}`; // Default to clear
 };
 
-/**
- * Преобразует состояние погоды из Home Assistant в код иконки OpenWeatherMap.
- * @param {string} condition - Состояние из Home Assistant (например, 'partlycloudy').
- * @returns {string} - Код иконки OWM (например, '02d').
- */
-const haConditionToOwmCode = (condition: string): string => {
-    const mapping: { [key: string]: string } = {
-        'clear-night': '01n', 'sunny': '01d', 'cloudy': '03d',
-        'partlycloudy': '02d', 'fog': '50d', 'hail': '09d',
-        'rainy': '10d', 'pouring': '09d', 'snowy': '13d',
-        'snowy-rainy': '13d', 'lightning': '11d', 'lightning-rainy': '11d',
-        'windy': '02d', 'windy-variant': '02d', 'exceptional': '01d',
-    };
-    return mapping[condition] || '01d';
-};
-
 
 /**
  * Виджет для отображения текущей погоды и прогноза на несколько дней.
  * Получает данные из OpenWeatherMap API, используя координаты из конфигурации Home Assistant.
  */
-const WeatherWidget: React.FC<WeatherWidgetProps> = (props) => {
-    const { weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, getConfig, colorScheme, weatherSettings, allKnownDevices, weatherEntityId, getWeatherForecasts } = props;
+const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, getConfig, colorScheme, weatherSettings }) => {
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Мемоизируем сущность погоды, чтобы уменьшить количество пересчетов.
-    const weatherEntity = useMemo(() => weatherEntityId ? allKnownDevices.get(weatherEntityId) : null, [allKnownDevices, weatherEntityId]);
-
-    // Создаем стабильные зависимости для useEffect, чтобы избежать лишних перезагрузок.
-    const { temperature, status, condition } = weatherEntity || {};
-    const forecastJson = useMemo(() => JSON.stringify(weatherEntity?.forecast), [weatherEntity?.forecast]);
-
-
     useEffect(() => {
         const { forecastDays } = weatherSettings;
-
-        /**
-         * Получает и обрабатывает данные из встроенной интеграции погоды Home Assistant.
-         */
-        const fetchHomeAssistantWeather = async (): Promise<WeatherData> => {
-            if (!weatherEntityId || !weatherEntity) {
-                throw new Error("Сущность погоды Home Assistant не выбрана или не найдена.");
-            }
-            
-            if (weatherEntity.haDomain !== 'weather') {
-                throw new Error("Выбранная сущность не является погодной интеграцией.");
-            }
-
-            let forecastData: any[] = [];
-
-            // Для современных интеграций (например, Met.no) прогноз получается через сервис.
-            // Пробуем этот способ в первую очередь.
-            try {
-                console.log('Вызываем сервис weather.get_forecasts для получения прогноза.');
-                const forecastResult = await getWeatherForecasts(weatherEntityId, 'daily');
-                if (forecastResult && forecastResult[weatherEntityId] && forecastResult[weatherEntityId].forecast) {
-                    forecastData = forecastResult[weatherEntityId].forecast;
-                } else {
-                    console.warn('Прогноз погоды не был получен от сервиса get_forecasts.');
-                }
-            } catch (e) {
-                console.error("Ошибка при вызове сервиса weather.get_forecasts:", e);
-                // Ошибка при вызове сервиса, продолжаем, чтобы попробовать старый метод.
-            }
-            
-            // Резервный вариант для старых интеграций, которые все еще используют атрибут `forecast`.
-            if (forecastData.length === 0 && weatherEntity.forecast && weatherEntity.forecast.length > 0) {
-                console.log('Используется резервный прогноз из атрибутов сущности.');
-                forecastData = weatherEntity.forecast;
-            }
-    
-            return {
-                current: {
-                    temp: Math.round(weatherEntity.temperature ?? 0),
-                    desc: weatherEntity.status,
-                    icon: haConditionToOwmCode(weatherEntity.condition ?? 'sunny'),
-                },
-                forecast: forecastData.slice(0, forecastDays).map((f: any) => {
-                    // Гибко ищем свойства, так как разные интеграции называют их по-разному.
-                    const tempMax = f.temperature ?? f.max_temp ?? f.temp;
-                    const tempMin = f.templow ?? f.min_temp;
-                    const condition = f.condition ?? f.state;
-                    const dt = f.datetime ?? f.date;
-
-                    return {
-                        day: new Date(dt).toLocaleDateString("ru-RU", { weekday: "short" }),
-                        tempMax,
-                        tempMin,
-                        icon: haConditionToOwmCode(condition || 'sunny'),
-                    };
-                })
-            };
-        };
-        
         const fetchOpenWeatherMapWeather = async () => {
             if (!openWeatherMapKey) throw new Error("Ключ API OpenWeatherMap не настроен.");
             
@@ -326,9 +239,6 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = (props) => {
             try {
                 let fetchFn;
                 switch (weatherProvider) {
-                    case 'homeassistant':
-                        fetchFn = fetchHomeAssistantWeather;
-                        break;
                     case 'yandex':
                         fetchFn = fetchYandexWeather;
                         break;
@@ -350,22 +260,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = (props) => {
         };
 
         fetchWeather();
-    }, [
-        weatherProvider,
-        openWeatherMapKey,
-        yandexWeatherKey,
-        forecaApiKey,
-        weatherEntityId,
-        weatherSettings.forecastDays,
-        // Более точные зависимости для предотвращения лишних перезагрузок
-        temperature,
-        status,
-        condition,
-        forecastJson,
-        // Функции из пропсов
-        getConfig,
-        getWeatherForecasts
-    ]);
+    }, [weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, getConfig, weatherSettings]);
 
     if (loading) {
         return ( // Скелет загрузки
@@ -416,31 +311,29 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = (props) => {
             </div>
 
             {/* Прогноз на N дней */}
-            {forecast && forecast.length > 0 && (
-                <div className={`mt-4 grid grid-cols-${weatherSettings.forecastDays} gap-2 text-center`}>
-                    {forecast.map((day, index) => (
-                        <div key={index} className="flex flex-col items-center space-y-1">
-                            <p className="text-xs font-medium capitalize" style={{ color: colorScheme.nameTextColor, fontSize: colorScheme.weatherForecastDayFontSize ? `${colorScheme.weatherForecastDayFontSize}px` : undefined, }}>
-                              {day.day}
+            <div className={`mt-4 grid grid-cols-${weatherSettings.forecastDays} gap-2 text-center`}>
+                {forecast.map((day, index) => (
+                    <div key={index} className="flex flex-col items-center space-y-1">
+                        <p className="text-xs font-medium capitalize" style={{ color: colorScheme.nameTextColor, fontSize: colorScheme.weatherForecastDayFontSize ? `${colorScheme.weatherForecastDayFontSize}px` : undefined, }}>
+                          {day.day}
+                        </p>
+                         <AnimatedWeatherIcon
+                            iconCode={day.icon}
+                            iconPack={weatherSettings.iconPack}
+                            className="w-12 h-12"
+                            style={{ width: forecastIconSize, height: forecastIconSize }}
+                        />
+                        <div>
+                            <p className="text-lg font-semibold" style={{ color: colorScheme.valueTextColor, fontSize: colorScheme.weatherForecastMaxTempFontSize ? `${colorScheme.weatherForecastMaxTempFontSize}px` : undefined, }}>
+                              {Math.round(day.tempMax)}°
                             </p>
-                             <AnimatedWeatherIcon
-                                iconCode={day.icon}
-                                iconPack={weatherSettings.iconPack}
-                                className="w-12 h-12"
-                                style={{ width: forecastIconSize, height: forecastIconSize }}
-                            />
-                            <div>
-                                <p className="text-lg font-semibold" style={{ color: colorScheme.valueTextColor, fontSize: colorScheme.weatherForecastMaxTempFontSize ? `${colorScheme.weatherForecastMaxTempFontSize}px` : undefined, }}>
-                                  {Math.round(day.tempMax)}°
-                                </p>
-                                <p className="text-sm -mt-1" style={{ color: colorScheme.statusTextColor, fontSize: colorScheme.weatherForecastMinTempFontSize ? `${colorScheme.weatherForecastMinTempFontSize}px` : undefined, }}>
-                                  {Math.round(day.tempMin)}°
-                                </p>
-                            </div>
+                            <p className="text-sm -mt-1" style={{ color: colorScheme.statusTextColor, fontSize: colorScheme.weatherForecastMinTempFontSize ? `${colorScheme.weatherForecastMinTempFontSize}px` : undefined, }}>
+                              {Math.round(day.tempMin)}°
+                            </p>
                         </div>
-                    ))}
-                </div>
-            )}
+                    </div>
+                ))}
+            </div>
         </div>
     );
 };
