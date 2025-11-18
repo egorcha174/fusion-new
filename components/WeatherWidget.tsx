@@ -108,24 +108,27 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = (props) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Мемоизируем сущность погоды, чтобы использовать ее в качестве зависимости
+    // Мемоизируем сущность погоды, чтобы уменьшить количество пересчетов.
     const weatherEntity = useMemo(() => weatherEntityId ? allKnownDevices.get(weatherEntityId) : null, [allKnownDevices, weatherEntityId]);
+
+    // Создаем стабильные зависимости для useEffect, чтобы избежать лишних перезагрузок.
+    const { temperature, status, condition } = weatherEntity || {};
+    const forecastJson = useMemo(() => JSON.stringify(weatherEntity?.forecast), [weatherEntity?.forecast]);
+
 
     useEffect(() => {
         const { forecastDays } = weatherSettings;
 
         /**
          * Получает и обрабатывает данные из встроенной интеграции погоды Home Assistant.
-         * @returns {Promise<WeatherData>} - Обработанные данные о погоде.
          */
         const fetchHomeAssistantWeather = async (): Promise<WeatherData> => {
-            if (!weatherEntityId) {
-                throw new Error("Сущность погоды Home Assistant не выбрана.");
+            if (!weatherEntityId || !weatherEntity) {
+                throw new Error("Сущность погоды Home Assistant не выбрана или не найдена.");
             }
             
-            // Используем мемоизированную сущность
-            if (!weatherEntity || weatherEntity.haDomain !== 'weather') {
-                throw new Error("Выбранная сущность не является погодной интеграцией или не найдена.");
+            if (weatherEntity.haDomain !== 'weather') {
+                throw new Error("Выбранная сущность не является погодной интеграцией.");
             }
 
             // Получение прогноза через сервис
@@ -347,8 +350,11 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = (props) => {
         getConfig,
         getWeatherForecasts,
         weatherSettings.forecastDays,
-        // Используем строковое представление сущности для отслеживания изменений по значению, а не по ссылке
-        JSON.stringify(weatherEntity)
+        // Более точные зависимости для предотвращения лишних перезагрузок
+        temperature,
+        status,
+        condition,
+        forecastJson,
     ]);
 
     if (loading) {
