@@ -6,7 +6,6 @@ import {
 import { snapCenterToCursor } from '@dnd-kit/modifiers';
 import { motion, AnimatePresence } from 'framer-motion';
 import DeviceCard from './DeviceCard';
-import GroupContainer from './GroupContainer';
 import { Tab, Device, DeviceType, GridLayoutItem, CardTemplates, DeviceCustomizations, CardTemplate, ColorScheme, ColorThemeSet } from '../types';
 import { useAppStore } from '../store/appStore';
 import ErrorBoundary from './ErrorBoundary';
@@ -35,22 +34,18 @@ const DraggableDevice: React.FC<{
   isDark: boolean;
   [key: string]: any; // Прочие пропсы для DeviceCard
 }> = React.memo(({ device, isEditMode, onDeviceToggle, onShowHistory, template, allKnownDevices, customizations, colorScheme, isDark, ...cardProps }) => {
-  const { setEditingGroupId } = useAppStore();
-  const isGroup = device.type === DeviceType.Group;
-  
   const { attributes, listeners, setNodeRef: setDraggableNodeRef, isDragging } = useDraggable({
     id: device.id,
     disabled: !isEditMode,
   });
   
+  // Делаем саму карточку зоной для сброса для реализации замены (swap)
   const { setNodeRef: setDroppableNodeRef } = useDroppable({
     id: device.id,
-    data: { 
-      type: isGroup ? 'group' : 'device',
-      groupId: isGroup ? device.widgetId : undefined,
-    }
+    data: { type: 'device' }
   });
   
+  // Комбинируем ref'ы от useDraggable и useDroppable
   const setNodeRef = (node: HTMLElement | null) => {
       setDraggableNodeRef(node);
       setDroppableNodeRef(node);
@@ -58,19 +53,16 @@ const DraggableDevice: React.FC<{
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     if (isEditMode) { e.preventDefault(); e.stopPropagation(); return; }
-
-    if (isGroup) {
-      if (device.widgetId) setEditingGroupId(device.widgetId);
-      return;
-    }
     
     if (device.type === DeviceType.Custom) {
         if (template?.interactionType === 'active' && template.mainActionEntityId) {
             onDeviceToggle(template.mainActionEntityId);
         }
+        // Пассивные кастомные карточки ничего не делают по клику
         return;
     }
     
+    // Для сенсоров клик открывает историю
     if (device.type === DeviceType.Sensor) {
       onShowHistory(device.id);
       return;
@@ -81,12 +73,12 @@ const DraggableDevice: React.FC<{
     if (isTogglable) {
       onDeviceToggle(device.id);
     }
-  }, [isEditMode, device, isGroup, template, onDeviceToggle, onShowHistory, setEditingGroupId]);
+  }, [isEditMode, device, template, onDeviceToggle, onShowHistory]);
 
   return (
     <div
       ref={setNodeRef}
-      style={{ visibility: isDragging ? 'hidden' : 'visible' }}
+      style={{ visibility: isDragging ? 'hidden' : 'visible' }} // Скрываем оригинал во время перетаскивания
       className={`w-full h-full relative ${isEditMode ? 'cursor-move' : ''}`}
       {...listeners}
       {...attributes}
@@ -94,32 +86,28 @@ const DraggableDevice: React.FC<{
       data-device-id={device.id}
       data-tab-id={cardProps.tab.id}
     >
-      {isGroup ? (
-        <GroupContainer device={device} colorScheme={colorScheme} />
-      ) : (
-        <DeviceCard
-          device={device}
-          template={template}
-          allKnownDevices={allKnownDevices}
-          customizations={customizations}
-          onDeviceToggle={onDeviceToggle}
-          onTemperatureChange={(temp, isDelta) => cardProps.onTemperatureChange(device.id, temp, isDelta)}
-          onBrightnessChange={(brightness) => cardProps.onBrightnessChange(device.id, brightness)}
-          onHvacModeChange={(mode) => cardProps.onHvacModeChange(device.id, mode)}
-          onPresetChange={(preset) => cardProps.onPresetChange(device.id, preset)}
-          onFanSpeedChange={(deviceId, percentage) => cardProps.onFanSpeedChange(deviceId, percentage)}
-          onCameraCardClick={cardProps.onCameraCardClick}
-          isEditMode={isEditMode}
-          onEditDevice={() => cardProps.onEditDevice(device)}
-          haUrl={cardProps.haUrl}
-          signPath={cardProps.signPath}
-          getCameraStreamUrl={cardProps.getCameraStreamUrl}
-          openMenuDeviceId={cardProps.openMenuDeviceId}
-          setOpenMenuDeviceId={cardProps.setOpenMenuDeviceId}
-          colorScheme={colorScheme}
-          isDark={isDark}
-        />
-      )}
+      <DeviceCard
+        device={device}
+        template={template}
+        allKnownDevices={allKnownDevices}
+        customizations={customizations}
+        onDeviceToggle={onDeviceToggle}
+        onTemperatureChange={(temp, isDelta) => cardProps.onTemperatureChange(device.id, temp, isDelta)}
+        onBrightnessChange={(brightness) => cardProps.onBrightnessChange(device.id, brightness)}
+        onHvacModeChange={(mode) => cardProps.onHvacModeChange(device.id, mode)}
+        onPresetChange={(preset) => cardProps.onPresetChange(device.id, preset)}
+        onFanSpeedChange={(deviceId, percentage) => cardProps.onFanSpeedChange(deviceId, percentage)}
+        onCameraCardClick={cardProps.onCameraCardClick}
+        isEditMode={isEditMode}
+        onEditDevice={() => cardProps.onEditDevice(device)}
+        haUrl={cardProps.haUrl}
+        signPath={cardProps.signPath}
+        getCameraStreamUrl={cardProps.getCameraStreamUrl}
+        openMenuDeviceId={cardProps.openMenuDeviceId}
+        setOpenMenuDeviceId={cardProps.setOpenMenuDeviceId}
+        colorScheme={colorScheme}
+        isDark={isDark}
+      />
     </div>
   );
 });
@@ -306,6 +294,11 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         }
     };
 
+    /**
+     * Основная логика обработки завершения перетаскивания.
+     * Определяет, куда была сброшена карточка (на пустую ячейку или на другую карточку)
+     * и выполняет соответствующее действие (перемещение, замена, объединение в стопку).
+     */
     const handleDragEnd = (event: DragEndEvent) => {
         setActiveId(null);
         setActiveDragItemRect(null);
@@ -313,42 +306,65 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
     
         if (!over || !isEditMode || active.id === over.id) return;
     
+        // FIX: Используем validLayout вместо tab.layout, чтобы избежать проблем с "призрачными" элементами.
         const currentLayout = validLayout;
         const draggedDeviceId = active.id as string;
         const draggedItemIndex = currentLayout.findIndex(item => item.deviceId === draggedDeviceId);
         if (draggedItemIndex === -1) return;
-        
-        const draggedDevice = allKnownDevices.get(draggedDeviceId);
-        if (draggedDevice?.type === DeviceType.Group) return; // Нельзя перетаскивать группы в другие группы
-
+    
         const draggedItem = currentLayout[draggedItemIndex];
         let newLayout = [...currentLayout];
-        
-        const overData = over.data.current;
+    
+        let targetCol: number | undefined;
+        let targetRow: number | undefined;
+        let overItem: GridLayoutItem | undefined;
+    
+        // 1. Определяем целевые координаты (col, row).
+        if (over.data.current?.type === 'cell') {
+            targetCol = over.data.current.col;
+            targetRow = over.data.current.row;
+        } else if (over.data.current?.type === 'device') {
+            overItem = currentLayout.find(item => item.deviceId === over.id);
+            if (!overItem) return;
+            targetCol = overItem.col;
+            targetRow = overItem.row;
+        } else {
+            return; // Неизвестная цель.
+        }
+    
+        if (targetCol === undefined || targetRow === undefined) return;
+    
+        const draggedWidth = draggedItem.width || 1;
+        const draggedHeight = draggedItem.height || 1;
+        const newPositionItem = { col: targetCol, row: targetRow, width: draggedWidth, height: draggedHeight };
 
-        // --- Логика создания и добавления в группу ---
-        if (overData?.type === 'device') {
-            useAppStore.getState().handleCreateGroup(draggedDeviceId, over.id as string, tab.id);
+        // 2. Используем централизованную функцию checkCollision.
+        const hasCollision = useAppStore.getState().checkCollision(currentLayout, newPositionItem, tab.gridSettings, draggedDeviceId);
+        
+        if (!hasCollision) {
+            // Перемещение разрешено (в пустую ячейку или для создания стопки).
+            newLayout[draggedItemIndex] = { ...draggedItem, col: targetCol, row: targetRow };
+            onDeviceLayoutChange(tab.id, newLayout);
             return;
         }
-        if (overData?.type === 'group') {
-            useAppStore.getState().handleAddToGroup(draggedDeviceId, overData.groupId, tab.id);
-            return;
-        }
-
-        // --- Логика перемещения/замены ---
-        if (overData?.type === 'cell') {
-            const targetCol = overData.col;
-            const targetRow = overData.row;
-            const draggedWidth = draggedItem.width || 1;
-            const draggedHeight = draggedItem.height || 1;
-            const newPositionItem = { col: targetCol, row: targetRow, width: draggedWidth, height: draggedHeight };
-
-            const hasCollision = useAppStore.getState().checkCollision(currentLayout, newPositionItem, tab.gridSettings, draggedDeviceId);
         
-            if (!hasCollision) {
-                newLayout[draggedItemIndex] = { ...draggedItem, col: targetCol, row: targetRow };
-                onDeviceLayoutChange(tab.id, newLayout);
+        // 3. Если есть коллизия, проверяем, не является ли это случаем для обмена (swap).
+        if (overItem) {
+            const overItemIndex = currentLayout.findIndex(i => i.deviceId === overItem.deviceId);
+            const overWidth = overItem.width || 1;
+            const overHeight = overItem.height || 1;
+            
+            // Обмен возможен только для карточек одинакового размера.
+            if (draggedWidth === overWidth && draggedHeight === overHeight) {
+                // Проверяем, не вызовет ли обмен новую коллизию для перемещаемой карточки.
+                const overItemNewPos = { col: draggedItem.col, row: draggedItem.row, width: overWidth, height: overHeight };
+                const swapHasCollision = useAppStore.getState().checkCollision(currentLayout, overItemNewPos, tab.gridSettings, overItem.deviceId);
+
+                if (!swapHasCollision) {
+                    newLayout[draggedItemIndex] = { ...draggedItem, col: overItem.col, row: overItem.row };
+                    newLayout[overItemIndex] = { ...overItem, col: draggedItem.col, row: draggedItem.row };
+                    onDeviceLayoutChange(tab.id, newLayout);
+                }
             }
         }
     };

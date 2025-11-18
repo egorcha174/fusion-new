@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
-// FIX: Added `Group` to imports to correctly type virtual group devices.
-import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet, GridLayoutItem, EventTimerWidget, Group } from './types';
+import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet, GridLayoutItem, EventTimerWidget } from './types';
 import { nanoid } from 'nanoid';
 import { useAppStore } from './store/appStore';
 import { useHAStore } from './store/haStore';
@@ -26,7 +25,6 @@ const HistoryModal = lazy(() => import('./components/HistoryModal.tsx'));
 const EventTimerSettingsModal = lazy(() => import('./components/EventTimerSettingsModal.tsx'));
 const ConfirmDialog = lazy(() => import('./components/ConfirmDialog.tsx'));
 const ChristmasTheme = lazy(() => import('./components/ChristmasTheme.tsx'));
-const GroupSettingsModal = lazy(() => import('./components/GroupSettingsModal.tsx'));
 
 
 /**
@@ -192,8 +190,6 @@ const App: React.FC = () => {
         colorScheme, getTemplateForDevice, createNewBlankTemplate,
         editingEventTimerId, setEditingEventTimerId, eventTimerWidgets,
         resetCustomWidgetTimer, deleteCustomWidget, isChristmasThemeEnabled,
-        editingGroupId, setEditingGroupId, handleUpdateGroup, handleDissolveGroup,
-        groups
     } = useAppStore();
 
     // Получение состояний модальных окон через хуки-селекторы для обеспечения реактивности
@@ -281,16 +277,38 @@ const App: React.FC = () => {
         if (connectionStatus === 'connected' && !isLoading && !initializationDone.current) {
             initializationDone.current = true; // Выполняем только один раз
             if (tabs.length === 0 && allKnownDevices.size > 0) {
-                // Упрощенная логика: добавляем все устройства в левый верхний угол.
-                // Пользователь сможет расставить их сам в режиме редактирования.
+                const { checkCollision, getTemplateForDevice } = useAppStore.getState();
                 const allDeviceIds = Array.from(allKnownDevices.keys());
-                const newLayout = allDeviceIds.map(id => ({ deviceId: id, col: 0, row: 0, width: 1, height: 1 }));
+                const newLayout: GridLayoutItem[] = [];
+                const gridSettings = { cols: 8, rows: 5 };
+
+                for (const deviceId of allDeviceIds) {
+                    const device = allKnownDevices.get(deviceId);
+                    if (!device) continue;
+
+                    const template = getTemplateForDevice(device);
+                    const itemWidth = template?.width || 1;
+                    const itemHeight = template?.height || 1;
+
+                    let placed = false;
+                    for (let r = 0; r <= gridSettings.rows - Math.ceil(itemHeight); r++) {
+                        for (let c = 0; c <= gridSettings.cols - Math.ceil(itemWidth); c++) {
+                            const itemToPlace = { col: c, row: r, width: itemWidth, height: itemHeight };
+                            if (!checkCollision(newLayout, itemToPlace, gridSettings, deviceId)) {
+                                newLayout.push({ deviceId, ...itemToPlace });
+                                placed = true;
+                                break;
+                            }
+                        }
+                        if (placed) break;
+                    }
+                }
 
                 const newTab: Tab = {
                     id: nanoid(),
                     name: 'Главная',
                     layout: newLayout,
-                    gridSettings: { cols: 8, rows: 5 }
+                    gridSettings: gridSettings
                 };
 
                 setTabs([newTab]);
@@ -365,25 +383,6 @@ const App: React.FC = () => {
         return style;
     }, [currentColorScheme]);
 
-    const allDevices = useMemo((): Map<string, Device> => {
-        const groupDevicesMap = new Map<string, Device>();
-        
-        for (const group of groups) {
-          const deviceId = `internal::group_${group.id}`;
-          groupDevicesMap.set(deviceId, {
-            id: deviceId,
-            widgetId: group.id,
-            name: group.name,
-            status: `${group.deviceIds.length} устройств`,
-            type: DeviceType.Group,
-            state: 'on',
-            haDomain: 'internal'
-          });
-        }
-    
-        return new Map([...allKnownDevices, ...groupDevicesMap.entries()]);
-      }, [allKnownDevices, groups]);
-
     // --- Обработчики закрытия модальных окон ---
     const handleCloseDeviceSettings = useCallback(() => setEditingDevice(null), [setEditingDevice]);
     const handleCloseTabSettings = useCallback(() => setEditingTab(null), [setEditingTab]);
@@ -391,7 +390,6 @@ const App: React.FC = () => {
     const handleCloseHistoryModal = useCallback(() => setHistoryModalEntityId(null), [setHistoryModalEntityId]);
     const handleCloseFloatingCamera = useCallback(() => setFloatingCamera(null), [setFloatingCamera]);
     const handleCloseEventTimerSettings = useCallback(() => setEditingEventTimerId(null), [setEditingEventTimerId]);
-    const handleCloseGroupSettings = useCallback(() => setEditingGroupId(null), [setEditingGroupId]);
 
   // --- Обработчики Контекстного Меню ---
 
@@ -407,28 +405,28 @@ const App: React.FC = () => {
    * Глобальный обработчик контекстного меню (правый клик на всем приложении).
    * Открывает меню действий для карточки устройства, если включен режим редактирования.
    */
-  // FIX: Refactored logic to be more concise and safely handle dataset properties, resolving potential typing issues.
+// FIX: Refactored logic to be more concise and safely handle dataset properties.
   const handleGlobalContextMenu = useCallback((event: React.MouseEvent) => {
     const target = event.target as HTMLElement;
-    
-    if (currentPage === 'dashboard') {
+    const isDashboard = currentPage === 'dashboard';
+
+    // Отключаем стандартное меню на дашборде, но не на интерактивных элементах (поля ввода и т.д.).
+    if (isDashboard) {
       const isInteractiveElement = target.closest('input, textarea, [contenteditable="true"], select');
       if (!isInteractiveElement) {
         event.preventDefault();
       }
     }
 
-    const deviceTarget = target.closest<HTMLElement>('[data-device-id]');
-    
-    if (isEditMode && deviceTarget) {
-        const { deviceId, tabId } = deviceTarget.dataset;
+    const deviceTarget = target.closest('[data-device-id]') as HTMLElement | null;
+    const deviceId = deviceTarget?.dataset.deviceId;
+    const tabId = deviceTarget?.dataset.tabId;
 
-        if (deviceId && tabId) {
-            handleDeviceContextMenu(deviceId, tabId, event.clientX, event.clientY);
-        } else {
-            setContextMenu(null);
-        }
+    if (isEditMode && deviceTarget && typeof deviceId === 'string' && typeof tabId === 'string') {
+        // Показываем кастомное меню для устройства в режиме редактирования
+        handleDeviceContextMenu(deviceId, tabId, event.clientX, event.clientY);
     } else {
+        // В остальных случаях (не в режиме редактирования, или клик по фону) просто закрываем меню.
         setContextMenu(null);
     }
   }, [isEditMode, handleDeviceContextMenu, setContextMenu, currentPage]);
@@ -456,14 +454,14 @@ const App: React.FC = () => {
   }
   
   // Подготовка данных для модальных окон и контекстных меню
-  const contextMenuDevice = contextMenu ? allDevices.get(contextMenu.deviceId) : null;
+  const contextMenuDevice = contextMenu ? allKnownDevices.get(contextMenu.deviceId) : null;
   const isTemplateable = contextMenuDevice ? [
     DeviceType.Sensor, DeviceType.DimmableLight, DeviceType.Light,
     DeviceType.Switch, DeviceType.Thermostat, DeviceType.Humidifier,
     DeviceType.Custom
   ].includes(contextMenuDevice.type) : false;
   const currentTemplate = getTemplateForDevice(contextMenuDevice);
-  const historyDevice = historyModalEntityId ? allDevices.get(historyModalEntityId) : null;
+  const historyDevice = historyModalEntityId ? allKnownDevices.get(historyModalEntityId) : null;
   const historyDeviceTemplate = getTemplateForDevice(historyDevice);
   const valueElement = historyDeviceTemplate?.elements.find(el => el.id === 'value' || el.id === 'temperature');
   const historyDecimalPlaces = valueElement?.styles?.decimalPlaces;
@@ -546,7 +544,6 @@ const App: React.FC = () => {
         {historyModalEntityId && <HistoryModal entityId={historyModalEntityId} onClose={handleCloseHistoryModal} getHistory={getHistory} allKnownDevices={allKnownDevices} colorScheme={currentColorScheme} decimalPlaces={historyDecimalPlaces} />}
         {floatingCamera && <FloatingCameraWindow device={floatingCamera} onClose={handleCloseFloatingCamera} haUrl={haUrl} signPath={signPath} getCameraStreamUrl={getCameraStreamUrl} />}
         {editingEventTimerId && <EventTimerSettingsModal widgetId={editingEventTimerId} onClose={handleCloseEventTimerSettings} currentColorScheme={currentColorScheme} />}
-        {editingGroupId && <GroupSettingsModal groupId={editingGroupId} onClose={handleCloseGroupSettings} />}
       </Suspense>
       
       {confirmingDeleteWidget && (
@@ -565,24 +562,7 @@ const App: React.FC = () => {
       {contextMenu && (
         <Suspense fallback={null}>
           <ContextMenu x={contextMenu.x} y={contextMenu.y} isOpen={!!contextMenu} onClose={handleCloseContextMenu}>
-            {contextMenuDevice && contextMenuDevice.type === DeviceType.Group && (
-               <>
-                <div onClick={() => { 
-                    const newName = prompt("Введите новое имя для группы:", contextMenuDevice.name);
-                    if (newName && contextMenuDevice.widgetId) handleUpdateGroup(contextMenuDevice.widgetId, { name: newName });
-                    handleCloseContextMenu(); 
-                }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">Переименовать</div>
-                <div onClick={() => {
-                    if(window.confirm('Вы уверены, что хотите расформировать группу? Все устройства вернутся на вкладку.') && contextMenuDevice.widgetId && contextMenu.tabId) {
-                        handleDissolveGroup(contextMenuDevice.widgetId, contextMenu.tabId);
-                    }
-                    handleCloseContextMenu();
-                }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm text-red-600 dark:text-red-400">Расформировать</div>
-                 <div className="h-px bg-gray-300 dark:bg-gray-600 my-1 mx-1" />
-                <div onClick={() => { useAppStore.getState().handleDeviceRemoveFromTab(contextMenu.deviceId, contextMenu.tabId); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">Удалить с вкладки</div>
-               </>
-            )}
-            {contextMenuDevice && contextMenuDevice.type !== DeviceType.Group && (
+            {contextMenuDevice && (
               <>
                 <div onClick={() => { setEditingDevice(contextMenuDevice); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">Настроить</div>
                 <div onClick={() => { setHistoryModalEntityId(contextMenuDevice.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">История</div>
