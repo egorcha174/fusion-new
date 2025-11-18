@@ -6,7 +6,6 @@ import { useHAStore } from '../store/haStore';
 
 interface GroupContainerProps {
   device: Device;
-  onClick: () => void;
   colorScheme: ColorScheme['light'];
 }
 
@@ -14,7 +13,7 @@ interface GroupContainerProps {
  * Компонент-контейнер для группы (папки), отображаемый на сетке дашборда.
  * Показывает мини-иконки до 4-х устройств внутри.
  */
-const GroupContainer: React.FC<GroupContainerProps> = ({ device, onClick, colorScheme }) => {
+const GroupContainer: React.FC<GroupContainerProps> = ({ device, colorScheme }) => {
     // ID группы извлекается из ID виртуального устройства
     const groupId = device.widgetId;
     
@@ -40,7 +39,6 @@ const GroupContainer: React.FC<GroupContainerProps> = ({ device, onClick, colorS
 
     return (
         <div 
-            onClick={onClick} 
             className="w-full h-full p-2 flex flex-col cursor-pointer transition-all duration-300"
             style={{ 
                 backgroundColor: colorScheme.cardBackground, 

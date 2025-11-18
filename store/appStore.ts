@@ -3,7 +3,7 @@ import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
   CameraSettings, ColorScheme, CardTemplate, DeviceType, GridLayoutItem, DeviceCustomization,
   CardElementId, EventTimerWidget, CustomCardWidget, PhysicalDevice, CardElement, WeatherSettings,
-  ServerConfig, ThemeDefinition
+  ServerConfig, ThemeDefinition, Group
 } from '../types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from '../components/DeviceIcon';
@@ -29,6 +29,8 @@ import {
     DEFAULT_THEMES
 } from '../config/defaults';
 import { set as setAtPath } from '../utils/obj-path';
+// FIX: Imported useHAStore to resolve 'Cannot find name' errors.
+import { useHAStore } from './haStore';
 
 
 // --- State and Actions Interfaces ---
@@ -74,6 +76,10 @@ interface AppState {
     customCardWidgets: CustomCardWidget[];
     isChristmasThemeEnabled: boolean;
     DEFAULT_COLOR_SCHEME: ColorScheme;
+    
+    // Groups
+    groups: Group[];
+    editingGroupId: string | null;
 }
 
 interface AppActions {
@@ -156,6 +162,15 @@ interface AppActions {
     handleSaveTemplate: (template: CardTemplate) => void;
     handleDeleteTemplate: (templateId: string) => void;
     createNewBlankTemplate: (deviceType: DeviceType | 'custom') => CardTemplate;
+
+    // Group actions
+    setGroups: (groups: Group[]) => void;
+    setEditingGroupId: (id: string | null) => void;
+    handleCreateGroup: (fromDeviceId: string, toDeviceId: string, tabId: string) => void;
+    handleAddToGroup: (fromDeviceId: string, toGroupId: string, tabId: string) => void;
+    handleDissolveGroup: (groupId: string, tabId: string) => void;
+    handleRemoveFromGroup: (groupId: string, deviceId: string, tabId: string) => void;
+    handleUpdateGroup: (groupId: string, updates: Partial<Omit<Group, 'id'>>) => void;
 }
 
 // --- Migration logic for single-server to multi-server ---
@@ -226,6 +241,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     isChristmasThemeEnabled: loadAndMigrate<boolean>(LOCAL_STORAGE_KEYS.CHRISTMAS_THEME_ENABLED, false),
     DEFAULT_COLOR_SCHEME: DEFAULT_COLOR_SCHEME,
     
+    groups: loadAndMigrate<Group[]>(LOCAL_STORAGE_KEYS.GROUPS, []),
+    editingGroupId: null,
+    
     // --- Actions ---
     setCurrentPage: (page) => set({ currentPage: page }),
     setIsEditMode: (isEdit) => set({ isEditMode: isEdit }),
@@ -237,6 +255,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     setFloatingCamera: (device) => set({ floatingCamera: device }),
     setHistoryModalEntityId: (id) => set({ historyModalEntityId: id }),
     setEditingEventTimerId: (id) => set({ editingEventTimerId: id }),
+    setEditingGroupId: (id) => set({ editingGroupId: id }),
 
     // --- Server Management Actions ---
     setServers: (servers) => {
@@ -689,9 +708,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             const colGap = 5;
 
             physicalDevice.entities.forEach((entity, index) => {
-                const row = Math.floor(index / entitiesPerRow);
-                const col = index % entitiesPerRow;
-
                 template!.elements.push({
                     id: 'linked-entity',
                     uniqueId: nanoid(),
@@ -829,4 +845,101 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         newTemplate.name = `Новый ${typeNameMap[deviceType] || 'шаблон'}`;
         return newTemplate;
     },
+
+    setGroups: (groups) => {
+        set({ groups });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.GROUPS, JSON.stringify(groups));
+    },
+    handleCreateGroup: (fromDeviceId, toDeviceId, tabId) => {
+        const { tabs, setTabs, groups, setGroups } = get();
+        const tab = tabs.find(t => t.id === tabId);
+        if (!tab) return;
+        
+        const toItem = tab.layout.find(item => item.deviceId === toDeviceId);
+        if (!toItem) return;
+
+        const newGroup: Group = { id: nanoid(), name: 'Новая группа', deviceIds: [fromDeviceId, toDeviceId] };
+        const groupDeviceId = `internal::group_${newGroup.id}`;
+
+        const newLayoutItem: GridLayoutItem = {
+            deviceId: groupDeviceId,
+            col: toItem.col,
+            row: toItem.row,
+            width: 1,
+            height: 1,
+        };
+
+        const newLayout = tab.layout
+            .filter(item => item.deviceId !== fromDeviceId && item.deviceId !== toDeviceId)
+            .concat(newLayoutItem);
+
+        const newTabs = tabs.map(t => (t.id === tabId ? { ...t, layout: newLayout } : t));
+        
+        setTabs(newTabs);
+        setGroups([...groups, newGroup]);
+    },
+    handleAddToGroup: (fromDeviceId, toGroupId, tabId) => {
+        const { tabs, setTabs, groups, setGroups } = get();
+        const group = groups.find(g => g.id === toGroupId);
+        const tab = tabs.find(t => t.id === tabId);
+        if (!group || !tab || group.deviceIds.includes(fromDeviceId)) return;
+
+        const updatedGroup = { ...group, deviceIds: [...group.deviceIds, fromDeviceId] };
+        const newGroups = groups.map(g => (g.id === toGroupId ? updatedGroup : g));
+        
+        const newLayout = tab.layout.filter(item => item.deviceId !== fromDeviceId);
+        const newTabs = tabs.map(t => (t.id === tabId ? { ...t, layout: newLayout } : t));
+
+        setTabs(newTabs);
+        setGroups(newGroups);
+    },
+    handleUpdateGroup: (groupId, updates) => {
+        const newGroups = get().groups.map(g => (g.id === groupId ? { ...g, ...updates } : g));
+        get().setGroups(newGroups);
+    },
+    handleRemoveFromGroup: (groupId, deviceId, tabId) => {
+        const { groups, setGroups, handleDissolveGroup, handleDeviceAddToTab } = get();
+        const group = groups.find(g => g.id === groupId);
+        if (!group) return;
+
+        const newDeviceIds = group.deviceIds.filter(id => id !== deviceId);
+
+        if (newDeviceIds.length < 2) {
+            handleDissolveGroup(groupId, tabId);
+        } else {
+            const updatedGroup = { ...group, deviceIds: newDeviceIds };
+            const newGroups = groups.map(g => (g.id === groupId ? updatedGroup : g));
+            setGroups(newGroups);
+        }
+        
+        const deviceToAddBack = useHAStore.getState().allKnownDevices.get(deviceId);
+        if (deviceToAddBack) {
+            handleDeviceAddToTab(deviceToAddBack, tabId);
+        }
+    },
+    handleDissolveGroup: (groupId, tabId) => {
+        const { groups, setGroups, tabs, setTabs, handleDeviceAddToTab } = get();
+        const group = groups.find(g => g.id === groupId);
+        const tab = tabs.find(t => t.id === tabId);
+        if (!group || !tab) return;
+        
+        const groupDeviceId = `internal::group_${groupId}`;
+        
+        const newGroups = groups.filter(g => g.id !== groupId);
+        const newLayout = tab.layout.filter(item => item.deviceId !== groupDeviceId);
+        const newTabs = tabs.map(t => t.id === tabId ? { ...t, layout: newLayout } : t);
+        
+        setGroups(newGroups);
+        setTabs(newTabs); // Update tabs first to free up space
+
+        // Add devices back to the tab one by one
+        group.deviceIds.forEach(deviceId => {
+            const device = useHAStore.getState().allKnownDevices.get(deviceId);
+            if (device) {
+                // Use the store's own method to ensure consistent placement logic
+                get().handleDeviceAddToTab(device, tabId);
+            }
+        });
+    },
+
 }));

@@ -193,6 +193,7 @@ const App: React.FC = () => {
         editingEventTimerId, setEditingEventTimerId, eventTimerWidgets,
         resetCustomWidgetTimer, deleteCustomWidget, isChristmasThemeEnabled,
         editingGroupId, setEditingGroupId, handleUpdateGroup, handleDissolveGroup,
+        groups
     } = useAppStore();
 
     // Получение состояний модальных окон через хуки-селекторы для обеспечения реактивности
@@ -386,30 +387,24 @@ const App: React.FC = () => {
         return style;
     }, [currentColorScheme]);
 
-    // FIX: Moved useMemo hook to the top of the component to prevent conditional rendering error.
     const allDevices = useMemo((): Map<string, Device> => {
-        const { groups } = useAppStore.getState();
         const groupDevicesMap = new Map<string, Device>();
         
-        // The `groups` property is not in the provided store definition, so we must handle it being potentially undefined and cast to the correct type.
-        if (Array.isArray(groups)) {
-            for (const group of (groups as Group[])) {
-              const deviceId = `internal::group_${group.id}`;
-              // This creates a virtual "Device" object for each group
-              groupDevicesMap.set(deviceId, {
-                id: deviceId,
-                widgetId: group.id, // The widgetId links back to the actual group
-                name: group.name,
-                status: `${group.deviceIds.length} устройств`,
-                type: DeviceType.Group,
-                state: 'on',
-                haDomain: 'internal'
-              });
-            }
+        for (const group of groups) {
+          const deviceId = `internal::group_${group.id}`;
+          groupDevicesMap.set(deviceId, {
+            id: deviceId,
+            widgetId: group.id,
+            name: group.name,
+            status: `${group.deviceIds.length} устройств`,
+            type: DeviceType.Group,
+            state: 'on',
+            haDomain: 'internal'
+          });
         }
     
         return new Map([...allKnownDevices, ...groupDevicesMap.entries()]);
-      }, [allKnownDevices, tabs]);
+      }, [allKnownDevices, groups]);
 
     // --- Обработчики закрытия модальных окон ---
     const handleCloseDeviceSettings = useCallback(() => setEditingDevice(null), [setEditingDevice]);
