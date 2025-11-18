@@ -1,4 +1,3 @@
-
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Icon } from '@iconify/react';
 
@@ -10,6 +9,7 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  errorInfo: ErrorInfo | null;
 }
 
 /**
@@ -26,6 +26,7 @@ class ErrorBoundary extends Component<Props, State> {
     this.state = {
       hasError: false,
       error: null,
+      errorInfo: null,
     };
   }
 
@@ -34,7 +35,7 @@ class ErrorBoundary extends Component<Props, State> {
    * была выброшена ошибка. Он позволяет обновить состояние, чтобы при следующем рендере
    * показать запасной UI.
    */
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
   }
 
@@ -45,6 +46,7 @@ class ErrorBoundary extends Component<Props, State> {
    */
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught error:", error, errorInfo);
+    this.setState({ errorInfo });
   }
 
   // Обработчик для перезагрузки страницы.
@@ -65,19 +67,25 @@ class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="flex h-screen w-screen items-center justify-center bg-gray-900 text-gray-200 p-4">
-          <div className="w-full max-w-lg bg-gray-800 p-8 rounded-2xl shadow-lg ring-1 ring-white/10 text-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+        <div className="flex h-screen w-screen items-center justify-center bg-slate-900 text-gray-200 p-4">
+          <div className="w-full max-w-lg bg-slate-800 p-8 rounded-2xl shadow-lg ring-1 ring-white/10 text-center">
+            <Icon icon="mdi:alert-circle" className="h-12 w-12 mx-auto text-red-500" />
             <h1 className="mt-4 text-2xl font-bold text-white">Что-то пошло не так</h1>
             <p className="mt-2 text-gray-400">Произошла непредвиденная ошибка, которая помешала загрузке приложения.</p>
             {this.state.error && (
-              <details className="mt-4 text-left bg-gray-900/50 p-3 rounded-lg">
-                <summary className="cursor-pointer text-sm text-gray-300">Технические детали</summary>
-                <pre className="mt-2 text-xs text-red-300 whitespace-pre-wrap overflow-auto max-h-40">
-                  <code>{this.state.error.toString()}</code>
-                </pre>
+              <details className="mt-4 text-left rounded-lg bg-slate-700/50 overflow-hidden">
+                <summary className="cursor-pointer text-sm text-gray-300 list-none p-3 hover:bg-slate-700 flex items-center">
+                  <Icon icon="mdi:chevron-right" className="w-5 h-5 mr-1 transition-transform duration-200 details-arrow" />
+                  Технические детали
+                </summary>
+                <div className="bg-slate-900 p-3">
+                    <pre className="text-xs text-red-300 whitespace-pre-wrap overflow-auto max-h-60 no-scrollbar">
+                      <code>
+                        {this.state.error.toString()}
+                        {this.state.errorInfo && `\n\nComponent Stack:\n${this.state.errorInfo.componentStack}`}
+                      </code>
+                    </pre>
+                </div>
               </details>
             )}
             <button

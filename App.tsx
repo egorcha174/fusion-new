@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
-import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet, GridLayoutItem, EventTimerWidget } from './types';
+// FIX: Added `Group` to imports to correctly type virtual group devices.
+import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet, GridLayoutItem, EventTimerWidget, Group } from './types';
 import { nanoid } from 'nanoid';
 import { useAppStore } from './store/appStore';
 import { useHAStore } from './store/haStore';
@@ -408,28 +409,24 @@ const App: React.FC = () => {
    * Глобальный обработчик контекстного меню (правый клик на всем приложении).
    * Открывает меню действий для карточки устройства, если включен режим редактирования.
    */
-// FIX: Refactored logic to be more concise and safely handle dataset properties.
+  // FIX: Refactored logic to be more concise and safely handle dataset properties, resolving a potential typing issue.
   const handleGlobalContextMenu = useCallback((event: React.MouseEvent) => {
     const target = event.target as HTMLElement;
-    const isDashboard = currentPage === 'dashboard';
-
-    // Отключаем стандартное меню на дашборде, но не на интерактивных элементах (поля ввода и т.д.).
-    if (isDashboard) {
+    
+    if (currentPage === 'dashboard') {
       const isInteractiveElement = target.closest('input, textarea, [contenteditable="true"], select');
       if (!isInteractiveElement) {
         event.preventDefault();
       }
     }
 
-    const deviceTarget = target.closest('[data-device-id]') as HTMLElement | null;
+    const deviceTarget = target.closest<HTMLElement>('[data-device-id]');
     const deviceId = deviceTarget?.dataset.deviceId;
     const tabId = deviceTarget?.dataset.tabId;
 
-    if (isEditMode && deviceTarget && typeof deviceId === 'string' && typeof tabId === 'string') {
-        // Показываем кастомное меню для устройства в режиме редактирования
+    if (isEditMode && deviceId && tabId) {
         handleDeviceContextMenu(deviceId, tabId, event.clientX, event.clientY);
     } else {
-        // В остальных случаях (не в режиме редактирования, или клик по фону) просто закрываем меню.
         setContextMenu(null);
     }
   }, [isEditMode, handleDeviceContextMenu, setContextMenu, currentPage]);
@@ -457,26 +454,29 @@ const App: React.FC = () => {
   }
   
   // Подготовка данных для модальных окон и контекстных меню
-  // FIX: `groupDevices` does not exist in the store. Replaced with logic to create virtual group devices from the `groups` state. This resolves multiple TypeScript errors related to `contextMenuDevice`.
-  const allDevices = useMemo(() => {
+  // FIX: Explicitly typed `useMemo` to return `Map<string, Device>` and added safe access for `groups` to resolve multiple TypeScript errors related to `contextMenuDevice` being inferred as `unknown`.
+  const allDevices = useMemo((): Map<string, Device> => {
     const { groups } = useAppStore.getState();
     const groupDevicesMap = new Map<string, Device>();
-    for (const group of groups) {
-      const deviceId = `internal::group_${group.id}`;
-      // This creates a virtual "Device" object for each group
-      groupDevicesMap.set(deviceId, {
-        id: deviceId,
-        widgetId: group.id, // The widgetId links back to the actual group
-        name: group.name,
-        status: `${group.deviceIds.length} устройств`,
-        type: DeviceType.Group,
-        state: 'on',
-        haDomain: 'internal'
-      });
+    
+    // The `groups` property is not in the provided store definition, so we must handle it being potentially undefined and cast to the correct type.
+    if (Array.isArray(groups)) {
+        for (const group of (groups as Group[])) {
+          const deviceId = `internal::group_${group.id}`;
+          // This creates a virtual "Device" object for each group
+          groupDevicesMap.set(deviceId, {
+            id: deviceId,
+            widgetId: group.id, // The widgetId links back to the actual group
+            name: group.name,
+            status: `${group.deviceIds.length} устройств`,
+            type: DeviceType.Group,
+            state: 'on',
+            haDomain: 'internal'
+          });
+        }
     }
+
     return new Map([...allKnownDevices, ...groupDevicesMap.entries()]);
-    // The component re-renders from many appStore state changes, which will trigger this memo recalculation.
-    // Adding a dependency to `tabs` as a proxy for changes related to groups (e.g., dissolving).
   }, [allKnownDevices, tabs]);
   const contextMenuDevice = contextMenu ? allDevices.get(contextMenu.deviceId) : null;
   const isTemplateable = contextMenuDevice ? [
