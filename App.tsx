@@ -25,7 +25,6 @@ const HistoryModal = lazy(() => import('./components/HistoryModal.tsx'));
 const EventTimerSettingsModal = lazy(() => import('./components/EventTimerSettingsModal.tsx'));
 const ConfirmDialog = lazy(() => import('./components/ConfirmDialog.tsx'));
 const ChristmasTheme = lazy(() => import('./components/ChristmasTheme.tsx'));
-const GroupSettingsModal = lazy(() => import('./components/GroupSettingsModal.tsx'));
 
 
 /**
@@ -191,7 +190,6 @@ const App: React.FC = () => {
         colorScheme, getTemplateForDevice, createNewBlankTemplate,
         editingEventTimerId, setEditingEventTimerId, eventTimerWidgets,
         resetCustomWidgetTimer, deleteCustomWidget, isChristmasThemeEnabled,
-        editingGroupId, setEditingGroupId, handleUpdateGroup, handleDissolveGroup,
     } = useAppStore();
 
     // Получение состояний модальных окон через хуки-селекторы для обеспечения реактивности
@@ -392,7 +390,6 @@ const App: React.FC = () => {
     const handleCloseHistoryModal = useCallback(() => setHistoryModalEntityId(null), [setHistoryModalEntityId]);
     const handleCloseFloatingCamera = useCallback(() => setFloatingCamera(null), [setFloatingCamera]);
     const handleCloseEventTimerSettings = useCallback(() => setEditingEventTimerId(null), [setEditingEventTimerId]);
-    const handleCloseGroupSettings = useCallback(() => setEditingGroupId(null), [setEditingGroupId]);
 
   // --- Обработчики Контекстного Меню ---
 
@@ -457,35 +454,14 @@ const App: React.FC = () => {
   }
   
   // Подготовка данных для модальных окон и контекстных меню
-  // FIX: `groupDevices` does not exist in the store. Replaced with logic to create virtual group devices from the `groups` state. This resolves multiple TypeScript errors related to `contextMenuDevice`.
-  const allDevices = useMemo(() => {
-    const { groups } = useAppStore.getState();
-    const groupDevicesMap = new Map<string, Device>();
-    for (const group of groups) {
-      const deviceId = `internal::group_${group.id}`;
-      // This creates a virtual "Device" object for each group
-      groupDevicesMap.set(deviceId, {
-        id: deviceId,
-        widgetId: group.id, // The widgetId links back to the actual group
-        name: group.name,
-        status: `${group.deviceIds.length} устройств`,
-        type: DeviceType.Group,
-        state: 'on',
-        haDomain: 'internal'
-      });
-    }
-    return new Map([...allKnownDevices, ...groupDevicesMap.entries()]);
-    // The component re-renders from many appStore state changes, which will trigger this memo recalculation.
-    // Adding a dependency to `tabs` as a proxy for changes related to groups (e.g., dissolving).
-  }, [allKnownDevices, tabs]);
-  const contextMenuDevice = contextMenu ? allDevices.get(contextMenu.deviceId) : null;
+  const contextMenuDevice = contextMenu ? allKnownDevices.get(contextMenu.deviceId) : null;
   const isTemplateable = contextMenuDevice ? [
     DeviceType.Sensor, DeviceType.DimmableLight, DeviceType.Light,
     DeviceType.Switch, DeviceType.Thermostat, DeviceType.Humidifier,
     DeviceType.Custom
   ].includes(contextMenuDevice.type) : false;
   const currentTemplate = getTemplateForDevice(contextMenuDevice);
-  const historyDevice = historyModalEntityId ? allDevices.get(historyModalEntityId) : null;
+  const historyDevice = historyModalEntityId ? allKnownDevices.get(historyModalEntityId) : null;
   const historyDeviceTemplate = getTemplateForDevice(historyDevice);
   const valueElement = historyDeviceTemplate?.elements.find(el => el.id === 'value' || el.id === 'temperature');
   const historyDecimalPlaces = valueElement?.styles?.decimalPlaces;
@@ -568,7 +544,6 @@ const App: React.FC = () => {
         {historyModalEntityId && <HistoryModal entityId={historyModalEntityId} onClose={handleCloseHistoryModal} getHistory={getHistory} allKnownDevices={allKnownDevices} colorScheme={currentColorScheme} decimalPlaces={historyDecimalPlaces} />}
         {floatingCamera && <FloatingCameraWindow device={floatingCamera} onClose={handleCloseFloatingCamera} haUrl={haUrl} signPath={signPath} getCameraStreamUrl={getCameraStreamUrl} />}
         {editingEventTimerId && <EventTimerSettingsModal widgetId={editingEventTimerId} onClose={handleCloseEventTimerSettings} currentColorScheme={currentColorScheme} />}
-        {editingGroupId && <GroupSettingsModal groupId={editingGroupId} onClose={handleCloseGroupSettings} />}
       </Suspense>
       
       {confirmingDeleteWidget && (
@@ -587,24 +562,7 @@ const App: React.FC = () => {
       {contextMenu && (
         <Suspense fallback={null}>
           <ContextMenu x={contextMenu.x} y={contextMenu.y} isOpen={!!contextMenu} onClose={handleCloseContextMenu}>
-            {contextMenuDevice && contextMenuDevice.type === DeviceType.Group && (
-               <>
-                <div onClick={() => { 
-                    const newName = prompt("Введите новое имя для группы:", contextMenuDevice.name);
-                    if (newName && contextMenuDevice.widgetId) handleUpdateGroup(contextMenuDevice.widgetId, { name: newName });
-                    handleCloseContextMenu(); 
-                }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">Переименовать</div>
-                <div onClick={() => {
-                    if(window.confirm('Вы уверены, что хотите расформировать группу? Все устройства вернутся на вкладку.') && contextMenuDevice.widgetId && contextMenu.tabId) {
-                        handleDissolveGroup(contextMenuDevice.widgetId, contextMenu.tabId);
-                    }
-                    handleCloseContextMenu();
-                }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm text-red-600 dark:text-red-400">Расформировать</div>
-                 <div className="h-px bg-gray-300 dark:bg-gray-600 my-1 mx-1" />
-                <div onClick={() => { useAppStore.getState().handleDeviceRemoveFromTab(contextMenu.deviceId, contextMenu.tabId); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">Удалить с вкладки</div>
-               </>
-            )}
-            {contextMenuDevice && contextMenuDevice.type !== DeviceType.Group && (
+            {contextMenuDevice && (
               <>
                 <div onClick={() => { setEditingDevice(contextMenuDevice); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">Настроить</div>
                 <div onClick={() => { setHistoryModalEntityId(contextMenuDevice.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">История</div>

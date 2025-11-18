@@ -14,14 +14,11 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
   const entityIdLower = entityId.toLowerCase();
   const domain = entityId.split('.')[0];
 
-  // --- Приоритет 0: Внутренние виджеты и группы ---
+  // --- Приоритет 0: Внутренние виджеты ---
   if (domain === 'internal') {
     if (entityId.includes('event-timer')) return DeviceType.EventTimer;
     if (entityId.includes('battery')) return DeviceType.BatteryWidget;
     if (entityId.includes('custom-card')) return DeviceType.Custom;
-  }
-  if (domain === 'group') {
-      return DeviceType.Group;
   }
 
   // --- Приоритет 1: Прямое сопоставление домена (однозначные случаи) ---
