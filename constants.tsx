@@ -9,6 +9,7 @@ export const LOCAL_STORAGE_KEYS = {
   TABS: 'ha-tabs',
   ACTIVE_TAB: 'ha-active-tab',
   CUSTOMIZATIONS: 'ha-device-customizations',
+  GROUPS: 'ha-groups',
   CLOCK_SETTINGS: 'ha-clock-settings',
   CARD_TEMPLATES: 'ha-card-templates',
   SIDEBAR_WIDTH: 'ha-sidebar-width',

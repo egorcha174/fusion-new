@@ -31,6 +31,7 @@ export enum DeviceType {
   Automation,
   Script,
   MediaPlayer, // Новый тип для медиа-плееров
+  Group, // Новый тип для папок/групп устройств
   Unknown, // Резервный тип для неопознанных устройств
 }
 
@@ -49,7 +50,7 @@ export interface WeatherForecast {
  * Эта структура данных является результатом преобразования сущности Home Assistant (HassEntity).
  */
 export interface Device {
-  id: string; // entity_id из Home Assistant
+  id: string; // entity_id из Home Assistant или внутренний ID для виджетов/групп
   name: string; // Имя устройства
   status: string; // Человекочитаемый статус (например, 'Включено', '22.5°C', 'Нагрев')
   type: DeviceType; // Внутренний тип устройства
@@ -77,8 +78,8 @@ export interface Device {
   fanSpeed?: number; // Скорость вентилятора в процентах
   fanLevel?: string; // Текущий уровень скорости вентилятора (строка, для select)
   fanLevels?: string[]; // Доступные уровни скорости вентилятора (строки, для select)
-  // Для кастомных виджетов
-  widgetId?: string;
+  // Для кастомных виджетов и групп
+  widgetId?: string; // Может использоваться как groupId для групп
   buttonText?: string;
   fillPercentage?: number;
   daysRemaining?: number;
@@ -423,6 +424,15 @@ export interface CardTemplate {
 
 // Словарь шаблонов, где ключ - ID шаблона.
 export type CardTemplates = Record<string, CardTemplate>;
+
+/**
+ * Описывает группу устройств (папку).
+ */
+export interface Group {
+  id: string;
+  name: string;
+  deviceIds: string[];
+}
 
 
 // --- Типы для WebSocket API Home Assistant ---

@@ -40,6 +40,7 @@ const iconMap: Record<DeviceType, { on: string; off: string; animation?: 'spin' 
   [DeviceType.Automation]: { on: 'mdi:robot-outline', off: 'mdi:robot-off-outline' },
   [DeviceType.Script]: { on: 'mdi:script-text-play-outline', off: 'mdi:script-text-outline' },
   [DeviceType.MediaPlayer]: { on: 'mdi:cast-connected', off: 'mdi:cast' },
+  [DeviceType.Group]: { on: 'mdi:folder-multiple-outline', off: 'mdi:folder-outline' },
   [DeviceType.Unknown]: { on: 'mdi:help-rhombus-outline', off: 'mdi:help-rhombus-outline' },
 };
 
