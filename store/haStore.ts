@@ -44,6 +44,7 @@ interface HAActions {
   getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
   getConfig: () => Promise<any>;
   getHistory: (entityIds: string[], startTime: string, endTime?: string) => Promise<any>;
+  getWeatherForecasts: (entityId: string, type: 'daily' | 'hourly') => Promise<any>;
 
   // Derived actions for convenience
   handleDeviceToggle: (deviceId: string) => void;
@@ -64,6 +65,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   const cameraStreamCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
   const configCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
   const historyPeriodCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
+  const weatherForecastsCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
   let brightnessTimeoutRef: number | null = null;
 
   const sendMessage = (message: object) => {
@@ -374,7 +376,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                         socketRef!.onmessage = (event: MessageEvent) => {
                             const data = JSON.parse(event.data);
                             if (data.type === 'result') {
-                                const callbacks = [signPathCallbacks, cameraStreamCallbacks, configCallbacks, historyPeriodCallbacks];
+                                const callbacks = [signPathCallbacks, cameraStreamCallbacks, configCallbacks, historyPeriodCallbacks, weatherForecastsCallbacks];
                                 for (const cbMap of callbacks) {
                                     if (cbMap.has(data.id)) {
                                         const callback = cbMap.get(data.id);
@@ -467,6 +469,23 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         const id = messageIdRef++;
         historyPeriodCallbacks.set(id, { resolve, reject });
         sendMessage({ id, type: 'history/history_during_period', entity_ids: entityIds, start_time: startTime, end_time: endTime, minimal_response: true });
+    }),
+    getWeatherForecasts: (entityId, type) => new Promise((resolve, reject) => {
+        const id = messageIdRef++;
+        weatherForecastsCallbacks.set(id, { resolve, reject });
+        sendMessage({
+            id,
+            type: 'call_service',
+            domain: 'weather',
+            service: 'get_forecasts',
+            target: {
+                entity_id: entityId,
+            },
+            service_data: {
+                type,
+            },
+            return_response: true,
+        });
     }),
 
     // --- Derived Actions ---

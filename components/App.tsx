@@ -174,7 +174,7 @@ const App: React.FC = () => {
     const {
         connectionStatus, isLoading, error, connect, allKnownDevices,
         allCameras, getCameraStreamUrl, getConfig, getHistory, signPath,
-        haUrl, allRoomsWithPhysicalDevices,
+        haUrl, allRoomsWithPhysicalDevices, getWeatherForecasts
     } = useHAStore();
 
     // Получение состояний и действий из хранилища Zustand для UI приложения.
@@ -515,6 +515,7 @@ const App: React.FC = () => {
             colorScheme={currentColorScheme}
             isDark={isDark}
             allKnownDevices={allKnownDevices}
+            getWeatherForecasts={getWeatherForecasts}
           />
         </Suspense>
         )}

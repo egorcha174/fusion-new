@@ -171,10 +171,11 @@ const useIsLg = () => {
 const App: React.FC = () => {
     const initializationDone = useRef(false);
     // Получение состояний и действий из хранилища Zustand для Home Assistant.
+    // FIX: Destructured `getWeatherForecasts` to pass it to the InfoPanel component.
     const {
         connectionStatus, isLoading, error, connect, allKnownDevices,
         allCameras, getCameraStreamUrl, getConfig, getHistory, signPath,
-        haUrl, allRoomsWithPhysicalDevices,
+        haUrl, allRoomsWithPhysicalDevices, getWeatherForecasts
     } = useHAStore();
 
     // Получение состояний и действий из хранилища Zustand для UI приложения.
@@ -504,6 +505,7 @@ const App: React.FC = () => {
       <div className="flex min-h-screen relative" onContextMenu={handleGlobalContextMenu}>
         {isSidebarVisible && (
         <Suspense fallback={<div className="bg-gray-900" style={{ width: `${sidebarWidth}px` }} />}>
+          {/* FIX: Passed the `getWeatherForecasts` prop to `InfoPanel` to satisfy its prop requirements. */}
           <InfoPanel 
             sidebarWidth={sidebarWidth} 
             setSidebarWidth={setSidebarWidth}
@@ -515,6 +517,7 @@ const App: React.FC = () => {
             colorScheme={currentColorScheme}
             isDark={isDark}
             allKnownDevices={allKnownDevices}
+            getWeatherForecasts={getWeatherForecasts}
           />
         </Suspense>
         )}

@@ -31,6 +31,7 @@ interface WeatherWidgetProps {
     weatherSettings: WeatherSettings;
     allKnownDevices: Map<string, Device>;
     weatherEntityId: string | null;
+    getWeatherForecasts: (entityId: string, type: 'daily' | 'hourly') => Promise<any>;
 }
 
 // --- MAPPINGS FOR YANDEX WEATHER ---
@@ -102,7 +103,7 @@ const haConditionToOwmCode = (condition: string): string => {
  * Получает данные из OpenWeatherMap API, используя координаты из конфигурации Home Assistant.
  */
 const WeatherWidget: React.FC<WeatherWidgetProps> = (props) => {
-    const { weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, getConfig, colorScheme, weatherSettings, allKnownDevices, weatherEntityId } = props;
+    const { weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, getConfig, colorScheme, weatherSettings, allKnownDevices, weatherEntityId, getWeatherForecasts } = props;
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -124,6 +125,28 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = (props) => {
             if (!entity || entity.haDomain !== 'weather') {
                 throw new Error("Выбранная сущность не является погодной интеграцией или не найдена.");
             }
+
+            // Получение прогноза через сервис
+            let forecastData: any[] = [];
+            try {
+                // Запрашиваем ежедневный прогноз
+                const forecastResult = await getWeatherForecasts(weatherEntityId, 'daily');
+                // Ответ содержит ключ с entity_id, внутри которого находится массив forecast
+                if (forecastResult && forecastResult[weatherEntityId] && forecastResult[weatherEntityId].forecast) {
+                    forecastData = forecastResult[weatherEntityId].forecast;
+                } else {
+                    console.warn('Прогноз погоды не был получен от сервиса get_forecasts.');
+                }
+            } catch (e) {
+                console.error("Ошибка при вызове сервиса weather.get_forecasts:", e);
+                // Если сервис не сработал, не прерываем выполнение, а просто оставляем прогноз пустым
+            }
+
+            // Fallback: если сервис не вернул данные, пытаемся взять их из атрибутов сущности (для старых интеграций)
+            if (forecastData.length === 0 && entity.forecast && entity.forecast.length > 0) {
+                console.log('Используется прогноз из атрибутов сущности (fallback).');
+                forecastData = entity.forecast;
+            }
     
             return {
                 current: {
@@ -131,9 +154,9 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = (props) => {
                     desc: entity.status,
                     icon: haConditionToOwmCode(entity.condition ?? 'sunny'),
                 },
-                forecast: (entity.forecast || []).slice(0, forecastDays).map((f) => ({
+                forecast: forecastData.slice(0, forecastDays).map((f) => ({
                     day: new Date(f.datetime).toLocaleDateString("ru-RU", { weekday: "short" }),
-                    tempMax: f.temperature,
+                    tempMax: f.temperature, // HA daily forecast usually uses 'temperature' for max temp
                     tempMin: f.templow,
                     icon: haConditionToOwmCode(f.condition),
                 }))
@@ -313,7 +336,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = (props) => {
         };
 
         fetchWeather();
-    }, [weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, weatherEntityId, getConfig, weatherSettings, allKnownDevices]);
+    }, [weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, weatherEntityId, getConfig, weatherSettings, allKnownDevices, getWeatherForecasts]);
 
     if (loading) {
         return ( // Скелет загрузки

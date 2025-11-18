@@ -156,13 +156,14 @@ interface InfoPanelProps {
     colorScheme: ColorScheme['light'];
     isDark: boolean;
     allKnownDevices: Map<string, Device>;
+    getWeatherForecasts: (entityId: string, type: 'daily' | 'hourly') => Promise<any>;
 }
 
 /**
  * Боковая информационная панель, содержащая часы, виджет камеры и виджет погоды.
  * Поддерживает изменение ширины путем перетаскивания правого края.
  */
-const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, cameras, haUrl, signPath, getCameraStreamUrl, getConfig, colorScheme, isDark, allKnownDevices }) => {
+const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, cameras, haUrl, signPath, getCameraStreamUrl, getConfig, colorScheme, isDark, allKnownDevices, getWeatherForecasts }) => {
     const [isResizing, setIsResizing] = useState(false);
     const { clockSettings, weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, weatherSettings, weatherEntityId } = useAppStore();
 
@@ -226,6 +227,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, ca
                     colorScheme={colorScheme}
                     allKnownDevices={allKnownDevices}
                     weatherEntityId={weatherEntityId}
+                    getWeatherForecasts={getWeatherForecasts}
                 />
             </div>
 
