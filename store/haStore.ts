@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device, Room, RoomWithPhysicalDevices, PhysicalDevice, DeviceType } from '../types';
 import { constructHaUrl } from '../utils/url';
-import { mapEntitiesToRooms } from '../utils/ha-data-mapper';
+import { mapEntitiesToRooms, mapToAllKnownDevices, mapToRoomsWithPhysicalDevices } from '../utils/ha-data-mapper';
 import { useAppStore } from './appStore';
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'failed';
@@ -19,6 +19,15 @@ interface HAState {
   areas: HassArea[];
   devices: HassDevice[];
   entityRegistry: HassEntityRegistryEntry[];
+  // Derived state
+  readonly allKnownDevices: Map<string, Device>;
+  readonly rooms: Room[];
+  readonly allRoomsWithPhysicalDevices: RoomWithPhysicalDevices[];
+  readonly allCameras: Device[];
+  readonly batteryDevices: { deviceId: string; deviceName: string; batteryLevel: number }[];
+  readonly allScenes: Device[];
+  readonly allAutomations: Device[];
+  readonly allScripts: Device[];
 }
 
 interface HAActions {
@@ -67,7 +76,47 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     devices: [],
     entityRegistry: [],
 
-    connect: (url, token) => {
+    get allKnownDevices() {
+        const { entities } = get();
+        const { customizations } = useAppStore.getState();
+        const entitiesArray = Object.values(entities);
+        return mapToAllKnownDevices(entitiesArray, customizations);
+    },
+    get rooms() {
+        const { entities, areas, devices, entityRegistry } = get();
+        const { customizations } = useAppStore.getState();
+        const entitiesArray = Object.values(entities);
+        return mapEntitiesToRooms(entitiesArray, areas, devices, entityRegistry, customizations);
+    },
+    get allRoomsWithPhysicalDevices() {
+        const { allKnownDevices, areas, devices, entityRegistry } = get();
+        return mapToRoomsWithPhysicalDevices(allKnownDevices, areas, devices, entityRegistry);
+    },
+    get allCameras() {
+        const devices = Array.from(get().allKnownDevices.values());
+        return devices.filter(d => d.type === DeviceType.Camera);
+    },
+    get batteryDevices() {
+        return Array.from(get().allKnownDevices.values())
+            .filter(d => d.batteryLevel !== undefined)
+            .map(d => ({
+                deviceId: d.id,
+                deviceName: d.name,
+                batteryLevel: d.batteryLevel!,
+            }))
+            .sort((a, b) => a.batteryLevel - b.batteryLevel);
+    },
+    get allScenes() {
+        return Array.from(get().allKnownDevices.values()).filter(d => d.type === DeviceType.Scene);
+    },
+    get allAutomations() {
+        return Array.from(get().allKnownDevices.values()).filter(d => d.type === DeviceType.Automation);
+    },
+    get allScripts() {
+        return Array.from(get().allKnownDevices.values()).filter(d => d.type === DeviceType.Script);
+    },
+
+    connect: (url: string, token: string) => {
         if (socketRef) socketRef.close();
         
         set({ connectionStatus: 'connecting', error: null, isLoading: true, haUrl: url });
@@ -138,7 +187,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                         
                                         if (initialFetchIds.size === 0) {
                                             const { entities, areas, devices, entityRegistry } = get();
-                                            useAppStore.getState().processHAData(entities, areas, devices, entityRegistry);
+                                            // useAppStore.getState().processHAData(entities, areas, devices, entityRegistry);
                                             set({ isLoading: false });
                                         }
                                     }
@@ -148,8 +197,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                 const newEntities = { ...get().entities, [entity_id]: new_state };
                                 if (!new_state) delete newEntities[entity_id];
                                 set({ entities: newEntities });
-                                const { areas, devices, entityRegistry } = get();
-                                useAppStore.getState().processHAData(newEntities, areas, devices, entityRegistry);
+                                // const { areas, devices, entityRegistry } = get();
+                                // useAppStore.getState().processHAData(newEntities, areas, devices, entityRegistry);
                             }
                         };
                         break;
@@ -177,13 +226,13 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         socketRef?.close();
         set({ connectionStatus: 'idle', entities: {}, areas: [], devices: [], entityRegistry: [], error: null, isLoading: false });
     },
-    callService: (domain, service, service_data) => sendMessage({ id: messageIdRef++, type: 'call_service', domain, service, service_data }),
-    signPath: (path) => new Promise((resolve, reject) => {
+    callService: (domain: string, service: string, service_data: object) => sendMessage({ id: messageIdRef++, type: 'call_service', domain, service, service_data }),
+    signPath: (path: string) => new Promise((resolve, reject) => {
         const id = messageIdRef++;
         signPathCallbacks.set(id, { resolve, reject });
         sendMessage({ id, type: 'auth/sign_path', path });
     }),
-    getCameraStreamUrl: (entityId) => new Promise((resolve, reject) => {
+    getCameraStreamUrl: (entityId: string) => new Promise((resolve, reject) => {
         const id = messageIdRef++;
         cameraStreamCallbacks.set(id, { resolve, reject });
         sendMessage({ id, type: 'camera/stream', entity_id: entityId });
@@ -193,21 +242,21 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         configCallbacks.set(id, { resolve, reject });
         sendMessage({ id, type: 'get_config' });
     }),
-    getHistory: (entityIds, startTime, endTime) => new Promise((resolve, reject) => {
+    getHistory: (entityIds: string[], startTime: string, endTime?: string) => new Promise((resolve, reject) => {
         const id = messageIdRef++;
         historyPeriodCallbacks.set(id, { resolve, reject });
         sendMessage({ id, type: 'history/history_during_period', entity_ids: entityIds, start_time: startTime, end_time: endTime, minimal_response: true });
     }),
 
     // --- Derived Actions ---
-    handleDeviceToggle: (deviceId) => {
+    handleDeviceToggle: (deviceId: string) => {
         const entity = get().entities[deviceId];
         if (!entity) return;
         const service = entity.state === 'on' ? 'turn_off' : 'turn_on';
         const [domain] = entity.entity_id.split('.');
         get().callService(domain, service, { entity_id: entity.entity_id });
     },
-    handleTemperatureChange: (deviceId, value, isDelta = false) => {
+    handleTemperatureChange: (deviceId: string, value: number, isDelta = false) => {
       const entity = get().entities[deviceId];
       if (!entity) return;
       const [domain] = entity.entity_id.split('.');
@@ -223,12 +272,12 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         get().callService('humidifier', 'set_humidity', { entity_id: deviceId, humidity: clampedHumidity });
       }
     },
-    handleHvacModeChange: (deviceId, mode) => {
+    handleHvacModeChange: (deviceId: string, mode: string) => {
         const entity = get().entities[deviceId];
         if (!entity) return;
         get().callService('climate', 'set_hvac_mode', { entity_id: entity.entity_id, hvac_mode: mode });
     },
-    handleBrightnessChange: (deviceId, brightness) => {
+    handleBrightnessChange: (deviceId: string, brightness: number) => {
         if (brightnessTimeoutRef) clearTimeout(brightnessTimeoutRef);
         brightnessTimeoutRef = window.setTimeout(() => {
             const entity = get().entities[deviceId];
@@ -236,7 +285,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             get().callService('light', 'turn_on', { entity_id: entity.entity_id, brightness_pct: brightness });
         }, 200);
     },
-    handlePresetChange: (deviceId, preset) => {
+    handlePresetChange: (deviceId: string, preset: string) => {
         const [domain] = deviceId.split('.');
         const serviceData = domain === 'humidifier'
             ? { entity_id: deviceId, mode: preset }
@@ -245,7 +294,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         
         get().callService(domain, serviceName, serviceData);
     },
-    handleFanSpeedChange: (deviceId, value) => {
+    handleFanSpeedChange: (deviceId: string, value: number | string) => {
         const entity = get().entities[deviceId];
         if (!entity) return;
 
@@ -255,7 +304,14 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             get().callService('select', 'select_option', { entity_id: deviceId, option: value });
         }
     },
-    triggerScene: (entityId) => {
+    triggerScene: (entityId: string) => {
         get().callService('scene', 'turn_on', { entity_id: entityId });
     },
-    triggerAutomation: (
+    triggerAutomation: (entityId: string) => {
+        get().callService('automation', 'trigger', { entity_id: entityId });
+    },
+    triggerScript: (entityId: string) => {
+        get().callService('script', 'turn_on', { entity_id: entityId });
+    },
+  };
+});

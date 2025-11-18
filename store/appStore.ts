@@ -708,6 +708,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             const colGap = 5;
 
             physicalDevice.entities.forEach((entity, index) => {
+                const row = Math.floor(index / entitiesPerRow);
+                const col = index % entitiesPerRow;
                 template!.elements.push({
                     id: 'linked-entity',
                     uniqueId: nanoid(),

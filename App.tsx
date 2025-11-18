@@ -429,7 +429,7 @@ const App: React.FC = () => {
    * Глобальный обработчик контекстного меню (правый клик на всем приложении).
    * Открывает меню действий для карточки устройства, если включен режим редактирования.
    */
-  // FIX: Refactored logic to be more concise and safely handle dataset properties, resolving a potential typing issue.
+  // FIX: Refactored logic to be more concise and safely handle dataset properties, resolving potential typing issues.
   const handleGlobalContextMenu = useCallback((event: React.MouseEvent) => {
     const target = event.target as HTMLElement;
     
@@ -441,12 +441,15 @@ const App: React.FC = () => {
     }
 
     const deviceTarget = target.closest<HTMLElement>('[data-device-id]');
-    const deviceId = deviceTarget?.dataset.deviceId;
-    const tabId = deviceTarget?.dataset.tabId;
+    
+    if (isEditMode && deviceTarget) {
+        const { deviceId, tabId } = deviceTarget.dataset;
 
-    // FIX: Replaced truthiness check with an explicit `typeof` check to satisfy strict TypeScript rules and prevent "Type 'unknown' is not assignable to type 'string'" error.
-    if (isEditMode && typeof deviceId === 'string' && typeof tabId === 'string') {
-        handleDeviceContextMenu(deviceId, tabId, event.clientX, event.clientY);
+        if (deviceId && tabId) {
+            handleDeviceContextMenu(deviceId, tabId, event.clientX, event.clientY);
+        } else {
+            setContextMenu(null);
+        }
     } else {
         setContextMenu(null);
     }

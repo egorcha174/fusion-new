@@ -1,4 +1,4 @@
-import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization, WeatherForecast } from '../types';
+import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization, WeatherForecast, PhysicalDevice, RoomWithPhysicalDevices } from '../types';
 
 /**
  * Определяет внутренний тип устройства (`DeviceType`) на основе данных из Home Assistant.
@@ -321,4 +321,98 @@ export const mapEntitiesToRooms = (
 
   // Возвращаем массив комнат, отфильтровывая пустые.
   return Array.from(roomsMap.values()).filter(room => room.devices.length > 0);
+};
+
+/**
+ * Создает плоскую карту всех известных устройств.
+ * @param entities - Все сущности.
+ * @param customizations - Пользовательские настройки.
+ * @param showHidden - Показывать ли скрытые устройства.
+ * @returns - Map<string, Device>.
+ */
+export const mapToAllKnownDevices = (
+  entities: HassEntity[],
+  customizations: DeviceCustomizations,
+  showHidden: boolean = false
+): Map<string, Device> => {
+  const deviceMap = new Map<string, Device>();
+  entities.forEach(entity => {
+    if (!entity) return;
+    const customization = customizations[entity.entity_id] || {};
+    if (customization.isHidden && !showHidden) return;
+    const device = entityToDevice(entity, customization);
+    if (device) {
+      deviceMap.set(device.id, device);
+    }
+  });
+  return deviceMap;
+};
+
+/**
+ * Группирует устройства по физическим устройствам и комнатам.
+ * @param allKnownDevices - Карта всех преобразованных устройств.
+ * @param areas - Все области (комнаты).
+ * @param haDevices - Все физические устройства.
+ * @param entityRegistry - Реестр сущностей для связей.
+ * @returns - Массив комнат с физическими устройствами.
+ */
+export const mapToRoomsWithPhysicalDevices = (
+    allKnownDevices: Map<string, Device>,
+    areas: HassArea[],
+    haDevices: HassDevice[],
+    entityRegistry: HassEntityRegistryEntry[]
+): RoomWithPhysicalDevices[] => {
+    const physicalDevicesMap = new Map<string, PhysicalDevice & { area_id: string | null }>();
+    const entityIdToDeviceIdMap = new Map<string, string>();
+
+    entityRegistry.forEach(entry => {
+        if (entry.device_id) {
+            entityIdToDeviceIdMap.set(entry.entity_id, entry.device_id);
+        }
+    });
+
+    haDevices.forEach(haDevice => {
+        physicalDevicesMap.set(haDevice.id, {
+            id: haDevice.id,
+            name: haDevice.name,
+            entities: [],
+            area_id: haDevice.area_id
+        });
+    });
+    
+    for (const device of allKnownDevices.values()) {
+        const physicalDeviceId = entityIdToDeviceIdMap.get(device.id);
+        if (physicalDeviceId) {
+            const physicalDevice = physicalDevicesMap.get(physicalDeviceId);
+            if (physicalDevice) {
+                physicalDevice.entities.push(device);
+            }
+        }
+    }
+
+    const roomsMap = new Map<string, RoomWithPhysicalDevices>();
+    areas.forEach(area => {
+        roomsMap.set(area.area_id, { id: area.area_id, name: area.name, devices: [] });
+    });
+    roomsMap.set('no_area', { id: 'no_area', name: 'Без пространства', devices: []});
+
+    for (const physicalDevice of physicalDevicesMap.values()) {
+        if (physicalDevice.entities.length > 0) {
+            const areaId = physicalDevice.area_id || 'no_area';
+            const room = roomsMap.get(areaId);
+            if (room) {
+                // sort entities inside physical device
+                physicalDevice.entities.sort((a, b) => a.name.localeCompare(b.name));
+                room.devices.push(physicalDevice);
+            }
+        }
+    }
+    
+    const result = Array.from(roomsMap.values()).filter(room => room.devices.length > 0);
+    // sort physical devices inside room
+    result.forEach(room => {
+        room.devices.sort((a,b) => a.name.localeCompare(b.name));
+    });
+
+    return result;
 };
