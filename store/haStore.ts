@@ -10,12 +10,6 @@ interface HassEntities {
   [key: string]: HassEntity;
 }
 
-interface BatteryDevice {
-    deviceId: string;
-    deviceName: string;
-    batteryLevel: number;
-}
-
 interface HAState {
   connectionStatus: ConnectionStatus;
   isLoading: boolean;
@@ -25,15 +19,6 @@ interface HAState {
   areas: HassArea[];
   devices: HassDevice[];
   entityRegistry: HassEntityRegistryEntry[];
-  
-  allKnownDevices: Map<string, Device>;
-  allRoomsForDevicePage: Room[];
-  allRoomsWithPhysicalDevices: RoomWithPhysicalDevices[];
-  allCameras: Device[];
-  batteryDevices: BatteryDevice[];
-  allScenes: Device[];
-  allAutomations: Device[];
-  allScripts: Device[];
 }
 
 interface HAActions {
@@ -71,254 +56,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
       socketRef.send(JSON.stringify(message));
     }
   };
-  
-  const updateDerivedState = (entities: HassEntities, areas: HassArea[], devices: HassDevice[], entityRegistry: HassEntityRegistryEntry[]) => {
-      const { customizations, lowBatteryThreshold, eventTimerWidgets, customCardWidgets } = useAppStore.getState();
-      const rooms = mapEntitiesToRooms(Object.values(entities), areas, devices, entityRegistry, customizations, true);
-      const deviceMap = new Map<string, Device>();
-      rooms.forEach(room => {
-          room.devices.forEach(device => {
-              deviceMap.set(device.id, device);
-          });
-      });
-      
-      // --- Новая логика для поиска уровня заряда батареи по физическим устройствам ---
-      const deviceIdToEntityIds = new Map<string, string[]>();
-      entityRegistry.forEach(e => {
-        if (e.device_id) {
-          if (!deviceIdToEntityIds.has(e.device_id)) {
-            deviceIdToEntityIds.set(e.device_id, []);
-          }
-          deviceIdToEntityIds.get(e.device_id)!.push(e.entity_id);
-        }
-      });
-
-      const batteryDevicesList: BatteryDevice[] = [];
-
-      // Итерируем по физическим устройствам из Home Assistant
-      devices.forEach(haDevice => {
-        if (!haDevice.id) return;
-
-        const associatedEntityIds = deviceIdToEntityIds.get(haDevice.id) || [];
-        if (associatedEntityIds.length === 0) return;
-
-        let batteryLevel: number | undefined = undefined;
-
-        // Стратегия 1: Найти выделенный сенсор батареи для этого устройства
-        const batterySensorEntity = associatedEntityIds
-          .map(id => entities[id])
-          .find(entity => entity?.attributes.device_class === 'battery' && !isNaN(parseFloat(entity.state)));
-        
-        if (batterySensorEntity) {
-          batteryLevel = parseFloat(batterySensorEntity.state);
-        } else {
-          // Стратегия 2: Найти любую сущность для этого устройства, у которой есть атрибут battery_level
-          const entityWithBatteryAttribute = associatedEntityIds
-            .map(id => entities[id])
-            .find(entity => typeof entity?.attributes.battery_level === 'number');
-
-          if (entityWithBatteryAttribute) {
-            batteryLevel = entityWithBatteryAttribute.attributes.battery_level;
-          }
-        }
-
-        if (batteryLevel !== undefined) {
-          const roundedBatteryLevel = Math.round(batteryLevel);
-
-          // Добавляем одну запись для физического устройства в наш список
-          batteryDevicesList.push({
-            deviceId: haDevice.id,
-            deviceName: haDevice.name,
-            batteryLevel: roundedBatteryLevel,
-          });
-
-          // Распространяем этот уровень заряда на все связанные сущности в нашей карте `allKnownDevices`
-          associatedEntityIds.forEach(entityId => {
-            const device = deviceMap.get(entityId);
-            if (device) {
-              device.batteryLevel = roundedBatteryLevel;
-            }
-          });
-        }
-      });
-      
-      let widgetsRoom = rooms.find(r => r.id === 'internal::widgets');
-      if (!widgetsRoom) {
-          widgetsRoom = { id: 'internal::widgets', name: 'Виджеты', devices: [] };
-          rooms.push(widgetsRoom);
-      }
-      
-      // Battery Widget
-      if (batteryDevicesList.length > 0) {
-        const lowBatteryCount = batteryDevicesList.filter(d => d.batteryLevel <= lowBatteryThreshold).length;
-        const batteryWidgetDevice: Device = {
-          id: 'internal::battery_widget',
-          name: 'Уровень заряда',
-          status: lowBatteryCount > 0 ? `${lowBatteryCount} устр. с низким зарядом` : 'Все устройства заряжены',
-          type: DeviceType.BatteryWidget,
-          state: String(batteryDevicesList.length), // Total device count
-          haDomain: 'internal',
-        };
-        deviceMap.set(batteryWidgetDevice.id, batteryWidgetDevice);
-        if (!widgetsRoom.devices.some(d => d.id === batteryWidgetDevice.id)) {
-            widgetsRoom.devices.push(batteryWidgetDevice);
-        }
-      }
-
-      eventTimerWidgets.forEach(widget => {
-        const { id, name, lastResetDate, cycleDays, buttonText, fillColors, animation, fillDirection, showName, nameFontSize, namePosition, daysRemainingFontSize, daysRemainingPosition } = widget;
-        let timerDevice: Device;
-
-        if (lastResetDate) {
-            const resetDate = new Date(lastResetDate);
-            const now = new Date();
-            const daysPassed = Math.floor((now.getTime() - resetDate.getTime()) / (1000 * 60 * 60 * 24));
-            const daysRemaining = Math.max(0, cycleDays - daysPassed);
-            const fillPercentage = Math.min(100, (daysPassed / cycleDays) * 100);
-
-            timerDevice = {
-                id: `internal::event-timer_${id}`,
-                name: name,
-                status: `Осталось ${daysRemaining} дн.`,
-                type: DeviceType.EventTimer,
-                haDomain: 'internal',
-                fillPercentage: fillPercentage,
-                daysRemaining: daysRemaining,
-                state: 'active',
-                widgetId: id,
-                buttonText: buttonText,
-                fillColors: fillColors,
-                animation: animation,
-                fillDirection: fillDirection,
-                showName: showName,
-                nameFontSize,
-                namePosition,
-                daysRemainingFontSize,
-                daysRemainingPosition,
-            };
-        } else {
-            timerDevice = {
-                id: `internal::event-timer_${id}`,
-                name: name,
-                status: 'Настройте таймер',
-                type: DeviceType.EventTimer,
-                haDomain: 'internal',
-                fillPercentage: 0,
-                daysRemaining: cycleDays,
-                state: 'inactive',
-                widgetId: id,
-                buttonText: buttonText,
-                fillColors: fillColors,
-                animation: animation,
-                fillDirection: fillDirection,
-                showName: showName,
-                nameFontSize,
-                namePosition,
-                daysRemainingFontSize,
-                daysRemainingPosition,
-            };
-        }
-        deviceMap.set(timerDevice.id, timerDevice);
-        if (!widgetsRoom.devices.some(d => d.id === timerDevice.id)) {
-            widgetsRoom.devices.push(timerDevice);
-        }
-      });
-      
-      // Custom Card Widgets
-      customCardWidgets.forEach(widget => {
-          const cardDevice: Device = {
-              id: `internal::custom-card_${widget.id}`,
-              name: widget.name,
-              status: 'Кастомная карточка',
-              type: DeviceType.Custom,
-              haDomain: 'internal',
-              state: 'active',
-              widgetId: widget.id,
-          };
-          deviceMap.set(cardDevice.id, cardDevice);
-          if (!widgetsRoom.devices.some(d => d.id === cardDevice.id)) {
-              widgetsRoom.devices.push(cardDevice);
-          }
-      });
-
-
-      const cameras = Array.from(deviceMap.values()).filter((d: Device) => d.haDomain === 'camera');
-      const scenes = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Scene);
-      const automations = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Automation);
-      const scripts = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Script);
-      
-      // Сортируем список физических устройств по уровню заряда
-      batteryDevicesList.sort((a, b) => a.batteryLevel - b.batteryLevel);
-      
-      // --- NEW: Logic for rooms with physical devices ---
-      const deviceIdToEntities = new Map<string, Device[]>();
-      const entityIdToDeviceId = new Map<string, string>();
-      entityRegistry.forEach(entry => {
-          if (entry.device_id) {
-              entityIdToDeviceId.set(entry.entity_id, entry.device_id);
-          }
-      });
-
-      deviceMap.forEach((device, entityId) => {
-          const deviceId = entityIdToDeviceId.get(entityId);
-          if (deviceId) {
-              if (!deviceIdToEntities.has(deviceId)) {
-                  deviceIdToEntities.set(deviceId, []);
-              }
-              deviceIdToEntities.get(deviceId)!.push(device);
-          }
-      });
-
-      const roomsWithPhysicalDevicesMap = new Map<string, RoomWithPhysicalDevices>();
-      areas.forEach(area => {
-          roomsWithPhysicalDevicesMap.set(area.area_id, { id: area.area_id, name: area.name, devices: [] });
-      });
-      roomsWithPhysicalDevicesMap.set('no_area', { id: 'no_area', name: 'Без пространства', devices: [] });
-
-      devices.forEach(haDevice => { // HassDevice
-          const entitiesForDevice = deviceIdToEntities.get(haDevice.id) || [];
-          if (entitiesForDevice.length > 0) {
-              const physicalDevice: PhysicalDevice = {
-                  id: haDevice.id,
-                  name: haDevice.name,
-                  entities: entitiesForDevice.sort((a,b) => a.name.localeCompare(b.name)),
-              };
-              const areaId = haDevice.area_id || 'no_area';
-              const room = roomsWithPhysicalDevicesMap.get(areaId);
-              room?.devices.push(physicalDevice);
-          }
-      });
-
-      const allRoomsWithPhysicalDevices = Array.from(roomsWithPhysicalDevicesMap.values())
-          .filter(room => room.devices.length > 0)
-          .sort((a,b) => a.name.localeCompare(b.name));
-
-      set({ 
-        allKnownDevices: deviceMap, 
-        allRoomsForDevicePage: rooms, 
-        allCameras: cameras, 
-        batteryDevices: batteryDevicesList, 
-        allRoomsWithPhysicalDevices,
-        allScenes: scenes.sort((a,b) => a.name.localeCompare(b.name)),
-        allAutomations: automations.sort((a,b) => a.name.localeCompare(b.name)),
-        allScripts: scripts.sort((a,b) => a.name.localeCompare(b.name)),
-    });
-  };
-  
-  // Re-compute derived state whenever customizations change
-  useAppStore.subscribe(
-    (state, prevState) => {
-        const shouldUpdate = state.customizations !== prevState.customizations ||
-                             state.lowBatteryThreshold !== prevState.lowBatteryThreshold ||
-                             state.eventTimerWidgets !== prevState.eventTimerWidgets ||
-                             state.customCardWidgets !== prevState.customCardWidgets;
-        
-        if (shouldUpdate) {
-            const { entities, areas, devices, entityRegistry } = get();
-            updateDerivedState(entities, areas, devices, entityRegistry);
-        }
-    }
-  );
 
   return {
     connectionStatus: 'idle',
@@ -329,14 +66,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     areas: [],
     devices: [],
     entityRegistry: [],
-    allKnownDevices: new Map(),
-    allRoomsForDevicePage: [],
-    allRoomsWithPhysicalDevices: [],
-    allCameras: [],
-    batteryDevices: [],
-    allScenes: [],
-    allAutomations: [],
-    allScripts: [],
 
     connect: (url, token) => {
         if (socketRef) socketRef.close();
@@ -408,8 +137,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                         initialFetchIds.delete(data.id);
                                         
                                         if (initialFetchIds.size === 0) {
-                                            const s = get();
-                                            updateDerivedState(s.entities, s.areas, s.devices, s.entityRegistry);
+                                            const { entities, areas, devices, entityRegistry } = get();
+                                            useAppStore.getState().processHAData(entities, areas, devices, entityRegistry);
                                             set({ isLoading: false });
                                         }
                                     }
@@ -419,7 +148,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                 const newEntities = { ...get().entities, [entity_id]: new_state };
                                 if (!new_state) delete newEntities[entity_id];
                                 set({ entities: newEntities });
-                                updateDerivedState(newEntities, get().areas, get().devices, get().entityRegistry);
+                                const { areas, devices, entityRegistry } = get();
+                                useAppStore.getState().processHAData(newEntities, areas, devices, entityRegistry);
                             }
                         };
                         break;
@@ -528,11 +258,4 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     triggerScene: (entityId) => {
         get().callService('scene', 'turn_on', { entity_id: entityId });
     },
-    triggerAutomation: (entityId) => {
-        get().callService('automation', 'trigger', { entity_id: entityId });
-    },
-    triggerScript: (entityId) => {
-        get().callService('script', 'turn_on', { entity_id: entityId });
-    },
-  };
-});
+    triggerAutomation: (
