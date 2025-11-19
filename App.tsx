@@ -343,15 +343,16 @@ const App: React.FC = () => {
         // Загружаем погоду только если подключены и первичная загрузка сущностей завершена (!isLoading)
         if (connectionStatus !== 'connected' || isLoading) return;
 
-        const fetchWeather = () => {
-            const devices = Array.from(useHAStore.getState().allKnownDevices.values()) as Device[];
+const fetchWeather = async () => {            const devices = Array.from(useHAStore.getState().allKnownDevices.values()) as Device[];
             const weatherEntities = devices
                 .filter(d => d.type === DeviceType.Weather && d.haDomain === 'weather')
                 .map(d => d.id);
 
             if (weatherEntities.length > 0) {
-                fetchWeatherForecasts(weatherEntities);
-            }
+const forecasts = await haStore.callService('weather', 'get_forecasts', {
+        entity_id: weatherEntities
+      });
+      setWeatherForecasts(forecasts || {});            }
         };
 
         // Вызываем сразу, как только стало возможно (без искусственной задержки)
