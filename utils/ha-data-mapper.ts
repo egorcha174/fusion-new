@@ -64,6 +64,7 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
   if (domain === 'switch') return DeviceType.Switch;
 
   // --- Финальный резервный вариант ---
+  // Логируем предупреждение, но не ломаем приложение - устройство будет показано как Unknown
   console.warn(`[HA Data Mapper] Unknown device type for entity: ${entity.entity_id}`, entity);
   return DeviceType.Unknown;
 };
@@ -200,7 +201,7 @@ const entityToDevice = (
     device.presetMode = attributes.preset_mode;
     device.presetModes = attributes.preset_modes;
     device.hvacModes = attributes.hvac_modes;
-    device.hvacAction = attributes.hvac_action;
+    device.hvacAction = attributes.hvac_action; // Важно для отображения текущего действия (нагрев/охлаждение)
     device.minTemp = attributes.min_temp;
     device.maxTemp = attributes.max_temp;
   }
@@ -251,7 +252,7 @@ const entityToDevice = (
       }
   }
 
-  // Добавляем уровень заряда, если он есть
+  // Добавляем уровень заряда, если он есть (для любых устройств, не только battery class)
   if (typeof attributes.battery_level === 'number') {
     device.batteryLevel = attributes.battery_level;
   }
@@ -305,11 +306,12 @@ export const mapEntitiesToRooms = (
     const customization = customizations[entity.entity_id] || {};
     if (customization.isHidden && !showHidden) return; // Пропускаем скрытые
 
-    // Pass the side-loaded forecast if available for this entity
+    // Передаем side-loaded прогноз, если он доступен для этой сущности
     const sideLoadedForecast = forecasts[entity.entity_id];
     const device = entityToDevice(entity, customization, sideLoadedForecast);
 
-    // Добавляем только успешно преобразованные устройства (включая "неизвестные")
+    // Добавляем только успешно преобразованные устройства.
+    // ВАЖНО: Фильтрация по DeviceType.Unknown не производится, все устройства попадают в список.
     if (device) {
         // Определяем, к какой комнате принадлежит устройство (O(1) операции)
         let areaId: string | undefined | null = entityIdToAreaIdMap.get(entity.entity_id);
