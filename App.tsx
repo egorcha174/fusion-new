@@ -340,7 +340,8 @@ const App: React.FC = () => {
 
     // Эффект для периодического обновления прогноза погоды (weather.get_forecasts)
     useEffect(() => {
-        if (connectionStatus !== 'connected') return;
+        // Загружаем погоду только если подключены и первичная загрузка сущностей завершена (!isLoading)
+        if (connectionStatus !== 'connected' || isLoading) return;
 
         const fetchWeather = () => {
             const devices = Array.from(useHAStore.getState().allKnownDevices.values()) as Device[];
@@ -353,17 +354,16 @@ const App: React.FC = () => {
             }
         };
 
-        // Initial fetch after connection (small delay to ensure entities are loaded)
-        const initialTimer = setTimeout(fetchWeather, 5000);
+        // Вызываем сразу, как только стало возможно (без искусственной задержки)
+        fetchWeather();
         
-        // Periodic fetch every 30 minutes
+        // Периодическое обновление каждые 30 минут
         const intervalId = setInterval(fetchWeather, 30 * 60 * 1000);
 
         return () => {
-            clearTimeout(initialTimer);
             clearInterval(intervalId);
         };
-    }, [connectionStatus, fetchWeatherForecasts]);
+    }, [connectionStatus, isLoading, fetchWeatherForecasts]);
 
   // Мемоизированное значение текущей активной вкладки для избежания лишних пересчетов.
   const activeTab = useMemo(() => tabs.find(t => t.id === activeTabId), [tabs, activeTabId]);

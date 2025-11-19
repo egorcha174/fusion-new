@@ -233,41 +233,13 @@ const entityToDevice = (
       device.temperature = attributes.temperature;
       device.condition = entity.state;
 
-      // Универсальный маппер для одного элемента прогноза
-      const mapForecastItem = (fc: any): WeatherForecast | null => {
-          const temp = fc.temperature ?? fc.max_temp ?? fc.temp;
-          const lowTemp = fc.templow ?? fc.min_temp;
-          const condition = fc.condition ?? fc.state;
-          const dt = fc.datetime ?? fc.date;
-
-          if (dt && condition && temp !== undefined) {
-              return { datetime: dt, condition, temperature: temp, templow: lowTemp };
-          }
-          return null;
-      };
-
-      // Логика получения прогноза: Service Call (sideLoaded) > Attribute (legacy)
+      // Логика получения прогноза: Только Service Call (sideLoaded)
+      // Home Assistant отказался от атрибута forecast в пользу сервиса weather.get_forecasts
+      // для многих интеграций (например, Met.no).
       if (sideLoadedForecast && sideLoadedForecast.length > 0) {
           device.forecast = sideLoadedForecast;
       } else {
-          // Fallback to attribute
-          let forecastArray: any[] | undefined = undefined;
-          const forecastAttr = attributes.forecast;
-
-          if (Array.isArray(forecastAttr)) {
-              forecastArray = forecastAttr;
-          } else if (typeof forecastAttr === 'object' && forecastAttr !== null) {
-              if (Array.isArray(forecastAttr.daily)) forecastArray = forecastAttr.daily;
-              else if (Array.isArray(forecastAttr.forecast)) forecastArray = forecastAttr.forecast;
-          }
-
-          if (forecastArray) {
-              device.forecast = forecastArray
-                  .map(mapForecastItem)
-                  .filter((fc): fc is WeatherForecast => fc !== null);
-          } else {
-              device.forecast = [];
-          }
+          device.forecast = [];
       }
   }
 
