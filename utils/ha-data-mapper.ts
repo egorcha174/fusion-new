@@ -233,11 +233,19 @@ const entityToDevice = (
       device.temperature = attributes.temperature;
       device.condition = entity.state;
 
-      // Логика получения прогноза: Только Service Call (sideLoaded)
-      // Home Assistant отказался от атрибута forecast в пользу сервиса weather.get_forecasts
-      // для многих интеграций (например, Met.no).
+      // Логика получения прогноза:
+      // 1. Приоритет: данные от сервиса weather.get_forecasts (sideLoadedForecast)
+      // 2. Fallback: данные из атрибута forecast (для старых версий HA или некоторых интеграций)
       if (sideLoadedForecast && sideLoadedForecast.length > 0) {
           device.forecast = sideLoadedForecast;
+      } else if (Array.isArray(attributes.forecast) && attributes.forecast.length > 0) {
+          // Fallback для обратной совместимости
+          device.forecast = attributes.forecast.map((f: any) => ({
+              datetime: f.datetime,
+              condition: f.condition,
+              temperature: f.temperature,
+              templow: f.templow !== undefined ? f.templow : f.temperature
+          }));
       } else {
           device.forecast = [];
       }

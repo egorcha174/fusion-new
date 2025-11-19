@@ -550,15 +550,15 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                 const dateStr = d.toISOString().split('T')[0];
                                 if (!dailyMap.has(dateStr)) {
                                     dailyMap.set(dateStr, { 
-                                        tempMax: h.temperature, 
-                                        tempMin: h.temperature, 
+                                        temperature: h.temperature, 
+                                        templow: h.temperature, 
                                         condition: h.condition, 
                                         datetime: dateStr 
                                     });
                                 } else {
                                     const curr = dailyMap.get(dateStr);
-                                    curr.tempMax = Math.max(curr.tempMax, h.temperature);
-                                    curr.tempMin = Math.min(curr.tempMin, h.temperature);
+                                    curr.temperature = Math.max(curr.temperature, h.temperature);
+                                    curr.templow = Math.min(curr.templow, h.temperature);
                                     // Optionally aggregate condition (mode/worst/best), keeping first found for now
                                 }
                             });
