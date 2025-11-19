@@ -255,8 +255,8 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, weatherE
 
             let rawForecast = [];
             
+            // Attempt 1: Daily forecast via service
             try {
-                // Try using the dedicated service first (standard since HA 2023.12)
                 const response = await callService('weather', 'get_forecasts', {
                     entity_id: weatherEntityId,
                     type: 'daily'
@@ -266,23 +266,75 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, weatherE
                     rawForecast = response[weatherEntityId].forecast;
                 }
             } catch (e) {
-                console.warn('Failed to call weather.get_forecasts, falling back to attributes.', e);
-                // Fallback to legacy attribute if service call fails or is not supported
-                if (device.forecast && device.forecast.length > 0) {
-                    // Need to adapt the internal Device forecast structure back to raw-like structure if needed,
-                    // but actually `device.forecast` is already `WeatherForecast[]`.
-                    // We can just use it directly if service call failed.
-                    // Let's normalize below.
+                console.warn('Failed to call weather.get_forecasts (daily), trying hourly or attributes.', e);
+            }
+
+            // Attempt 2: Hourly forecast via service (fallback if daily failed/empty)
+            if (rawForecast.length === 0) {
+                 try {
+                    const response = await callService('weather', 'get_forecasts', {
+                        entity_id: weatherEntityId,
+                        type: 'hourly'
+                    }, true);
+
+                    if (response && response[weatherEntityId] && response[weatherEntityId].forecast) {
+                         // Aggregate hourly to daily
+                         const hourly: any[] = response[weatherEntityId].forecast;
+                         const dailyMap = new Map<string, { tempMax: number, tempMin: number, conditions: string[] }>();
+
+                         hourly.forEach(h => {
+                             const date = new Date(h.datetime);
+                             const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
+                             const temp = h.temperature;
+                             const condition = h.condition;
+
+                             if (!dailyMap.has(dateStr)) {
+                                 dailyMap.set(dateStr, { 
+                                     tempMax: temp, 
+                                     tempMin: temp, 
+                                     conditions: [condition]
+                                 });
+                             } else {
+                                 const day = dailyMap.get(dateStr)!;
+                                 day.tempMax = Math.max(day.tempMax, temp);
+                                 day.tempMin = Math.min(day.tempMin, temp);
+                                 day.conditions.push(condition);
+                             }
+                         });
+                         
+                         rawForecast = Array.from(dailyMap.entries())
+                            .sort((a, b) => a[0].localeCompare(b[0])) // Sort by date
+                            .map(([dateStr, data]) => {
+                                 // Find most frequent condition
+                                 const counts: Record<string, number> = {};
+                                 let maxCount = 0;
+                                 let majorCondition = data.conditions[0];
+                                 
+                                 for (const c of data.conditions) {
+                                     counts[c] = (counts[c] || 0) + 1;
+                                     if (counts[c] > maxCount) {
+                                         maxCount = counts[c];
+                                         majorCondition = c;
+                                     }
+                                 }
+                                 
+                                 return {
+                                     datetime: dateStr,
+                                     condition: majorCondition,
+                                     temperature: data.tempMax,
+                                     templow: data.tempMin
+                                 };
+                             });
+                    }
+                } catch (e) {
+                    console.warn('Failed to call weather.get_forecasts (hourly).', e);
                 }
             }
             
-            // If service call failed or returned empty, try legacy attribute from device object
-            const forecastSource = (rawForecast.length > 0) ? rawForecast : (device.forecast || []);
+            // Attempt 3: Legacy attributes if service calls yielded nothing
+            let forecastSource = (rawForecast.length > 0) ? rawForecast : (device.forecast || []);
             
-            if (forecastSource.length === 0) {
-                throw new Error("Нет данных прогноза (ни через сервис, ни в атрибутах).");
-            }
-
+            // If still no forecast, return valid object with empty forecast instead of throwing
             const mappedForecast = forecastSource.slice(0, forecastDays).map((f: any) => {
                 // Handle both raw service response keys and internal WeatherForecast keys
                 const dateStr = f.datetime || f.date;
@@ -391,29 +443,35 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, weatherE
             </div>
 
             {/* Прогноз на N дней */}
-            <div className={`mt-4 grid grid-cols-${weatherSettings.forecastDays} gap-2 text-center`}>
-                {forecast.map((day, index) => (
-                    <div key={index} className="flex flex-col items-center space-y-1">
-                        <p className="text-xs font-medium capitalize" style={{ color: colorScheme.nameTextColor, fontSize: colorScheme.weatherForecastDayFontSize ? `${colorScheme.weatherForecastDayFontSize}px` : undefined, }}>
-                          {day.day}
-                        </p>
-                         <AnimatedWeatherIcon
-                            iconCode={day.icon}
-                            iconPack={weatherSettings.iconPack}
-                            className="w-12 h-12"
-                            style={{ width: forecastIconSize, height: forecastIconSize }}
-                        />
-                        <div>
-                            <p className="text-lg font-semibold" style={{ color: colorScheme.valueTextColor, fontSize: colorScheme.weatherForecastMaxTempFontSize ? `${colorScheme.weatherForecastMaxTempFontSize}px` : undefined, }}>
-                              {Math.round(day.tempMax)}°
+            {forecast.length > 0 ? (
+                <div className="mt-4 grid gap-2 text-center" style={{ gridTemplateColumns: `repeat(${Math.min(forecast.length, weatherSettings.forecastDays)}, minmax(0, 1fr))` }}>
+                    {forecast.map((day, index) => (
+                        <div key={index} className="flex flex-col items-center space-y-1">
+                            <p className="text-xs font-medium capitalize" style={{ color: colorScheme.nameTextColor, fontSize: colorScheme.weatherForecastDayFontSize ? `${colorScheme.weatherForecastDayFontSize}px` : undefined, }}>
+                              {day.day}
                             </p>
-                            <p className="text-sm -mt-1" style={{ color: colorScheme.statusTextColor, fontSize: colorScheme.weatherForecastMinTempFontSize ? `${colorScheme.weatherForecastMinTempFontSize}px` : undefined, }}>
-                              {Math.round(day.tempMin)}°
-                            </p>
+                             <AnimatedWeatherIcon
+                                iconCode={day.icon}
+                                iconPack={weatherSettings.iconPack}
+                                className="w-12 h-12"
+                                style={{ width: forecastIconSize, height: forecastIconSize }}
+                            />
+                            <div>
+                                <p className="text-lg font-semibold" style={{ color: colorScheme.valueTextColor, fontSize: colorScheme.weatherForecastMaxTempFontSize ? `${colorScheme.weatherForecastMaxTempFontSize}px` : undefined, }}>
+                                  {Math.round(day.tempMax)}°
+                                </p>
+                                <p className="text-sm -mt-1" style={{ color: colorScheme.statusTextColor, fontSize: colorScheme.weatherForecastMinTempFontSize ? `${colorScheme.weatherForecastMinTempFontSize}px` : undefined, }}>
+                                  {Math.round(day.tempMin)}°
+                                </p>
+                            </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="mt-4 text-center text-sm opacity-60 py-2" style={{ color: colorScheme.statusTextColor }}>
+                    Прогноз недоступен
+                </div>
+            )}
         </div>
     );
 };

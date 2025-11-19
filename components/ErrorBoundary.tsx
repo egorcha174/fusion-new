@@ -19,15 +19,10 @@ interface State {
  * Это предотвращает падение всего приложения из-за ошибки в одном из его частей.
  */
 class ErrorBoundary extends Component<Props, State> {
-  public state: State;
-
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      hasError: false,
-      error: null,
-    };
-  }
+  public state: State = {
+    hasError: false,
+    error: null,
+  };
 
   /**
    * Этот статический метод жизненного цикла вызывается после того, как в дочернем компоненте
