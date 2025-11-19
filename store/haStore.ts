@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device, Room, RoomWithPhysicalDevices, PhysicalDevice, DeviceType, WeatherForecast } from '../types';
 import { constructHaUrl } from '../utils/url';
@@ -495,42 +496,75 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         if (!entityIds.length) return;
         const forecastsMap: Record<string, WeatherForecast[]> = { ...get().forecasts };
         
-        try {
-            // Fetch sequentially or parallel depending on load preference. Parallel is faster.
-            const promises = entityIds.map(async (entityId) => {
+        const fetchForEntity = async (entityId: string) => {
+             try {
+                let rawForecast = null;
+                // Try daily forecast first
                 try {
-                    // Try to fetch daily forecast first
                     const response = await get().callService('weather', 'get_forecasts', { entity_id: entityId, type: 'daily' }, true);
-                    
-                    if (response && response[entityId] && response[entityId].forecast) {
-                        const rawForecast = response[entityId].forecast;
-                        
-                        // Normalize
-                        const normalized: WeatherForecast[] = rawForecast.map((fc: any) => ({
-                             datetime: fc.datetime || fc.date,
-                             condition: fc.condition || fc.state,
-                             temperature: fc.temperature ?? fc.max_temp ?? fc.temp,
-                             templow: fc.templow ?? fc.min_temp
-                        })).filter((f: any) => f.datetime && f.temperature !== undefined);
-
-                        forecastsMap[entityId] = normalized;
+                    if (response?.[entityId]?.forecast?.length) {
+                        rawForecast = response[entityId].forecast;
                     }
                 } catch (e) {
-                    console.warn(`Failed to fetch forecast service for ${entityId}`, e);
-                    // Don't throw, just skip updating this entity's forecast
+                    // Daily fetch failed, silently continue to hourly
                 }
-            });
-            
-            await Promise.all(promises);
-            
-            // Update state and re-calculate derived state
-            set({ forecasts: forecastsMap });
-            const s = get();
-            updateDerivedState(s.entities, s.areas, s.devices, s.entityRegistry);
 
-        } catch (e) {
-            console.error("Global forecast fetch failed", e);
-        }
+                // Try hourly forecast if daily failed or returned empty
+                if (!rawForecast || rawForecast.length === 0) {
+                     try {
+                        const response = await get().callService('weather', 'get_forecasts', { entity_id: entityId, type: 'hourly' }, true);
+                        const hourly = response?.[entityId]?.forecast;
+                        if (hourly && hourly.length > 0) {
+                            // Aggregate hourly to daily
+                            const dailyMap = new Map<string, any>();
+                            hourly.forEach((h: any) => {
+                                const d = new Date(h.datetime);
+                                const dateStr = d.toISOString().split('T')[0];
+                                if (!dailyMap.has(dateStr)) {
+                                    dailyMap.set(dateStr, { 
+                                        tempMax: h.temperature, 
+                                        tempMin: h.temperature, 
+                                        condition: h.condition, 
+                                        datetime: dateStr 
+                                    });
+                                } else {
+                                    const curr = dailyMap.get(dateStr);
+                                    curr.tempMax = Math.max(curr.tempMax, h.temperature);
+                                    curr.tempMin = Math.min(curr.tempMin, h.temperature);
+                                    // Optionally aggregate condition (mode/worst/best), keeping first found for now
+                                }
+                            });
+                            // Sort by date
+                            rawForecast = Array.from(dailyMap.values()).sort((a:any, b:any) => a.datetime.localeCompare(b.datetime));
+                        }
+                     } catch (e) { 
+                        console.warn(`Hourly forecast fetch failed for ${entityId}`, e); 
+                     }
+                }
+
+                if (rawForecast && rawForecast.length > 0) {
+                     // Normalize and store
+                     const normalized: WeatherForecast[] = rawForecast.map((fc: any) => ({
+                         datetime: fc.datetime || fc.date,
+                         condition: fc.condition || fc.state,
+                         temperature: fc.temperature ?? fc.max_temp ?? fc.temp,
+                         templow: fc.templow ?? fc.min_temp
+                     })).filter((f: any) => f.datetime && f.temperature !== undefined);
+                     
+                     forecastsMap[entityId] = normalized;
+                }
+             } catch (e) {
+                 console.warn(`Failed to fetch forecast for ${entityId}`, e);
+                 // Don't throw, just skip updating this entity's forecast
+             }
+        };
+
+        await Promise.all(entityIds.map(fetchForEntity));
+        
+        // Update state and re-calculate derived state
+        set({ forecasts: forecastsMap });
+        const s = get();
+        updateDerivedState(s.entities, s.areas, s.devices, s.entityRegistry);
     },
 
     // --- Derived Actions ---

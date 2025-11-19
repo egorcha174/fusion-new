@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ColorScheme, WeatherSettings } from '../types';
+import { ColorScheme, WeatherSettings, WeatherForecast } from '../types';
 import AnimatedWeatherIcon from './AnimatedWeatherIcon';
 import { useHAStore } from '../store/haStore';
 
@@ -96,14 +96,26 @@ const forecaSymbolToOwmCode = (symbol: string): string => {
  * Поддерживает OpenWeatherMap, Yandex, Foreca и Home Assistant (через сервис weather.get_forecasts).
  */
 const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, weatherEntityId, openWeatherMapKey, yandexWeatherKey, forecaApiKey, getConfig, colorScheme, weatherSettings }) => {
-    const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [externalWeatherData, setExternalWeatherData] = useState<WeatherData | null>(null);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     
-    const { callService, allKnownDevices } = useHAStore();
+    // Get reactive device from store for HA provider.
+    // This ensures the component re-renders when the device state changes, without triggering API calls.
+    const haDevice = useHAStore(state => state.allKnownDevices.get(weatherEntityId));
 
     useEffect(() => {
         const { forecastDays } = weatherSettings;
+        
+        // Skip fetch for Home Assistant provider, as it relies on the reactive `haDevice` from store
+        // and global periodic fetching in App.tsx
+        if (weatherProvider === 'homeassistant') {
+            setExternalWeatherData(null);
+            setLoading(false);
+            setError(null);
+            return;
+        }
+
         const fetchOpenWeatherMapWeather = async () => {
             if (!openWeatherMapKey) throw new Error("Ключ API OpenWeatherMap не настроен.");
             
@@ -199,7 +211,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, weatherE
             if (!lat || !lon) throw new Error("В конфигурации HA не найдены широта или долгота.");
 
             // 1. Find location ID
-            const locationUrl = `https://fnw-ws.foreca.com/api/v1/location/search/${lon},${lat}?lang=ru`;
+            const locationUrl = `https://fnw-ws.foreca.com/api/v1/location/search/${lon},lat=${lat}?lang=ru`;
             const locationResponse = await fetch(locationUrl, {
                 headers: { 'Authorization': `Bearer ${forecaApiKey}` }
             });
@@ -247,130 +259,12 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, weatherE
             };
         };
 
-        const fetchHAWeather = async () => {
-            if (!weatherEntityId) throw new Error("Сущность погоды не выбрана.");
-            
-            const device = allKnownDevices.get(weatherEntityId);
-            if (!device) throw new Error("Устройство не найдено. Проверьте подключение.");
-
-            let rawForecast = [];
-            
-            // Attempt 1: Daily forecast via service
-            try {
-                const response = await callService('weather', 'get_forecasts', {
-                    entity_id: weatherEntityId,
-                    type: 'daily'
-                }, true);
-
-                if (response && response[weatherEntityId] && response[weatherEntityId].forecast) {
-                    rawForecast = response[weatherEntityId].forecast;
-                }
-            } catch (e) {
-                console.warn('Failed to call weather.get_forecasts (daily), trying hourly or attributes.', e);
-            }
-
-            // Attempt 2: Hourly forecast via service (fallback if daily failed/empty)
-            if (rawForecast.length === 0) {
-                 try {
-                    const response = await callService('weather', 'get_forecasts', {
-                        entity_id: weatherEntityId,
-                        type: 'hourly'
-                    }, true);
-
-                    if (response && response[weatherEntityId] && response[weatherEntityId].forecast) {
-                         // Aggregate hourly to daily
-                         const hourly: any[] = response[weatherEntityId].forecast;
-                         const dailyMap = new Map<string, { tempMax: number, tempMin: number, conditions: string[] }>();
-
-                         hourly.forEach(h => {
-                             const date = new Date(h.datetime);
-                             const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
-                             const temp = h.temperature;
-                             const condition = h.condition;
-
-                             if (!dailyMap.has(dateStr)) {
-                                 dailyMap.set(dateStr, { 
-                                     tempMax: temp, 
-                                     tempMin: temp, 
-                                     conditions: [condition]
-                                 });
-                             } else {
-                                 const day = dailyMap.get(dateStr)!;
-                                 day.tempMax = Math.max(day.tempMax, temp);
-                                 day.tempMin = Math.min(day.tempMin, temp);
-                                 day.conditions.push(condition);
-                             }
-                         });
-                         
-                         rawForecast = Array.from(dailyMap.entries())
-                            .sort((a, b) => a[0].localeCompare(b[0])) // Sort by date
-                            .map(([dateStr, data]) => {
-                                 // Find most frequent condition
-                                 const counts: Record<string, number> = {};
-                                 let maxCount = 0;
-                                 let majorCondition = data.conditions[0];
-                                 
-                                 for (const c of data.conditions) {
-                                     counts[c] = (counts[c] || 0) + 1;
-                                     if (counts[c] > maxCount) {
-                                         maxCount = counts[c];
-                                         majorCondition = c;
-                                     }
-                                 }
-                                 
-                                 return {
-                                     datetime: dateStr,
-                                     condition: majorCondition,
-                                     temperature: data.tempMax,
-                                     templow: data.tempMin
-                                 };
-                             });
-                    }
-                } catch (e) {
-                    console.warn('Failed to call weather.get_forecasts (hourly).', e);
-                }
-            }
-            
-            // Attempt 3: Legacy attributes if service calls yielded nothing
-            let forecastSource = (rawForecast.length > 0) ? rawForecast : (device.forecast || []);
-            
-            // If still no forecast, return valid object with empty forecast instead of throwing
-            const mappedForecast = forecastSource.slice(0, forecastDays).map((f: any) => {
-                // Handle both raw service response keys and internal WeatherForecast keys
-                const dateStr = f.datetime || f.date;
-                const condition = f.condition || f.state;
-                const tempMax = f.temperature ?? f.max_temp ?? f.temp;
-                const tempMin = f.templow ?? f.min_temp;
-
-                const dt = new Date(dateStr);
-                const dayName = dt.toLocaleDateString("ru-RU", { weekday: "short" });
-                return {
-                    day: dayName,
-                    tempMax: tempMax,
-                    tempMin: tempMin !== undefined ? tempMin : tempMax, // Fallback if no min temp
-                    icon: haConditionToOwmCode[condition] || '01d'
-                };
-            });
-
-            return {
-                current: {
-                    temp: device.temperature ?? 0,
-                    desc: device.status,
-                    icon: haConditionToOwmCode[device.condition || ''] || '01d'
-                },
-                forecast: mappedForecast
-            };
-        };
-
         const fetchWeather = async () => {
             setLoading(true);
             setError(null);
             try {
                 let fetchFn;
                 switch (weatherProvider) {
-                    case 'homeassistant':
-                        fetchFn = fetchHAWeather;
-                        break;
                     case 'yandex':
                         fetchFn = fetchYandexWeather;
                         break;
@@ -382,7 +276,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, weatherE
                         break;
                 }
                 const processedData = await fetchFn();
-                setWeatherData(processedData);
+                setExternalWeatherData(processedData);
             } catch (err: any) {
                 console.error("Failed to fetch weather data:", err);
                 setError(err.message || "Неизвестная ошибка.");
@@ -392,9 +286,49 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, weatherE
         };
 
         fetchWeather();
-    }, [weatherProvider, weatherEntityId, openWeatherMapKey, yandexWeatherKey, forecaApiKey, getConfig, weatherSettings, allKnownDevices, callService]);
+        const interval = setInterval(fetchWeather, 30 * 60 * 1000); // 30 mins
+        return () => clearInterval(interval);
+    }, [weatherProvider, weatherEntityId, openWeatherMapKey, yandexWeatherKey, forecaApiKey, getConfig, weatherSettings]);
 
-    if (loading) {
+    // Derive display data based on provider
+    let weatherData: WeatherData | null = null;
+    let displayError = error;
+
+    if (weatherProvider === 'homeassistant') {
+        if (!weatherEntityId) {
+            displayError = "Сущность погоды не выбрана.";
+        } else if (!haDevice) {
+            // Only show error if we are reasonably sure we should have data (e.g. connection is established)
+            // For now, simple check to avoid flashing error on load
+             displayError = "Устройство не найдено или загружается.";
+        } else {
+             const { forecastDays } = weatherSettings;
+             const mappedForecast = (haDevice.forecast || []).slice(0, forecastDays).map((f: WeatherForecast) => {
+                 const dt = new Date(f.datetime);
+                 const dayName = dt.toLocaleDateString("ru-RU", { weekday: "short" });
+                 return {
+                     day: dayName,
+                     tempMax: f.temperature,
+                     tempMin: f.templow !== undefined ? f.templow : f.temperature,
+                     icon: haConditionToOwmCode[f.condition || ''] || '01d'
+                 };
+             });
+
+             weatherData = {
+                 current: {
+                     temp: haDevice.temperature ?? 0,
+                     desc: haDevice.status,
+                     icon: haConditionToOwmCode[haDevice.condition || ''] || '01d'
+                 },
+                 forecast: mappedForecast
+             };
+             displayError = null; // Clear error if device found
+        }
+    } else {
+        weatherData = externalWeatherData;
+    }
+
+    if (loading && !weatherData) {
         return ( // Скелет загрузки
             <div className="flex items-center gap-3 opacity-50">
                  <div className="w-14 h-14 flex-shrink-0 bg-gray-700 rounded-full animate-pulse"></div>
@@ -406,14 +340,17 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, weatherE
         );
     }
 
-    if (error || !weatherData) {
+    if ((displayError && !weatherData) || (weatherProvider === 'homeassistant' && !haDevice)) {
         return ( // Сообщение об ошибке
             <div className="text-red-400 bg-red-900/30 p-3 rounded-lg">
                 <p className="text-sm font-semibold">Ошибка погоды</p>
-                <p className="text-xs text-red-400/80 mt-1">{error || "Не удалось загрузить данные."}</p>
+                <p className="text-xs text-red-400/80 mt-1">{displayError || "Не удалось загрузить данные."}</p>
             </div>
         );
     }
+    
+    // Fallback for safety
+    if (!weatherData) return null;
     
     const { current, forecast } = weatherData;
     
