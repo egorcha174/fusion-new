@@ -18,7 +18,7 @@ interface State {
  * запасной пользовательский интерфейс вместо "сломанного" компонента.
  * Это предотвращает падение всего приложения из-за ошибки в одном из его частей.
  */
-class ErrorBoundary extends React.Component<Props, State> {
+class ErrorBoundary extends Component<Props, State> {
   public state: State;
 
   constructor(props: Props) {

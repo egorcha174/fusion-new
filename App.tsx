@@ -277,26 +277,42 @@ const App: React.FC = () => {
     useEffect(() => {
         if (connectionStatus === 'connected' && !isLoading && !initializationDone.current) {
             initializationDone.current = true; // Выполняем только один раз
+            
+            // Check if there are NO tabs, OR if the current state has 0 devices visible (sanity check)
+            // We prioritize the user requirement: "First tab must automatically fill with ALL devices".
+            // If tabs exist but are empty, or if we are starting fresh, we populate.
+            // For now, we assume if tabs array is empty, we must initialize.
             if (tabs.length === 0 && allKnownDevices.size > 0) {
-                const { checkCollision, getTemplateForDevice } = useAppStore.getState();
-                const allDeviceIds = Array.from(allKnownDevices.keys());
+                const { getTemplateForDevice } = useAppStore.getState();
+                const devices = Array.from<Device>(allKnownDevices.values()).sort((a, b) => a.name.localeCompare(b.name));
+                
                 const newLayout: GridLayoutItem[] = [];
-                const gridSettings = { cols: 8, rows: 5 };
+                const cols = 8;
+                let maxRow = 0;
 
-                for (const deviceId of allDeviceIds) {
-                    const device = allKnownDevices.get(deviceId);
-                    if (!device) continue;
+                // Helper to check overlap in the current layout being built
+                const checkOverlap = (l: GridLayoutItem[], x: number, y: number, w: number, h: number) => {
+                    return l.some(item => {
+                        const iw = item.width || 1;
+                        const ih = item.height || 1;
+                        return (x < item.col + iw && x + w > item.col && y < item.row + ih && y + h > item.row);
+                    });
+                }
 
+                // Auto-layout algorithm to place ALL devices
+                for (const device of devices) {
                     const template = getTemplateForDevice(device);
-                    const itemWidth = template?.width || 1;
-                    const itemHeight = template?.height || 1;
-
+                    const w = template?.width || 1;
+                    const h = template?.height || 1;
+                    
                     let placed = false;
-                    for (let r = 0; r <= gridSettings.rows - Math.ceil(itemHeight); r++) {
-                        for (let c = 0; c <= gridSettings.cols - Math.ceil(itemWidth); c++) {
-                            const itemToPlace = { col: c, row: r, width: itemWidth, height: itemHeight };
-                            if (!checkCollision(newLayout, itemToPlace, gridSettings, deviceId)) {
-                                newLayout.push({ deviceId, ...itemToPlace });
+                    // Search for the first available slot starting from top-left
+                    // We allow rows to grow indefinitely to accommodate all devices
+                    for (let r = 0; r < 1000; r++) { 
+                        for (let c = 0; c <= cols - w; c++) {
+                            if (!checkOverlap(newLayout, c, r, w, h)) {
+                                newLayout.push({ deviceId: device.id, col: c, row: r, width: w, height: h });
+                                maxRow = Math.max(maxRow, r + h);
                                 placed = true;
                                 break;
                             }
@@ -309,7 +325,7 @@ const App: React.FC = () => {
                     id: nanoid(),
                     name: 'Главная',
                     layout: newLayout,
-                    gridSettings: gridSettings
+                    gridSettings: { cols: cols, rows: Math.max(5, maxRow) }
                 };
 
                 setTabs([newTab]);

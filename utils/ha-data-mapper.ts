@@ -1,9 +1,11 @@
+
 import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization, WeatherForecast } from '../types';
 
 /**
  * Определяет внутренний тип устройства (`DeviceType`) на основе данных из Home Assistant.
  * Использует иерархическую логику: сначала точные совпадения по домену,
  * затем домен + атрибуты, затем ключевые слова в названии.
+ * 
  * @param {HassEntity} entity - Сущность Home Assistant.
  * @returns {DeviceType} - Внутренний тип устройства.
  */
@@ -62,11 +64,14 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
   if (domain === 'switch') return DeviceType.Switch;
 
   // --- Финальный резервный вариант ---
+  console.warn(`[HA Data Mapper] Unknown device type for entity: ${entity.entity_id}`, entity);
   return DeviceType.Unknown;
 };
 
 /**
  * Преобразует "сырое" состояние сущности из Home Assistant в человекочитаемый текст на русском языке.
+ * Обрабатывает специфичные статусы для климата, медиа-плееров, погоды и других доменов.
+ * 
  * @param {HassEntity} entity - Сущность Home Assistant.
  * @returns {string} - Человекочитаемый статус.
  */
@@ -89,7 +94,7 @@ const getStatusText = (entity: HassEntity): string => {
         };
         const actionTranslations: Record<string, string> = {
             'cooling': 'Охлаждение', 'heating': 'Нагрев', 'fan': 'Вентилятор',
-            'drying': 'Осушение', 'off': 'Выключено',
+            'drying': 'Осушение', 'off': 'Выключено', 'idle': 'Ожидание',
         };
 
         // Если устройство активно что-то делает, показываем действие (приоритет).
@@ -109,7 +114,7 @@ const getStatusText = (entity: HassEntity): string => {
             }
             return attributes.media_title;
         }
-        const stateTranslations: Record<string, string> = { 'playing': 'Воспроизведение', 'paused': 'Пауза', 'idle': 'Ожидание', 'off': 'Выключено', 'on': 'Включено' };
+        const stateTranslations: Record<string, string> = { 'playing': 'Воспроизведение', 'paused': 'Пауза', 'idle': 'Ожидание', 'off': 'Выключено', 'on': 'Включено', 'buffering': 'Буферизация' };
         return stateTranslations[entity.state] || entity.state;
     }
 
@@ -156,6 +161,7 @@ const getStatusText = (entity: HassEntity): string => {
 /**
  * Преобразует одну сущность Home Assistant (HassEntity) в формат устройства приложения (Device),
  * применяя при этом пользовательские настройки.
+ * 
  * @param {HassEntity} entity - Сущность Home Assistant.
  * @param {DeviceCustomization} [customization={}] - Пользовательские настройки для этой сущности.
  * @param {WeatherForecast[]} [sideLoadedForecast] - Данные прогноза, полученные через сервисный вызов (приоритет).
@@ -276,6 +282,8 @@ const entityToDevice = (
 /**
  * Главная функция маппинга. Принимает все "сырые" данные из HA
  * и организует их в структуру комнат с устройствами.
+ * Гарантирует, что все валидные устройства попадают в вывод.
+ * 
  * @param {HassEntity[]} entities - Все сущности.
  * @param {HassArea[]} areas - Все области (комнаты).
  * @param {HassDevice[]} haDevices - Все физические устройства.
