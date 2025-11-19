@@ -550,15 +550,15 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                 const dateStr = d.toISOString().split('T')[0];
                                 if (!dailyMap.has(dateStr)) {
                                     dailyMap.set(dateStr, { 
-                                        temperature: h.temperature, 
-                                        templow: h.temperature, 
+                                        tempMax: h.temperature, 
+                                        tempMin: h.temperature, 
                                         condition: h.condition, 
                                         datetime: dateStr 
                                     });
                                 } else {
                                     const curr = dailyMap.get(dateStr);
-                                    curr.temperature = Math.max(curr.temperature, h.temperature);
-                                    curr.templow = Math.min(curr.templow, h.temperature);
+                                    curr.tempMax = Math.max(curr.tempMax, h.temperature);
+                                    curr.tempMin = Math.min(curr.tempMin, h.temperature);
                                     // Optionally aggregate condition (mode/worst/best), keeping first found for now
                                 }
                             });
@@ -575,8 +575,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                      const normalized: WeatherForecast[] = rawForecast.map((fc: any) => ({
                          datetime: fc.datetime || fc.date,
                          condition: fc.condition || fc.state,
-                         temperature: fc.temperature ?? fc.max_temp ?? fc.temp,
-                         templow: fc.templow ?? fc.min_temp
+                         temperature: fc.tempMax ?? fc.temperature ?? fc.max_temp ?? fc.temp,
+                         templow: fc.tempMin ?? fc.templow ?? fc.min_temp
                      })).filter((f: any) => f.datetime && f.temperature !== undefined);
                      
                      forecastsMap[entityId] = normalized;
