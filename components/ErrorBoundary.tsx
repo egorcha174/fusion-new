@@ -1,5 +1,5 @@
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { ErrorInfo, ReactNode } from 'react';
 import { Icon } from '@iconify/react';
 
 interface Props {
@@ -18,7 +18,7 @@ interface State {
  * запасной пользовательский интерфейс вместо "сломанного" компонента.
  * Это предотвращает падение всего приложения из-за ошибки в одном из его частей.
  */
-class ErrorBoundary extends Component<Props, State> {
+class ErrorBoundary extends React.Component<Props, State> {
   // Fix: Define state as a public class property to satisfy TypeScript.
   public state: State = {
     hasError: false,
