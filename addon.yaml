@@ -1,0 +1,38 @@
+name: Modern Dashboard UI
+description: A modern, Apple-inspired Home Assistant dashboard with drag-and-drop customization
+version: "1.0.0"
+slug: modern_dashboard_ui
+maintainers:
+  - github.com/egorcha174
+url: "https://github.com/egorcha174/fusion-new"
+documentation: "https://github.com/egorcha174/fusion-new#readme"
+changelog: "https://github.com/egorcha174/fusion-new/releases"
+support: "https://github.com/egorcha174/fusion-new/issues"
+issues: "https://github.com/egorcha174/fusion-new/issues"
+
+icon: true
+logo: true
+
+services:
+  startup: application
+  webui: http://[HOST]:[PORT:8080]
+
+ports:
+  8080/tcp: 8080
+
+ports_description:
+  8080/tcp: Web UI
+
+arch:
+  - aarch64
+  - amd64
+  - armhf
+  - armv7
+  - i386
+
+requirements:
+  - homeassistant: ">=2024.1.0"
+
+options: {}
+
+schema: {}
