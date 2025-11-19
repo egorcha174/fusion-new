@@ -1,3 +1,4 @@
+
 /**
  * Константы для ключей, используемых в localStorage.
  * Это позволяет избежать "магических строк" и обеспечивает единый источник истины
@@ -22,6 +23,7 @@ export const LOCAL_STORAGE_KEYS = {
   SIDEBAR_VISIBLE: 'ha-sidebar-visible',
   LOW_BATTERY_THRESHOLD: 'ha-low-battery-threshold',
   WEATHER_PROVIDER: 'ha-weather-provider',
+  WEATHER_ENTITY_ID: 'ha-weather-entity-id',
   OPENWEATHERMAP_KEY: 'ha-openweathermap-key',
   YANDEX_WEATHER_KEY: 'ha-yandex-weather-key',
   FORECA_KEY: 'ha-foreca-key',

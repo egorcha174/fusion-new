@@ -1,5 +1,6 @@
+
 import React, { useRef, useState, useMemo, useEffect } from 'react';
-import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition } from '../types';
+import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device } from '../types';
 import ConfirmDialog from './ConfirmDialog';
 import { useAppStore } from '../store/appStore';
 import { useHAStore } from '../store/haStore';
@@ -195,6 +196,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
         themes, activeThemeId, selectTheme, saveTheme, deleteTheme,
         onResetColorScheme,
         weatherProvider, setWeatherProvider,
+        weatherEntityId, setWeatherEntityId,
         openWeatherMapKey, setOpenWeatherMapKey,
         yandexWeatherKey, setYandexWeatherKey,
         forecaApiKey, setForecaApiKey,
@@ -203,6 +205,8 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
         isChristmasThemeEnabled, setIsChristmasThemeEnabled,
         servers, activeServerId, addServer, updateServer, deleteServer, setActiveServerId,
     } = useAppStore();
+
+    const { allKnownDevices } = useHAStore();
 
     const [editingTheme, setEditingTheme] = useState<ThemeDefinition | null>(null);
     const [confirmingDeleteTheme, setConfirmingDeleteTheme] = useState<ThemeDefinition | null>(null);
@@ -221,6 +225,12 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
             setEditingServer(null);
         }
     }, [servers, editingServer]);
+
+    const weatherEntities = useMemo(() => {
+        return (Array.from(allKnownDevices.values()) as Device[])
+            .filter(device => device.type === DeviceType.Weather || device.haDomain === 'weather')
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }, [allKnownDevices]);
 
 
     const handleConnect = () => {
@@ -594,11 +604,24 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
             <Section title="Виджет Погоды">
                  <LabeledInput label="Поставщик погоды">
                     <select value={weatherProvider} onChange={e => setWeatherProvider(e.target.value as any)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm">
+                        <option value="homeassistant">Home Assistant</option>
                         <option value="openweathermap">OpenWeatherMap</option>
                         <option value="yandex">Яндекс Погода</option>
                         <option value="foreca">Foreca</option>
                     </select>
                  </LabeledInput>
+
+                 {weatherProvider === 'homeassistant' && (
+                    <LabeledInput label="Сущность погоды">
+                         <select value={weatherEntityId} onChange={e => setWeatherEntityId(e.target.value)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm">
+                            <option value="">-- Выберите --</option>
+                            {weatherEntities.map(entity => (
+                                <option key={entity.id} value={entity.id}>{entity.name}</option>
+                            ))}
+                         </select>
+                    </LabeledInput>
+                 )}
+
                  {weatherProvider === 'openweathermap' && (
                      <LabeledInput label="Ключ API OpenWeatherMap">
                         <input type="password" value={openWeatherMapKey} onChange={e => setOpenWeatherMapKey(e.target.value)} className="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"/>

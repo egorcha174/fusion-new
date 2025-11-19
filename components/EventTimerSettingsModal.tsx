@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { EventTimerWidget, Device, DeviceType, ColorThemeSet } from '../types';
 import { useAppStore } from '../store/appStore';
@@ -100,7 +101,7 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
     };
     
     const handleColorChange = (index: number, color: string) => {
-        const newColors: [string, string, string] = [...fillColors];
+        const newColors = [...fillColors] as [string, string, string];
         newColors[index] = color;
         setFillColors(newColors);
     };

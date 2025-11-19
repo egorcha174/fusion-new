@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet, GridLayoutItem, EventTimerWidget } from './types';
@@ -326,7 +327,8 @@ const App: React.FC = () => {
         if (connectionStatus !== 'connected') return;
 
         const fetchWeather = () => {
-            const weatherEntities = Array.from(useHAStore.getState().allKnownDevices.values())
+            const devices = Array.from(useHAStore.getState().allKnownDevices.values()) as Device[];
+            const weatherEntities = devices
                 .filter(d => d.type === DeviceType.Weather && d.haDomain === 'weather')
                 .map(d => d.id);
 

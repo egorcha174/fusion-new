@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
@@ -64,7 +65,8 @@ interface AppState {
     activeThemeId: string;
     colorScheme: ColorScheme;
 
-    weatherProvider: 'openweathermap' | 'yandex' | 'foreca';
+    weatherProvider: 'openweathermap' | 'yandex' | 'foreca' | 'homeassistant';
+    weatherEntityId: string;
     openWeatherMapKey: string;
     yandexWeatherKey: string;
     forecaApiKey: string;
@@ -116,6 +118,7 @@ interface AppActions {
     onResetColorScheme: () => void;
 
     setWeatherProvider: (provider: AppState['weatherProvider']) => void;
+    setWeatherEntityId: (entityId: string) => void;
     setOpenWeatherMapKey: (key: string) => void;
     setYandexWeatherKey: (key: string) => void;
     setForecaApiKey: (key: string) => void;
@@ -215,7 +218,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     activeThemeId: initialActiveThemeId,
     colorScheme: initialColorScheme,
     
-    weatherProvider: loadAndMigrate<'openweathermap' | 'yandex' | 'foreca'>(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, DEFAULT_WEATHER_PROVIDER),
+    weatherProvider: loadAndMigrate<'openweathermap' | 'yandex' | 'foreca' | 'homeassistant'>(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, DEFAULT_WEATHER_PROVIDER),
+    weatherEntityId: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.WEATHER_ENTITY_ID, ''),
     openWeatherMapKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, ''),
     yandexWeatherKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, ''),
     forecaApiKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.FORECA_KEY, ''),
@@ -358,6 +362,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     setWeatherProvider: (provider) => {
         set({ weatherProvider: provider });
         localStorage.setItem(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, provider);
+    },
+    setWeatherEntityId: (entityId) => {
+        set({ weatherEntityId: entityId });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.WEATHER_ENTITY_ID, entityId);
     },
     setOpenWeatherMapKey: (key) => {
         set({ openWeatherMapKey: key });

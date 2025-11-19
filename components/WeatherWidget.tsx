@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { ColorScheme, WeatherSettings } from '../types';
 import AnimatedWeatherIcon from './AnimatedWeatherIcon';
+import { useHAStore } from '../store/haStore';
 
 // --- Типы данных для погоды ---
 interface CurrentWeather {
@@ -22,7 +24,8 @@ interface WeatherData {
 }
 
 interface WeatherWidgetProps {
-    weatherProvider: 'openweathermap' | 'yandex' | 'foreca';
+    weatherProvider: 'openweathermap' | 'yandex' | 'foreca' | 'homeassistant';
+    weatherEntityId: string;
     openWeatherMapKey: string;
     yandexWeatherKey: string;
     forecaApiKey: string;
@@ -30,6 +33,15 @@ interface WeatherWidgetProps {
     colorScheme: ColorScheme['light'];
     weatherSettings: WeatherSettings;
 }
+
+// --- MAPPINGS FOR HA WEATHER ---
+const haConditionToOwmCode: Record<string, string> = {
+    'clear-night': '01n', 'cloudy': '03d', 'fog': '50d',
+    'hail': '13d', 'lightning': '11d', 'lightning-rainy': '11d',
+    'partlycloudy': '02d', 'pouring': '09d', 'rainy': '10d',
+    'snowy': '13d', 'snowy-rainy': '13d', 'sunny': '01d',
+    'windy': '50d', 'windy-variant': '50d', 'exceptional': '50d'
+};
 
 // --- MAPPINGS FOR YANDEX WEATHER ---
 const yandexConditionToText: { [key: string]: string } = {
@@ -81,12 +93,14 @@ const forecaSymbolToOwmCode = (symbol: string): string => {
 
 /**
  * Виджет для отображения текущей погоды и прогноза на несколько дней.
- * Получает данные из OpenWeatherMap API, используя координаты из конфигурации Home Assistant.
+ * Поддерживает OpenWeatherMap, Yandex, Foreca и Home Assistant (через сервис weather.get_forecasts).
  */
-const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, getConfig, colorScheme, weatherSettings }) => {
+const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, weatherEntityId, openWeatherMapKey, yandexWeatherKey, forecaApiKey, getConfig, colorScheme, weatherSettings }) => {
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    
+    const { callService, allKnownDevices } = useHAStore();
 
     useEffect(() => {
         const { forecastDays } = weatherSettings;
@@ -233,12 +247,78 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeat
             };
         };
 
+        const fetchHAWeather = async () => {
+            if (!weatherEntityId) throw new Error("Сущность погоды не выбрана.");
+            
+            const device = allKnownDevices.get(weatherEntityId);
+            if (!device) throw new Error("Устройство не найдено. Проверьте подключение.");
+
+            let rawForecast = [];
+            
+            try {
+                // Try using the dedicated service first (standard since HA 2023.12)
+                const response = await callService('weather', 'get_forecasts', {
+                    entity_id: weatherEntityId,
+                    type: 'daily'
+                }, true);
+
+                if (response && response[weatherEntityId] && response[weatherEntityId].forecast) {
+                    rawForecast = response[weatherEntityId].forecast;
+                }
+            } catch (e) {
+                console.warn('Failed to call weather.get_forecasts, falling back to attributes.', e);
+                // Fallback to legacy attribute if service call fails or is not supported
+                if (device.forecast && device.forecast.length > 0) {
+                    // Need to adapt the internal Device forecast structure back to raw-like structure if needed,
+                    // but actually `device.forecast` is already `WeatherForecast[]`.
+                    // We can just use it directly if service call failed.
+                    // Let's normalize below.
+                }
+            }
+            
+            // If service call failed or returned empty, try legacy attribute from device object
+            const forecastSource = (rawForecast.length > 0) ? rawForecast : (device.forecast || []);
+            
+            if (forecastSource.length === 0) {
+                throw new Error("Нет данных прогноза (ни через сервис, ни в атрибутах).");
+            }
+
+            const mappedForecast = forecastSource.slice(0, forecastDays).map((f: any) => {
+                // Handle both raw service response keys and internal WeatherForecast keys
+                const dateStr = f.datetime || f.date;
+                const condition = f.condition || f.state;
+                const tempMax = f.temperature ?? f.max_temp ?? f.temp;
+                const tempMin = f.templow ?? f.min_temp;
+
+                const dt = new Date(dateStr);
+                const dayName = dt.toLocaleDateString("ru-RU", { weekday: "short" });
+                return {
+                    day: dayName,
+                    tempMax: tempMax,
+                    tempMin: tempMin !== undefined ? tempMin : tempMax, // Fallback if no min temp
+                    icon: haConditionToOwmCode[condition] || '01d'
+                };
+            });
+
+            return {
+                current: {
+                    temp: device.temperature ?? 0,
+                    desc: device.status,
+                    icon: haConditionToOwmCode[device.condition || ''] || '01d'
+                },
+                forecast: mappedForecast
+            };
+        };
+
         const fetchWeather = async () => {
             setLoading(true);
             setError(null);
             try {
                 let fetchFn;
                 switch (weatherProvider) {
+                    case 'homeassistant':
+                        fetchFn = fetchHAWeather;
+                        break;
                     case 'yandex':
                         fetchFn = fetchYandexWeather;
                         break;
@@ -260,7 +340,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, openWeat
         };
 
         fetchWeather();
-    }, [weatherProvider, openWeatherMapKey, yandexWeatherKey, forecaApiKey, getConfig, weatherSettings]);
+    }, [weatherProvider, weatherEntityId, openWeatherMapKey, yandexWeatherKey, forecaApiKey, getConfig, weatherSettings, allKnownDevices, callService]);
 
     if (loading) {
         return ( // Скелет загрузки
