@@ -349,10 +349,9 @@ const fetchWeather = async () => {            const devices = Array.from(useHASt
                 .map(d => d.id);
 
             if (weatherEntities.length > 0) {
-const forecasts = await haStore.callService('weather', 'get_forecasts', {
-        entity_id: weatherEntities
-      });
-      setWeatherForecasts(forecasts || {});            }
+fetchWeatherForecasts(weatherEntities);
+    }
+                                  
         };
 
         // Вызываем сразу, как только стало возможно (без искусственной задержки)
