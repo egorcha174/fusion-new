@@ -9,14 +9,13 @@ RUN npm ci
 COPY src ./src
 COPY components ./components
 COPY hooks ./hooks
-COPY store ./store
-COPY utils ./utils
-COPY vendor ./vendor
-COPY config ./config
 COPY *.json ./
 COPY *.ts ./
 COPY *.tsx ./
 COPY *.html ./
+
+# Create empty directories that may not exist
+RUN mkdir -p store utils vendor config
 
 RUN npm run build
 
@@ -29,5 +28,3 @@ COPY nginx.conf /etc/nginx/nginx.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 EXPOSE 8099
-
-CMD ["nginx", "-g", "daemon off;"]
