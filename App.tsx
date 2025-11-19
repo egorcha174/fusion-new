@@ -175,7 +175,7 @@ const App: React.FC = () => {
     const {
         connectionStatus, isLoading, error, connect, allKnownDevices,
         allCameras, getCameraStreamUrl, getConfig, getHistory, signPath,
-        haUrl, allRoomsWithPhysicalDevices, fetchWeatherForecasts
+        haUrl, allRoomsWithPhysicalDevices
     } = useHAStore();
 
     // Получение состояний и действий из хранилища Zustand для UI приложения.
@@ -337,33 +337,6 @@ const App: React.FC = () => {
             }
         }
     }, [connectionStatus, isLoading, tabs, activeTabId, allKnownDevices, setTabs, setActiveTabId]);
-
-    // Эффект для периодического обновления прогноза погоды (weather.get_forecasts)
-    useEffect(() => {
-        // Загружаем погоду только если подключены и первичная загрузка сущностей завершена (!isLoading)
-        if (connectionStatus !== 'connected' || isLoading) return;
-
-const fetchWeather = async () => {            const devices = Array.from(useHAStore.getState().allKnownDevices.values()) as Device[];
-            const weatherEntities = devices
-                .filter(d => d.type === DeviceType.Weather && d.haDomain === 'weather')
-                .map(d => d.id);
-
-            if (weatherEntities.length > 0) {
-fetchWeatherForecasts(weatherEntities);
-    }
-                                  
-        };
-
-        // Вызываем сразу, как только стало возможно (без искусственной задержки)
-        fetchWeather();
-        
-        // Периодическое обновление каждые 30 минут
-        const intervalId = setInterval(fetchWeather, 30 * 60 * 1000);
-
-        return () => {
-            clearInterval(intervalId);
-        };
-    }, [connectionStatus, isLoading, fetchWeatherForecasts]);
 
   // Мемоизированное значение текущей активной вкладки для избежания лишних пересчетов.
   const activeTab = useMemo(() => tabs.find(t => t.id === activeTabId), [tabs, activeTabId]);

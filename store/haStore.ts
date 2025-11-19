@@ -71,6 +71,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   const historyPeriodCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
   const serviceReturnCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
   let brightnessTimeoutRef: number | null = null;
+  let forecastRefreshInterval: any = null;
 
   const sendMessage = (message: object) => {
     if (socketRef?.readyState === WebSocket.OPEN) {
@@ -348,6 +349,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
 
     connect: (url, token) => {
         if (socketRef) socketRef.close();
+        if (forecastRefreshInterval) clearInterval(forecastRefreshInterval);
         
         set({ connectionStatus: 'connecting', error: null, isLoading: true, haUrl: url });
         messageIdRef = 1;
@@ -420,6 +422,30 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                         if (initialFetchIds.size === 0) {
                                             const s = get();
                                             updateDerivedState(s.entities, s.areas, s.devices, s.entityRegistry);
+                                            
+                                            // Автоматически получаем прогнозы для всех weather энтити
+                                            const weatherEntities = Object.values(s.entities)
+                                                .filter(e => e.entity_id.startsWith('weather.'))
+                                                .map(e => e.entity_id);
+
+                                            if (weatherEntities.length > 0) {
+                                                get().fetchWeatherForecasts(weatherEntities);
+                                            }
+
+                                            // Периодическое обновление прогноза (каждые 30 минут)
+                                            forecastRefreshInterval = setInterval(() => {
+                                                const currentStore = get();
+                                                if (currentStore.connectionStatus === 'connected') {
+                                                    const wEntities = Object.values(currentStore.entities)
+                                                        .filter(e => e.entity_id.startsWith('weather.'))
+                                                        .map(e => e.entity_id);
+                                                    
+                                                    if (wEntities.length > 0) {
+                                                        currentStore.fetchWeatherForecasts(wEntities);
+                                                    }
+                                                }
+                                            }, 30 * 60 * 1000);
+
                                             set({ isLoading: false });
                                         }
                                     }
@@ -441,6 +467,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             };
 
             socketRef.onclose = () => {
+                if (forecastRefreshInterval) clearInterval(forecastRefreshInterval);
                 if (get().connectionStatus === 'connecting') set({ connectionStatus: 'failed' });
                 else set({ connectionStatus: 'idle' });
                 set({ isLoading: false });
@@ -454,6 +481,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         }
     },
     disconnect: () => {
+        if (forecastRefreshInterval) clearInterval(forecastRefreshInterval);
         socketRef?.close();
         set({ connectionStatus: 'idle', entities: {}, areas: [], devices: [], entityRegistry: [], error: null, isLoading: false });
     },
