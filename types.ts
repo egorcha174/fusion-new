@@ -199,7 +199,7 @@ export interface DeviceCustomization {
 // Словарь кастомизаций, где ключ - это ID устройства (entity_id).
 export type DeviceCustomizations = Record<string, DeviceCustomization>;
 
-export type Page = 'dashboard' | 'settings' | 'all-devices' | 'helpers';
+export type Page = 'dashboard' | 'settings' | 'all-devices' | 'helpers' | 'template-gallery';
 
 export type ClockSize = 'sm' | 'md' | 'lg';
 

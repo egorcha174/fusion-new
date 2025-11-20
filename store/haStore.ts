@@ -424,7 +424,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                             updateDerivedState(s.entities, s.areas, s.devices, s.entityRegistry);
                                             
                                             // Автоматически получаем прогнозы для всех weather энтити
-                                            const weatherEntities = Object.values(s.entities)
+                                            const weatherEntities = (Object.values(s.entities) as HassEntity[])
                                                 .filter(e => e.entity_id.startsWith('weather.'))
                                                 .map(e => e.entity_id);
 
@@ -436,7 +436,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                             forecastRefreshInterval = setInterval(() => {
                                                 const currentStore = get();
                                                 if (currentStore.connectionStatus === 'connected') {
-                                                    const wEntities = Object.values(currentStore.entities)
+                                                    const wEntities = (Object.values(currentStore.entities) as HassEntity[])
                                                         .filter(e => e.entity_id.startsWith('weather.'))
                                                         .map(e => e.entity_id);
                                                     

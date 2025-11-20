@@ -204,6 +204,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
         lowBatteryThreshold, setLowBatteryThreshold,
         isChristmasThemeEnabled, setIsChristmasThemeEnabled,
         servers, activeServerId, addServer, updateServer, deleteServer, setActiveServerId,
+        setCurrentPage
     } = useAppStore();
 
     const { allKnownDevices } = useHAStore();
@@ -679,8 +680,21 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
         ];
         return (
             <div className="space-y-4">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Шаблоны позволяют полностью кастомизировать внешний вид карточек для определенных типов устройств.</p>
-                <div className="flex justify-end">
+                <div className="flex justify-between items-center">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Шаблоны позволяют полностью кастомизировать внешний вид карточек для определенных типов устройств.</p>
+                </div>
+                
+                {/* --- GALLERY BUTTON --- */}
+                <button
+                    onClick={() => setCurrentPage('template-gallery')}
+                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white py-3 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+                >
+                    <Icon icon="mdi:view-grid-plus" className="w-6 h-6" />
+                    <span className="font-semibold">Открыть галерею шаблонов</span>
+                </button>
+                {/* --------------------- */}
+
+                <div className="flex justify-end mt-4">
                     <div className="relative">
                         <button 
                             onClick={() => setIsCreateMenuOpen(prev => !prev)}

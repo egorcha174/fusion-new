@@ -26,6 +26,7 @@ const HistoryModal = lazy(() => import('./components/HistoryModal.tsx'));
 const EventTimerSettingsModal = lazy(() => import('./components/EventTimerSettingsModal.tsx'));
 const ConfirmDialog = lazy(() => import('./components/ConfirmDialog.tsx'));
 const ChristmasTheme = lazy(() => import('./components/ChristmasTheme.tsx'));
+const TemplateGallery = lazy(() => import('./components/templateGallery/TemplateGallery.tsx'));
 
 
 /**
@@ -497,6 +498,8 @@ const App: React.FC = () => {
         return <Suspense fallback={<div />}><HelpersPage /></Suspense>;
       case 'all-devices':
         return <AllDevicesPage rooms={filteredRoomsForPhysicalDevicesPage} />;
+      case 'template-gallery':
+          return <Suspense fallback={<div />}><TemplateGallery /></Suspense>;
       case 'dashboard':
       default:
         return activeTab ? (
