@@ -187,9 +187,30 @@ const RiverEffect = () => {
 const AuroraEffect = () => {
     return (
         <div className="fixed inset-0 overflow-hidden pointer-events-none -z-[5]">
-            <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_50%_50%,rgba(76,29,149,0.4),transparent_50%)] animate-[aurora-float-1_20s_infinite_linear]" />
-            <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_60%_40%,rgba(16,185,129,0.3),transparent_50%)] animate-[aurora-float-2_25s_infinite_linear_reverse]" />
-            <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_40%_60%,rgba(59,130,246,0.3),transparent_50%)] animate-[aurora-float-1_30s_infinite_linear]" />
+            <div 
+                className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%]"
+                style={{
+                    background: 'radial-gradient(circle at 50% 50%, rgba(76, 29, 149, 0.5), transparent 50%)',
+                    animation: 'aurora-float-1 20s infinite linear',
+                    transformOrigin: 'center center'
+                }}
+            />
+            <div 
+                className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%]"
+                style={{
+                    background: 'radial-gradient(circle at 60% 40%, rgba(16, 185, 129, 0.4), transparent 50%)',
+                    animation: 'aurora-float-2 25s infinite linear reverse',
+                    transformOrigin: 'center center'
+                }}
+            />
+            <div 
+                className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%]"
+                style={{
+                    background: 'radial-gradient(circle at 40% 60%, rgba(59, 130, 246, 0.4), transparent 50%)',
+                    animation: 'aurora-float-1 30s infinite linear',
+                    transformOrigin: 'center center'
+                }}
+            />
         </div>
     );
 };
