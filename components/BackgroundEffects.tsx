@@ -187,28 +187,54 @@ const RiverEffect = () => {
 const AuroraEffect = () => {
     return (
         <div className="fixed inset-0 overflow-hidden pointer-events-none -z-[5]">
+            {/* Layer 1: Green - Base structure */}
             <div 
-                className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%]"
+                className="absolute top-[-100%] left-[-50%] w-[300%] h-[300%]"
                 style={{
-                    background: 'radial-gradient(circle at 50% 50%, rgba(76, 29, 149, 0.5), transparent 50%)',
-                    animation: 'aurora-float-1 20s infinite linear',
+                    background: 'radial-gradient(ellipse 70% 60% at 50% 50%, rgba(0, 255, 150, 0.8), transparent 60%)',
+                    animation: 'aurora-float-1 25s infinite ease-in-out',
+                    filter: 'blur(80px)',
+                    opacity: 0.6,
                     transformOrigin: 'center center'
                 }}
             />
+            
+            {/* Layer 2: Pink/Magenta - Intense highlights */}
             <div 
-                className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%]"
+                className="absolute top-[-100%] left-[-30%] w-[280%] h-[280%]"
                 style={{
-                    background: 'radial-gradient(circle at 60% 40%, rgba(16, 185, 129, 0.4), transparent 50%)',
-                    animation: 'aurora-float-2 25s infinite linear reverse',
-                    transformOrigin: 'center center'
+                    background: 'radial-gradient(ellipse 65% 55% at 60% 40%, rgba(255, 0, 150, 0.7), transparent 60%)',
+                    animation: 'aurora-float-2 30s infinite ease-in-out reverse',
+                    filter: 'blur(70px)',
+                    opacity: 0.6,
+                    transformOrigin: 'center center',
+                    mixBlendMode: 'screen'
                 }}
             />
+
+            {/* Layer 3: Purple - Deep tones */}
             <div 
-                className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%]"
+                className="absolute top-[-90%] left-[-60%] w-[300%] h-[300%]"
                 style={{
-                    background: 'radial-gradient(circle at 40% 60%, rgba(59, 130, 246, 0.4), transparent 50%)',
-                    animation: 'aurora-float-1 30s infinite linear',
-                    transformOrigin: 'center center'
+                    background: 'radial-gradient(ellipse 80% 50% at 40% 60%, rgba(150, 0, 255, 0.6), transparent 60%)',
+                    animation: 'aurora-float-1 35s infinite ease-in-out',
+                    filter: 'blur(90px)',
+                    opacity: 0.6,
+                    transformOrigin: 'center center',
+                    mixBlendMode: 'screen'
+                }}
+            />
+
+            {/* Layer 4: Blue - Cool overlay */}
+            <div 
+                className="absolute top-[-110%] left-[-20%] w-[280%] h-[280%]"
+                style={{
+                    background: 'radial-gradient(ellipse 75% 65% at 70% 30%, rgba(0, 150, 255, 0.5), transparent 60%)',
+                    animation: 'aurora-float-2 40s infinite ease-in-out reverse',
+                    filter: 'blur(60px)',
+                    opacity: 0.6,
+                    transformOrigin: 'center center',
+                    mixBlendMode: 'screen'
                 }}
             />
         </div>
