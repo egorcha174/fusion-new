@@ -31,6 +31,68 @@ const ALLOWED_ELEMENTS_FOR_TYPE: Record<CardTemplate['deviceType'], CardElementI
     custom: ['name', 'icon', 'value', 'unit', 'chart', 'status', 'battery', 'linked-entity', 'fan-speed-control'],
 };
 
+// --- Data Binding Input Component ---
+const DataBindingInput: React.FC<{
+    value: string;
+    onChange: (val: string) => void;
+    options: string[];
+}> = ({ value, onChange, options }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        if (isOpen) document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isOpen]);
+
+    const filteredOptions = options.filter(opt => 
+        !value || opt.toLowerCase().includes(value.toLowerCase())
+    );
+
+    return (
+        <div className="relative w-full" ref={containerRef}>
+            <div className="relative">
+                <input 
+                    type="text" 
+                    placeholder="например, attributes.brightness"
+                    value={value}
+                    onChange={e => { onChange(e.target.value); setIsOpen(true); }}
+                    onFocus={() => setIsOpen(true)}
+                    className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 pr-7"
+                />
+                <button 
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-200"
+                    tabIndex={-1}
+                >
+                    <Icon icon="mdi:chevron-down" className="w-4 h-4" />
+                </button>
+            </div>
+            {isOpen && filteredOptions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-gray-800 border border-gray-600 rounded-md shadow-lg z-50 no-scrollbar">
+                    {filteredOptions.map(opt => (
+                        <button
+                            key={opt}
+                            onClick={() => {
+                                onChange(opt);
+                                setIsOpen(false);
+                            }}
+                            className="block w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white"
+                        >
+                            {opt}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
 // --- Draggable Resize Handle ---
 const ResizeHandle: React.FC<{
   elementId: CardElementId,
@@ -278,6 +340,38 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   }, [templateToEdit.deviceType]);
   
   const sampleAllKnownDevices = useMemo(() => new Map<string, Device>([[sampleDevice.id, sampleDevice]]), [sampleDevice]);
+
+  // --- Calculate available attributes for data binding suggestions ---
+  const availableAttributes = useMemo(() => {
+    const attrs = new Set<string>(['state', 'last_changed', 'last_updated', 'entity_id']);
+    
+    // Add from sample device
+    if (sampleDevice.attributes) {
+        Object.keys(sampleDevice.attributes).forEach(k => attrs.add(`attributes.${k}`));
+    }
+
+    // Add from real devices of the same "category"
+    const targetType = editedTemplate.deviceType;
+    
+    const isMatch = (d: Device) => {
+        if (targetType === 'sensor') return d.type === DeviceType.Sensor;
+        if (targetType === 'light') return d.type === DeviceType.Light || d.type === DeviceType.DimmableLight;
+        if (targetType === 'switch') return d.type === DeviceType.Switch || d.type === DeviceType.Outlet;
+        if (targetType === 'climate') return d.type === DeviceType.Thermostat;
+        if (targetType === 'humidifier') return d.type === DeviceType.Humidifier;
+        if (targetType === 'custom') return d.type === DeviceType.Custom;
+        return false;
+    };
+
+    for (const d of allKnownDevices.values()) {
+        if (isMatch(d) && d.attributes) {
+            Object.keys(d.attributes).forEach(k => attrs.add(`attributes.${k}`));
+        }
+    }
+
+    return Array.from(attrs).sort();
+  }, [allKnownDevices, editedTemplate.deviceType, sampleDevice]);
+
 
   const handleDeleteSlot = useCallback((slotIdToDelete: string) => {
       setEditedTemplate(prev => ({
@@ -728,12 +822,10 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                     <>
                         <Section title="Привязка данных">
                             <LabeledInput label="Путь к данным">
-                                <input 
-                                    type="text" 
-                                    placeholder="например, attributes.brightness"
+                                <DataBindingInput 
                                     value={selectedElement.dataBinding || ''}
-                                    onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, dataBinding: e.target.value} : el)}))}
-                                    className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    onChange={val => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, dataBinding: val} : el)}))}
+                                    options={availableAttributes}
                                 />
                             </LabeledInput>
                             <p className="text-[10px] text-gray-500 mt-1 pl-1">
