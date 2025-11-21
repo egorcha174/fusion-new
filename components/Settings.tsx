@@ -229,7 +229,8 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
     }, [servers, editingServer]);
 
     const weatherEntities = useMemo(() => {
-        return (Array.from(allKnownDevices.values()) as Device[])
+        const devices = Array.from(allKnownDevices.values()) as Device[];
+        return devices
             .filter(device => device.type === DeviceType.Weather || device.haDomain === 'weather')
             .sort((a, b) => a.name.localeCompare(b.name));
     }, [allKnownDevices]);
@@ -249,7 +250,8 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
 
             // Собираем все настройки из localStorage
             const settingsToExport: { [key: string]: any } = {};
-            for (const key of Object.values(LOCAL_STORAGE_KEYS) as string[]) {
+            const keys = Object.values(LOCAL_STORAGE_KEYS) as string[];
+            for (const key of keys) {
                 const value = localStorage.getItem(key);
                 if (value !== null) {
                     try {
@@ -290,8 +292,9 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                         const content = await settingsFile.async("string");
                         const importedSettings = JSON.parse(content);
 
+                        const keys = Object.values(LOCAL_STORAGE_KEYS) as string[];
                         Object.keys(importedSettings).forEach(key => {
-                            if (Object.values(LOCAL_STORAGE_KEYS).includes(key as any)) {
+                            if (keys.includes(key)) {
                                localStorage.setItem(key, JSON.stringify(importedSettings[key]));
                             }
                         });
@@ -344,7 +347,8 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
 
     const handleResetAllSettings = () => {
         if(window.confirm("Вы уверены, что хотите сбросить ВСЕ настройки? Это действие нельзя отменить.")) {
-            (Object.values(LOCAL_STORAGE_KEYS) as string[]).forEach(key => {
+            const keys = Object.values(LOCAL_STORAGE_KEYS) as string[];
+            keys.forEach(key => {
                 localStorage.removeItem(key);
             });
             alert("Все настройки сброшены. Страница будет перезагружена.");
