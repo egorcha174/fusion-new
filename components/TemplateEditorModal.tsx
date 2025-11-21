@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot, ColorScheme } from '../types';
 import DeviceCard from './DeviceCard';
@@ -904,8 +906,10 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                  )}
                  {selectedElement.id === 'icon' && (
                     <Section title="Стили иконки">
-                        <LabeledInput label="Цвет (Вкл.)"><input type="color" value={selectedElement.styles.onColor || '#3B82F6'} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, onColor: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
-                        <LabeledInput label="Цвет (Выкл.)"><input type="color" value={selectedElement.styles.offColor || '#9CA3AF'} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, offColor: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
+                        <LabeledInput label="Цвет иконки (Вкл.)"><input type="color" value={selectedElement.styles.onColor || '#3B82F6'} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, onColor: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
+                        <LabeledInput label="Цвет иконки (Выкл.)"><input type="color" value={selectedElement.styles.offColor || '#9CA3AF'} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, offColor: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
+                        <LabeledInput label="Фон (Вкл.)"><input type="color" value={selectedElement.styles.iconBackgroundColorOn || ''} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, iconBackgroundColorOn: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
+                        <LabeledInput label="Фон (Выкл.)"><input type="color" value={selectedElement.styles.iconBackgroundColorOff || ''} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, iconBackgroundColorOff: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
                     </Section>
                  )}
                  {selectedElement.id === 'chart' && (

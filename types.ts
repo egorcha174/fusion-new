@@ -352,6 +352,8 @@ export interface CardElement {
     decimalPlaces?: number; // Для 'value', 'temperature'
     onColor?: string; // Для 'icon'
     offColor?: string; // для 'icon'
+    iconBackgroundColorOn?: string; // Background color for icon (on)
+    iconBackgroundColorOff?: string; // Background color for icon (off)
     textAlign?: 'left' | 'center' | 'right'; // Для текстовых элементов
     fontFamily?: string; // Для текстовых элементов
     fontSize?: number; // Для текстовых элементов (в px)
