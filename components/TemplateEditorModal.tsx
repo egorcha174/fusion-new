@@ -38,40 +38,81 @@ const DataBindingInput: React.FC<{
     options: string[];
 }> = ({ value, onChange, options }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [forceShowAll, setForceShowAll] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
                 setIsOpen(false);
+                setForceShowAll(false);
             }
         };
         if (isOpen) document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isOpen]);
 
-    const filteredOptions = options.filter(opt => 
-        !value || opt.toLowerCase().includes(value.toLowerCase())
-    );
+    const filteredOptions = (forceShowAll || !value)
+        ? options
+        : options.filter(opt => opt.toLowerCase().includes(value.toLowerCase()));
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        onChange(e.target.value);
+        setIsOpen(true);
+        setForceShowAll(false);
+    };
+
+    const handleChevronClick = (e: React.MouseEvent) => {
+        e.preventDefault(); // Prevent input blur
+        const nextState = !isOpen;
+        setIsOpen(nextState);
+        if (nextState) {
+            setForceShowAll(true);
+            inputRef.current?.focus();
+        }
+    };
+
+    const handleClearClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onChange('');
+        setForceShowAll(true);
+        setIsOpen(true);
+        inputRef.current?.focus();
+    };
 
     return (
         <div className="relative w-full" ref={containerRef}>
-            <div className="relative">
+            <div className="relative flex items-center">
                 <input 
+                    ref={inputRef}
                     type="text" 
                     placeholder="например, attributes.brightness"
                     value={value}
-                    onChange={e => { onChange(e.target.value); setIsOpen(true); }}
+                    onChange={handleInputChange}
                     onFocus={() => setIsOpen(true)}
-                    className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 pr-7"
+                    className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md pl-2 pr-12 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
-                <button 
-                    onClick={() => setIsOpen(!isOpen)}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-200"
-                    tabIndex={-1}
-                >
-                    <Icon icon="mdi:chevron-down" className="w-4 h-4" />
-                </button>
+                <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+                    {value && (
+                        <button 
+                            onClick={handleClearClick}
+                            className="p-0.5 text-gray-500 hover:text-gray-300 transition-colors"
+                            tabIndex={-1}
+                            title="Очистить"
+                        >
+                            <Icon icon="mdi:close" className="w-4 h-4" />
+                        </button>
+                    )}
+                    <button 
+                        onClick={handleChevronClick}
+                        className="p-0.5 text-gray-400 hover:text-gray-200 transition-colors"
+                        tabIndex={-1}
+                    >
+                        <Icon icon="mdi:chevron-down" className="w-4 h-4" />
+                    </button>
+                </div>
             </div>
             {isOpen && filteredOptions.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-gray-800 border border-gray-600 rounded-md shadow-lg z-50 no-scrollbar">
@@ -81,8 +122,9 @@ const DataBindingInput: React.FC<{
                             onClick={() => {
                                 onChange(opt);
                                 setIsOpen(false);
+                                setForceShowAll(false);
                             }}
-                            className="block w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white"
+                            className={`block w-full text-left px-3 py-1.5 text-xs hover:bg-gray-700 hover:text-white ${opt === value ? 'text-blue-400 font-medium' : 'text-gray-300'}`}
                         >
                             {opt}
                         </button>
