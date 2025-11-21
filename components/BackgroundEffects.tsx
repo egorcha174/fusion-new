@@ -81,17 +81,28 @@ const RainEffect = () => {
 const LeavesEffect = () => {
     const leaves = useMemo(() => {
         const colors = ['#e6a04d', '#d65d45', '#e8c658', '#8B4513'];
-        return Array.from({ length: 30 }).map((_, i) => {
-            const size = Math.random() * 15 + 10;
+        const shapes = [
+            // Birch/Simple (Teardrop)
+            "M50 5 Q30 40 10 55 Q5 70 25 95 L50 95 L75 95 Q95 70 90 55 Q70 40 50 5 Z", 
+            // Oak (Lobed)
+            "M50 10 Q35 15 35 30 Q20 35 20 50 Q20 65 35 70 Q35 85 50 95 Q65 85 65 70 Q80 65 80 50 Q80 35 65 30 Q65 15 50 10 Z", 
+            // Maple (Spiky)
+            "M50 0 L35 30 L10 30 L30 50 L20 80 L50 65 L80 80 L70 50 L90 30 L65 30 Z"
+        ];
+
+        return Array.from({ length: 35 }).map((_, i) => {
+            const size = Math.random() * 15 + 20; // Increase size slightly for visibility
             const xStart = Math.random() * 100;
             const xEnd = xStart + (Math.random() - 0.5) * 40;
             const duration = Math.random() * 5 + 5; // 5-10s
             const delay = Math.random() * -10;
             const rotate = (Math.random() - 0.5) * 360;
             const color = colors[Math.floor(Math.random() * colors.length)];
+            const path = shapes[Math.floor(Math.random() * shapes.length)];
 
             return {
                 id: i,
+                path,
                 style: {
                     '--size': `${size}px`,
                     '--x-start': `${xStart}vw`,
@@ -108,7 +119,27 @@ const LeavesEffect = () => {
     return (
         <>
             {leaves.map(leaf => (
-                <div key={leaf.id} className="leaf" style={leaf.style} />
+                <div 
+                    key={leaf.id} 
+                    className="leaf" 
+                    style={{
+                        ...leaf.style,
+                        backgroundColor: 'transparent', // Override generic leaf style
+                        borderRadius: 0, // Override generic leaf style
+                    }}
+                >
+                    <svg 
+                        viewBox="0 0 100 100" 
+                        style={{ 
+                            width: '100%', 
+                            height: '100%', 
+                            fill: 'var(--color)',
+                            filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.2))'
+                        }}
+                    >
+                        <path d={leaf.path} />
+                    </svg>
+                </div>
             ))}
         </>
     );
