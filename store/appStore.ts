@@ -1,10 +1,11 @@
 
+
 import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
   CameraSettings, ColorScheme, CardTemplate, DeviceType, GridLayoutItem, DeviceCustomization,
   CardElementId, EventTimerWidget, CustomCardWidget, PhysicalDevice, CardElement, WeatherSettings,
-  ServerConfig, ThemeDefinition
+  ServerConfig, ThemeDefinition, ThemePackage
 } from '../types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from '../components/DeviceIcon';
@@ -116,6 +117,7 @@ interface AppActions {
     saveTheme: (themeToSave: ThemeDefinition) => void;
     deleteTheme: (themeId: string) => void;
     onResetColorScheme: () => void;
+    importThemePackage: (pkg: ThemePackage) => void;
 
     setWeatherProvider: (provider: AppState['weatherProvider']) => void;
     setWeatherEntityId: (entityId: string) => void;
@@ -357,6 +359,40 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         if (activeTheme) {
             saveTheme({...activeTheme, scheme: DEFAULT_COLOR_SCHEME});
         }
+    },
+    
+    // --- NEW: Import Package Action ---
+    importThemePackage: (pkg: ThemePackage) => {
+        const { theme, templates: newTemplatesList } = pkg;
+        const { themes, setThemes, templates, setTemplates, selectTheme } = get();
+
+        // 1. Handle Theme Collision
+        // If ID exists, verify if it's the same theme or needs a new ID
+        let themeToImport = { ...theme, isCustom: true };
+        if (themes.some(t => t.id === themeToImport.id)) {
+            // Append a timestamp or random string to ID to avoid collision
+            // Or simply overwrite if that's desired. Here we assume we want to add as a copy if duplicate.
+            // Actually, a cleaner way is to check name match. 
+            // For now, let's generate a new ID to be safe.
+            themeToImport.id = nanoid(); 
+            themeToImport.name = `${theme.name} (Imported)`;
+        }
+        
+        const newThemes = [...themes, themeToImport];
+        setThemes(newThemes);
+
+        // 2. Handle Templates
+        const updatedTemplates = { ...templates };
+        newTemplatesList.forEach(tpl => {
+            // Overwrite existing templates with same ID (assuming package contains newer version)
+            // Or could also regenerate IDs. 
+            // For "Package" logic, we assume the template ID is consistent across shared packages.
+            updatedTemplates[tpl.id] = tpl;
+        });
+        setTemplates(updatedTemplates);
+
+        // 3. Select the imported theme
+        selectTheme(themeToImport.id);
     },
 
     setWeatherProvider: (provider) => {

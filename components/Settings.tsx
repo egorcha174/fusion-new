@@ -1,4 +1,5 @@
 
+
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device } from '../types';
 import ConfirmDialog from './ConfirmDialog';
@@ -11,6 +12,7 @@ import { format } from 'date-fns';
 import { ru } from 'date-fns/locale/ru';
 import { nanoid } from 'nanoid';
 import { set as setAtPath } from '../utils/obj-path';
+import { generatePackage, validatePackage } from '../utils/packageManager';
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'failed';
 type SettingsTab = 'appearance' | 'interface' | 'templates' | 'connection' | 'backup';
@@ -193,7 +195,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
         themeMode, setThemeMode,
         scheduleStartTime, setScheduleStartTime,
         scheduleEndTime, setScheduleEndTime,
-        themes, activeThemeId, selectTheme, saveTheme, deleteTheme,
+        themes, activeThemeId, selectTheme, saveTheme, deleteTheme, importThemePackage,
         onResetColorScheme,
         weatherProvider, setWeatherProvider,
         weatherEntityId, setWeatherEntityId,
@@ -280,24 +282,40 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
-                const zip = await JSZip.loadAsync(e.target?.result as ArrayBuffer);
-                const settingsFile = zip.file("ha-dashboard-settings.json");
+                // 1. Try importing as ZIP (Full Backup)
+                try {
+                    const zip = await JSZip.loadAsync(e.target?.result as ArrayBuffer);
+                    const settingsFile = zip.file("ha-dashboard-settings.json");
 
-                if (!settingsFile) {
-                    throw new Error("Файл 'ha-dashboard-settings.json' не найден в архиве.");
+                    if (settingsFile) {
+                        const content = await settingsFile.async("string");
+                        const importedSettings = JSON.parse(content);
+
+                        Object.keys(importedSettings).forEach(key => {
+                            if (Object.values(LOCAL_STORAGE_KEYS).includes(key as any)) {
+                               localStorage.setItem(key, JSON.stringify(importedSettings[key]));
+                            }
+                        });
+
+                        alert("Настройки успешно импортированы! Страница будет перезагружена.");
+                        window.location.reload();
+                        return;
+                    }
+                } catch (zipErr) {
+                    // Not a valid zip, try JSON (Theme Package)
                 }
 
-                const content = await settingsFile.async("string");
-                const importedSettings = JSON.parse(content);
+                // 2. Try importing as JSON (Theme Package)
+                const decoder = new TextDecoder('utf-8');
+                const jsonContent = decoder.decode(e.target?.result as ArrayBuffer);
+                const json = JSON.parse(jsonContent);
 
-                Object.keys(importedSettings).forEach(key => {
-                    if (Object.values(LOCAL_STORAGE_KEYS).includes(key as any)) {
-                       localStorage.setItem(key, JSON.stringify(importedSettings[key]));
-                    }
-                });
-
-                alert("Настройки успешно импортированы! Страница будет перезагружена.");
-                window.location.reload();
+                if (validatePackage(json)) {
+                    importThemePackage(json);
+                    alert(`Пакет темы "${json.manifest.name}" успешно импортирован!`);
+                } else {
+                    throw new Error("Неизвестный формат файла.");
+                }
 
             } catch (err) {
                 console.error("Failed to import settings:", err);
@@ -305,6 +323,24 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
             }
         };
         reader.readAsArrayBuffer(file);
+    };
+
+    const handleExportTheme = async (theme: ThemeDefinition) => {
+        try {
+            const pkg = await generatePackage(theme, templates, 'User', 'Exported from dashboard');
+            const json = JSON.stringify(pkg, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${theme.name.toLowerCase().replace(/\s+/g, '-')}.theme.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (e) {
+            console.error("Failed to export theme:", e);
+            alert("Ошибка при экспорте темы.");
+        }
     };
 
     const handleResetAllSettings = () => {
@@ -486,15 +522,24 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                             >
                                 <span className="bg-white/50 dark:bg-black/50 px-2 py-1 rounded-md backdrop-blur-sm">{theme.name}</span>
                             </button>
-                            {theme.isCustom && (
+                            <div className="absolute top-1 right-1 z-10 flex gap-1">
                                 <button 
-                                    onClick={(e) => { e.stopPropagation(); setConfirmingDeleteTheme(theme); }}
-                                    className="absolute top-1 right-1 z-10 p-1 bg-gray-800/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/80"
-                                    title="Удалить тему"
+                                    onClick={(e) => { e.stopPropagation(); handleExportTheme(theme); }}
+                                    className="p-1 bg-gray-800/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500/80"
+                                    title="Экспортировать тему"
                                 >
-                                    <Icon icon="mdi:trash-can-outline" className="w-4 h-4" />
+                                    <Icon icon="mdi:export-variant" className="w-4 h-4" />
                                 </button>
-                            )}
+                                {theme.isCustom && (
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); setConfirmingDeleteTheme(theme); }}
+                                        className="p-1 bg-gray-800/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/80"
+                                        title="Удалить тему"
+                                    >
+                                        <Icon icon="mdi:trash-can-outline" className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     ))}
                     <div className="text-center">
@@ -760,9 +805,9 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                 </button>
             </div>
              <div>
-                <h3 className="text-base font-semibold text-gray-900 dark:text-white">Импорт настроек</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Загрузите ранее экспортированный файл. Внимание: это перезапишет все текущие настройки!</p>
-                <input type="file" accept=".zip" onChange={handleImport} className="hidden" ref={importTemplatesRef} />
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">Импорт</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Поддерживаются файлы резервной копии (.zip) и пакеты тем (.json).</p>
+                <input type="file" accept=".zip,.json" onChange={handleImport} className="hidden" ref={importTemplatesRef} />
                 <button onClick={() => importTemplatesRef.current?.click()} className="mt-3 w-full flex items-center justify-center gap-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-md py-2 transition-colors">
                     <Icon icon="mdi:upload" className="w-5 h-5" />
                     Импортировать

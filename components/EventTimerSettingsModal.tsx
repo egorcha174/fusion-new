@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { EventTimerWidget, Device, DeviceType, ColorThemeSet } from '../types';
 import { useAppStore } from '../store/appStore';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import EventTimerWidgetCard from './EventTimerWidgetCard';
 
 interface EventTimerSettingsModalProps {
@@ -106,7 +106,7 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
         setFillColors(newColors);
     };
 
-    const formattedDate = lastResetDate ? format(parseISO(lastResetDate), 'yyyy-MM-dd') : '';
+    const formattedDate = lastResetDate ? format(new Date(lastResetDate), 'yyyy-MM-dd') : '';
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>

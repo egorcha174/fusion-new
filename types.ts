@@ -1,4 +1,5 @@
 
+
 /**
  * Перечисление всех возможных типов устройств, используемых в приложении.
  * Это внутреннее представление, которое используется для определения иконки,
@@ -510,4 +511,22 @@ export interface RoomWithPhysicalDevices {
   id: string;
   name: string;
   devices: PhysicalDevice[];
+}
+
+// --- PACKAGING TYPES (Phase 2) ---
+
+export interface ThemePackageManifest {
+  name: string;
+  version: string;
+  author?: string;
+  description?: string;
+  haCompatibility?: string;
+  generatedAt: string;
+}
+
+export interface ThemePackage {
+  schemaVersion: number;
+  manifest: ThemePackageManifest;
+  theme: ThemeDefinition;
+  templates: CardTemplate[];
 }
