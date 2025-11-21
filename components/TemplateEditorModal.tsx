@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot, ColorScheme } from '../types';
 import DeviceCard from './DeviceCard';
@@ -908,8 +906,26 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                     <Section title="Стили иконки">
                         <LabeledInput label="Цвет иконки (Вкл.)"><input type="color" value={selectedElement.styles.onColor || '#3B82F6'} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, onColor: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
                         <LabeledInput label="Цвет иконки (Выкл.)"><input type="color" value={selectedElement.styles.offColor || '#9CA3AF'} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, offColor: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
-                        <LabeledInput label="Фон (Вкл.)"><input type="color" value={selectedElement.styles.iconBackgroundColorOn || ''} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, iconBackgroundColorOn: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
-                        <LabeledInput label="Фон (Выкл.)"><input type="color" value={selectedElement.styles.iconBackgroundColorOff || ''} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, iconBackgroundColorOff: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
+                        <LabeledInput label="Фон (Вкл.)">
+                            <div className="flex items-center gap-2">
+                                <input type="color" value={selectedElement.styles.iconBackgroundColorOn || '#000000'} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, iconBackgroundColorOn: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/>
+                                {selectedElement.styles.iconBackgroundColorOn && (
+                                    <button onClick={() => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, iconBackgroundColorOn: undefined}} : el)}))} className="p-1 text-gray-500 hover:text-white transition-colors">
+                                        <Icon icon="mdi:close" className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
+                        </LabeledInput>
+                        <LabeledInput label="Фон (Выкл.)">
+                            <div className="flex items-center gap-2">
+                                <input type="color" value={selectedElement.styles.iconBackgroundColorOff || '#000000'} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, iconBackgroundColorOff: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/>
+                                {selectedElement.styles.iconBackgroundColorOff && (
+                                    <button onClick={() => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, iconBackgroundColorOff: undefined}} : el)}))} className="p-1 text-gray-500 hover:text-white transition-colors">
+                                        <Icon icon="mdi:close" className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
+                        </LabeledInput>
                     </Section>
                  )}
                  {selectedElement.id === 'chart' && (
@@ -919,10 +935,9 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                                 <NumberInput 
                                     value={selectedElement.styles.chartTimeRange}
                                     onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, chartTimeRange: v}} : el)}))}
-                                    min={1}
-                                    placeholder="24"
+                                    min={1} max={168} 
                                 />
-                                <select 
+                                <select
                                     value={selectedElement.styles.chartTimeRangeUnit || 'hours'}
                                     onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, chartTimeRangeUnit: e.target.value as any}} : el)}))}
                                     className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
@@ -933,8 +948,8 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                                 </select>
                             </div>
                         </LabeledInput>
-                        <LabeledInput label="Тип графика">
-                            <select
+                        <LabeledInput label="Тип">
+                             <select
                                 value={selectedElement.styles.chartType || 'gradient'}
                                 onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, chartType: e.target.value as any}} : el)}))}
                                 className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
@@ -945,108 +960,71 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                         </LabeledInput>
                     </Section>
                  )}
-                 {selectedElement.id === 'linked-entity' && (
-                    <Section title="Связанное устройство">
-                        <LabeledInput label="Устройство">
-                            <select
-                                value={selectedElement.styles.linkedEntityId || ''}
-                                onChange={e => setEditedTemplate(p => ({ ...p, elements: p.elements.map(el => el.id === selectedElement.id ? { ...el, styles: { ...el.styles, linkedEntityId: e.target.value } } : el) }))}
-                                className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
-                            >
-                                <option value="">-- Выберите устройство --</option>
-                                <option value="self">Это же устройство</option>
-                                {Array.from(allKnownDevices.values()).sort((a: Device, b: Device) => a.name.localeCompare(b.name)).map((d: Device) => (
-                                    <option key={d.id} value={d.id}>{d.name}</option>
-                                ))}
-                            </select>
-                        </LabeledInput>
-                        <LabeledInput label="Показывать значение">
-                            <input
-                                type="checkbox"
-                                checked={selectedElement.styles.showValue ?? false}
-                                onChange={e => setEditedTemplate(p => ({ ...p, elements: p.elements.map(el => el.id === selectedElement.id ? { ...el, styles: { ...el.styles, showValue: e.target.checked } } : el) }))}
-                                className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-600 ring-offset-gray-800 focus:ring-2"
-                            />
-                        </LabeledInput>
-                    </Section>
-                 )}
-                 {selectedElement.id === 'fan-speed-control' && (
-                    <Section title="Управление вентилятором">
-                        <LabeledInput label="Устройство вентилятора">
-                            <select
-                                value={selectedElement.styles.linkedFanEntityId || ''}
-                                onChange={e => setEditedTemplate(p => ({ ...p, elements: p.elements.map(el => el.id === selectedElement.id ? { ...el, styles: { ...el.styles, linkedFanEntityId: e.target.value } } : el) }))}
-                                className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
-                            >
-                                <option value="">-- Выберите вентилятор --</option>
-                                {Array.from(allKnownDevices.values())
-                                    .filter((d: Device) => d.haDomain === 'fan' || (d.haDomain === 'select' && (d.id.includes('fan_level') || d.id.includes('speed'))))
-                                    .sort((a: Device, b: Device) => a.name.localeCompare(b.name)).map((d: Device) => (
-                                    <option key={d.id} value={d.id}>{d.name}</option>
-                                ))}
-                            </select>
-                        </LabeledInput>
-                    </Section>
-                 )}
-                 {selectedElement.id === 'target-temperature' && (
-                    <Section title="Стили термостата">
-                        <LabeledInput label="Цвет (Ожидание)"><input type="color" value={selectedElement.styles.idleLabelColor || '#9CA3AF'} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, idleLabelColor: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
-                        <LabeledInput label="Цвет (Нагрев)"><input type="color" value={selectedElement.styles.heatingLabelColor || '#F97316'} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, heatingLabelColor: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
-                        <LabeledInput label="Цвет (Охлаждение)"><input type="color" value={selectedElement.styles.coolingLabelColor || '#3B82F6'} onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, coolingLabelColor: e.target.value}} : el)}))} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
-                    </Section>
-                 )}
               </>)}
               
-              { selectedSlot && (<>
-                  <Section title="Положение индикатора">
-                     <div className="grid grid-cols-[auto,1fr,auto_1fr] gap-x-2 gap-y-3 items-center">
+              {selectedSlot && (
+                  <Section title="Настройки индикатора" defaultOpen={true}>
+                      <div className="grid grid-cols-[auto,1fr,auto_1fr] gap-x-2 gap-y-3 items-center">
+                        {/* Row 1 */}
                         <label className="text-xs text-gray-400 justify-self-end">X</label>
                         <div className="flex items-center gap-1">
-                            <NumberInput value={Math.round(selectedSlot.position.x)} onChange={v => handleSlotUpdate(selectedSlot.id, { position: { ...selectedSlot.position, x: v || 0 } })} />
+                            <NumberInput value={Math.round(selectedSlot.position.x)} onChange={v => setEditedTemplate(p => ({...p, deviceSlots: p.deviceSlots?.map(s => s.id === selectedSlot.id ? {...s, position: {...s.position, x: v || 0}} : s)}))} />
                             <span className="text-xs text-gray-500">%</span>
                         </div>
                         
                         <label className="text-xs text-gray-400 justify-self-end pl-2">Y</label>
                         <div className="flex items-center gap-1">
-                            <NumberInput value={Math.round(selectedSlot.position.y)} onChange={v => handleSlotUpdate(selectedSlot.id, { position: { ...selectedSlot.position, y: v || 0 } })} />
+                            <NumberInput value={Math.round(selectedSlot.position.y)} onChange={v => setEditedTemplate(p => ({...p, deviceSlots: p.deviceSlots?.map(s => s.id === selectedSlot.id ? {...s, position: {...s.position, y: v || 0}} : s)}))} />
                             <span className="text-xs text-gray-500">%</span>
                         </div>
-                    </div>
-                  </Section>
+                      </div>
+                      
+                      <LabeledInput label="Размер (px)">
+                          <NumberInput value={selectedSlot.iconSize} onChange={v => handleSlotUpdate(selectedSlot.id, { iconSize: v })} min={16} max={64} />
+                      </LabeledInput>
 
-                  <Section title="Внешний вид">
-                    <LabeledInput label="Размер иконки" suffix="px">
-                      <NumberInput value={selectedSlot.iconSize} onChange={v => handleSlotUpdate(selectedSlot.id, { iconSize: v || 24 })} min={12} max={64} />
-                    </LabeledInput>
-                     <LabeledInput label="Цвет (Вкл.)"><input type="color" value={selectedSlot.visualStyle.activeColor} onChange={e => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, activeColor: e.target.value } })} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
-                     <LabeledInput label="Цвет (Выкл.)"><input type="color" value={selectedSlot.visualStyle.inactiveColor} onChange={e => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, inactiveColor: e.target.value } })} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
-                     <LabeledInput label="Интенсивность свечения">
-                        <input type="range" min="0" max="1" step="0.1" value={selectedSlot.visualStyle.glowIntensity} onChange={e => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, glowIntensity: parseFloat(e.target.value) } })} className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"/>
-                     </LabeledInput>
+                      <LabeledInput label="Тип индикации">
+                          <select
+                              value={selectedSlot.visualStyle.type}
+                              onChange={e => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, type: e.target.value as any } })}
+                              className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
+                          >
+                              <option value="color">Только цвет</option>
+                              <option value="glow">Только свечение</option>
+                              <option value="color_glow">Цвет + Свечение</option>
+                          </select>
+                      </LabeledInput>
+                      
+                      <LabeledInput label="Цвет (Актив.)"><input type="color" value={selectedSlot.visualStyle.activeColor} onChange={e => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, activeColor: e.target.value } })} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
+                      <LabeledInput label="Цвет (Неактив.)"><input type="color" value={selectedSlot.visualStyle.inactiveColor} onChange={e => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, inactiveColor: e.target.value } })} className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent"/></LabeledInput>
+                      
+                      <LabeledInput label="Показывать значение">
+                          <button 
+                              onClick={() => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, showValue: !selectedSlot.visualStyle.showValue } })}
+                              className={`relative inline-flex items-center h-5 rounded-full w-9 transition-colors ${selectedSlot.visualStyle.showValue ? 'bg-blue-600' : 'bg-gray-600'}`}
+                          >
+                              <span className={`inline-block w-3 h-3 transform bg-white rounded-full transition-transform ${selectedSlot.visualStyle.showValue ? 'translate-x-5' : 'translate-x-1'}`}/>
+                          </button>
+                      </LabeledInput>
+                      
+                      {selectedSlot.visualStyle.showValue && (
+                          <LabeledInput label="Знаков после ,">
+                              <NumberInput value={selectedSlot.visualStyle.decimalPlaces} onChange={v => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, decimalPlaces: v } })} min={0} max={3} />
+                          </LabeledInput>
+                      )}
                   </Section>
-                  
-                  <Section title="Поведение">
-                    <LabeledInput label="Показывать значение">
-                        <input type="checkbox" checked={selectedSlot.visualStyle.showValue} onChange={e => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, showValue: e.target.checked }})} className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-600 ring-offset-gray-800 focus:ring-2"/>
-                    </LabeledInput>
-                    {selectedSlot.visualStyle.showValue && (
-                        <>
-                         <LabeledInput label="Знаков после ,"><NumberInput value={selectedSlot.visualStyle.decimalPlaces} onChange={v => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, decimalPlaces: v }})} min={0} max={5} /></LabeledInput>
-                         <LabeledInput label="Единица изм."><input type="text" value={selectedSlot.visualStyle.unit || ''} onChange={e => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, unit: e.target.value }})} className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm"/></LabeledInput>
-                         <LabeledInput label="Размер шрифта" suffix="px"><NumberInput value={selectedSlot.visualStyle.fontSize} onChange={v => handleSlotUpdate(selectedSlot.id, { visualStyle: { ...selectedSlot.visualStyle, fontSize: v }})} min={8} max={48} /></LabeledInput>
-                        </>
-                    )}
-                    <LabeledInput label="Интерактивный">
-                        <input type="checkbox" checked={selectedSlot.interactive} onChange={e => handleSlotUpdate(selectedSlot.id, { interactive: e.target.checked })} className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-600 ring-offset-gray-800 focus:ring-2"/>
-                    </LabeledInput>
-                  </Section>
-              </>)}
-            </div>
-            <div className="p-4 flex justify-end gap-4 border-t border-gray-700/80">
-              <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">Отмена</button>
-              <button onClick={() => handleSaveTemplate(editedTemplate)} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Сохранить</button>
+              )}
+
             </div>
           </aside>
+      </div>
+      
+      {/* Floating Action Bar for Save/Cancel */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-gray-800/90 backdrop-blur-md px-6 py-3 rounded-full shadow-2xl ring-1 ring-white/10 z-[60]">
+          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-colors">Отмена</button>
+          <button onClick={() => { handleSaveTemplate(editedTemplate); onClose(); }} className="px-6 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-full shadow-lg shadow-blue-500/20 transition-all transform hover:scale-105 active:scale-95">
+              Сохранить шаблон
+          </button>
       </div>
     </div>
   );
