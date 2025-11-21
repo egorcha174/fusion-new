@@ -354,9 +354,6 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, weatherE
     
     const { current, forecast } = weatherData;
     
-    const currentIconSize = colorScheme.weatherIconSize ? `${colorScheme.weatherIconSize}px` : undefined;
-    const forecastIconSize = colorScheme.weatherForecastIconSize ? `${colorScheme.weatherForecastIconSize}px` : undefined;
-
     return (
         <div>
             {/* Текущая погода */}
@@ -366,14 +363,14 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, weatherE
                       iconCode={current.icon}
                       iconPack={weatherSettings.iconPack}
                       className="w-24 h-24 flex-shrink-0"
-                      style={{ width: currentIconSize, height: currentIconSize }}
+                      style={{ width: 'var(--weather-icon-size)', height: 'var(--weather-icon-size)' }}
                     />
-                    <p className="text-4xl font-bold" style={{ color: colorScheme.valueTextColor, fontSize: colorScheme.weatherCurrentTempFontSize ? `${colorScheme.weatherCurrentTempFontSize}px` : undefined }}>
+                    <p className="text-4xl font-bold" style={{ color: 'var(--text-value)', fontSize: 'var(--weather-current-temp-size)' }}>
                       {Math.round(current.temp)}°C
                     </p>
                 </div>
                 <div className="w-24 text-center -mt-2">
-                    <p className="text-sm capitalize" title={current.desc} style={{ color: colorScheme.statusTextColor, fontSize: colorScheme.weatherCurrentDescFontSize ? `${colorScheme.weatherCurrentDescFontSize}px` : undefined }}>
+                    <p className="text-sm capitalize" title={current.desc} style={{ color: 'var(--text-status)', fontSize: 'var(--weather-current-desc-size)' }}>
                       {current.desc}
                     </p>
                 </div>
@@ -384,20 +381,20 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, weatherE
                 <div className="mt-4 grid gap-2 text-center" style={{ gridTemplateColumns: `repeat(${Math.min(forecast.length, weatherSettings.forecastDays)}, minmax(0, 1fr))` }}>
                     {forecast.map((day, index) => (
                         <div key={index} className="flex flex-col items-center space-y-1">
-                            <p className="text-xs font-medium capitalize" style={{ color: colorScheme.nameTextColor, fontSize: colorScheme.weatherForecastDayFontSize ? `${colorScheme.weatherForecastDayFontSize}px` : undefined, }}>
+                            <p className="text-xs font-medium capitalize" style={{ color: 'var(--text-name)', fontSize: 'var(--weather-forecast-day-size)' }}>
                               {day.day}
                             </p>
                              <AnimatedWeatherIcon
                                 iconCode={day.icon}
                                 iconPack={weatherSettings.iconPack}
                                 className="w-12 h-12"
-                                style={{ width: forecastIconSize, height: forecastIconSize }}
+                                style={{ width: 'var(--weather-forecast-icon-size)', height: 'var(--weather-forecast-icon-size)' }}
                             />
                             <div>
-                                <p className="text-lg font-semibold" style={{ color: colorScheme.valueTextColor, fontSize: colorScheme.weatherForecastMaxTempFontSize ? `${colorScheme.weatherForecastMaxTempFontSize}px` : undefined, }}>
+                                <p className="text-lg font-semibold" style={{ color: 'var(--text-value)', fontSize: 'var(--weather-forecast-max-temp-size)' }}>
                                   {Math.round(day.tempMax)}°
                                 </p>
-                                <p className="text-sm -mt-1" style={{ color: colorScheme.statusTextColor, fontSize: colorScheme.weatherForecastMinTempFontSize ? `${colorScheme.weatherForecastMinTempFontSize}px` : undefined, }}>
+                                <p className="text-sm -mt-1" style={{ color: 'var(--text-status)', fontSize: 'var(--weather-forecast-min-temp-size)' }}>
                                   {Math.round(day.tempMin)}°
                                 </p>
                             </div>
@@ -405,7 +402,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weatherProvider, weatherE
                     ))}
                 </div>
             ) : (
-                <div className="mt-4 text-center text-sm opacity-60 py-2" style={{ color: colorScheme.statusTextColor }}>
+                <div className="mt-4 text-center text-sm opacity-60 py-2" style={{ color: 'var(--text-status)' }}>
                     Прогноз недоступен
                 </div>
             )}

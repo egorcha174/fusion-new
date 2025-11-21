@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
@@ -33,14 +34,14 @@ const SortableTab: React.FC<SortableTabProps> = ({ tab, isActive, isEditMode, on
             <button
                 onClick={onSelect}
                 className={`relative group whitespace-nowrap px-4 py-2 text-lg font-semibold transition-colors`}
-                style={{ color: isActive ? colorScheme.activeTabTextColor : colorScheme.tabTextColor }}
+                style={{ color: isActive ? 'var(--text-tab-active)' : 'var(--text-tab)' }}
             >
                 {/* В режиме редактирования, `listeners` вешается на текст, чтобы сделать его "ручкой" для перетаскивания */}
                 {isEditMode ? <span {...listeners} className="cursor-move">{tab.name}</span> : tab.name}
                 {isActive && (
                     <div 
                         className="absolute bottom-0 left-4 right-4 h-0.5 rounded-full" 
-                        style={{ backgroundColor: colorScheme.tabIndicatorColor }}
+                        style={{ backgroundColor: 'var(--indicator-tab)' }}
                     />
                 )}
                 {isEditMode && (
@@ -117,8 +118,8 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ currentColorScheme, i
     );
     
     const headerBackgroundColor = isDark 
-    ? `rgba(28, 28, 30, ${currentColorScheme.panelOpacity ?? 0.75})` 
-    : `rgba(240, 245, 255, ${currentColorScheme.panelOpacity ?? 0.7})`;
+    ? `rgba(28, 28, 30, var(--opacity-panel))` 
+    : `rgba(240, 245, 255, var(--opacity-panel))`;
 
     return (
         <header 

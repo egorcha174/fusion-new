@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useHAStore } from '../store/haStore';
 import { useAppStore } from '../store/appStore';
@@ -16,9 +17,9 @@ const BatteryWidgetCard: React.FC<BatteryWidgetCardProps> = ({ colorScheme }) =>
     if (batteryDevices.length === 0) {
         return (
             <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center">
-                <Icon icon="mdi:battery-off-outline" className="w-10 h-10 mb-2" style={{ color: colorScheme.statusTextColor }} />
-                <p className="font-semibold" style={{ color: colorScheme.valueTextColor }}>Нет устройств с батареей</p>
-                <p className="text-sm" style={{ color: colorScheme.statusTextColor }}>Не найдено устройств с уровнем заряда.</p>
+                <Icon icon="mdi:battery-off-outline" className="w-10 h-10 mb-2" style={{ color: 'var(--text-status)' }} />
+                <p className="font-semibold" style={{ color: 'var(--text-value)' }}>Нет устройств с батареей</p>
+                <p className="text-sm" style={{ color: 'var(--text-status)' }}>Не найдено устройств с уровнем заряда.</p>
             </div>
         );
     }
@@ -42,14 +43,15 @@ const BatteryWidgetCard: React.FC<BatteryWidgetCardProps> = ({ colorScheme }) =>
     return (
         <div className="w-full h-full flex flex-col p-4 overflow-hidden">
             <div className="flex-shrink-0 flex items-center gap-3 mb-3">
-                <Icon icon="mdi:battery-heart-variant-outline" className="w-6 h-6" style={{ color: colorScheme.statusTextColor }} />
-                <h3 className="font-semibold" style={{ color: colorScheme.valueTextColor }}>Уровень заряда</h3>
+                <Icon icon="mdi:battery-heart-variant-outline" className="w-6 h-6" style={{ color: 'var(--text-status)' }} />
+                <h3 className="font-semibold" style={{ color: 'var(--text-value)' }}>Уровень заряда</h3>
             </div>
             <div className="flex-grow space-y-2 overflow-y-auto no-scrollbar pr-1">
                 {devicesToShow.map(({ deviceId, deviceName, batteryLevel }) => {
                     const isLow = batteryLevel <= lowBatteryThreshold;
-                    const textColor = isLow ? '#ef4444' : colorScheme.nameTextColor;
-                    const percentageColor = isLow ? '#ef4444' : colorScheme.statusTextColor;
+                    // We still use inline color logic for critical status as it is state-dependent, not theme-dependent default.
+                    const textColor = isLow ? '#ef4444' : 'var(--text-name)';
+                    const percentageColor = isLow ? '#ef4444' : 'var(--text-status)';
 
                     return (
                         <div key={deviceId} className="flex items-center justify-between text-sm">

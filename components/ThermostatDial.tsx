@@ -1,5 +1,4 @@
 
-
 import React, { useRef, useCallback, useState, useEffect, useLayoutEffect } from 'react';
 import { ColorScheme } from '../types';
 
@@ -268,22 +267,22 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
     if (customActionLabel) {
       return {
         label: customActionLabel,
-        style: { color: heatingLabelColor || colorScheme.thermostatHeatingColor },
+        style: { color: heatingLabelColor || 'var(--thermo-heat)' },
       };
     }
 
     switch (hvacAction) {
       case 'cooling': return {
           label: 'ОХЛАЖДЕНИЕ',
-          style: { color: coolingLabelColor || colorScheme.thermostatCoolingColor },
+          style: { color: coolingLabelColor || 'var(--thermo-cool)' },
       };
       case 'heating': return {
           label: 'НАГРЕВ',
-          style: { color: heatingLabelColor || colorScheme.thermostatHeatingColor },
+          style: { color: heatingLabelColor || 'var(--thermo-heat)' },
       };
       default: return {
           label: 'ЦЕЛЬ',
-          style: { color: idleLabelColor || colorScheme.thermostatDialLabelColor },
+          style: { color: idleLabelColor || 'var(--thermo-label)' },
       };
     }
   };
@@ -346,7 +345,7 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
           cx={handlePosition.x}
           cy={handlePosition.y}
           r={STROKE_WIDTH / 2 + 2}
-          style={{ fill: colorScheme.thermostatHandleColor }}
+          style={{ fill: 'var(--thermo-handle)' }}
           className="cursor-pointer"
           onPointerDown={handlePointerDown}
         />
@@ -373,7 +372,7 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
                     text={value.toFixed(1).replace('.', ',')}
                     className="w-full h-full"
                     pClassName="font-light"
-                    pStyle={{ color: colorScheme.thermostatDialTextColor }}
+                    pStyle={{ color: 'var(--thermo-text)' }}
                     maxFontSize={80}
                 />
             </div>

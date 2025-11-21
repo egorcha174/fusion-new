@@ -54,7 +54,7 @@ const Clock: React.FC<ClockProps> = React.memo(({ settings, sidebarWidth, color 
 
     const finalStyle = {
         fontSize: `${getAdaptiveFontSize()}px`,
-        color: color,
+        color: 'var(--text-clock)',
     };
 
     return (
@@ -196,8 +196,8 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, ca
     }, [isResizing, handleMouseMove, handleMouseUp]);
     
     const sidebarBackgroundColor = isDark 
-    ? `rgba(28, 28, 30, ${colorScheme.panelOpacity ?? 0.75})` 
-    : `rgba(240, 245, 255, ${colorScheme.panelOpacity ?? 0.7})`;
+    ? `rgba(28, 28, 30, var(--opacity-panel))` 
+    : `rgba(240, 245, 255, var(--opacity-panel))`;
 
     return (
         <aside

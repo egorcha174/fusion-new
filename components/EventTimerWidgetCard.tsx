@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Device, ColorThemeSet } from '../types';
 
@@ -111,7 +112,7 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, col
         <div 
             className="w-full h-full relative overflow-hidden text-white select-none"
             style={{
-                borderRadius: `${colorScheme.cardBorderRadius}px`,
+                borderRadius: `var(--radius-card)`,
             }}
         >
             {/* Слой с "жидкой" заливкой, всегда спозиционированный снизу */}
@@ -149,7 +150,7 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, col
                         style={{
                             top: `${finalNamePosition.y}%`,
                             left: `${finalNamePosition.x}%`,
-                            color: colorScheme.nameTextColorOn,
+                            color: 'var(--text-name-on)',
                             textShadow: '0 1px 5px rgba(0,0,0,0.4)',
                         }}
                     >
@@ -164,7 +165,7 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, col
                     style={{
                         top: `${finalDaysPosition.y}%`,
                         left: `${finalDaysPosition.x}%`,
-                        color: colorScheme.nameTextColorOn,
+                        color: 'var(--text-name-on)',
                         textShadow: '0 2px 10px rgba(0,0,0,0.5)',
                     }}
                 >

@@ -7,6 +7,7 @@ import { useAppStore } from './store/appStore';
 import { useHAStore } from './store/haStore';
 import ErrorBoundary from './components/ErrorBoundary';
 import { motion, AnimatePresence } from 'framer-motion';
+import ThemeInjector from './components/ThemeInjector';
 
 
 // Ленивая загрузка (Lazy loading) компонентов для разделения кода (code splitting) и улучшения производительности.
@@ -27,63 +28,6 @@ const EventTimerSettingsModal = lazy(() => import('./components/EventTimerSettin
 const ConfirmDialog = lazy(() => import('./components/ConfirmDialog.tsx'));
 const ChristmasTheme = lazy(() => import('./components/ChristmasTheme.tsx'));
 const TemplateGallery = lazy(() => import('./components/templateGallery/TemplateGallery.tsx'));
-
-
-/**
- * Рассчитывает время восхода и заката для указанной даты и координат.
- * @param latitude - Широта.
- * @param longitude - Долгота.
- * @param date - Дата для расчета.
- * @returns { sunrise: Date | null, sunset: Date | null } - Объекты Date для восхода/заката или null для полярного дня/ночи.
- */
-function getSunriseSunset(latitude: number, longitude: number, date = new Date()) {
-    const toRad = (deg: number) => deg * Math.PI / 180;
-    const toDeg = (rad: number) => rad * 180 / Math.PI;
-
-    const dayOfYear = (d: Date) => Math.floor((d.getTime() - new Date(d.getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24);
-    
-    const n = dayOfYear(date) + 1;
-    const lngHour = longitude / 15;
-    
-    const t = n + ((6 - lngHour) / 24);
-    const M = (0.9856 * t) - 3.289;
-    let L = M + (1.916 * Math.sin(toRad(M))) + (0.020 * Math.sin(toRad(2 * M))) + 282.634;
-    L = (L + 360) % 360;
-    
-    let RA = toDeg(Math.atan(0.91746 * Math.tan(toRad(L))));
-    RA = (RA + 360) % 360;
-
-    const Lquadrant = Math.floor(L / 90) * 90;
-    const RAquadrant = Math.floor(RA / 90) * 90;
-    RA = RA + (Lquadrant - RAquadrant);
-    RA = RA / 15;
-
-    const sinDec = 0.39782 * Math.sin(toRad(L));
-    const cosDec = Math.cos(Math.asin(sinDec));
-    
-    const cosH = (Math.cos(toRad(90.833)) - (sinDec * Math.sin(toRad(latitude)))) / (cosDec * Math.cos(toRad(latitude)));
-
-    if (cosH > 1) return { sunrise: null, sunset: null }; // полярная ночь
-    if (cosH < -1) return { sunrise: null, sunset: null }; // полярный день
-
-    const H = toDeg(Math.acos(cosH)) / 15;
-    
-    const T_sunrise = H + RA - (0.06571 * t) - 6.622;
-    const T_sunset = -H + RA - (0.06571 * t) - 6.622;
-    
-    const UT_sunrise = (T_sunrise - lngHour + 24) % 24;
-    const UT_sunset = (T_sunset - lngHour + 24) % 24;
-
-    const toDate = (time: number) => {
-        const hours = Math.floor(time);
-        const minutes = Math.floor((time - hours) * 60);
-        const d = new Date(date);
-        d.setUTCHours(hours, minutes, 0, 0);
-        return d;
-    }
-
-    return { sunrise: toDate(UT_sunrise), sunset: toDate(UT_sunset) };
-}
 
 
 /**
@@ -385,7 +329,7 @@ const App: React.FC = () => {
         const style: React.CSSProperties = {};
         switch (scheme.dashboardBackgroundType) {
             case 'gradient':
-                style.backgroundImage = `linear-gradient(160deg, ${scheme.dashboardBackgroundColor1}, ${scheme.dashboardBackgroundColor2 || scheme.dashboardBackgroundColor1})`;
+                style.backgroundImage = `linear-gradient(160deg, var(--bg-dashboard-1), var(--bg-dashboard-2))`;
                 break;
             case 'image':
                 style.backgroundImage = `url(${scheme.dashboardBackgroundImage})`;
@@ -395,7 +339,7 @@ const App: React.FC = () => {
                 break;
             case 'color':
             default:
-                style.backgroundColor = scheme.dashboardBackgroundColor1;
+                style.backgroundColor = 'var(--bg-dashboard-1)';
                 break;
         }
         return style;
@@ -423,7 +367,6 @@ const App: React.FC = () => {
    * Глобальный обработчик контекстного меню (правый клик на всем приложении).
    * Открывает меню действий для карточки устройства, если включен режим редактирования.
    */
-// FIX: Refactored logic to be more concise and safely handle dataset properties.
   const handleGlobalContextMenu = useCallback((event: React.MouseEvent) => {
     const target = event.target as HTMLElement;
     const isDashboard = currentPage === 'dashboard';
@@ -519,6 +462,7 @@ const App: React.FC = () => {
   // Основная JSX-разметка приложения.
   return (
     <>
+      <ThemeInjector theme={currentColorScheme} />
       <div className="fixed inset-0 -z-10 transition-all duration-500" style={backgroundStyle} />
       {isChristmasThemeEnabled && <Suspense fallback={null}><ChristmasTheme /></Suspense>}
       <div className="flex min-h-screen relative" onContextMenu={handleGlobalContextMenu}>

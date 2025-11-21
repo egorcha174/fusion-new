@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement, DeviceCustomizations, ColorScheme } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -8,38 +9,7 @@ import { CameraStreamContent } from './CameraStreamContent';
 import BatteryWidgetCard from './BatteryWidgetCard';
 import EventTimerWidgetCard from './EventTimerWidgetCard';
 import { motion, AnimatePresence } from 'framer-motion';
-
-/**
- * Применяет заданную прозрачность к строке цвета.
- * @param color - Строка цвета (HEX или RGB).
- * @param opacity - Прозрачность от 0 до 1.
- * @returns - Строка цвета в формате RGBA.
- */
-const applyOpacity = (color: string | undefined, opacity: number | undefined): string | undefined => {
-    if (color === undefined || opacity === undefined || opacity >= 1) return color;
-    if (opacity < 0) opacity = 0;
-
-    let r: number, g: number, b: number;
-
-    if (color.startsWith('#')) {
-        const hex = color.length === 4 ? `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}` : color;
-        if (hex.length !== 7) return color; // Invalid hex
-        r = parseInt(hex.slice(1, 3), 16);
-        g = parseInt(hex.slice(3, 5), 16);
-        b = parseInt(hex.slice(5, 7), 16);
-    } else if (color.startsWith('rgb')) {
-        const parts = color.match(/(\d+)/g);
-        if (!parts || parts.length < 3) return color;
-        [r, g, b] = parts.map(Number);
-    } else {
-        return color; // Can't parse, return as is
-    }
-
-    if (isNaN(r) || isNaN(g) || isNaN(b)) return color;
-
-    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-};
-
+import { applyOpacity } from '../utils/themeUtils';
 
 /**
  * Компонент для автоматического подбора размера шрифта текста, чтобы он помещался в контейнер.
@@ -313,7 +283,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
           className="absolute inset-0 pointer-events-none z-10"
           style={{
             background: `radial-gradient(circle, ${flashOnColor} 0%, rgba(0,0,0,0) 70%)`,
-            borderRadius: `${colorScheme.cardBorderRadius}px`,
+            borderRadius: `var(--radius-card)`,
           }}
         />
       )}
@@ -328,7 +298,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
           className="absolute inset-0 pointer-events-none z-10"
           style={{
             backgroundColor: dimOffColor,
-            borderRadius: `${colorScheme.cardBorderRadius}px`,
+            borderRadius: `var(--radius-card)`,
           }}
         />
       )}
@@ -342,14 +312,14 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
       * Определяет, какой цвет из глобальной цветовой схемы использовать.
       */
      const getStyleProps = (baseKey: string) => {
-        const onSuffix = isOn ? 'On' : '';
-        const colorProp = `${baseKey}Color${onSuffix}`;
-        const color = (colorScheme as any)[colorProp];
-        return { style: { color } };
+        const onSuffix = isOn ? '-on' : '';
+        const keyWithoutText = baseKey.replace('Text', '').toLowerCase();
+        const varName = `--text-${keyWithoutText}${onSuffix}`;
+        return { style: { color: `var(${varName})` } };
     };
 
     // Динамический фон карточки, зависящий от состояния, темы и пороговых правил.
-    let dynamicBackgroundColor = isOn ? colorScheme.cardBackgroundOn : colorScheme.cardBackground;
+    let dynamicBackgroundColor = isOn ? 'var(--bg-card-on)' : 'var(--bg-card)';
     let dynamicValueColor: string | undefined = undefined;
 
     // Проверяем правила пороговых значений для сенсоров.
@@ -369,7 +339,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
 
             if (ruleToApply) {
                 if (ruleToApply.style.backgroundColor) {
-                    dynamicBackgroundColor = ruleToApply.style.backgroundColor;
+                    dynamicBackgroundColor = applyOpacity(ruleToApply.style.backgroundColor, colorScheme.cardOpacity);
                 }
                 if (ruleToApply.style.valueColor) {
                     dynamicValueColor = ruleToApply.style.valueColor;
@@ -472,7 +442,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
             <div key={element.id} style={style}>
               <SparklineChart
                 data={device.history || mockHistory}
-                strokeColor={isOn ? colorScheme.activeTabTextColor : colorScheme.tabTextColor}
+                strokeColor={isOn ? 'var(--text-tab-active)' : 'var(--text-tab)'}
                 styleType={element.styles.chartType || 'gradient'}
               />
             </div>
@@ -599,7 +569,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
             return (
                 <div key={element.id} style={style} onClick={e => { if (!isPreview) e.stopPropagation(); }} ref={hvacModesRef}>
                     <div className="relative w-full h-full flex items-center justify-center">
-                        <button onClick={(e) => handleHvacButtonClick(e, modes)} disabled={isPreview} className="w-full h-full flex flex-col items-center justify-center bg-black/5 dark:bg-black/25 hover:bg-black/10 dark:hover:bg-black/40 rounded-xl transition-all p-1 ring-1 ring-black/5 dark:ring-white/10" style={{ color: colorScheme.activeTabTextColor }}>
+                        <button onClick={(e) => handleHvacButtonClick(e, modes)} disabled={isPreview} className="w-full h-full flex flex-col items-center justify-center bg-black/5 dark:bg-black/25 hover:bg-black/10 dark:hover:bg-black/40 rounded-xl transition-all p-1 ring-1 ring-black/5 dark:ring-white/10" style={{ color: 'var(--text-tab-active)' }}>
                             <Icon icon={activeConfig.icon} className="w-auto h-[55%]" />
                             <span className="text-[10px] font-bold mt-auto leading-tight text-center">{activeConfig.label}</span>
                         </button>
@@ -614,7 +584,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                                             key={mode}
                                             onClick={() => handleModeClick(mode)}
                                             className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left rounded-lg transition-colors ${!isActiveMode ? 'hover:bg-black/10 dark:hover:bg-white/10' : ''}`}
-                                            style={isActiveMode ? { backgroundColor: colorScheme.tabIndicatorColor, color: '#FFFFFF' } : { color: colorScheme.activeTabTextColor }}
+                                            style={isActiveMode ? { backgroundColor: 'var(--indicator-tab)', color: '#FFFFFF' } : { color: 'var(--text-tab-active)' }}
                                         >
                                             <Icon icon={config.icon} className="w-5 h-5 flex-shrink-0" />
                                             <span>{config.label}</span>
@@ -656,7 +626,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                         <DeviceIcon icon={linkedDevice.icon ?? linkedDevice.type} isOn={isLinkedOn} className="!w-full !h-full" iconAnimation={linkedDevice.iconAnimation} />
                     </div>
                     {!!valueText && (
-                        <div className="text-[10px] font-bold mt-auto leading-tight text-center" style={{ color: colorScheme.nameTextColor }}>
+                        <div className="text-[10px] font-bold mt-auto leading-tight text-center" style={{ color: 'var(--text-name)' }}>
                              {valueText}
                         </div>
                     )}
@@ -729,7 +699,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                                     disabled={isPreview}
                                     onClick={() => { if (!isPreview) onFanSpeedChange(linkedFanEntityId, speed); }}
                                     className={`flex-1 text-xs font-bold rounded-lg transition-all ${isActive ? 'shadow-md' : 'hover:bg-black/10 dark:hover:bg-white/10'}`}
-                                    style={isActive ? { backgroundColor: colorScheme.tabIndicatorColor, color: '#FFFFFF' } : { color: colorScheme.activeTabTextColor }}
+                                    style={isActive ? { backgroundColor: 'var(--indicator-tab)', color: '#FFFFFF' } : { color: 'var(--text-tab-active)' }}
                                 >
                                     {buttonText}
                                 </button>
@@ -756,7 +726,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
     return (
       <div
         className={`w-full h-full relative transition-all duration-300 ease-in-out select-none transform ${hoverClass} ${cursorClass} shadow-lg ring-1 ring-black/5 dark:ring-white/10 ${overflowClass}`}
-        style={{ backgroundColor: applyOpacity(dynamicBackgroundColor, colorScheme.cardOpacity), backdropFilter: 'blur(16px)', borderRadius: `${colorScheme.cardBorderRadius}px` }}
+        style={{ backgroundColor: dynamicBackgroundColor, backdropFilter: 'blur(16px)', borderRadius: `var(--radius-card)` }}
       >
         {animationOverlay}
         
@@ -853,12 +823,12 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
                     className="w-full h-full bg-cover bg-center"
                     style={{ 
                         backgroundImage: `url(${imageUrl})`, 
-                        borderRadius: `${colorScheme.cardBorderRadius}px` 
+                        borderRadius: `var(--radius-card)` 
                     }}
                 >
                     <div 
                         className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" 
-                        style={{ borderRadius: `${colorScheme.cardBorderRadius}px` }}
+                        style={{ borderRadius: `var(--radius-card)` }}
                     />
                     <div className="absolute bottom-0 left-0 right-0 p-3 text-white flex items-end gap-2">
                         <Icon icon="mdi:cast" className="w-5 h-5 flex-shrink-0 opacity-80" />
@@ -881,9 +851,9 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
             </div>
             <div className="flex-grow text-left overflow-hidden flex flex-col justify-end min-h-0">
                 <div className="flex-grow flex items-end min-h-0">
-                    <AutoFitText text={device.name} className="w-full h-full" pClassName={styles.nameText} pStyle={{ color: isOn ? colorScheme.nameTextColorOn : colorScheme.nameTextColor }} maxFontSize={18} mode="multi-line" />
+                    <AutoFitText text={device.name} className="w-full h-full" pClassName={styles.nameText} pStyle={{ color: isOn ? 'var(--text-name-on)' : 'var(--text-name)' }} maxFontSize={18} mode="multi-line" />
                 </div>
-              <p className={`${styles.statusText} transition-colors flex-shrink-0`} style={{ color: isOn ? colorScheme.statusTextColorOn : colorScheme.statusTextColor }}>{device.status}</p>
+              <p className={`${styles.statusText} transition-colors flex-shrink-0`} style={{ color: isOn ? 'var(--text-status-on)' : 'var(--text-status)' }}>{device.status}</p>
                {isOn && (<div className="mt-2 flex-shrink-0" onClick={(e) => { if (!isPreview) e.stopPropagation(); }}><input type="range" min="1" max="100" value={device.brightness} onInput={(e) => { if (!isPreview) onBrightnessChange(parseInt(e.currentTarget.value)); }} disabled={isPreview} className="w-full h-2 bg-black/10 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-blue-500"/></div>)}
             </div>
           </div>
@@ -908,12 +878,12 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
             </div>
             <div className="flex-grow flex flex-col justify-end overflow-hidden min-h-0">
                  <div className="flex-grow flex items-end min-h-0">
-                    <AutoFitText text={device.name} className="w-full h-full" pClassName={styles.nameText} pStyle={{ color: isOn ? colorScheme.nameTextColorOn : colorScheme.nameTextColor }} maxFontSize={18} mode="multi-line" />
+                    <AutoFitText text={device.name} className="w-full h-full" pClassName={styles.nameText} pStyle={{ color: isOn ? 'var(--text-name-on)' : 'var(--text-name)' }} maxFontSize={18} mode="multi-line" />
                 </div>
-                <p className={`${styles.thermostatTempText}`} style={{ color: colorScheme.valueTextColor }}>{device.temperature}{device.unit}</p>
+                <p className={`${styles.thermostatTempText}`} style={{ color: 'var(--text-value)' }}>{device.temperature}{device.unit}</p>
                 <div className="flex items-center justify-between mt-1 flex-shrink-0">
                     <button onClick={(e) => { if (!isPreview) { e.stopPropagation(); onTemperatureChange(-0.5, true); } }} disabled={isPreview} className={`${styles.thermostatButton} rounded-full flex items-center justify-center font-light text-2xl leading-none pb-1`}>-</button>
-                    <span className={`${styles.thermostatTargetText}`} style={{ color: colorScheme.statusTextColor }}>Цель: {device.targetTemperature?.toFixed(1)}{device.unit}</span>
+                    <span className={`${styles.thermostatTargetText}`} style={{ color: 'var(--text-status)' }}>Цель: {device.targetTemperature?.toFixed(1)}{device.unit}</span>
                     <button onClick={(e) => { if (!isPreview) { e.stopPropagation(); onTemperatureChange(0.5, true); } }} disabled={isPreview} className={`${styles.thermostatButton} rounded-full flex items-center justify-center font-light text-2xl leading-none pb-1`}>+</button>
                 </div>
             </div>
@@ -926,11 +896,11 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
             <div className={`flex-shrink-0 opacity-70`}><DeviceIcon icon={device.icon ?? device.type} isOn={false} iconAnimation={device.iconAnimation} /></div>
             <div className="flex-grow flex flex-col justify-end overflow-hidden min-h-0">
                <div className="flex-grow flex items-end min-h-0">
-                <AutoFitText text={device.name} className="w-full h-full" pClassName={styles.nameText} pStyle={{ color: isOn ? colorScheme.nameTextColorOn : colorScheme.nameTextColor }} maxFontSize={18} mode="multi-line" />
+                <AutoFitText text={device.name} className="w-full h-full" pClassName={styles.nameText} pStyle={{ color: isOn ? 'var(--text-name-on)' : 'var(--text-name)' }} maxFontSize={18} mode="multi-line" />
               </div>
               <div className="flex items-baseline">
-                <p className={`${styles.sensorStatusText}`} style={{ color: colorScheme.valueTextColor }}>{device.status}</p>
-                {isNumericStatus && device.unit && <p className={`ml-1 ${styles.sensorUnitText}`} style={{ color: colorScheme.unitTextColor }}>{device.unit}</p>}
+                <p className={`${styles.sensorStatusText}`} style={{ color: 'var(--text-value)' }}>{device.status}</p>
+                {isNumericStatus && device.unit && <p className={`ml-1 ${styles.sensorUnitText}`} style={{ color: 'var(--text-unit)' }}>{device.unit}</p>}
               </div>
             </div>
           </div>
@@ -942,9 +912,9 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
             <div className={`flex-shrink-0 ${isOn ? 'text-blue-500' : 'opacity-70'}`}><DeviceIcon icon={device.icon ?? device.type} isOn={isOn} iconAnimation={device.iconAnimation} /></div>
             <div className="flex-grow text-left overflow-hidden flex flex-col justify-end min-h-0">
               <div className="flex-grow flex items-end min-h-0">
-                <AutoFitText text={device.name} className="w-full h-full" pClassName={styles.nameText} pStyle={{ color: isOn ? colorScheme.nameTextColorOn : colorScheme.nameTextColor }} maxFontSize={18} mode="multi-line" />
+                <AutoFitText text={device.name} className="w-full h-full" pClassName={styles.nameText} pStyle={{ color: isOn ? 'var(--text-name-on)' : 'var(--text-name)' }} maxFontSize={18} mode="multi-line" />
               </div>
-              <p className={`${styles.statusText} transition-colors flex-shrink-0`} style={{ color: isOn ? colorScheme.statusTextColorOn : colorScheme.statusTextColor }}>{device.status}</p>
+              <p className={`${styles.statusText} transition-colors flex-shrink-0`} style={{ color: isOn ? 'var(--text-status-on)' : 'var(--text-status)' }}>{device.status}</p>
             </div>
           </div>
         );
@@ -969,13 +939,13 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
       if (device.type === DeviceType.MediaPlayer && (device.state === 'playing' || device.state === 'paused') && device.entityPictureUrl) {
           return {
               backgroundColor: '#000', // Fallback color
-              borderRadius: `${colorScheme.cardBorderRadius}px`,
+              borderRadius: `var(--radius-card)`,
           };
       }
       return { 
-          backgroundColor: applyOpacity(isOn ? colorScheme.cardBackgroundOn : colorScheme.cardBackground, colorScheme.cardOpacity),
+          backgroundColor: isOn ? 'var(--bg-card-on)' : 'var(--bg-card)',
           backdropFilter: 'blur(16px)',
-          borderRadius: `${colorScheme.cardBorderRadius}px`,
+          borderRadius: `var(--radius-card)`,
       };
   }
 
