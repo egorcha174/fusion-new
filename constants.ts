@@ -31,5 +31,6 @@ export const LOCAL_STORAGE_KEYS = {
   // FIX: Replaced `CUSTOM_WIDGETS` with `EVENT_TIMER_WIDGETS` to better reflect the feature and resolve naming conflicts.
   EVENT_TIMER_WIDGETS: 'ha-event-timer-widgets',
   CUSTOM_CARD_WIDGETS: 'ha-custom-card-widgets',
-  CHRISTMAS_THEME_ENABLED: 'ha-christmas-theme-enabled',
+  // REMOVED: CHRISTMAS_THEME_ENABLED (Replaced by BACKGROUND_EFFECT)
+  BACKGROUND_EFFECT: 'ha-background-effect',
 } as const;

@@ -26,7 +26,7 @@ const TemplateEditorModal = lazy(() => import('./components/TemplateEditorModal.
 const HistoryModal = lazy(() => import('./components/HistoryModal.tsx'));
 const EventTimerSettingsModal = lazy(() => import('./components/EventTimerSettingsModal.tsx'));
 const ConfirmDialog = lazy(() => import('./components/ConfirmDialog.tsx'));
-const ChristmasTheme = lazy(() => import('./components/ChristmasTheme.tsx'));
+const BackgroundEffects = lazy(() => import('./components/BackgroundEffects.tsx'));
 const TemplateGallery = lazy(() => import('./components/templateGallery/TemplateGallery.tsx'));
 
 
@@ -135,7 +135,7 @@ const App: React.FC = () => {
         scheduleStartTime, scheduleEndTime,
         colorScheme, getTemplateForDevice, createNewBlankTemplate,
         editingEventTimerId, setEditingEventTimerId, eventTimerWidgets,
-        resetCustomWidgetTimer, deleteCustomWidget, isChristmasThemeEnabled,
+        resetCustomWidgetTimer, deleteCustomWidget, backgroundEffect,
     } = useAppStore();
 
     // Получение состояний модальных окон через хуки-селекторы для обеспечения реактивности
@@ -464,7 +464,7 @@ const App: React.FC = () => {
     <>
       <ThemeInjector theme={currentColorScheme} />
       <div className="fixed inset-0 -z-10 transition-all duration-500" style={backgroundStyle} />
-      {isChristmasThemeEnabled && <Suspense fallback={null}><ChristmasTheme /></Suspense>}
+      {backgroundEffect !== 'none' && <Suspense fallback={null}><BackgroundEffects effect={backgroundEffect} /></Suspense>}
       <div className="flex min-h-screen relative" onContextMenu={handleGlobalContextMenu}>
         {isSidebarVisible && (
         <Suspense fallback={<div className="bg-gray-900" style={{ width: `${sidebarWidth}px` }} />}>

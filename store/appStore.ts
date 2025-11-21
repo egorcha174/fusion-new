@@ -1,5 +1,4 @@
 
-
 import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
@@ -32,6 +31,7 @@ import {
 } from '../config/defaults';
 import { set as setAtPath } from '../utils/obj-path';
 
+export type BackgroundEffectType = 'none' | 'snow' | 'rain' | 'leaves' | 'river';
 
 // --- State and Actions Interfaces ---
 interface AppState {
@@ -75,7 +75,7 @@ interface AppState {
     lowBatteryThreshold: number;
     eventTimerWidgets: EventTimerWidget[];
     customCardWidgets: CustomCardWidget[];
-    isChristmasThemeEnabled: boolean;
+    backgroundEffect: BackgroundEffectType;
     DEFAULT_COLOR_SCHEME: ColorScheme;
 }
 
@@ -132,7 +132,7 @@ interface AppActions {
     updateCustomWidget: (widgetId: string, updates: Partial<Omit<EventTimerWidget, 'id'>>) => void;
     resetCustomWidgetTimer: (widgetId: string) => void;
     deleteCustomWidget: (widgetId: string) => void;
-    setIsChristmasThemeEnabled: (enabled: boolean) => void;
+    setBackgroundEffect: (effect: BackgroundEffectType) => void;
 
     // Actions for Custom Cards
     setCustomCardWidgets: (widgets: CustomCardWidget[]) => void;
@@ -187,6 +187,18 @@ const initialThemes = loadAndMigrate<ThemeDefinition[]>(LOCAL_STORAGE_KEYS.THEME
 const initialActiveThemeId = loadAndMigrate<string>(LOCAL_STORAGE_KEYS.ACTIVE_THEME_ID, DEFAULT_THEMES[0].id);
 const initialColorScheme = initialThemes.find(t => t.id === initialActiveThemeId)?.scheme || DEFAULT_THEMES[0].scheme;
 
+// Migration for Christmas Theme
+const migratedEffect = loadAndMigrate<BackgroundEffectType>(LOCAL_STORAGE_KEYS.BACKGROUND_EFFECT, 'none');
+let initialBackgroundEffect = migratedEffect;
+if (initialBackgroundEffect === 'none') {
+    // Check legacy key
+    const legacyChristmas = localStorage.getItem('ha-christmas-theme-enabled');
+    if (legacyChristmas === 'true') {
+        initialBackgroundEffect = 'snow';
+        localStorage.removeItem('ha-christmas-theme-enabled'); // Clean up
+    }
+}
+
 
 export const useAppStore = create<AppState & AppActions>((set, get) => ({
     // --- State Initialization from LocalStorage ---
@@ -229,7 +241,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     lowBatteryThreshold: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, DEFAULT_LOW_BATTERY_THRESHOLD),
     eventTimerWidgets: loadAndMigrate<EventTimerWidget[]>(LOCAL_STORAGE_KEYS.EVENT_TIMER_WIDGETS, []),
     customCardWidgets: loadAndMigrate<CustomCardWidget[]>(LOCAL_STORAGE_KEYS.CUSTOM_CARD_WIDGETS, []),
-    isChristmasThemeEnabled: loadAndMigrate<boolean>(LOCAL_STORAGE_KEYS.CHRISTMAS_THEME_ENABLED, false),
+    backgroundEffect: initialBackgroundEffect,
     DEFAULT_COLOR_SCHEME: DEFAULT_COLOR_SCHEME,
     
     // --- Actions ---
@@ -367,13 +379,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         const { themes, setThemes, templates, setTemplates, selectTheme } = get();
 
         // 1. Handle Theme Collision
-        // If ID exists, verify if it's the same theme or needs a new ID
         let themeToImport = { ...theme, isCustom: true };
         if (themes.some(t => t.id === themeToImport.id)) {
-            // Append a timestamp or random string to ID to avoid collision
-            // Or simply overwrite if that's desired. Here we assume we want to add as a copy if duplicate.
-            // Actually, a cleaner way is to check name match. 
-            // For now, let's generate a new ID to be safe.
             themeToImport.id = nanoid(); 
             themeToImport.name = `${theme.name} (Imported)`;
         }
@@ -384,9 +391,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         // 2. Handle Templates
         const updatedTemplates = { ...templates };
         newTemplatesList.forEach(tpl => {
-            // Overwrite existing templates with same ID (assuming package contains newer version)
-            // Or could also regenerate IDs. 
-            // For "Package" logic, we assume the template ID is consistent across shared packages.
             updatedTemplates[tpl.id] = tpl;
         });
         setTemplates(updatedTemplates);
@@ -423,9 +427,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         set({ lowBatteryThreshold: threshold });
         localStorage.setItem(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, JSON.stringify(threshold));
     },
-    setIsChristmasThemeEnabled: (enabled) => {
-        set({ isChristmasThemeEnabled: enabled });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.CHRISTMAS_THEME_ENABLED, JSON.stringify(enabled));
+    setBackgroundEffect: (effect) => {
+        set({ backgroundEffect: effect });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.BACKGROUND_EFFECT, JSON.stringify(effect));
     },
     setEventTimerWidgets: (widgets) => {
         set({ eventTimerWidgets: widgets });
