@@ -249,7 +249,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
 
             // Собираем все настройки из localStorage
             const settingsToExport: { [key: string]: any } = {};
-            for (const key of Object.values(LOCAL_STORAGE_KEYS)) {
+            for (const key of Object.values(LOCAL_STORAGE_KEYS) as string[]) {
                 const value = localStorage.getItem(key);
                 if (value !== null) {
                     try {
@@ -344,7 +344,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
 
     const handleResetAllSettings = () => {
         if(window.confirm("Вы уверены, что хотите сбросить ВСЕ настройки? Это действие нельзя отменить.")) {
-            Object.values(LOCAL_STORAGE_KEYS).forEach(key => {
+            (Object.values(LOCAL_STORAGE_KEYS) as string[]).forEach(key => {
                 localStorage.removeItem(key);
             });
             alert("Все настройки сброшены. Страница будет перезагружена.");
