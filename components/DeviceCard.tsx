@@ -5,6 +5,8 @@ import DeviceIcon, { getIconNameForDeviceType } from './DeviceIcon';
 import { Icon } from '@iconify/react';
 import SparklineChart from './SparklineChart';
 import ThermostatDial from './ThermostatDial';
+import EventTimerWidgetCard from './EventTimerWidgetCard';
+import BatteryWidgetCard from './BatteryWidgetCard';
 
 interface DeviceCardProps {
   device: Device;
@@ -79,6 +81,41 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
       return device.state === 'on' || device.state === 'active' || device.state === 'home' || device.state === 'open' || device.state === 'playing';
   };
   const isOn = getIsOn();
+
+  const getCardStyle = (): React.CSSProperties => {
+      if (device.type === DeviceType.MediaPlayer && (device.state === 'playing' || device.state === 'paused') && device.entityPictureUrl) {
+          return {
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundImage: `url(${device.entityPictureUrl})`,
+              borderRadius: `${colorScheme.cardBorderRadius}px`,
+          };
+      }
+      return { 
+          backgroundColor: isOn ? colorScheme.cardBackgroundOn : colorScheme.cardBackground,
+          backdropFilter: 'blur(16px)',
+          borderRadius: `${colorScheme.cardBorderRadius}px`,
+          overflow: 'hidden',
+          position: 'relative',
+          transition: 'background-color 0.3s ease',
+          width: '100%',
+          height: '100%',
+      };
+  }
+
+  // --- Special Widget Handling ---
+  if (device.type === DeviceType.EventTimer) {
+      return <EventTimerWidgetCard device={device} colorScheme={colorScheme} />;
+  }
+
+  if (device.type === DeviceType.BatteryWidget) {
+      return (
+          <div style={getCardStyle()} className="w-full h-full select-none">
+              <BatteryWidgetCard colorScheme={colorScheme} />
+          </div>
+      );
+  }
+  // -------------------------------
 
   const renderElement = (element: CardElement) => {
     if (!element.visible) return null;
@@ -221,27 +258,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
         return null;
     }
   };
-
-  const getCardStyle = (): React.CSSProperties => {
-      if (device.type === DeviceType.MediaPlayer && (device.state === 'playing' || device.state === 'paused') && device.entityPictureUrl) {
-          return {
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              backgroundImage: `url(${device.entityPictureUrl})`,
-              borderRadius: `${colorScheme.cardBorderRadius}px`,
-          };
-      }
-      return { 
-          backgroundColor: isOn ? colorScheme.cardBackgroundOn : colorScheme.cardBackground,
-          backdropFilter: 'blur(16px)',
-          borderRadius: `${colorScheme.cardBorderRadius}px`,
-          overflow: 'hidden',
-          position: 'relative',
-          transition: 'background-color 0.3s ease',
-          width: '100%',
-          height: '100%',
-      };
-  }
 
   return (
     <div 
