@@ -1,5 +1,4 @@
 
-
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device } from '../types';
 import ConfirmDialog from './ConfirmDialog';
@@ -389,15 +388,17 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
     const handleEditTheme = (theme: ThemeDefinition) => {
         if (theme.isCustom) {
             setEditingTheme(JSON.parse(JSON.stringify(theme)));
-        } else {
-            const newTheme: ThemeDefinition = {
-                id: nanoid(),
-                name: `${theme.name} (копия)`,
-                isCustom: true,
-                scheme: JSON.parse(JSON.stringify(theme.scheme)),
-            };
-            setEditingTheme(newTheme);
         }
+    };
+
+    const handleDuplicateTheme = (theme: ThemeDefinition) => {
+        const newTheme: ThemeDefinition = {
+            id: nanoid(),
+            name: `${theme.name} (копия)`,
+            isCustom: true,
+            scheme: JSON.parse(JSON.stringify(theme.scheme)),
+        };
+        setEditingTheme(newTheme);
     };
     
     const handleSaveTheme = () => {
@@ -505,15 +506,12 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
     
     const renderAppearanceTab = () => (
         <div className="space-y-4">
-            <Section title="Тема оформления" description="Выберите готовую тему или нажмите на нее для создания копии и редактирования.">
+            <Section title="Тема оформления" description="Выберите тему из списка. Используйте кнопку копирования для создания своей версии.">
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {themes.map(theme => (
                         <div key={theme.id} className="text-center group relative">
                             <button
-                                onClick={() => {
-                                    selectTheme(theme.id);
-                                    handleEditTheme(theme);
-                                }}
+                                onClick={() => selectTheme(theme.id)}
                                 className="w-full aspect-video rounded-lg border-2 dark:border-gray-600 transition-all flex items-center justify-center text-xs font-semibold"
                                 style={{
                                     backgroundImage: `linear-gradient(135deg, ${theme.scheme.light.dashboardBackgroundColor1} 50%, ${theme.scheme.dark.dashboardBackgroundColor1} 50%)`,
@@ -523,6 +521,22 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                                 <span className="bg-white/50 dark:bg-black/50 px-2 py-1 rounded-md backdrop-blur-sm">{theme.name}</span>
                             </button>
                             <div className="absolute top-1 right-1 z-10 flex gap-1">
+                                {theme.isCustom && (
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); handleEditTheme(theme); }}
+                                        className="p-1 bg-gray-800/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500/80"
+                                        title="Редактировать тему"
+                                    >
+                                        <Icon icon="mdi:pencil" className="w-4 h-4" />
+                                    </button>
+                                )}
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); handleDuplicateTheme(theme); }}
+                                    className="p-1 bg-gray-800/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-green-500/80"
+                                    title="Создать копию"
+                                >
+                                    <Icon icon="mdi:content-copy" className="w-4 h-4" />
+                                </button>
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); handleExportTheme(theme); }}
                                     className="p-1 bg-gray-800/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500/80"
@@ -554,7 +568,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
             </Section>
 
             {editingTheme && (
-                <Section key={editingTheme.id} title={editingTheme.isCustom ? `Редактирование "${editingTheme.name}"` : `Создание копии "${editingTheme.name}"`} description="Настройте цвета и сохраните тему." defaultOpen={true}>
+                <Section key={editingTheme.id} title={themes.some(t => t.id === editingTheme.id) ? `Редактирование "${editingTheme.name}"` : `Создание копии "${editingTheme.name}"`} description="Настройте цвета и сохраните тему." defaultOpen={true}>
                     {editingTheme.isCustom && (
                         <LabeledInput label="Название темы">
                             <input
@@ -575,7 +589,9 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                     </div>
                     <div className="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                         <button onClick={() => setEditingTheme(null)} className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors">Отмена</button>
-                        <button onClick={handleSaveTheme} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Сохранить</button>
+                        <button onClick={handleSaveTheme} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                            {!themes.some(t => t.id === editingTheme.id) ? 'Сохранить копию' : 'Сохранить'}
+                        </button>
                     </div>
                 </Section>
             )}
