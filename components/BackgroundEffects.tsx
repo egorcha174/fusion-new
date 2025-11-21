@@ -48,6 +48,7 @@ const SnowEffect = () => {
 };
 
 const RainEffect = () => {
+    // 1. Падающие капли дождя (фон)
     const raindrops = useMemo(() => {
         return Array.from({ length: 100 }).map((_, i) => {
             const size = Math.random() * 15 + 10; // height of raindrop
@@ -69,10 +70,35 @@ const RainEffect = () => {
         });
     }, []);
 
+    // 2. Капли на стекле (передний план)
+    const glassDrops = useMemo(() => {
+        return Array.from({ length: 20 }).map((_, i) => {
+            const width = Math.random() * 4 + 3; // 3-7px
+            const height = width * 1.2;
+            const x = Math.random() * 100; // vw
+            const duration = Math.random() * 4 + 2; // 2-6s time to slide down
+            const delay = Math.random() * 15; // Random start delay
+
+            return {
+                id: i,
+                style: {
+                    left: `${x}vw`,
+                    '--width': `${width}px`,
+                    '--height': `${height}px`,
+                    animationDuration: `${duration}s`,
+                    animationDelay: `${delay}s`,
+                } as React.CSSProperties,
+            };
+        });
+    }, []);
+
     return (
         <>
             {raindrops.map(drop => (
-                <div key={drop.id} className="raindrop" style={drop.style} />
+                <div key={`rain-${drop.id}`} className="raindrop" style={drop.style} />
+            ))}
+            {glassDrops.map(drop => (
+                <div key={`glass-${drop.id}`} className="glass-drop" style={drop.style} />
             ))}
         </>
     );
@@ -158,6 +184,16 @@ const RiverEffect = () => {
     );
 };
 
+const AuroraEffect = () => {
+    return (
+        <div className="fixed inset-0 overflow-hidden pointer-events-none -z-[5]">
+            <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_50%_50%,rgba(76,29,149,0.4),transparent_50%)] animate-[aurora-float-1_20s_infinite_linear]" />
+            <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_60%_40%,rgba(16,185,129,0.3),transparent_50%)] animate-[aurora-float-2_25s_infinite_linear_reverse]" />
+            <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_40%_60%,rgba(59,130,246,0.3),transparent_50%)] animate-[aurora-float-1_30s_infinite_linear]" />
+        </div>
+    );
+};
+
 const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect }) => {
     if (effect === 'none') return null;
 
@@ -167,6 +203,7 @@ const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect }) => {
             {effect === 'rain' && <RainEffect />}
             {effect === 'leaves' && <LeavesEffect />}
             {effect === 'river' && <RiverEffect />}
+            {effect === 'aurora' && <AuroraEffect />}
         </div>
     );
 };

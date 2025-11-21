@@ -596,6 +596,19 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                 </Section>
             )}
             
+            <Section title="Анимация фона" defaultOpen={false}>
+                <LabeledInput label="Эффект">
+                    <select value={backgroundEffect} onChange={e => setBackgroundEffect(e.target.value as any)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm">
+                        <option value="none">Нет</option>
+                        <option value="snow">Снег</option>
+                        <option value="rain">Дождь</option>
+                        <option value="leaves">Листопад</option>
+                        <option value="river">Речные волны</option>
+                        <option value="aurora">Полярное сияние</option>
+                    </select>
+                </LabeledInput>
+            </Section>
+
             <Section title="Режим день/ночь" description="Автоматически переключает светлую и темную тему.">
                  <select value={themeMode} onChange={(e) => setThemeMode(e.target.value as any)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="auto">Как в системе</option>
@@ -718,15 +731,6 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                         <input type="range" min="5" max="50" step="5" value={lowBatteryThreshold} onChange={e => setLowBatteryThreshold(Number(e.target.value))} className="w-full accent-blue-500"/>
                         <span className="text-sm font-mono">{lowBatteryThreshold}px</span>
                     </div>
-                </LabeledInput>
-                <LabeledInput label="Фоновый эффект">
-                    <select value={backgroundEffect} onChange={e => setBackgroundEffect(e.target.value as any)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm">
-                        <option value="none">Нет</option>
-                        <option value="snow">Снег (Новогодний)</option>
-                        <option value="rain">Дождь</option>
-                        <option value="leaves">Листопад</option>
-                        <option value="river">Речные волны</option>
-                    </select>
                 </LabeledInput>
             </Section>
 
