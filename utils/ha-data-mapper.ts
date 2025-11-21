@@ -1,4 +1,5 @@
 
+
 import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization, WeatherForecast } from '../types';
 
 /**
@@ -188,6 +189,7 @@ const entityToDevice = (
     haDomain: entity.entity_id.split('.')[0],
     haDeviceClass: attributes.device_class,
     state: entity.state,
+    attributes: attributes, // Added: Store raw attributes
   };
 
   // Добавляем специфичные для типов устройств атрибуты

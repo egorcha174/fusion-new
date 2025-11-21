@@ -1,3 +1,4 @@
+
 /**
  * Sets a value on a nested object path.
  * @param obj The object to modify.
@@ -19,4 +20,25 @@ export function set(obj: any, path: string | string[], value: any): any {
   current[pathArray[pathArray.length - 1]] = value;
   
   return obj;
+}
+
+/**
+ * Gets a value from a nested object path.
+ * @param obj The object to query.
+ * @param path The path to the property (e.g., 'attributes.brightness').
+ * @param defaultValue The value to return if the path doesn't exist.
+ */
+export function get(obj: any, path: string | string[], defaultValue?: any): any {
+  if (!obj) return defaultValue;
+  const pathArray = Array.isArray(path) ? path : path.split('.');
+  
+  let current = obj;
+  for (const key of pathArray) {
+    if (current === null || current === undefined) {
+      return defaultValue;
+    }
+    current = current[key];
+  }
+  
+  return current === undefined ? defaultValue : current;
 }

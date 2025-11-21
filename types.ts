@@ -79,6 +79,7 @@ export interface Device {
   fanSpeed?: number; // Скорость вентилятора в процентах
   fanLevel?: string; // Текущий уровень скорости вентилятора (строка, для select)
   fanLevels?: string[]; // Доступные уровни скорости вентилятора (строки, для select)
+  attributes?: Record<string, any>; // Сырые атрибуты из Home Assistant
   // Для кастомных виджетов
   widgetId?: string;
   buttonText?: string;
@@ -364,6 +365,7 @@ export interface CardElement {
     heatingLabelColor?: string; // для 'target-temperature'
     coolingLabelColor?: string; // для 'target-temperature'
   };
+  dataBinding?: string; // Path to data in Device object (e.g., 'attributes.brightness')
 }
 
 /**

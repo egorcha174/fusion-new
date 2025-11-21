@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { CardTemplate, Device, DeviceType, CardElementId, CardElement, DeviceSlot, ColorScheme } from '../types';
 import DeviceCard from './DeviceCard';
@@ -258,6 +259,15 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   const sampleDevice = useMemo(() => {
     const baseDevice = {
       batteryLevel: 48,
+      attributes: {
+          friendly_name: "Sample Device",
+          brightness: 128,
+          current_temperature: 22.5,
+          humidity: 45,
+          ip_address: "192.168.1.10",
+          last_seen: "2023-10-27",
+          power_consumption: 15.4
+      }
     };
     if (templateToEdit.deviceType === 'climate') return { ...baseDevice, id: 'climate.living_room', name: 'Гостиная', status: 'Охлаждение до 22°', type: DeviceType.Thermostat, temperature: 24, targetTemperature: 22, minTemp: 16, maxTemp: 30, hvacModes: ['off', 'cool', 'heat', 'auto'], hvacAction: 'cooling', presetMode: 'comfort', presetModes: ['none', 'away', 'comfort', 'eco', 'sleep'], state: 'cool', haDomain: 'climate' };
     if (templateToEdit.deviceType === 'light') return { ...baseDevice, id: 'light.sample_dimmable', name: 'Лампа в гостиной', status: 'Включено', type: DeviceType.DimmableLight, brightness: 80, state: 'on', haDomain: 'light' };
@@ -715,25 +725,42 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                 </Section>
 
                 {isTextElementSelected && (
-                    <Section title="Шрифт">
-                        <LabeledInput label="Шрифт">
-                           <select 
-                                value={selectedElement.styles.fontFamily || ''}
-                                onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, fontFamily: e.target.value}} : el)}))}
-                                className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
-                            >
-                                <option value="">По умолчанию</option>
-                                {FONT_FAMILIES.map(f => <option key={f.value} value={f.value}>{f.name}</option>)}
-                            </select>
-                        </LabeledInput>
-                        <LabeledInput label="Размер" suffix="px">
-                            <NumberInput 
-                                value={selectedElement.styles.fontSize}
-                                onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, fontSize: v}} : el)}))}
-                                min={8} max={200} placeholder="Авто"
-                            />
-                        </LabeledInput>
-                    </Section>
+                    <>
+                        <Section title="Привязка данных">
+                            <LabeledInput label="Путь к данным">
+                                <input 
+                                    type="text" 
+                                    placeholder="например, attributes.brightness"
+                                    value={selectedElement.dataBinding || ''}
+                                    onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, dataBinding: e.target.value} : el)}))}
+                                    className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                />
+                            </LabeledInput>
+                            <p className="text-[10px] text-gray-500 mt-1 pl-1">
+                                Путь к свойству устройства (например: <code>attributes.current_consumption</code>).
+                            </p>
+                        </Section>
+
+                        <Section title="Шрифт">
+                            <LabeledInput label="Шрифт">
+                            <select 
+                                    value={selectedElement.styles.fontFamily || ''}
+                                    onChange={e => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, fontFamily: e.target.value}} : el)}))}
+                                    className="w-full bg-gray-900/80 text-gray-100 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
+                                >
+                                    <option value="">По умолчанию</option>
+                                    {FONT_FAMILIES.map(f => <option key={f.value} value={f.value}>{f.name}</option>)}
+                                </select>
+                            </LabeledInput>
+                            <LabeledInput label="Размер" suffix="px">
+                                <NumberInput 
+                                    value={selectedElement.styles.fontSize}
+                                    onChange={v => setEditedTemplate(p => ({...p, elements: p.elements.map(el => el.id === selectedElement.id ? {...el, styles: {...el.styles, fontSize: v}} : el)}))}
+                                    min={8} max={200} placeholder="Авто"
+                                />
+                            </LabeledInput>
+                        </Section>
+                    </>
                 )}
                 
                  {['value', 'temperature'].includes(selectedElement.id) && (

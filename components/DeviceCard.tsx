@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Device, DeviceType, CardTemplate, CardElement, DeviceCustomizations, ColorScheme } from '../types';
 import DeviceIcon from './DeviceIcon';
@@ -10,6 +12,7 @@ import BatteryWidgetCard from './BatteryWidgetCard';
 import EventTimerWidgetCard from './EventTimerWidgetCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { applyOpacity } from '../utils/themeUtils';
+import { get } from '../utils/obj-path';
 
 /**
  * Компонент для автоматического подбора размера шрифта текста, чтобы он помещался в контейнер.
@@ -369,14 +372,23 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         style.zIndex = 100;
       }
 
+      // RESOLVE DATA BINDING
+      let boundValue: any = undefined;
+      if (element.dataBinding) {
+          boundValue = get(device, element.dataBinding);
+      }
 
       // `switch` по `id` элемента для определения, что и как рендерить.
       switch(element.id) {
         case 'name': {
             const nameProps = getStyleProps('nameText');
+            let nameText = device.name;
+            if (boundValue !== undefined) {
+                nameText = String(boundValue);
+            }
             return (
                 <div key={element.id} style={style}>
-                    <AutoFitText text={device.name} className="w-full h-full" pClassName="font-medium leading-tight" pStyle={{...nameProps.style, fontFamily: element.styles.fontFamily}} maxFontSize={100} mode="multi-line" maxLines={2} fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
+                    <AutoFitText text={nameText} className="w-full h-full" pClassName="font-medium leading-tight" pStyle={{...nameProps.style, fontFamily: element.styles.fontFamily}} maxFontSize={100} mode="multi-line" maxLines={2} fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
                 </div>
             );
         }
@@ -395,9 +407,13 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         }
         case 'status': {
             const statusProps = getStyleProps('statusText');
+            let statusText = device.status;
+            if (boundValue !== undefined) {
+                statusText = String(boundValue);
+            }
             return (
                 <div key={element.id} style={style}>
-                    <AutoFitText text={device.status} className="w-full h-full" pClassName="text-sm" pStyle={{...statusProps.style, fontFamily: element.styles.fontFamily}} maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
+                    <AutoFitText text={statusText} className="w-full h-full" pClassName="text-sm" pStyle={{...statusProps.style, fontFamily: element.styles.fontFamily}} maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign} />
                 </div>
             );
         }
@@ -405,7 +421,13 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
           const { decimalPlaces } = element.styles;
           let valueText = device.status;
 
-          if (device.type === DeviceType.Humidifier && device.targetHumidity !== undefined) {
+          if (boundValue !== undefined) {
+              if (typeof boundValue === 'number' && typeof decimalPlaces === 'number' && decimalPlaces >= 0) {
+                  valueText = boundValue.toFixed(decimalPlaces);
+              } else {
+                  valueText = String(boundValue);
+              }
+          } else if (device.type === DeviceType.Humidifier && device.targetHumidity !== undefined) {
               const dp = typeof decimalPlaces === 'number' && decimalPlaces >= 0 ? decimalPlaces : 0;
               valueText = `${device.targetHumidity.toFixed(dp)}`;
           } else {
@@ -429,11 +451,18 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         }
         case 'unit': {
           const isNumericStatus = !isNaN(parseFloat(device.status));
-          if (!device.unit || !isNumericStatus) return null;
+          
+          let unitText = device.unit;
+          if (boundValue !== undefined) {
+              unitText = String(boundValue);
+          }
+          
+          if (!unitText && !boundValue && !isNumericStatus) return null;
+          
           const unitProps = getStyleProps('unitText');
           return (
             <div key={element.id} style={style}>
-              <AutoFitText text={device.unit} className="w-full h-full" pClassName="font-medium" pStyle={{...unitProps.style, fontFamily: element.styles.fontFamily}} maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign}/>
+              <AutoFitText text={unitText || ''} className="w-full h-full" pClassName="font-medium" pStyle={{...unitProps.style, fontFamily: element.styles.fontFamily}} maxFontSize={100} mode="single-line" fontSize={element.styles.fontSize} textAlign={element.styles.textAlign}/>
             </div>
           );
         }
@@ -465,15 +494,31 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ device, allKnownDevices, custom
         }
         case 'temperature': {
            const { decimalPlaces } = element.styles;
-           const isHumidifier = device.type === DeviceType.Humidifier;
-           const tempValue = isHumidifier ? device.currentHumidity : device.temperature;
-           const unit = isHumidifier ? '%' : '°';
+           
            let tempText = '';
-           if (typeof tempValue === 'number') {
-             tempText = (typeof decimalPlaces === 'number' && decimalPlaces >= 0)
-               ? tempValue.toFixed(decimalPlaces)
-               : tempValue.toFixed(0);
+           
+           if (boundValue !== undefined) {
+               if (typeof boundValue === 'number' && typeof decimalPlaces === 'number' && decimalPlaces >= 0) {
+                   tempText = boundValue.toFixed(decimalPlaces);
+               } else {
+                   tempText = String(boundValue);
+               }
+           } else {
+               const isHumidifier = device.type === DeviceType.Humidifier;
+               const tempValue = isHumidifier ? device.currentHumidity : device.temperature;
+               
+               if (typeof tempValue === 'number') {
+                 tempText = (typeof decimalPlaces === 'number' && decimalPlaces >= 0)
+                   ? tempValue.toFixed(decimalPlaces)
+                   : tempValue.toFixed(0);
+               }
            }
+           
+           const isHumidifier = device.type === DeviceType.Humidifier;
+           // If binding is used, we don't automatically append unit unless user adds another element for it
+           // But to preserve existing behavior for defaults:
+           const unit = (!element.dataBinding) ? (isHumidifier ? '%' : '°') : '';
+
            const tempProps = getStyleProps('valueText');
            return (
              <div key={element.id} style={style} className="pointer-events-none">
