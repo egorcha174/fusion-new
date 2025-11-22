@@ -1,6 +1,8 @@
 
+
+
 import React, { useRef, useState, useMemo, useEffect } from 'react';
-import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device } from '../types';
+import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device, AuroraSettings } from '../types';
 import ConfirmDialog from './ConfirmDialog';
 import { useAppStore } from '../store/appStore';
 import { useHAStore } from '../store/haStore';
@@ -205,7 +207,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
         lowBatteryThreshold, setLowBatteryThreshold,
         backgroundEffect, setBackgroundEffect,
         servers, activeServerId, addServer, updateServer, deleteServer, setActiveServerId,
-        setCurrentPage
+        setCurrentPage, auroraSettings, setAuroraSettings
     } = useAppStore();
 
     const { allKnownDevices } = useHAStore();
@@ -229,8 +231,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
     }, [servers, editingServer]);
 
     const weatherEntities = useMemo(() => {
-        const devices = Array.from(allKnownDevices.values()) as Device[];
-        return devices
+        return (Array.from(allKnownDevices.values()) as Device[])
             .filter(device => device.type === DeviceType.Weather || device.haDomain === 'weather')
             .sort((a, b) => a.name.localeCompare(b.name));
     }, [allKnownDevices]);
@@ -250,8 +251,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
 
             // Собираем все настройки из localStorage
             const settingsToExport: { [key: string]: any } = {};
-            const keys = Object.values(LOCAL_STORAGE_KEYS) as string[];
-            for (const key of keys) {
+            for (const key of Object.values(LOCAL_STORAGE_KEYS) as string[]) {
                 const value = localStorage.getItem(key);
                 if (value !== null) {
                     try {
@@ -292,9 +292,8 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                         const content = await settingsFile.async("string");
                         const importedSettings = JSON.parse(content);
 
-                        const keys = Object.values(LOCAL_STORAGE_KEYS) as string[];
                         Object.keys(importedSettings).forEach(key => {
-                            if (keys.includes(key)) {
+                            if (Object.values(LOCAL_STORAGE_KEYS).includes(key as any)) {
                                localStorage.setItem(key, JSON.stringify(importedSettings[key]));
                             }
                         });
@@ -347,8 +346,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
 
     const handleResetAllSettings = () => {
         if(window.confirm("Вы уверены, что хотите сбросить ВСЕ настройки? Это действие нельзя отменить.")) {
-            const keys = Object.values(LOCAL_STORAGE_KEYS) as string[];
-            keys.forEach(key => {
+            (Object.values(LOCAL_STORAGE_KEYS) as string[]).forEach(key => {
                 localStorage.removeItem(key);
             });
             alert("Все настройки сброшены. Страница будет перезагружена.");
@@ -424,6 +422,16 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
             }
             return newTheme;
         });
+    };
+
+    const handleAuroraChange = (key: keyof AuroraSettings, value: any) => {
+        setAuroraSettings({ ...auroraSettings, [key]: value });
+    };
+
+    const AURORA_PRESETS: Record<string, AuroraSettings> = {
+        classic: { color1: '#00ffc8', color2: '#78c8ff', color3: '#00b4ff', speed: 22, intensity: 90, blur: 18, saturate: 140, starsEnabled: true, starsSpeed: 6 },
+        green: { color1: '#00ff9f', color2: '#00d68a', color3: '#00b36b', speed: 18, intensity: 100, blur: 14, saturate: 160, starsEnabled: true, starsSpeed: 5 },
+        violet: { color1: '#b28cff', color2: '#8f6bff', color3: '#5f3bff', speed: 26, intensity: 80, blur: 22, saturate: 180, starsEnabled: true, starsSpeed: 8 },
     };
 
 
@@ -608,9 +616,86 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                         <option value="rain">Дождь</option>
                         <option value="leaves">Листопад</option>
                         <option value="river">Речные волны</option>
-                        <option value="aurora">Полярное сияние</option>
+                        <option value="aurora">Северное сияние</option>
                     </select>
                 </LabeledInput>
+                
+                {backgroundEffect === 'aurora' && (
+                    <div className="mt-4 space-y-4 p-4 bg-gray-100 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                        <div className="flex justify-between items-center">
+                            <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Настройки сияния</h4>
+                            <div className="flex gap-2">
+                                {Object.entries(AURORA_PRESETS).map(([name, preset]) => (
+                                    <button 
+                                        key={name}
+                                        onClick={() => setAuroraSettings(preset)}
+                                        className="px-2 py-1 text-xs rounded bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-500"
+                                    >
+                                        {name === 'classic' ? 'Классика' : name === 'green' ? 'Зеленый' : 'Фиолет'}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-3 gap-2">
+                            <div className="flex flex-col items-center">
+                                <label className="text-xs mb-1">Цвет 1</label>
+                                <input type="color" value={auroraSettings.color1} onChange={e => handleAuroraChange('color1', e.target.value)} className="w-8 h-8 p-0 border-none rounded bg-transparent cursor-pointer"/>
+                            </div>
+                            <div className="flex flex-col items-center">
+                                <label className="text-xs mb-1">Цвет 2</label>
+                                <input type="color" value={auroraSettings.color2} onChange={e => handleAuroraChange('color2', e.target.value)} className="w-8 h-8 p-0 border-none rounded bg-transparent cursor-pointer"/>
+                            </div>
+                            <div className="flex flex-col items-center">
+                                <label className="text-xs mb-1">Цвет 3</label>
+                                <input type="color" value={auroraSettings.color3} onChange={e => handleAuroraChange('color3', e.target.value)} className="w-8 h-8 p-0 border-none rounded bg-transparent cursor-pointer"/>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <LabeledInput label="Скорость">
+                                <div className="flex items-center gap-2">
+                                    <input type="range" min="6" max="40" value={auroraSettings.speed} onChange={e => handleAuroraChange('speed', Number(e.target.value))} className="w-full accent-blue-500"/>
+                                    <span className="text-xs w-8 text-right">{auroraSettings.speed}s</span>
+                                </div>
+                            </LabeledInput>
+                            <LabeledInput label="Интенсивность">
+                                <div className="flex items-center gap-2">
+                                    <input type="range" min="30" max="120" value={auroraSettings.intensity} onChange={e => handleAuroraChange('intensity', Number(e.target.value))} className="w-full accent-blue-500"/>
+                                    <span className="text-xs w-8 text-right">{auroraSettings.intensity}%</span>
+                                </div>
+                            </LabeledInput>
+                            <LabeledInput label="Размытие">
+                                <div className="flex items-center gap-2">
+                                    <input type="range" min="4" max="40" value={auroraSettings.blur} onChange={e => handleAuroraChange('blur', Number(e.target.value))} className="w-full accent-blue-500"/>
+                                    <span className="text-xs w-8 text-right">{auroraSettings.blur}px</span>
+                                </div>
+                            </LabeledInput>
+                            <LabeledInput label="Насыщенность">
+                                <div className="flex items-center gap-2">
+                                    <input type="range" min="80" max="220" value={auroraSettings.saturate} onChange={e => handleAuroraChange('saturate', Number(e.target.value))} className="w-full accent-blue-500"/>
+                                    <span className="text-xs w-8 text-right">{auroraSettings.saturate}%</span>
+                                </div>
+                            </LabeledInput>
+                        </div>
+                        
+                        <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
+                            <LabeledInput label="Звезды">
+                                <input type="checkbox" checked={auroraSettings.starsEnabled} onChange={e => handleAuroraChange('starsEnabled', e.target.checked)} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"/>
+                            </LabeledInput>
+                            {auroraSettings.starsEnabled && (
+                                <div className="mt-2">
+                                    <LabeledInput label="Скорость мерцания">
+                                        <div className="flex items-center gap-2">
+                                            <input type="range" min="2" max="12" value={auroraSettings.starsSpeed} onChange={e => handleAuroraChange('starsSpeed', Number(e.target.value))} className="w-full accent-blue-500"/>
+                                            <span className="text-xs w-8 text-right">{auroraSettings.starsSpeed}s</span>
+                                        </div>
+                                    </LabeledInput>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </Section>
 
             <Section title="Режим день/ночь" description="Автоматически переключает светлую и темную тему.">

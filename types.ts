@@ -220,6 +220,18 @@ export interface WeatherSettings {
   forecastDays: number;
 }
 
+export interface AuroraSettings {
+  color1: string;
+  color2: string;
+  color3: string;
+  speed: number;
+  intensity: number;
+  blur: number;
+  saturate: number;
+  starsEnabled: boolean;
+  starsSpeed: number;
+}
+
 /**
  * Набор цветов для одной темы (светлой или темной).
  * Определяет все цвета, используемые в интерфейсе.

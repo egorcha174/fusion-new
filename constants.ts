@@ -1,4 +1,5 @@
 
+
 /**
  * Константы для ключей, используемых в localStorage.
  * Это позволяет избежать "магических строк" и обеспечивает единый источник истины
@@ -33,4 +34,5 @@ export const LOCAL_STORAGE_KEYS = {
   CUSTOM_CARD_WIDGETS: 'ha-custom-card-widgets',
   // REMOVED: CHRISTMAS_THEME_ENABLED (Replaced by BACKGROUND_EFFECT)
   BACKGROUND_EFFECT: 'ha-background-effect',
+  AURORA_SETTINGS: 'ha-aurora-settings',
 } as const;

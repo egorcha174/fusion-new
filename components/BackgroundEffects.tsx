@@ -1,10 +1,15 @@
 
+
 import React, { useMemo } from 'react';
-import { BackgroundEffectType } from '../store/appStore';
+import { useAppStore, BackgroundEffectType } from '../store/appStore';
+import { applyOpacity } from '../utils/themeUtils';
 
 interface BackgroundEffectsProps {
     effect: BackgroundEffectType;
 }
+
+// Helper for generating colors
+const hexToRgba = (hex: string, alpha: number) => applyOpacity(hex, alpha);
 
 const SnowEffect = () => {
     const snowflakes = useMemo(() => {
@@ -185,58 +190,40 @@ const RiverEffect = () => {
 };
 
 const AuroraEffect = () => {
+    const { auroraSettings } = useAppStore();
+    const { color1, color2, color3, speed, intensity, blur, saturate, starsEnabled, starsSpeed } = auroraSettings;
+
+    const containerStyle = {
+        '--c1-mid': hexToRgba(color1, 0.12),
+        '--c2-mid': hexToRgba(color2, 0.18),
+        '--c3-mid': hexToRgba(color3, 0.10),
+        '--c1-transparent': hexToRgba(color1, 0.0),
+        '--c3-transparent': hexToRgba(color3, 0.0),
+        '--global-blur': `${blur}px`,
+        '--global-saturate': `${saturate}%`,
+        '--speed-1': `${speed}s`,
+        '--speed-2': `${Math.round(speed * 1.2)}s`,
+        '--speed-3': `${Math.round(speed * 1.4)}s`,
+        '--speed-4': `${Math.round(speed * 1.1)}s`,
+        '--band-opacity': Math.max(0.3, Math.min(1.2, intensity / 100)),
+        '--stars-speed': `${starsSpeed}s`,
+        '--stars-opacity': starsEnabled ? 0.9 : 0,
+    } as React.CSSProperties;
+
     return (
-        <div className="fixed inset-0 overflow-hidden pointer-events-none -z-[5]">
-            {/* Layer 1: The bright green/cyan main band */}
-            <div 
-                className="absolute top-[10%] left-[-25%] w-[150%] h-[100%]"
-                style={{
-                    background: 'radial-gradient(ellipse at center, rgba(0, 255, 190, 0.7) 0%, rgba(0, 150, 255, 0.4) 30%, transparent 70%)',
-                    transform: 'rotate(-15deg) scaleX(1.2)',
-                    filter: 'blur(35px)',
-                    animation: 'aurora-float-1 18s infinite ease-in-out',
-                    opacity: 0.8,
-                    mixBlendMode: 'screen'
-                }}
-            />
-
-            {/* Layer 2: Sharp vertical rays (Curtains) */}
-            <div 
-                className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%]"
-                style={{
-                    background: 'repeating-linear-gradient(105deg, transparent 0%, transparent 4%, rgba(100, 255, 218, 0.4) 4.5%, rgba(150, 100, 255, 0.3) 6%, transparent 8%)',
-                    filter: 'blur(5px)', // Sharpest layer for contrast
-                    transform: 'skewY(10deg)',
-                    animation: 'aurora-float-2 30s infinite linear',
-                    opacity: 0.9, // High opacity for contrast
-                    mixBlendMode: 'color-dodge'
-                }}
-            />
-
-            {/* Layer 3: Purple/Pink upper glow */}
-            <div 
-                className="absolute top-[-30%] right-[-30%] w-[130%] h-[130%]"
-                style={{
-                    background: 'radial-gradient(circle at center, rgba(180, 40, 220, 0.6) 0%, transparent 60%)',
-                    filter: 'blur(60px)',
-                    animation: 'aurora-float-2 25s infinite ease-in-out reverse',
-                    opacity: 0.6,
-                    mixBlendMode: 'screen'
-                }}
-            />
+        <div className="fixed inset-0 overflow-hidden pointer-events-none -z-[5] aurora-scene" style={containerStyle}>
+            <div className="absolute inset-0 aurora-stars" />
             
-            {/* Layer 4: Secondary Green Glow for depth */}
-             <div 
-                className="absolute bottom-[-40%] left-[20%] w-[100%] h-[100%]"
-                style={{
-                    background: 'radial-gradient(ellipse at center, rgba(0, 255, 100, 0.4) 0%, transparent 70%)',
-                    transform: 'rotate(20deg)',
-                    filter: 'blur(50px)',
-                    animation: 'aurora-float-1 22s infinite ease-in-out',
-                    opacity: 0.5,
-                    mixBlendMode: 'screen'
-                }}
-            />
+            <div className="absolute left-[-20%] right-[-20%] h-[60%] top-[10%] aurora-layer pointer-events-none">
+                <div className="absolute left-0 right-0 h-full aurora-band b1" />
+                <div className="absolute left-0 right-0 h-full aurora-band b2" />
+                <div className="absolute left-0 right-0 h-full aurora-band b3" />
+                <div className="absolute left-0 right-0 h-full aurora-band b4" />
+                <div className="absolute inset-0 aurora-noise" />
+            </div>
+            
+            {/* Horizon gradient for blending */}
+            <div className="absolute left-0 right-0 bottom-0 h-[22%] bg-gradient-to-b from-transparent via-black/60 to-black pointer-events-none" />
         </div>
     );
 };

@@ -172,18 +172,87 @@
   }
 
   /* Aurora */
-  @keyframes aurora-float-1 {
-    0% { transform: translate(0%, 0%) rotate(0deg) scale(1); }
-    25% { transform: translate(2%, 3%) rotate(2deg) scale(1.1); }
-    50% { transform: translate(-1%, 5%) rotate(-1deg) scale(1.05); }
-    75% { transform: translate(-3%, 2%) rotate(-3deg) scale(1.15); }
-    100% { transform: translate(0%, 0%) rotate(0deg) scale(1); }
+  @keyframes aurora-move-1 {
+    0% { transform: skewY(-6deg) translateX(-12%) scaleX(1); opacity: 0.92; }
+    50% { transform: skewY(-4deg) translateX(6%) scaleX(1.05); opacity: 0.7; }
+    100% { transform: skewY(-6deg) translateX(-12%) scaleX(1); opacity: 0.92; }
   }
-  @keyframes aurora-float-2 {
-    0% { transform: translate(0%, 0%) rotate(0deg) scale(1.2); }
-    33% { transform: translate(-2%, -3%) rotate(-5deg) scale(1); }
-    66% { transform: translate(3%, -1%) rotate(3deg) scale(1.1); }
-    100% { transform: translate(0%, 0%) rotate(0deg) scale(1.2); }
+  @keyframes aurora-move-2 {
+    0% { transform: skewY(4deg) translateX(-8%) scaleX(1); opacity: 0.8; }
+    50% { transform: skewY(6deg) translateX(10%) scaleX(1.08); opacity: 0.55; }
+    100% { transform: skewY(4deg) translateX(-8%) scaleX(1); opacity: 0.8; }
+  }
+  @keyframes aurora-move-3 {
+    0% { transform: skewY(-2deg) translateX(-6%) scaleX(1); opacity: 0.65; }
+    50% { transform: skewY(0deg) translateX(12%) scaleX(1.12); opacity: 0.45; }
+    100% { transform: skewY(-2deg) translateX(-6%) scaleX(1); opacity: 0.65; }
+  }
+  @keyframes aurora-move-4 {
+    0% { transform: skewY(8deg) translateX(-4%) scaleX(1); opacity: 0.6; }
+    50% { transform: skewY(10deg) translateX(14%) scaleX(1.15); opacity: 0.35; }
+    100% { transform: skewY(8deg) translateX(-4%) scaleX(1); opacity: 0.6; }
+  }
+  @keyframes aurora-drift {
+    0% { transform: translateX(-10%); }
+    50% { transform: translateX(10%); }
+    100% { transform: translateX(-10%); }
+  }
+  @keyframes aurora-twinkle {
+    0% { opacity: 0.85; transform: translateY(0); }
+    50% { opacity: 1; transform: translateY(-1px); }
+    100% { opacity: 0.85; transform: translateY(0); }
+  }
+
+  /* Aurora Classes */
+  .aurora-scene {
+    background: radial-gradient(ellipse at 20% 10%, rgba(10,18,40,0.6) 0%, rgba(2,3,10,1) 50%),
+                linear-gradient(180deg, #00102a 0%, #00040a 60%);
+  }
+  
+  .aurora-layer {
+    mix-blend-mode: screen;
+    filter: blur(var(--global-blur, 18px)) saturate(var(--global-saturate, 140%));
+    transform: translateZ(0);
+    transition: filter 300ms linear;
+  }
+
+  .aurora-band {
+    opacity: var(--band-opacity, 0.9);
+    transform-origin: center;
+    will-change: transform, opacity, filter;
+    background: linear-gradient(90deg,
+      var(--c1-transparent, rgba(0,255,200,0.0)) 0%,
+      var(--c1-mid, rgba(0,255,180,0.12)) 20%,
+      var(--c2-mid, rgba(120,200,255,0.18)) 50%,
+      var(--c3-mid, rgba(0,180,255,0.10)) 80%,
+      var(--c3-transparent, rgba(0,255,200,0.0)) 100%);
+  }
+
+  .aurora-band.b1 { top: 0%; height: 40%; animation: aurora-move-1 var(--speed-1, 18s) infinite ease-in-out; filter: blur(14px) contrast(1.05); }
+  .aurora-band.b2 { top: 20%; height: 50%; animation: aurora-move-2 var(--speed-2, 22s) infinite ease-in-out; filter: blur(20px) contrast(1.1); }
+  .aurora-band.b3 { top: 35%; height: 60%; animation: aurora-move-3 var(--speed-3, 26s) infinite ease-in-out; filter: blur(28px) contrast(1.15); }
+  .aurora-band.b4 { top: 50%; height: 45%; animation: aurora-move-4 var(--speed-4, 20s) infinite ease-in-out; filter: blur(34px) contrast(1.2); }
+
+  .aurora-stars {
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, #fff 50%, transparent 51%),
+      radial-gradient(1px 1px at 30% 40%, #fff 50%, transparent 51%),
+      radial-gradient(1px 1px at 70% 10%, #fff 50%, transparent 51%),
+      radial-gradient(1px 1px at 85% 60%, #fff 50%, transparent 51%),
+      radial-gradient(1px 1px at 50% 80%, #fff 50%, transparent 51%);
+    opacity: var(--stars-opacity, 0.9);
+    filter: blur(0.6px);
+    animation: aurora-twinkle var(--stars-speed, 6s) linear infinite;
+    mix-blend-mode: screen;
+  }
+
+  .aurora-noise {
+    background-image: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.02), transparent 10%),
+                      radial-gradient(circle at 70% 60%, rgba(255,255,255,0.02), transparent 12%);
+    mix-blend-mode: overlay;
+    opacity: 0.6;
+    filter: blur(6px);
+    animation: aurora-drift var(--noise-speed, 30s) linear infinite;
   }
 
   .snowflake {

@@ -1,3 +1,4 @@
+
 import {
     CardTemplates,
     ColorScheme,
@@ -6,7 +7,8 @@ import {
     ClockSettings,
     CameraSettings,
     WeatherSettings,
-    ThemeDefinition
+    ThemeDefinition,
+    AuroraSettings
 } from '../types';
 import { nanoid } from 'nanoid';
 import appleTheme from '../apple-inspired-light.theme.json';
@@ -119,6 +121,17 @@ export const DEFAULT_WEATHER_SETTINGS: WeatherSettings = {
   forecastDays: 4,
 };
 export const DEFAULT_LOW_BATTERY_THRESHOLD = 20;
+export const DEFAULT_AURORA_SETTINGS: AuroraSettings = {
+  color1: '#00ffc8',
+  color2: '#78c8ff',
+  color3: '#00b4ff',
+  speed: 22,
+  intensity: 90,
+  blur: 18,
+  saturate: 140,
+  starsEnabled: true,
+  starsSpeed: 6,
+};
 
 // --- Built-in Themes ---
 export const DEFAULT_THEMES: ThemeDefinition[] = [

@@ -1,10 +1,11 @@
 
+
 import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
   CameraSettings, ColorScheme, CardTemplate, DeviceType, GridLayoutItem, DeviceCustomization,
   CardElementId, EventTimerWidget, CustomCardWidget, PhysicalDevice, CardElement, WeatherSettings,
-  ServerConfig, ThemeDefinition, ThemePackage
+  ServerConfig, ThemeDefinition, ThemePackage, AuroraSettings
 } from '../types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from '../components/DeviceIcon';
@@ -27,7 +28,8 @@ import {
     DEFAULT_SWITCH_TEMPLATE_ID,
     DEFAULT_CLIMATE_TEMPLATE_ID,
     DEFAULT_HUMIDIFIER_TEMPLATE_ID,
-    DEFAULT_THEMES
+    DEFAULT_THEMES,
+    DEFAULT_AURORA_SETTINGS
 } from '../config/defaults';
 import { set as setAtPath } from '../utils/obj-path';
 
@@ -76,6 +78,7 @@ interface AppState {
     eventTimerWidgets: EventTimerWidget[];
     customCardWidgets: CustomCardWidget[];
     backgroundEffect: BackgroundEffectType;
+    auroraSettings: AuroraSettings;
     DEFAULT_COLOR_SCHEME: ColorScheme;
 }
 
@@ -133,6 +136,7 @@ interface AppActions {
     resetCustomWidgetTimer: (widgetId: string) => void;
     deleteCustomWidget: (widgetId: string) => void;
     setBackgroundEffect: (effect: BackgroundEffectType) => void;
+    setAuroraSettings: (settings: AuroraSettings) => void;
 
     // Actions for Custom Cards
     setCustomCardWidgets: (widgets: CustomCardWidget[]) => void;
@@ -242,6 +246,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     eventTimerWidgets: loadAndMigrate<EventTimerWidget[]>(LOCAL_STORAGE_KEYS.EVENT_TIMER_WIDGETS, []),
     customCardWidgets: loadAndMigrate<CustomCardWidget[]>(LOCAL_STORAGE_KEYS.CUSTOM_CARD_WIDGETS, []),
     backgroundEffect: initialBackgroundEffect,
+    auroraSettings: loadAndMigrate<AuroraSettings>(LOCAL_STORAGE_KEYS.AURORA_SETTINGS, DEFAULT_AURORA_SETTINGS),
     DEFAULT_COLOR_SCHEME: DEFAULT_COLOR_SCHEME,
     
     // --- Actions ---
@@ -465,6 +470,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             layout: tab.layout.filter(item => item.deviceId !== deviceIdToDelete)
         }));
         get().setTabs(newTabs);
+    },
+    setAuroraSettings: (settings) => {
+        set({ auroraSettings: settings });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.AURORA_SETTINGS, JSON.stringify(settings));
     },
     
     // --- Custom Card Actions ---
