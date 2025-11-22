@@ -187,53 +187,53 @@ const RiverEffect = () => {
 const AuroraEffect = () => {
     return (
         <div className="fixed inset-0 overflow-hidden pointer-events-none -z-[5]">
-            {/* Layer 1: Green - Base structure */}
+            {/* Layer 1: The bright green/cyan main band */}
             <div 
-                className="absolute top-[-100%] left-[-50%] w-[300%] h-[300%]"
+                className="absolute top-[10%] left-[-25%] w-[150%] h-[100%]"
                 style={{
-                    background: 'radial-gradient(ellipse 70% 60% at 50% 50%, rgba(0, 255, 150, 0.8), transparent 60%)',
-                    animation: 'aurora-float-1 25s infinite ease-in-out',
-                    filter: 'blur(80px)',
+                    background: 'radial-gradient(ellipse at center, rgba(0, 255, 190, 0.7) 0%, rgba(0, 150, 255, 0.4) 30%, transparent 70%)',
+                    transform: 'rotate(-15deg) scaleX(1.2)',
+                    filter: 'blur(35px)',
+                    animation: 'aurora-float-1 18s infinite ease-in-out',
+                    opacity: 0.8,
+                    mixBlendMode: 'screen'
+                }}
+            />
+
+            {/* Layer 2: Sharp vertical rays (Curtains) */}
+            <div 
+                className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%]"
+                style={{
+                    background: 'repeating-linear-gradient(105deg, transparent 0%, transparent 4%, rgba(100, 255, 218, 0.4) 4.5%, rgba(150, 100, 255, 0.3) 6%, transparent 8%)',
+                    filter: 'blur(5px)', // Sharpest layer for contrast
+                    transform: 'skewY(10deg)',
+                    animation: 'aurora-float-2 30s infinite linear',
+                    opacity: 0.9, // High opacity for contrast
+                    mixBlendMode: 'color-dodge'
+                }}
+            />
+
+            {/* Layer 3: Purple/Pink upper glow */}
+            <div 
+                className="absolute top-[-30%] right-[-30%] w-[130%] h-[130%]"
+                style={{
+                    background: 'radial-gradient(circle at center, rgba(180, 40, 220, 0.6) 0%, transparent 60%)',
+                    filter: 'blur(60px)',
+                    animation: 'aurora-float-2 25s infinite ease-in-out reverse',
                     opacity: 0.6,
-                    transformOrigin: 'center center'
+                    mixBlendMode: 'screen'
                 }}
             />
             
-            {/* Layer 2: Pink/Magenta - Intense highlights */}
-            <div 
-                className="absolute top-[-100%] left-[-30%] w-[280%] h-[280%]"
+            {/* Layer 4: Secondary Green Glow for depth */}
+             <div 
+                className="absolute bottom-[-40%] left-[20%] w-[100%] h-[100%]"
                 style={{
-                    background: 'radial-gradient(ellipse 65% 55% at 60% 40%, rgba(255, 0, 150, 0.7), transparent 60%)',
-                    animation: 'aurora-float-2 30s infinite ease-in-out reverse',
-                    filter: 'blur(70px)',
-                    opacity: 0.6,
-                    transformOrigin: 'center center',
-                    mixBlendMode: 'screen'
-                }}
-            />
-
-            {/* Layer 3: Purple - Deep tones */}
-            <div 
-                className="absolute top-[-90%] left-[-60%] w-[300%] h-[300%]"
-                style={{
-                    background: 'radial-gradient(ellipse 80% 50% at 40% 60%, rgba(150, 0, 255, 0.6), transparent 60%)',
-                    animation: 'aurora-float-1 35s infinite ease-in-out',
-                    filter: 'blur(90px)',
-                    opacity: 0.6,
-                    transformOrigin: 'center center',
-                    mixBlendMode: 'screen'
-                }}
-            />
-
-            {/* Layer 4: Blue - Cool overlay */}
-            <div 
-                className="absolute top-[-110%] left-[-20%] w-[280%] h-[280%]"
-                style={{
-                    background: 'radial-gradient(ellipse 75% 65% at 70% 30%, rgba(0, 150, 255, 0.5), transparent 60%)',
-                    animation: 'aurora-float-2 40s infinite ease-in-out reverse',
-                    filter: 'blur(60px)',
-                    opacity: 0.6,
-                    transformOrigin: 'center center',
+                    background: 'radial-gradient(ellipse at center, rgba(0, 255, 100, 0.4) 0%, transparent 70%)',
+                    transform: 'rotate(20deg)',
+                    filter: 'blur(50px)',
+                    animation: 'aurora-float-1 22s infinite ease-in-out',
+                    opacity: 0.5,
                     mixBlendMode: 'screen'
                 }}
             />
