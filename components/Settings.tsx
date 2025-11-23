@@ -1,5 +1,3 @@
-
-
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device, AuroraSettings } from '../types';
@@ -734,6 +732,8 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                                 <option value="rain">Дождь</option>
                                 <option value="strong-cloudy">Сильная облачность</option>
                                 <option value="rain-clouds">Облака и дождь</option>
+                                <option value="snow-rain">Снег с дождем</option>
+                                <option value="thunderstorm">Гроза</option>
                                 <option value="leaves">Листопад</option>
                                 <option value="river">Речные волны</option>
                                 <option value="aurora">Полярное сияние</option>
