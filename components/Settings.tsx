@@ -1,6 +1,8 @@
 
 
 
+
+
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device, AuroraSettings } from '../types';
 import ConfirmDialog from './ConfirmDialog';
@@ -195,7 +197,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
     const [serverToDelete, setServerToDelete] = useState<ServerConfig | null>(null);
     
     const {
-        templates, setTemplates, handleDeleteTemplate,
+        templates, setTemplates, handleDeleteTemplate, setEditingTemplate,
         clockSettings, setClockSettings,
         sidebarWidth, setSidebarWidth,
         isSidebarVisible, setIsSidebarVisible,
@@ -847,13 +849,22 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                                         <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{template.name}</p>
                                         <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">{template.deviceType}</p>
                                     </div>
-                                    <button 
-                                        onClick={() => handleDeleteTemplate(template.id)} 
-                                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
-                                        title="Удалить шаблон"
-                                    >
-                                        <Icon icon="mdi:trash-can-outline" className="w-5 h-5" />
-                                    </button>
+                                    <div className="flex items-center gap-1">
+                                        <button 
+                                            onClick={() => setEditingTemplate(template)} 
+                                            className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors"
+                                            title="Редактировать шаблон"
+                                        >
+                                            <Icon icon="mdi:pencil" className="w-5 h-5" />
+                                        </button>
+                                        <button 
+                                            onClick={() => handleDeleteTemplate(template.id)} 
+                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
+                                            title="Удалить шаблон"
+                                        >
+                                            <Icon icon="mdi:trash-can-outline" className="w-5 h-5" />
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -934,50 +945,6 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                 onCancel={() => setServerToDelete(null)}
                 confirmText="Удалить"
             />
-        </>
-    );
-
-    if (variant === 'drawer') {
-        return (
-            <AnimatePresence>
-                {isOpen && (
-                    <>
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
-                            onClick={onClose}
-                        />
-                        <motion.div
-                            initial={{ x: '100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '100%' }}
-                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                            className="fixed inset-y-0 right-0 w-full max-w-md bg-white dark:bg-gray-900 shadow-2xl z-50 flex flex-col"
-                        >
-                            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
-                                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Настройки</h2>
-                                <button 
-                                    onClick={onClose}
-                                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                                >
-                                    <Icon icon="mdi:close" className="w-6 h-6 text-gray-500 dark:text-gray-400" />
-                                </button>
-                            </div>
-                            <div className="flex-1 overflow-y-auto p-4 pb-20 space-y-6">
-                                {renderContent()}
-                            </div>
-                        </motion.div>
-                    </>
-                )}
-            </AnimatePresence>
-        );
-    }
-
-    return (
-        <div className="w-full max-w-4xl mx-auto p-4 space-y-8 pb-20">
-            {renderContent()}
         </div>
     );
 };
