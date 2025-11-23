@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device, AuroraSettings } from '../types';
@@ -728,10 +727,13 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                         <LabeledInput label="Эффект">
                             <select value={backgroundEffect} onChange={e => setBackgroundEffect(e.target.value as BackgroundEffectType)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm">
                                 <option value="none">Нет</option>
+                                <option value="weather">По погоде</option>
                                 <option value="snow">Снег</option>
                                 <option value="rain">Дождь</option>
                                 <option value="strong-cloudy">Сильная облачность</option>
                                 <option value="rain-clouds">Облака и дождь</option>
+                                <option value="snow-rain">Снег с дождем</option>
+                                <option value="thunderstorm">Гроза</option>
                                 <option value="leaves">Листопад</option>
                                 <option value="river">Речные волны</option>
                                 <option value="aurora">Полярное сияние</option>
@@ -949,8 +951,8 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
     if (variant === 'drawer') {
         return createPortal(
             <div className={`fixed inset-0 z-[60] flex justify-end transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-                 {/* Backdrop */}
-                <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+                 {/* Backdrop - removed blur and color to allow previewing changes */}
+                <div className="absolute inset-0" onClick={onClose} />
                 
                 {/* Drawer Panel */}
                 <div className={`relative w-full max-w-lg h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto transition-transform duration-300 border-l border-gray-200 dark:border-gray-700 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
