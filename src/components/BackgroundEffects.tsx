@@ -1,6 +1,4 @@
 
-
-
 import React, { useMemo } from 'react';
 import { useAppStore, BackgroundEffectType } from '../store/appStore';
 import { applyOpacity } from '../utils/themeUtils';
@@ -183,26 +181,40 @@ const LeavesEffect = () => {
 const CloudShape = React.memo(({ width, height, color, seed }: { width: number, height: number, color: string, seed: number }) => {
     const { circles, gradientId, morphDuration, morphDelay, pulseDuration } = useMemo(() => {
         const random = (offset: number) => {
-            const x = Math.sin(seed + offset) * 10000;
+            // Use a better pseudo-random generator for cloud shape to avoid patterns
+            const x = Math.sin(seed * 43758.5453 + offset * 12.9898) * 10000;
             return x - Math.floor(x);
         };
 
         const c = [];
-        // 12-20 circles per cloud for complex organic shapes
-        const count = 12 + Math.floor(random(0) * 9); 
         
-        // Core: Large horizontal ellipses for body
-        c.push({ cx: width * 0.5, cy: height * 0.6, r: width * 0.35 });
-        c.push({ cx: width * 0.3, cy: height * 0.65, r: width * 0.25 });
-        c.push({ cx: width * 0.7, cy: height * 0.65, r: width * 0.25 });
+        // 1. Main body structure: A "spine" of overlapping circles to define general shape
+        // Number of spine segments: 3 to 5
+        const spineCount = 3 + Math.floor(random(0) * 3); 
+        
+        for (let i = 0; i < spineCount; i++) {
+            // Distribute horizontally from ~20% to ~80%
+            const t = i / (spineCount - 1 || 1);
+            const baseX = 0.25 + t * 0.5; 
+            
+            // Randomize position
+            const cx = width * (baseX + (random(i + 1) - 0.5) * 0.25);
+            const cy = height * (0.55 + (random(i + 2) - 0.5) * 0.3);
+            const r = width * (0.22 + random(i + 3) * 0.15);
+            
+            c.push({ cx, cy, r });
+        }
 
-        // Random puffs
-        for(let i = 0; i < count; i++) {
-            c.push({
-                cx: width * (0.1 + random(i + 1) * 0.8),
-                cy: height * (0.2 + random(i + 2) * 0.5),
-                r: width * (0.1 + random(i + 3) * 0.18)
-            });
+        // 2. "Fluff" circles to add random details and break regularity
+        // 10 to 20 fluff circles
+        const fluffCount = 10 + Math.floor(random(4) * 11); 
+        
+        for (let i = 0; i < fluffCount; i++) {
+            // Distributed randomly within bounds
+            const cx = width * (0.15 + random(i + 100) * 0.7);
+            const cy = height * (0.45 + random(i + 200) * 0.4);
+            const r = width * (0.12 + random(i + 300) * 0.12);
+            c.push({ cx, cy, r });
         }
 
         const gId = `cloudGrad-${seed}-${nanoid(4)}`;
@@ -257,9 +269,12 @@ const StrongCloudyEffect = ({ dark = false }: { dark?: boolean }) => {
 
         // Generate more clouds with varied sizes for depth
         return Array.from({ length: 20 }).map((_, i) => {
-            const scale = 0.6 + Math.random() * 1.8; 
-            const width = 250 * scale;
-            const height = 160 * scale;
+            const scale = 0.6 + Math.random() * 1.6;
+            // Randomize aspect ratio to create variety (flat vs puffy)
+            const aspectRatio = 1.3 + Math.random() * 0.6; // 1.3 - 1.9
+            const width = 250 * scale * (0.9 + Math.random() * 0.2);
+            const height = width / aspectRatio;
+            
             const top = Math.random() * 70 - 15; // Spread: -15vh to 55vh
             const duration = 80 + Math.random() * 80; // 1.5-3 mins
             const delay = Math.random() * -200;
