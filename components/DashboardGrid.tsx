@@ -1,4 +1,5 @@
-import React, { useRef, useState, useLayoutEffect, useMemo, useCallback } from 'react';
+
+import React, { useRef, useState, useLayoutEffect, useMemo } from 'react';
 import {
   DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent,
   useDraggable, useDroppable, DragOverlay, pointerWithin,
@@ -6,7 +7,7 @@ import {
 import { snapCenterToCursor } from '@dnd-kit/modifiers';
 import { motion, AnimatePresence } from 'framer-motion';
 import DeviceCard from './DeviceCard';
-import { Tab, Device, DeviceType, GridLayoutItem, CardTemplates, DeviceCustomizations, CardTemplate, ColorScheme, ColorThemeSet } from '../types';
+import { Tab, Device, DeviceType, GridLayoutItem, CardTemplates, DeviceCustomizations, CardTemplate, ColorScheme } from '../types';
 import { useAppStore } from '../store/appStore';
 import ErrorBoundary from './ErrorBoundary';
 import LoadingSpinner from './LoadingSpinner';
@@ -17,10 +18,8 @@ const DEFAULT_LIGHT_TEMPLATE_ID = 'default-light';
 const DEFAULT_SWITCH_TEMPLATE_ID = 'default-switch';
 const DEFAULT_CLIMATE_TEMPLATE_ID = 'default-climate';
 
-
 /**
  * Обертка над DeviceCard, делающая его перетаскиваемым (Draggable) и зоной для сброса (Droppable).
- * Это позволяет как перетаскивать карточку, так и сбрасывать другую карточку на нее для замены.
  */
 const DraggableDevice: React.FC<{
   device: Device;
@@ -32,37 +31,33 @@ const DraggableDevice: React.FC<{
   customizations: DeviceCustomizations;
   colorScheme: ColorScheme['light'];
   isDark: boolean;
-  [key: string]: any; // Прочие пропсы для DeviceCard
+  [key: string]: any;
 }> = React.memo(({ device, isEditMode, onDeviceToggle, onShowHistory, template, allKnownDevices, customizations, colorScheme, isDark, ...cardProps }) => {
   const { attributes, listeners, setNodeRef: setDraggableNodeRef, isDragging } = useDraggable({
     id: device.id,
     disabled: !isEditMode,
   });
   
-  // Делаем саму карточку зоной для сброса для реализации замены (swap)
   const { setNodeRef: setDroppableNodeRef } = useDroppable({
     id: device.id,
     data: { type: 'device' }
   });
   
-  // Комбинируем ref'ы от useDraggable и useDroppable
   const setNodeRef = (node: HTMLElement | null) => {
       setDraggableNodeRef(node);
       setDroppableNodeRef(node);
   };
 
-  const handleClick = useCallback((e: React.MouseEvent) => {
+  const handleClick = (e: React.MouseEvent) => {
     if (isEditMode) { e.preventDefault(); e.stopPropagation(); return; }
     
     if (device.type === DeviceType.Custom) {
         if (template?.interactionType === 'active' && template.mainActionEntityId) {
             onDeviceToggle(template.mainActionEntityId);
         }
-        // Пассивные кастомные карточки ничего не делают по клику
         return;
     }
     
-    // Для сенсоров клик открывает историю
     if (device.type === DeviceType.Sensor) {
       onShowHistory(device.id);
       return;
@@ -73,12 +68,12 @@ const DraggableDevice: React.FC<{
     if (isTogglable) {
       onDeviceToggle(device.id);
     }
-  }, [isEditMode, device, template, onDeviceToggle, onShowHistory]);
+  };
 
   return (
     <div
       ref={setNodeRef}
-      style={{ visibility: isDragging ? 'hidden' : 'visible' }} // Скрываем оригинал во время перетаскивания
+      style={{ visibility: isDragging ? 'hidden' : 'visible' }}
       className={`w-full h-full relative ${isEditMode ? 'cursor-move' : ''}`}
       {...listeners}
       {...attributes}
@@ -112,11 +107,6 @@ const DraggableDevice: React.FC<{
   );
 });
 
-
-/**
- * Компонент пустой ячейки сетки, которая является зоной для сброса (Droppable).
- * Отображается только в режиме редактирования.
- */
 const DroppableCell: React.FC<{
   col: number;
   row: number;
@@ -165,13 +155,10 @@ const OccupiedCellWrapper: React.FC<{
         data: { type: 'cell', col: firstItem.col, row: firstItem.row }
     });
     
-    // Определяем, является ли группа одиночной карточкой 1x0.5, чтобы сделать ее контейнер 1x1 для drop-зоны.
     const isSingleStackable = group.length === 1 && firstItem.height === 0.5;
-    // Check that both items in the pair have the same width.
     const isStackedPair = group.length === 2 && group.every(item => item.height === 0.5) && group[0].width === group[1].width;
     
     const width = firstItem.width || 1;
-    // Если это одиночная карточка 1x0.5 или уже стопка, контейнер должен быть высотой в 1 ячейку.
     const containerHeight = (isSingleStackable || isStackedPair) ? 1 : (firstItem.height || 1);
     const groupHasOpenMenu = group.some(item => item.deviceId === openMenuDeviceId);
     const groupIsActive = group.some(item => item.deviceId === activeId);
@@ -193,21 +180,16 @@ const OccupiedCellWrapper: React.FC<{
             ref={setNodeRef}
             style={style}
             className={`relative transition-colors duration-200 ${overClasses}`}
-            // FIX: framer-motion props are failing type validation, likely due to a type definition issue.
-            // Wrapping them in an object spread bypasses the incorrect type check.
-            {...{
-              layout: "position",
-              initial: { scale: 0.9, opacity: 0 },
-              animate: { scale: 1, opacity: 1 },
-              exit: { scale: 0.9, opacity: 0 },
-              transition: { duration: 0.35, ease: [0.4, 0, 0.2, 1] },
-            }}
+            layout="position"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
         >
             {children}
         </motion.div>
     );
 });
-
 
 interface DashboardGridProps {
   tab: Tab;
@@ -233,29 +215,29 @@ interface DashboardGridProps {
   isDark: boolean;
 }
 
-/**
- * Основной компонент сетки дашборда.
- * Отвечает за рендеринг сетки, обработку Drag-and-Drop и позиционирование карточек.
- */
 const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
-    const { tab, allKnownDevices, isEditMode, onDeviceLayoutChange, searchTerm, templates, customizations, onDeviceToggle, onShowHistory, colorScheme } = props;
+    const { tab, allKnownDevices, isEditMode, onDeviceLayoutChange, templates, customizations, colorScheme } = props;
     const viewportRef = useRef<HTMLDivElement>(null);
     const [gridMetrics, setGridMetrics] = useState({ containerWidth: 0, containerHeight: 0, cellSize: 0, gap: 16 });
     const [activeId, setActiveId] = useState<string | null>(null);
     const [activeDragItemRect, setActiveDragItemRect] = useState<{ width: number; height: number } | null>(null);
     const [openMenuDeviceId, setOpenMenuDeviceId] = useState<string | null>(null);
 
-    // useLayoutEffect для синхронного расчета размеров сетки после рендера, до отрисовки браузером.
+    // Calculation Logic
     useLayoutEffect(() => {
         const calculateGrid = () => {
             if (!viewportRef.current) return;
             const { width, height } = viewportRef.current.getBoundingClientRect();
             const { cols, rows } = tab.gridSettings;
             const gap = 16;
-            // Рассчитываем размер ячейки, чтобы сетка вписалась в контейнер
+            
+            // Use a minimal fallback height if the container is collapsed (avoids blank screen)
+            const effectiveHeight = height > 0 ? height : Math.max(window.innerHeight - 200, 600);
+            
             const cellWidth = (width - (cols + 1) * gap) / cols;
-            const cellHeight = (height - (rows + 1) * gap) / rows;
+            const cellHeight = (effectiveHeight - (rows + 1) * gap) / rows;
             const cellSize = Math.floor(Math.min(cellWidth, cellHeight));
+            
             if (cellSize <= 0) return;
             
             setGridMetrics({
@@ -273,7 +255,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
 
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
-    // Фильтруем layout *до* всех вычислений, чтобы убрать "призрачные" элементы.
     const validLayout = useMemo(() => 
         tab.layout.filter(item => allKnownDevices.has(item.deviceId)),
     [tab.layout, allKnownDevices]);
@@ -284,7 +265,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         if (rect) {
             setActiveDragItemRect({ width: rect.width, height: rect.height });
         } else {
-            // Резервный вариант, если dnd-kit не смог измерить элемент
             const layoutItem = validLayout.find(item => item.deviceId === event.active.id);
             if (layoutItem && gridMetrics.cellSize > 0) {
                 const width = (layoutItem.width || 1) * gridMetrics.cellSize + (Math.ceil(layoutItem.width || 1) - 1) * gridMetrics.gap;
@@ -294,11 +274,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         }
     };
 
-    /**
-     * Основная логика обработки завершения перетаскивания.
-     * Определяет, куда была сброшена карточка (на пустую ячейку или на другую карточку)
-     * и выполняет соответствующее действие (перемещение, замена, объединение в стопку).
-     */
     const handleDragEnd = (event: DragEndEvent) => {
         setActiveId(null);
         setActiveDragItemRect(null);
@@ -306,7 +281,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
     
         if (!over || !isEditMode || active.id === over.id) return;
     
-        // FIX: Используем validLayout вместо tab.layout, чтобы избежать проблем с "призрачными" элементами.
         const currentLayout = validLayout;
         const draggedDeviceId = active.id as string;
         const draggedItemIndex = currentLayout.findIndex(item => item.deviceId === draggedDeviceId);
@@ -319,7 +293,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         let targetRow: number | undefined;
         let overItem: GridLayoutItem | undefined;
     
-        // 1. Определяем целевые координаты (col, row).
         if (over.data.current?.type === 'cell') {
             targetCol = over.data.current.col;
             targetRow = over.data.current.row;
@@ -329,7 +302,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
             targetCol = overItem.col;
             targetRow = overItem.row;
         } else {
-            return; // Неизвестная цель.
+            return;
         }
     
         if (targetCol === undefined || targetRow === undefined) return;
@@ -338,25 +311,20 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         const draggedHeight = draggedItem.height || 1;
         const newPositionItem = { col: targetCol, row: targetRow, width: draggedWidth, height: draggedHeight };
 
-        // 2. Используем централизованную функцию checkCollision.
         const hasCollision = useAppStore.getState().checkCollision(currentLayout, newPositionItem, tab.gridSettings, draggedDeviceId);
         
         if (!hasCollision) {
-            // Перемещение разрешено (в пустую ячейку или для создания стопки).
             newLayout[draggedItemIndex] = { ...draggedItem, col: targetCol, row: targetRow };
             onDeviceLayoutChange(tab.id, newLayout);
             return;
         }
         
-        // 3. Если есть коллизия, проверяем, не является ли это случаем для обмена (swap).
         if (overItem) {
             const overItemIndex = currentLayout.findIndex(i => i.deviceId === overItem.deviceId);
             const overWidth = overItem.width || 1;
             const overHeight = overItem.height || 1;
             
-            // Обмен возможен только для карточек одинакового размера.
             if (draggedWidth === overWidth && draggedHeight === overHeight) {
-                // Проверяем, не вызовет ли обмен новую коллизию для перемещаемой карточки.
                 const overItemNewPos = { col: draggedItem.col, row: draggedItem.row, width: overWidth, height: overHeight };
                 const swapHasCollision = useAppStore.getState().checkCollision(currentLayout, overItemNewPos, tab.gridSettings, overItem.deviceId);
 
@@ -369,7 +337,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         }
     };
     
-    // Вычисляем занятые ячейки на основе отфильтрованного layout.
     const occupiedCells = useMemo(() => {
       const cells = new Set<string>();
       validLayout.forEach(item => {
@@ -398,7 +365,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         activeDeviceTemplate = templateId ? templates[templateId] : undefined;
     }
 
-    // Группируем элементы на основе отфильтрованного layout.
     const groupedLayout = useMemo(() => {
         const groups = new Map<string, GridLayoutItem[]>();
         validLayout.forEach(item => {
@@ -406,143 +372,127 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
             if (!groups.has(key)) groups.set(key, []);
             groups.get(key)!.push(item);
         });
-        // Сортируем каждую группу, чтобы обеспечить стабильный порядок рендеринга для стеков
         groups.forEach(group => group.sort((a, b) => a.deviceId.localeCompare(b.deviceId)));
         return Array.from(groups.values());
     }, [validLayout]);
     
     const borderRadius = colorScheme.cardBorderRadius ?? 16;
 
-    // Не рендерим сетку, пока ее размеры не будут вычислены, чтобы избежать "схлопывания" в углу.
-    if (gridMetrics.cellSize <= 0) {
-        return (
-            <div ref={viewportRef} className="w-full h-full flex items-center justify-center">
-                <LoadingSpinner />
-            </div>
-        );
-    }
-
     return (
-        <div ref={viewportRef} className="w-full h-full flex items-center justify-center">
-            <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={pointerWithin}>
-                <div className="relative dashboard-grid-container" style={{ width: gridMetrics.containerWidth, height: gridMetrics.containerHeight }}>
-                    {isEditMode && Array.from({ length: tab.gridSettings.cols * tab.gridSettings.rows }).map((_, index) => {
-                        const col = index % tab.gridSettings.cols;
-                        const row = Math.floor(index / tab.gridSettings.cols);
-                        const isOccupied = occupiedCells.has(`${col},${row}`);
-                        if (isOccupied) return null;
-                        return <DroppableCell key={`cell-${col}-${row}`} col={col} row={row} isEditMode={isEditMode} metrics={gridMetrics} borderRadius={borderRadius} />;
-                    })}
-                    <AnimatePresence>
-                        {groupedLayout.map((group) => {
-                            const firstItem = group[0];
-                            if (!firstItem) return null;
-                            
-                            const groupKey = group.map(i => i.deviceId).join('-');
-                            
-                            return (
-                                <OccupiedCellWrapper key={groupKey} group={group} isEditMode={isEditMode} activeId={activeId} openMenuDeviceId={openMenuDeviceId} metrics={gridMetrics} borderRadius={borderRadius}>
-                                    {group.map((item, index) => {
-                                        const device = allKnownDevices.get(item.deviceId);
-                                        // Этот `if` теперь практически избыточен, но является дополнительной защитой.
-                                        if (!device) return null;
-
-                                        const custom = customizations[device.id];
-                                        let templateId = custom?.templateId;
-
-                                        if (!templateId) {
-                                            if (device.type === DeviceType.Sensor) templateId = DEFAULT_SENSOR_TEMPLATE_ID;
-                                            else if (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight) templateId = DEFAULT_LIGHT_TEMPLATE_ID;
-                                            else if (device.type === DeviceType.Switch) templateId = DEFAULT_SWITCH_TEMPLATE_ID;
-                                            else if (device.type === DeviceType.Thermostat) templateId = DEFAULT_CLIMATE_TEMPLATE_ID;
-                                        }
-                                        const templateToUse = templateId ? templates[templateId] : undefined;
-                                        
-                                        // Ensure both items in the pair have the same width for correct stacking.
-                                        const isStackedPair = group.length === 2 && group.every(i => i.height === 0.5) && group[0].width === group[1].width;
-                                        const isSingleStackableItem = group.length === 1 && item.height === 0.5;
-
-                                        const wrapperStyle: React.CSSProperties = {
-                                            position: 'absolute',
-                                            zIndex: group.length - index,
-                                        };
-
-                                        if (isStackedPair) {
-                                            // Пара карточек 1x0.5. Позиционируем их сверху и снизу.
-                                            wrapperStyle.height = `calc(50% - ${gridMetrics.gap / 2}px)`;
-                                            wrapperStyle.left = '0';
-                                            wrapperStyle.right = '0';
-                                            if (index === 0) { // Стабильная сортировка гарантирует, что первый элемент всегда будет одним и тем же
-                                                wrapperStyle.top = '0';
-                                            } else {
-                                                wrapperStyle.bottom = '0';
-                                            }
-                                        } else if (isSingleStackableItem) {
-                                            // Одиночная карточка 1x0.5. Ее контейнер 1x1. Размещаем ее вверху.
-                                            wrapperStyle.height = `calc(50% - ${gridMetrics.gap / 2}px)`;
-                                            wrapperStyle.top = '0';
-                                            wrapperStyle.left = '0';
-                                            wrapperStyle.right = '0';
-                                        } else {
-                                            // Обычная, не "стопочная" карточка. Заполняет свой контейнер.
-                                            wrapperStyle.inset = 0;
-                                        }
-
-                                        return (
-                                            <div key={item.deviceId} style={wrapperStyle}>
-                                                <ErrorBoundary isCard>
-                                                    <DraggableDevice device={device} template={templateToUse} {...props} openMenuDeviceId={openMenuDeviceId} setOpenMenuDeviceId={setOpenMenuDeviceId} />
-                                                </ErrorBoundary>
-                                            </div>
-                                        );
-                                    })}
-                                </OccupiedCellWrapper>
-                            )
+        <div ref={viewportRef} className="w-full h-full flex items-center justify-center min-h-[400px]">
+            {gridMetrics.cellSize > 0 ? (
+                <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={pointerWithin}>
+                    <div className="relative dashboard-grid-container" style={{ width: gridMetrics.containerWidth, height: gridMetrics.containerHeight }}>
+                        {isEditMode && Array.from({ length: tab.gridSettings.cols * tab.gridSettings.rows }).map((_, index) => {
+                            const col = index % tab.gridSettings.cols;
+                            const row = Math.floor(index / tab.gridSettings.cols);
+                            const isOccupied = occupiedCells.has(`${col},${row}`);
+                            if (isOccupied) return null;
+                            return <DroppableCell key={`cell-${col}-${row}`} col={col} row={row} isEditMode={isEditMode} metrics={gridMetrics} borderRadius={borderRadius} />;
                         })}
-                    </AnimatePresence>
-                </div>
-                {/* DragOverlay показывает "призрачный" элемент во время перетаскивания для лучшего UX. */}
-                 <DragOverlay dropAnimation={null} modifiers={[snapCenterToCursor]}>
-                    {activeDevice && activeDragItemRect ? (
-                      <motion.div
-                        style={{
-                          width: activeDragItemRect.width,
-                          height: activeDragItemRect.height,
-                          borderRadius: `${borderRadius}px`,
-                        }}
-                        // FIX: framer-motion props are failing type validation, likely due to a type definition issue.
-                        // Wrapping them in an object spread bypasses the incorrect type check.
-                        {...{
-                          initial: { scale: 1, boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)' },
-                          animate: { scale: 1.05, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.45)' },
-                          transition: { duration: 0.2 },
-                        }}
-                      >
-                        <DeviceCard
-                          device={activeDevice}
-                          template={activeDeviceTemplate}
-                          allKnownDevices={props.allKnownDevices}
-                          customizations={props.customizations}
-                          colorScheme={props.colorScheme}
-                          isDark={props.isDark}
-                          haUrl={props.haUrl}
-                          signPath={props.signPath}
-                          getCameraStreamUrl={props.getCameraStreamUrl}
-                          isEditMode={true}
-                          isPreview={true}
-                          onDeviceToggle={() => {}}
-                          onTemperatureChange={() => {}}
-                          onBrightnessChange={() => {}}
-                          onHvacModeChange={() => {}}
-                          onPresetChange={() => {}}
-                          onFanSpeedChange={() => {}}
-                          onCameraCardClick={() => {}}
-                          onEditDevice={() => {}}
-                        />
-                      </motion.div>
-                    ) : null}
-                </DragOverlay>
-            </DndContext>
+                        <AnimatePresence>
+                            {groupedLayout.map((group) => {
+                                const firstItem = group[0];
+                                if (!firstItem) return null;
+                                
+                                const groupKey = group.map(i => i.deviceId).join('-');
+                                
+                                return (
+                                    <OccupiedCellWrapper key={groupKey} group={group} isEditMode={isEditMode} activeId={activeId} openMenuDeviceId={openMenuDeviceId} metrics={gridMetrics} borderRadius={borderRadius}>
+                                        {group.map((item, index) => {
+                                            const device = allKnownDevices.get(item.deviceId);
+                                            if (!device) return null;
+
+                                            const custom = customizations[device.id];
+                                            let templateId = custom?.templateId;
+
+                                            if (!templateId) {
+                                                if (device.type === DeviceType.Sensor) templateId = DEFAULT_SENSOR_TEMPLATE_ID;
+                                                else if (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight) templateId = DEFAULT_LIGHT_TEMPLATE_ID;
+                                                else if (device.type === DeviceType.Switch) templateId = DEFAULT_SWITCH_TEMPLATE_ID;
+                                                else if (device.type === DeviceType.Thermostat) templateId = DEFAULT_CLIMATE_TEMPLATE_ID;
+                                            }
+                                            const templateToUse = templateId ? templates[templateId] : undefined;
+                                            
+                                            const isStackedPair = group.length === 2 && group.every(i => i.height === 0.5) && group[0].width === group[1].width;
+                                            const isSingleStackableItem = group.length === 1 && item.height === 0.5;
+
+                                            const wrapperStyle: React.CSSProperties = {
+                                                position: 'absolute',
+                                                zIndex: group.length - index,
+                                            };
+
+                                            if (isStackedPair) {
+                                                wrapperStyle.height = `calc(50% - ${gridMetrics.gap / 2}px)`;
+                                                wrapperStyle.left = '0';
+                                                wrapperStyle.right = '0';
+                                                if (index === 0) { 
+                                                    wrapperStyle.top = '0';
+                                                } else {
+                                                    wrapperStyle.bottom = '0';
+                                                }
+                                            } else if (isSingleStackableItem) {
+                                                wrapperStyle.height = `calc(50% - ${gridMetrics.gap / 2}px)`;
+                                                wrapperStyle.top = '0';
+                                                wrapperStyle.left = '0';
+                                                wrapperStyle.right = '0';
+                                            } else {
+                                                wrapperStyle.inset = 0;
+                                            }
+
+                                            return (
+                                                <div key={item.deviceId} style={wrapperStyle}>
+                                                    <ErrorBoundary isCard>
+                                                        <DraggableDevice device={device} template={templateToUse} {...props} openMenuDeviceId={openMenuDeviceId} setOpenMenuDeviceId={setOpenMenuDeviceId} />
+                                                    </ErrorBoundary>
+                                                </div>
+                                            );
+                                        })}
+                                    </OccupiedCellWrapper>
+                                )
+                            })}
+                        </AnimatePresence>
+                    </div>
+                     <DragOverlay dropAnimation={null} modifiers={[snapCenterToCursor]}>
+                        {activeDevice && activeDragItemRect ? (
+                          <motion.div
+                            style={{
+                              width: activeDragItemRect.width,
+                              height: activeDragItemRect.height,
+                              borderRadius: `${borderRadius}px`,
+                            }}
+                            initial={{ scale: 1, boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)' }}
+                            animate={{ scale: 1.05, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.45)' }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <DeviceCard
+                              device={activeDevice}
+                              template={activeDeviceTemplate}
+                              allKnownDevices={props.allKnownDevices}
+                              customizations={props.customizations}
+                              colorScheme={props.colorScheme}
+                              isDark={props.isDark}
+                              haUrl={props.haUrl}
+                              signPath={props.signPath}
+                              getCameraStreamUrl={props.getCameraStreamUrl}
+                              isEditMode={true}
+                              isPreview={true}
+                              onDeviceToggle={() => {}}
+                              onTemperatureChange={() => {}}
+                              onBrightnessChange={() => {}}
+                              onHvacModeChange={() => {}}
+                              onPresetChange={() => {}}
+                              onFanSpeedChange={() => {}}
+                              onCameraCardClick={() => {}}
+                              onEditDevice={() => {}}
+                            />
+                          </motion.div>
+                        ) : null}
+                    </DragOverlay>
+                </DndContext>
+            ) : (
+                <LoadingSpinner />
+            )}
         </div>
     );
 };

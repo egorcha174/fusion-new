@@ -10,8 +10,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ThemeInjector from './components/ThemeInjector';
 
 
-// Ленивая загрузка (Lazy loading) компонентов для разделения кода (code splitting) и улучшения производительности.
-// Компоненты будут загружены только тогда, когда они понадобятся.
 const Settings = lazy(() => import('./components/Settings.tsx'));
 const InfoPanel = lazy(() => import('./components/InfoPanel.tsx'));
 const DashboardHeader = lazy(() => import('./components/DashboardHeader.tsx'));
@@ -30,47 +28,36 @@ const BackgroundEffects = lazy(() => import('./components/BackgroundEffects.tsx'
 const TemplateGallery = lazy(() => import('./components/templateGallery/TemplateGallery.tsx'));
 
 
-/**
- * Вспомогательный компонент для пунктов меню с выпадающими подменю.
- * Динамически определяет, в какую сторону открывать подменю, чтобы оно не вышло за пределы экрана.
- */
 const SubMenuItem: React.FC<{
     children: React.ReactNode;
     title: string;
 }> = ({ children, title }) => {
     const itemRef = useRef<HTMLDivElement>(null);
-    // State to hold the dynamic classes for positioning.
     const [submenuClasses, setSubmenuClasses] = useState('left-full top-[-5px]');
 
     const handleMouseEnter = () => {
         if (!itemRef.current) return;
         
-        // Find the main context menu container to check its boundaries
         const parentMenu = itemRef.current.closest('[role="menu"]');
         if (!parentMenu) return;
         const parentRect = parentMenu.getBoundingClientRect();
         
-        // Estimate submenu width. A more precise way would be to render and measure, but this is often sufficient.
         const SUBMENU_WIDTH_ESTIMATE = 160; 
         
         const itemRect = itemRef.current.getBoundingClientRect();
-        // A rough estimate for height based on number of children.
         const SUBMENU_HEIGHT_ESTIMATE = (React.Children.count(children) * 32) + 16; 
 
         let classes = '';
 
-        // Horizontal positioning: if not enough space on the right, open to the left.
         if (parentRect.right + SUBMENU_WIDTH_ESTIMATE > window.innerWidth) {
             classes += 'right-full ';
         } else {
             classes += 'left-full ';
         }
 
-        // Vertical positioning: if not enough space at the bottom, align to the bottom of the item.
         if (itemRect.top + SUBMENU_HEIGHT_ESTIMATE > window.innerHeight) {
             classes += 'bottom-0 ';
         } else {
-            // Default position relative to the item.
             classes += 'top-[-5px] ';
         }
 
@@ -95,11 +82,6 @@ const SubMenuItem: React.FC<{
 };
 
 
-/**
- * Хук для определения, является ли экран большим (lg breakpoint в Tailwind CSS).
- * Используется для условного применения стилей, например, отступа для боковой панели.
- * @returns {boolean} - true, если ширина окна >= 1024px.
- */
 const useIsLg = () => {
   const [isLg, setIsLg] = useState(window.innerWidth >= 1024);
   useEffect(() => {
@@ -110,20 +92,14 @@ const useIsLg = () => {
   return isLg;
 }
 
-/**
- * Главный компонент приложения.
- * Отвечает за общую структуру, управление состоянием и рендеринг страниц.
- */
 const App: React.FC = () => {
     const initializationDone = useRef(false);
-    // Получение состояний и действий из хранилища Zustand для Home Assistant.
     const {
         connectionStatus, isLoading, error, connect, allKnownDevices,
         allCameras, getCameraStreamUrl, getConfig, getHistory, signPath,
         haUrl, allRoomsWithPhysicalDevices
     } = useHAStore();
 
-    // Получение состояний и действий из хранилища Zustand для UI приложения.
     const {
         currentPage, isEditMode, setEditingDevice,
         editingTab, setEditingTab, editingTemplate, setEditingTemplate, searchTerm,
@@ -138,7 +114,6 @@ const App: React.FC = () => {
         resetCustomWidgetTimer, deleteCustomWidget, backgroundEffect,
     } = useAppStore();
 
-    // Получение состояний модальных окон через хуки-селекторы для обеспечения реактивности
     const editingDevice = useAppStore(state => state.editingDevice);
     const floatingCamera = useAppStore(state => state.floatingCamera);
     const [confirmingDeleteWidget, setConfirmingDeleteWidget] = useState<EventTimerWidget | null>(null);
@@ -157,7 +132,6 @@ const App: React.FC = () => {
   const isLg = useIsLg();
   const [isDarkBySchedule, setIsDarkBySchedule] = useState(false);
 
-  // Эффект для режима "По расписанию"
   useEffect(() => {
     if (themeMode !== 'schedule') return;
 
@@ -187,15 +161,12 @@ const App: React.FC = () => {
     };
 
     calculateSchedulePhase();
-    // Пересчитываем каждую минуту
     const intervalId = window.setInterval(calculateSchedulePhase, 60 * 1000);
 
     return () => clearInterval(intervalId);
   }, [themeMode, scheduleStartTime, scheduleEndTime]);
 
 
-  // Эффект для управления темой (светлая/темная).
-  // Добавляет/удаляет класс 'dark' у корневого элемента <html>.
   useEffect(() => {
     const root = window.document.documentElement;
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -213,20 +184,14 @@ const App: React.FC = () => {
     };
 
     updateTheme();
-    mediaQuery.addEventListener('change', updateTheme); // Следим за системными изменениями
+    mediaQuery.addEventListener('change', updateTheme);
     return () => mediaQuery.removeEventListener('change', updateTheme);
   }, [themeMode, isDarkBySchedule]);
 
-  // Эффект, гарантирующий наличие хотя бы одной вкладки и установку активной вкладки.
-  // Запускается после успешного подключения и загрузки данных.
     useEffect(() => {
         if (connectionStatus === 'connected' && !isLoading && !initializationDone.current) {
-            initializationDone.current = true; // Выполняем только один раз
+            initializationDone.current = true;
             
-            // Check if there are NO tabs, OR if the current state has 0 devices visible (sanity check)
-            // We prioritize the user requirement: "First tab must automatically fill with ALL devices".
-            // If tabs exist but are empty, or if we are starting fresh, we populate.
-            // For now, we assume if tabs array is empty, we must initialize.
             if (tabs.length === 0 && allKnownDevices.size > 0) {
                 const { getTemplateForDevice } = useAppStore.getState();
                 const devices = Array.from<Device>(allKnownDevices.values()).sort((a, b) => a.name.localeCompare(b.name));
@@ -235,7 +200,6 @@ const App: React.FC = () => {
                 const cols = 8;
                 let maxRow = 0;
 
-                // Helper to check overlap in the current layout being built
                 const checkOverlap = (l: GridLayoutItem[], x: number, y: number, w: number, h: number) => {
                     return l.some(item => {
                         const iw = item.width || 1;
@@ -244,15 +208,12 @@ const App: React.FC = () => {
                     });
                 }
 
-                // Auto-layout algorithm to place ALL devices
                 for (const device of devices) {
                     const template = getTemplateForDevice(device);
                     const w = template?.width || 1;
                     const h = template?.height || 1;
                     
                     let placed = false;
-                    // Search for the first available slot starting from top-left
-                    // We allow rows to grow indefinitely to accommodate all devices
                     for (let r = 0; r < 1000; r++) { 
                         for (let c = 0; c <= cols - w; c++) {
                             if (!checkOverlap(newLayout, c, r, w, h)) {
@@ -283,10 +244,8 @@ const App: React.FC = () => {
         }
     }, [connectionStatus, isLoading, tabs, activeTabId, allKnownDevices, setTabs, setActiveTabId]);
 
-  // Мемоизированное значение текущей активной вкладки для избежания лишних пересчетов.
   const activeTab = useMemo(() => tabs.find(t => t.id === activeTabId), [tabs, activeTabId]);
   
-  // Мемоизированный список комнат с физическими устройствами для страницы "Все устройства", отфильтрованный по поисковому запросу.
   const filteredRoomsForPhysicalDevicesPage = useMemo(() => {
     if (!searchTerm) return allRoomsWithPhysicalDevices;
     const lowercasedFilter = searchTerm.toLowerCase();
@@ -310,7 +269,6 @@ const App: React.FC = () => {
     return filteredRooms;
   }, [searchTerm, allRoomsWithPhysicalDevices]);
 
-    // Мемоизированные значения для определения текущей цветовой схемы.
     const isSystemDark = useMemo(() => window.matchMedia('(prefers-color-scheme: dark)').matches, []);
     const isDark = useMemo(() => {
         switch (themeMode) {
@@ -323,7 +281,6 @@ const App: React.FC = () => {
     }, [themeMode, isSystemDark, isDarkBySchedule]);
     const currentColorScheme = useMemo(() => isDark ? colorScheme.dark : colorScheme.light, [isDark, colorScheme]);
 
-    // Мемоизированный стиль для фона дашборда
     const backgroundStyle = useMemo(() => {
         const scheme = currentColorScheme;
         const style: React.CSSProperties = {};
@@ -345,15 +302,12 @@ const App: React.FC = () => {
         return style;
     }, [currentColorScheme]);
 
-    // --- Обработчики закрытия модальных окон ---
     const handleCloseDeviceSettings = useCallback(() => setEditingDevice(null), [setEditingDevice]);
     const handleCloseTabSettings = useCallback(() => setEditingTab(null), [setEditingTab]);
     const handleCloseTemplateEditor = useCallback(() => setEditingTemplate(null), [setEditingTemplate]);
     const handleCloseHistoryModal = useCallback(() => setHistoryModalEntityId(null), [setHistoryModalEntityId]);
     const handleCloseFloatingCamera = useCallback(() => setFloatingCamera(null), [setFloatingCamera]);
     const handleCloseEventTimerSettings = useCallback(() => setEditingEventTimerId(null), [setEditingEventTimerId]);
-
-  // --- Обработчики Контекстного Меню ---
 
   const handleCloseContextMenu = useCallback(() => {
     setContextMenu(null);
@@ -363,15 +317,10 @@ const App: React.FC = () => {
     setContextMenu({ x, y, deviceId, tabId });
   }, [setContextMenu]);
   
-  /**
-   * Глобальный обработчик контекстного меню (правый клик на всем приложении).
-   * Открывает меню действий для карточки устройства, если включен режим редактирования.
-   */
   const handleGlobalContextMenu = useCallback((event: React.MouseEvent) => {
     const target = event.target as HTMLElement;
     const isDashboard = currentPage === 'dashboard';
 
-    // Отключаем стандартное меню на дашборде, но не на интерактивных элементах (поля ввода и т.д.).
     if (isDashboard) {
       const isInteractiveElement = target.closest('input, textarea, [contenteditable="true"], select');
       if (!isInteractiveElement) {
@@ -384,17 +333,12 @@ const App: React.FC = () => {
     const tabId = deviceTarget?.dataset.tabId;
 
     if (isEditMode && deviceTarget && typeof deviceId === 'string' && typeof tabId === 'string') {
-        // Показываем кастомное меню для устройства в режиме редактирования
         handleDeviceContextMenu(deviceId, tabId, event.clientX, event.clientY);
     } else {
-        // В остальных случаях (не в режиме редактирования, или клик по фону) просто закрываем меню.
         setContextMenu(null);
     }
   }, [isEditMode, handleDeviceContextMenu, setContextMenu, currentPage]);
 
-  // --- ЛОГИКА РЕНДЕРИНГА ---
-
-  // Если нет подключения, показываем страницу настроек.
   if (connectionStatus !== 'connected') {
     return (
       <div className="flex min-h-screen w-screen items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
@@ -405,7 +349,6 @@ const App: React.FC = () => {
     );
   }
   
-  // Если идет загрузка данных, показываем спиннер.
   if (isLoading) {
     return (
        <div className="flex h-screen w-screen items-center justify-center">
@@ -414,7 +357,6 @@ const App: React.FC = () => {
     );
   }
   
-  // Подготовка данных для модальных окон и контекстных меню
   const contextMenuDevice = contextMenu ? allKnownDevices.get(contextMenu.deviceId) : null;
   const isTemplateable = contextMenuDevice ? [
     DeviceType.Sensor, DeviceType.DimmableLight, DeviceType.Light,
@@ -428,7 +370,6 @@ const App: React.FC = () => {
   const historyDecimalPlaces = valueElement?.styles?.decimalPlaces;
   const otherTabs = tabs.filter(t => t.id !== contextMenu?.tabId);
 
-  // Функция-роутер для отображения текущей страницы.
   const renderPage = () => {
     switch (currentPage) {
       case 'settings':
@@ -459,15 +400,14 @@ const App: React.FC = () => {
     }
   };
 
-  // Основная JSX-разметка приложения.
   return (
     <>
       <ThemeInjector theme={currentColorScheme} />
       <div className="fixed inset-0 -z-10 transition-all duration-500" style={backgroundStyle} />
       {backgroundEffect !== 'none' && <Suspense fallback={null}><BackgroundEffects effect={backgroundEffect} /></Suspense>}
-      <div className="flex min-h-screen relative" onContextMenu={handleGlobalContextMenu}>
+      <div className="flex min-h-screen relative flex-col lg:flex-row" onContextMenu={handleGlobalContextMenu}>
         {isSidebarVisible && (
-        <Suspense fallback={<div className="bg-gray-900" style={{ width: `${sidebarWidth}px` }} />}>
+        <Suspense fallback={<div className="bg-gray-900 hidden lg:block" style={{ width: `${sidebarWidth}px` }} />}>
           <InfoPanel 
             sidebarWidth={sidebarWidth} 
             setSidebarWidth={setSidebarWidth}
@@ -481,26 +421,21 @@ const App: React.FC = () => {
           />
         </Suspense>
         )}
-        <div className="flex flex-col flex-1" style={{ marginLeft: isLg && isSidebarVisible ? `${sidebarWidth}px` : '0px' }}>
+        <div className="flex flex-col flex-1 h-screen overflow-hidden" style={{ marginLeft: isLg && isSidebarVisible ? `${sidebarWidth}px` : '0px' }}>
           <Suspense fallback={<div className="h-[73px] bg-gray-900 border-b border-gray-700/50" />}>
               <DashboardHeader 
                 currentColorScheme={currentColorScheme}
                 isDark={isDark}
               />
           </Suspense>
-          <main className="flex-1 overflow-y-auto">
+          <main className="flex-1 overflow-y-auto relative flex flex-col">
             <Suspense fallback={<div className="flex h-full w-full items-center justify-center"><LoadingSpinner /></div>}>
-              <div className="p-4 h-full">{renderPage()}</div>
+              <div className="p-4 flex-grow h-full flex flex-col">{renderPage()}</div>
             </Suspense>
           </main>
         </div>
       </div>
       
-      {/* 
-        Модальные окна, вынесенные на верхний уровень для корректного z-index 
-        и предотвращения проблем с контекстом рендеринга.
-        Они рендерятся только тогда, когда есть соответствующие данные в стейте.
-      */}
       <Suspense fallback={null}>
         {editingDevice && <DeviceSettingsModal device={editingDevice} onClose={handleCloseDeviceSettings} />}
         {editingTab && <TabSettingsModal tab={editingTab} onClose={handleCloseTabSettings} />}
@@ -522,7 +457,6 @@ const App: React.FC = () => {
         </Suspense>
       )}
 
-      {/* Контекстное меню */}
       {contextMenu && (
         <Suspense fallback={null}>
           <ContextMenu x={contextMenu.x} y={contextMenu.y} isOpen={!!contextMenu} onClose={handleCloseContextMenu}>
@@ -573,7 +507,6 @@ const App: React.FC = () => {
                 <div onClick={() => { useAppStore.getState().handleDeviceRemoveFromTab(contextMenu.deviceId, contextMenu.tabId); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm text-red-600 dark:text-red-400">Удалить с вкладки</div>
               </>
             )}
-            {/* Context menu for custom widgets */}
             {contextMenuDevice?.type === DeviceType.EventTimer && contextMenuDevice.widgetId && (
               <>
                 <div onClick={() => { setEditingEventTimerId(contextMenuDevice.widgetId!); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">Настроить виджет</div>

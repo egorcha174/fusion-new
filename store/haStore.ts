@@ -80,7 +80,11 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   
   const updateDerivedState = () => {
       const { entities, areas, devices, entityRegistry } = get();
-      const { customizations, lowBatteryThreshold, eventTimerWidgets, customCardWidgets } = useAppStore.getState();
+      const appStore = useAppStore.getState();
+      
+      if (!appStore) return; // Safety check
+
+      const { customizations, lowBatteryThreshold, eventTimerWidgets, customCardWidgets } = appStore;
       
       const rooms = mapEntitiesToRooms(Object.values(entities), areas, devices, entityRegistry, customizations, true, get().forecasts);
       const deviceMap = new Map<string, Device>();
@@ -311,7 +315,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                              state.customCardWidgets !== prevState.customCardWidgets;
         
         if (shouldUpdate) {
-            // Debounce here too? Likely not needed as these changes are user-initiated and rare.
             updateDerivedState();
         }
     }
@@ -441,7 +444,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                 if (!new_state) delete newEntities[entity_id];
                                 set({ entities: newEntities });
                                 
-                                // Debounce updateDerivedState
                                 if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
                                 updateDerivedStateTimeout = setTimeout(() => {
                                     updateDerivedState();

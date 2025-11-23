@@ -1,9 +1,4 @@
 
-
-
-
-
-
 import React, { useMemo } from 'react';
 import { useAppStore, BackgroundEffectType } from '../store/appStore';
 import { applyOpacity } from '../utils/themeUtils';
@@ -120,19 +115,16 @@ const LeavesEffect = () => {
     const leaves = useMemo(() => {
         const colors = ['#e6a04d', '#d65d45', '#e8c658', '#8B4513'];
         const shapes = [
-            // Birch/Simple (Teardrop)
             "M50 5 Q30 40 10 55 Q5 70 25 95 L50 95 L75 95 Q95 70 90 55 Q70 40 50 5 Z", 
-            // Oak (Lobed)
             "M50 10 Q35 15 35 30 Q20 35 20 50 Q20 65 35 70 Q35 85 50 95 Q65 85 65 70 Q80 65 80 50 Q80 35 65 30 Q65 15 50 10 Z", 
-            // Maple (Spiky)
             "M50 0 L35 30 L10 30 L30 50 L20 80 L50 65 L80 80 L70 50 L90 30 L65 30 Z"
         ];
 
         return Array.from({ length: 35 }).map((_, i) => {
-            const size = Math.random() * 15 + 20; // Increase size slightly for visibility
+            const size = Math.random() * 15 + 20;
             const xStart = Math.random() * 100;
             const xEnd = xStart + (Math.random() - 0.5) * 40;
-            const duration = Math.random() * 5 + 5; // 5-10s
+            const duration = Math.random() * 5 + 5;
             const delay = Math.random() * -10;
             const rotate = (Math.random() - 0.5) * 360;
             const color = colors[Math.floor(Math.random() * colors.length)];
@@ -162,8 +154,8 @@ const LeavesEffect = () => {
                     className="leaf" 
                     style={{
                         ...leaf.style,
-                        backgroundColor: 'transparent', // Override generic leaf style
-                        borderRadius: 0, // Override generic leaf style
+                        backgroundColor: 'transparent',
+                        borderRadius: 0,
                     }}
                 >
                     <svg 
@@ -191,15 +183,12 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
         };
 
         const c = [];
-        // 12-20 circles per cloud for complex organic shapes
         const count = 12 + Math.floor(random(0) * 9); 
         
-        // Core: Large horizontal ellipses for body
         c.push({ cx: width * 0.5, cy: height * 0.6, r: width * 0.35 });
         c.push({ cx: width * 0.3, cy: height * 0.65, r: width * 0.25 });
         c.push({ cx: width * 0.7, cy: height * 0.65, r: width * 0.25 });
 
-        // Random puffs
         for(let i = 0; i < count; i++) {
             c.push({
                 cx: width * (0.1 + random(i + 1) * 0.8),
@@ -210,10 +199,9 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
 
         const gId = `cloudGrad-${seed}-${nanoid(4)}`;
         
-        // Animation parameters
-        const mDuration = 20 + random(10) * 20; // 20-40s for morphing
+        const mDuration = 20 + random(10) * 20; 
         const mDelay = random(11) * -20;
-        const pDuration = 30 + random(12) * 15; // 30-45s for pulsing
+        const pDuration = 30 + random(12) * 15; 
 
         return { circles: c, gradientId: gId, morphDuration: mDuration, morphDelay: mDelay, pulseDuration: pDuration };
     }, [width, height, seed, color]);
@@ -253,26 +241,20 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
 
 const StrongCloudyEffect = ({ dark = false }: { dark?: boolean }) => {
     const clouds = useMemo(() => {
-        // Palette selection
         const defaultColors = ['#94a3b8', '#cbd5e1', '#64748b', '#e2e8f0', '#bfdbfe', '#dbeafe'];
         const darkColors = ['#475569', '#64748b', '#334155', '#94a3b8', '#52525b', '#71717a'];
         const colors = dark ? darkColors : defaultColors;
 
-        // Generate more clouds with varied sizes for depth
         return Array.from({ length: 20 }).map((_, i) => {
             const scale = 0.6 + Math.random() * 1.8; 
             const width = 250 * scale;
             const height = 160 * scale;
-            const top = Math.random() * 70 - 15; // Spread: -15vh to 55vh
-            const duration = 80 + Math.random() * 80; // 1.5-3 mins
+            const top = Math.random() * 70 - 15; 
+            const duration = 80 + Math.random() * 80; 
             const delay = Math.random() * -200;
             const baseOpacity = 0.5 + Math.random() * 0.4; 
             const color = colors[Math.floor(Math.random() * colors.length)];
-            
-            // Scale zIndex to range 0-5 to ensure it stays behind other effects if needed
             const zIndex = Math.floor(scale * 2); 
-
-            // Higher scale = closer = faster (parallax effect)
             const parallaxDuration = duration / scale; 
 
             return {
@@ -285,7 +267,7 @@ const StrongCloudyEffect = ({ dark = false }: { dark?: boolean }) => {
                     zIndex: zIndex, 
                     animationDuration: `${parallaxDuration}s`,
                     animationDelay: `${delay}s`,
-                    filter: scale < 1.0 ? 'blur(3px)' : 'blur(1px)', // distant clouds are blurrier
+                    filter: scale < 1.0 ? 'blur(3px)' : 'blur(1px)',
                 } as React.CSSProperties,
                 width,
                 height,
@@ -370,7 +352,6 @@ const AuroraEffect = () => {
                 <div className="absolute inset-0 aurora-noise" />
             </div>
             
-            {/* Horizon gradient for blending */}
             <div className="absolute left-0 right-0 bottom-0 h-[22%] bg-gradient-to-b from-transparent via-black/60 to-black pointer-events-none" />
         </div>
     );
