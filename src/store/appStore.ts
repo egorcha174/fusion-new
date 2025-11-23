@@ -3,6 +3,7 @@
 
 
 
+
 import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
@@ -194,9 +195,19 @@ if (initialServers.length === 0) {
   }
 }
 
-const initialThemes = loadAndMigrate<ThemeDefinition[]>(LOCAL_STORAGE_KEYS.THEMES, DEFAULT_THEMES);
+// FIX: Theme Loading Logic
+// We load stored themes but only keep the ones marked as custom.
+// Built-in themes are always sourced from DEFAULT_THEMES to ensure updates (like new themes) are applied.
+const storedThemes = loadAndMigrate<ThemeDefinition[]>(LOCAL_STORAGE_KEYS.THEMES, DEFAULT_THEMES);
+const initialThemes = [
+    ...DEFAULT_THEMES,
+    ...storedThemes.filter(t => t.isCustom)
+];
+
 const initialActiveThemeId = loadAndMigrate<string>(LOCAL_STORAGE_KEYS.ACTIVE_THEME_ID, DEFAULT_THEMES[0].id);
-const initialColorScheme = initialThemes.find(t => t.id === initialActiveThemeId)?.scheme || DEFAULT_THEMES[0].scheme;
+// Ensure active theme still exists, otherwise fallback
+const validActiveThemeId = initialThemes.some(t => t.id === initialActiveThemeId) ? initialActiveThemeId : DEFAULT_THEMES[0].id;
+const initialColorScheme = initialThemes.find(t => t.id === validActiveThemeId)?.scheme || DEFAULT_THEMES[0].scheme;
 
 // Migration for Christmas Theme
 const migratedEffect = loadAndMigrate<BackgroundEffectType>(LOCAL_STORAGE_KEYS.BACKGROUND_EFFECT, 'none');
@@ -241,7 +252,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     scheduleEndTime: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.SCHEDULE_END_TIME, '07:00'),
     
     themes: initialThemes,
-    activeThemeId: initialActiveThemeId,
+    activeThemeId: validActiveThemeId,
     colorScheme: initialColorScheme,
     
     weatherProvider: loadAndMigrate<'openweathermap' | 'yandex' | 'foreca' | 'homeassistant'>(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, DEFAULT_WEATHER_PROVIDER),
