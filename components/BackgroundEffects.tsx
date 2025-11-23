@@ -1,4 +1,5 @@
 
+
 import React, { useMemo } from 'react';
 import { useAppStore, BackgroundEffectType } from '../store/appStore';
 import { applyOpacity } from '../utils/themeUtils';
@@ -386,6 +387,13 @@ const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect }) => {
                 <>
                     <StrongCloudyEffect dark />
                     <RainEffect zIndexOverride={15} />
+                </>
+            )}
+            {effect === 'snow-rain' && (
+                <>
+                    <StrongCloudyEffect dark />
+                    <RainEffect zIndexOverride={15} />
+                    <SnowEffect />
                 </>
             )}
         </div>
