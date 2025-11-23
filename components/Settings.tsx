@@ -1,5 +1,6 @@
 
 import React, { useRef, useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device, AuroraSettings } from '../types';
 import ConfirmDialog from './ConfirmDialog';
 import { useAppStore } from '../store/appStore';
@@ -185,7 +186,16 @@ interface SettingsProps {
     onClose?: () => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error, variant = 'page', isOpen = false, onClose }) => {
+const Settings: React.FC<SettingsProps> = (props) => {
+    const { 
+        onConnect, 
+        connectionStatus, 
+        error, 
+        variant = 'page', 
+        isOpen = false, 
+        onClose 
+    } = props;
+
     // Состояния для вкладки "Подключение"
     const [selectedServerId, setSelectedServerId] = useState<string | null>(null);
     const [editingServer, setEditingServer] = useState<Partial<ServerConfig> | null>(null);
@@ -439,9 +449,9 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
 
     const isLoginMode = connectionStatus !== 'connected';
 
-    return (
-        <div className="w-full max-w-4xl mx-auto p-4 space-y-8 pb-20">
-            {/* Connection Section */}
+    const content = (
+        <>
+            {/* Connection Section (Login Mode) */}
             {isLoginMode && (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-black/5 dark:ring-white/10 overflow-hidden">
                 <div className="flex h-96">
@@ -728,7 +738,6 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                                 <option value="rain">Дождь</option>
                                 <option value="strong-cloudy">Сильная облачность</option>
                                 <option value="rain-clouds">Облака и дождь</option>
-                                <option value="snow-rain">Снег с дождем</option>
                                 <option value="leaves">Листопад</option>
                                 <option value="river">Речные волны</option>
                                 <option value="aurora">Полярное сияние</option>
@@ -844,22 +853,13 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                                         <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{template.name}</p>
                                         <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">{template.deviceType}</p>
                                     </div>
-                                    <div className="flex items-center gap-1">
-                                        <button 
-                                            onClick={() => setEditingTemplate(template)}
-                                            className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors"
-                                            title="Редактировать шаблон"
-                                        >
-                                            <Icon icon="mdi:pencil" className="w-5 h-5" />
-                                        </button>
-                                        <button 
-                                            onClick={() => handleDeleteTemplate(template.id)} 
-                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
-                                            title="Удалить шаблон"
-                                        >
-                                            <Icon icon="mdi:trash-can-outline" className="w-5 h-5" />
-                                        </button>
-                                    </div>
+                                    <button 
+                                        onClick={() => handleDeleteTemplate(template.id)} 
+                                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
+                                        title="Удалить шаблон"
+                                    >
+                                        <Icon icon="mdi:trash-can-outline" className="w-5 h-5" />
+                                    </button>
                                 </div>
                             ))}
                         </div>
@@ -940,6 +940,36 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                 onCancel={() => setServerToDelete(null)}
                 confirmText="Удалить"
             />
+        </>
+    );
+
+    if (variant === 'drawer') {
+        return createPortal(
+            <div className={`fixed inset-0 z-[100] flex justify-end transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+                 {/* Backdrop */}
+                <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+                
+                {/* Drawer Panel */}
+                <div className={`absolute right-0 h-full w-full max-w-lg bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto transition-transform duration-300 border-l border-gray-200 dark:border-gray-700 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+                     <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md">
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Настройки</h2>
+                        <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors">
+                            <Icon icon="mdi:close" className="w-6 h-6" />
+                        </button>
+                    </div>
+                    <div className="p-4 space-y-8 pb-20">
+                        {content}
+                    </div>
+                </div>
+            </div>,
+            document.body
+        );
+    }
+
+    // Default Page Layout (Login Screen)
+    return (
+        <div className="w-full max-w-4xl mx-auto p-4 space-y-8 pb-20">
+            {content}
         </div>
     );
 };
