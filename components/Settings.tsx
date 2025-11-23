@@ -13,7 +13,6 @@ import { format } from 'date-fns';
 import { nanoid } from 'nanoid';
 import { set as setAtPath } from '../utils/obj-path';
 import { generatePackage, validatePackage } from '../utils/packageManager';
-import { motion, AnimatePresence } from 'framer-motion';
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'failed';
 type SettingsTab = 'appearance' | 'interface' | 'templates' | 'connection' | 'backup';
