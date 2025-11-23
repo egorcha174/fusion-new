@@ -180,16 +180,19 @@ interface SettingsProps {
     onConnect?: (url: string, token: string) => void;
     connectionStatus?: ConnectionStatus;
     error?: string | null;
+    variant?: 'page' | 'drawer';
+    isOpen?: boolean;
+    onClose?: () => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error }) => {
+const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error, variant = 'page', isOpen = false, onClose }) => {
     // Состояния для вкладки "Подключение"
     const [selectedServerId, setSelectedServerId] = useState<string | null>(null);
     const [editingServer, setEditingServer] = useState<Partial<ServerConfig> | null>(null);
     const [serverToDelete, setServerToDelete] = useState<ServerConfig | null>(null);
     
     const {
-        templates, setTemplates, handleDeleteTemplate,
+        templates, setTemplates, handleDeleteTemplate, setEditingTemplate,
         clockSettings, setClockSettings,
         sidebarWidth, setSidebarWidth,
         isSidebarVisible, setIsSidebarVisible,
@@ -436,9 +439,9 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
 
     const isLoginMode = connectionStatus !== 'connected';
 
-    return (
-        <div className="w-full max-w-4xl mx-auto p-4 space-y-8 pb-20">
-            {/* Connection Section */}
+    const content = (
+        <>
+            {/* Connection Section (Login Mode) */}
             {isLoginMode && (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-black/5 dark:ring-white/10 overflow-hidden">
                 <div className="flex h-96">
@@ -927,6 +930,36 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                 onCancel={() => setServerToDelete(null)}
                 confirmText="Удалить"
             />
+        </>
+    );
+
+    if (variant === 'drawer') {
+        // When used as a drawer (overlay), isOpen determines visibility.
+        return (
+            <div className={`fixed inset-0 z-[60] flex justify-end transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+                 {/* Backdrop */}
+                <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+                
+                {/* Drawer Panel */}
+                <div className={`relative w-full max-w-lg h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto transition-transform duration-300 border-l border-gray-200 dark:border-gray-700 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+                     <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md">
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Настройки</h2>
+                        <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors">
+                            <Icon icon="mdi:close" className="w-6 h-6" />
+                        </button>
+                    </div>
+                    <div className="p-4 space-y-8 pb-20">
+                        {content}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Default Page Layout (Login Screen)
+    return (
+        <div className="w-full max-w-4xl mx-auto p-4 space-y-8 pb-20">
+            {content}
         </div>
     );
 };
