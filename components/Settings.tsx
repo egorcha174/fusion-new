@@ -613,6 +613,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                         <option value="snow">Снег</option>
                         <option value="rain">Дождь</option>
                         <option value="strong-cloudy">Сильная облачность</option>
+                        <option value="rain-clouds">Облака и дождь</option>
                         <option value="leaves">Листопад</option>
                         <option value="river">Речные волны</option>
                         <option value="aurora">Полярное сияние</option>

@@ -27,7 +27,6 @@ interface HAState {
   devices: HassDevice[];
   entityRegistry: HassEntityRegistryEntry[];
   
-  // Store separately fetched forecasts from weather.get_forecasts
   forecasts: Record<string, WeatherForecast[]>;
 
   allKnownDevices: Map<string, Device>;
@@ -50,7 +49,6 @@ interface HAActions {
   getHistory: (entityIds: string[], startTime: string, endTime?: string) => Promise<any>;
   fetchWeatherForecasts: (entityIds: string[]) => Promise<void>;
 
-  // Derived actions for convenience
   handleDeviceToggle: (deviceId: string) => void;
   handleTemperatureChange: (deviceId: string, temperature: number, isDelta?: boolean) => void;
   handleHvacModeChange: (deviceId: string, mode: string) => void;
@@ -72,6 +70,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   const serviceReturnCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
   let brightnessTimeoutRef: number | null = null;
   let forecastRefreshInterval: any = null;
+  let updateDerivedStateTimeout: ReturnType<typeof setTimeout> | null = null;
 
   const sendMessage = (message: object) => {
     if (socketRef?.readyState === WebSocket.OPEN) {
@@ -79,9 +78,10 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     }
   };
   
-  const updateDerivedState = (entities: HassEntities, areas: HassArea[], devices: HassDevice[], entityRegistry: HassEntityRegistryEntry[]) => {
+  const updateDerivedState = () => {
+      const { entities, areas, devices, entityRegistry } = get();
       const { customizations, lowBatteryThreshold, eventTimerWidgets, customCardWidgets } = useAppStore.getState();
-      // Pass stored forecasts to mapper
+      
       const rooms = mapEntitiesToRooms(Object.values(entities), areas, devices, entityRegistry, customizations, true, get().forecasts);
       const deviceMap = new Map<string, Device>();
       rooms.forEach(room => {
@@ -90,7 +90,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           });
       });
       
-      // --- Новая логика для поиска уровня заряда батареи по физическим устройствам ---
       const deviceIdToEntityIds = new Map<string, string[]>();
       entityRegistry.forEach(e => {
         if (e.device_id) {
@@ -103,7 +102,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
 
       const batteryDevicesList: BatteryDevice[] = [];
 
-      // Итерируем по физическим устройствам из Home Assistant
       devices.forEach(haDevice => {
         if (!haDevice.id) return;
 
@@ -112,7 +110,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
 
         let batteryLevel: number | undefined = undefined;
 
-        // Стратегия 1: Найти выделенный сенсор батареи для этого устройства
         const batterySensorEntity = associatedEntityIds
           .map(id => entities[id])
           .find(entity => entity?.attributes.device_class === 'battery' && !isNaN(parseFloat(entity.state)));
@@ -120,7 +117,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         if (batterySensorEntity) {
           batteryLevel = parseFloat(batterySensorEntity.state);
         } else {
-          // Стратегия 2: Найти любую сущность для этого устройства, у которой есть атрибут battery_level
           const entityWithBatteryAttribute = associatedEntityIds
             .map(id => entities[id])
             .find(entity => typeof entity?.attributes.battery_level === 'number');
@@ -133,14 +129,12 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         if (batteryLevel !== undefined) {
           const roundedBatteryLevel = Math.round(batteryLevel);
 
-          // Добавляем одну запись для физического устройства в наш список
           batteryDevicesList.push({
             deviceId: haDevice.id,
             deviceName: haDevice.name,
             batteryLevel: roundedBatteryLevel,
           });
 
-          // Распространяем этот уровень заряда на все связанные сущности в нашей карте `allKnownDevices`
           associatedEntityIds.forEach(entityId => {
             const device = deviceMap.get(entityId);
             if (device) {
@@ -156,7 +150,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           rooms.push(widgetsRoom);
       }
       
-      // Battery Widget
       if (batteryDevicesList.length > 0) {
         const lowBatteryCount = batteryDevicesList.filter(d => d.batteryLevel <= lowBatteryThreshold).length;
         const batteryWidgetDevice: Device = {
@@ -164,7 +157,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           name: 'Уровень заряда',
           status: lowBatteryCount > 0 ? `${lowBatteryCount} устр. с низким зарядом` : 'Все устройства заряжены',
           type: DeviceType.BatteryWidget,
-          state: String(batteryDevicesList.length), // Total device count
+          state: String(batteryDevicesList.length),
           haDomain: 'internal',
         };
         deviceMap.set(batteryWidgetDevice.id, batteryWidgetDevice);
@@ -232,7 +225,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         }
       });
       
-      // Custom Card Widgets
       customCardWidgets.forEach(widget => {
           const cardDevice: Device = {
               id: `internal::custom-card_${widget.id}`,
@@ -255,10 +247,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
       const automations = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Automation);
       const scripts = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Script);
       
-      // Сортируем список физических устройств по уровню заряда
       batteryDevicesList.sort((a, b) => a.batteryLevel - b.batteryLevel);
       
-      // --- NEW: Logic for rooms with physical devices ---
       const deviceIdToEntities = new Map<string, Device[]>();
       const entityIdToDeviceId = new Map<string, string>();
       entityRegistry.forEach(entry => {
@@ -283,7 +273,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
       });
       roomsWithPhysicalDevicesMap.set('no_area', { id: 'no_area', name: 'Без пространства', devices: [] });
 
-      devices.forEach(haDevice => { // HassDevice
+      devices.forEach(haDevice => { 
           const entitiesForDevice = deviceIdToEntities.get(haDevice.id) || [];
           if (entitiesForDevice.length > 0) {
               const physicalDevice: PhysicalDevice = {
@@ -313,7 +303,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     });
   };
   
-  // Re-compute derived state whenever customizations change
   useAppStore.subscribe(
     (state, prevState) => {
         const shouldUpdate = state.customizations !== prevState.customizations ||
@@ -322,8 +311,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                              state.customCardWidgets !== prevState.customCardWidgets;
         
         if (shouldUpdate) {
-            const { entities, areas, devices, entityRegistry } = get();
-            updateDerivedState(entities, areas, devices, entityRegistry);
+            // Debounce here too? Likely not needed as these changes are user-initiated and rare.
+            updateDerivedState();
         }
     }
   );
@@ -350,6 +339,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     connect: (url, token) => {
         if (socketRef) socketRef.close();
         if (forecastRefreshInterval) clearInterval(forecastRefreshInterval);
+        if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
         
         set({ connectionStatus: 'connecting', error: null, isLoading: true, haUrl: url });
         messageIdRef = 1;
@@ -391,8 +381,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                         if (data.success) callback?.resolve(data.result);
                                         else callback?.reject(data.error);
                                         cbMap.delete(data.id);
-                                        // Don't return here, some generic fetches (like init) might share ID logic or be parallel, though unlikely with unique IDs.
-                                        // But typically a message ID is unique per request.
                                         return; 
                                     }
                                 }
@@ -420,11 +408,9 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                         initialFetchIds.delete(data.id);
                                         
                                         if (initialFetchIds.size === 0) {
-                                            const s = get();
-                                            updateDerivedState(s.entities, s.areas, s.devices, s.entityRegistry);
+                                            updateDerivedState();
                                             
-                                            // Автоматически получаем прогнозы для всех weather энтити
-                                            const weatherEntities = (Object.values(s.entities) as HassEntity[])
+                                            const weatherEntities = (Object.values(get().entities) as HassEntity[])
                                                 .filter(e => e.entity_id.startsWith('weather.'))
                                                 .map(e => e.entity_id);
 
@@ -432,7 +418,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                                 get().fetchWeatherForecasts(weatherEntities);
                                             }
 
-                                            // Периодическое обновление прогноза (каждые 30 минут)
                                             forecastRefreshInterval = setInterval(() => {
                                                 const currentStore = get();
                                                 if (currentStore.connectionStatus === 'connected') {
@@ -455,7 +440,13 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                 const newEntities = { ...get().entities, [entity_id]: new_state };
                                 if (!new_state) delete newEntities[entity_id];
                                 set({ entities: newEntities });
-                                updateDerivedState(newEntities, get().areas, get().devices, get().entityRegistry);
+                                
+                                // Debounce updateDerivedState
+                                if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
+                                updateDerivedStateTimeout = setTimeout(() => {
+                                    updateDerivedState();
+                                    updateDerivedStateTimeout = null;
+                                }, 50);
                             }
                         };
                         break;
@@ -468,6 +459,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
 
             socketRef.onclose = () => {
                 if (forecastRefreshInterval) clearInterval(forecastRefreshInterval);
+                if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
                 if (get().connectionStatus === 'connecting') set({ connectionStatus: 'failed' });
                 else set({ connectionStatus: 'idle' });
                 set({ isLoading: false });
@@ -482,6 +474,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     },
     disconnect: () => {
         if (forecastRefreshInterval) clearInterval(forecastRefreshInterval);
+        if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
         socketRef?.close();
         set({ connectionStatus: 'idle', entities: {}, areas: [], devices: [], entityRegistry: [], error: null, isLoading: false });
     },
@@ -527,23 +520,18 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         const fetchForEntity = async (entityId: string) => {
              try {
                 let rawForecast = null;
-                // Try daily forecast first
                 try {
                     const response = await get().callService('weather', 'get_forecasts', { entity_id: entityId, type: 'daily' }, true);
                     if (response?.[entityId]?.forecast?.length) {
                         rawForecast = response[entityId].forecast;
                     }
-                } catch (e) {
-                    // Daily fetch failed, silently continue to hourly
-                }
+                } catch (e) { }
 
-                // Try hourly forecast if daily failed or returned empty
                 if (!rawForecast || rawForecast.length === 0) {
                      try {
                         const response = await get().callService('weather', 'get_forecasts', { entity_id: entityId, type: 'hourly' }, true);
                         const hourly = response?.[entityId]?.forecast;
                         if (hourly && hourly.length > 0) {
-                            // Aggregate hourly to daily
                             const dailyMap = new Map<string, any>();
                             hourly.forEach((h: any) => {
                                 const d = new Date(h.datetime);
@@ -559,10 +547,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                     const curr = dailyMap.get(dateStr);
                                     curr.tempMax = Math.max(curr.tempMax, h.temperature);
                                     curr.tempMin = Math.min(curr.tempMin, h.temperature);
-                                    // Optionally aggregate condition (mode/worst/best), keeping first found for now
                                 }
                             });
-                            // Sort by date
                             rawForecast = Array.from(dailyMap.values()).sort((a:any, b:any) => a.datetime.localeCompare(b.datetime));
                         }
                      } catch (e) { 
@@ -571,7 +557,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                 }
 
                 if (rawForecast && rawForecast.length > 0) {
-                     // Normalize and store
                      const normalized: WeatherForecast[] = rawForecast.map((fc: any) => ({
                          datetime: fc.datetime || fc.date,
                          condition: fc.condition || fc.state,
@@ -583,19 +568,15 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                 }
              } catch (e) {
                  console.warn(`Failed to fetch forecast for ${entityId}`, e);
-                 // Don't throw, just skip updating this entity's forecast
              }
         };
 
         await Promise.all(entityIds.map(fetchForEntity));
         
-        // Update state and re-calculate derived state
         set({ forecasts: forecastsMap });
-        const s = get();
-        updateDerivedState(s.entities, s.areas, s.devices, s.entityRegistry);
+        updateDerivedState();
     },
 
-    // --- Derived Actions ---
     handleDeviceToggle: (deviceId) => {
         const entity = get().entities[deviceId];
         if (!entity) return;

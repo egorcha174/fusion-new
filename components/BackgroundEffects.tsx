@@ -52,7 +52,7 @@ const SnowEffect = () => {
     );
 };
 
-const RainEffect = () => {
+const RainEffect = ({ zIndexOverride }: { zIndexOverride?: number }) => {
     // 1. Падающие капли дождя (фон)
     const raindrops = useMemo(() => {
         return Array.from({ length: 100 }).map((_, i) => {
@@ -70,10 +70,11 @@ const RainEffect = () => {
                     '--opacity': opacity,
                     animationDuration: `${duration}s`,
                     animationDelay: `${delay}s`,
+                    zIndex: zIndexOverride || undefined,
                 } as React.CSSProperties,
             };
         });
-    }, []);
+    }, [zIndexOverride]);
 
     // 2. Капли на стекле (передний план)
     const glassDrops = useMemo(() => {
@@ -92,10 +93,11 @@ const RainEffect = () => {
                     '--height': `${height}px`,
                     animationDuration: `${duration}s`,
                     animationDelay: `${delay}s`,
+                    zIndex: zIndexOverride ? zIndexOverride + 10 : undefined,
                 } as React.CSSProperties,
             };
         });
-    }, []);
+    }, [zIndexOverride]);
 
     return (
         <>
@@ -244,10 +246,12 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
     );
 });
 
-const StrongCloudyEffect = () => {
+const StrongCloudyEffect = ({ dark = false }: { dark?: boolean }) => {
     const clouds = useMemo(() => {
-        // Shades of grey, blue-grey, and off-white for a realistic overcast sky
-        const colors = ['#94a3b8', '#cbd5e1', '#64748b', '#e2e8f0', '#bfdbfe', '#dbeafe'];
+        // Palette selection
+        const defaultColors = ['#94a3b8', '#cbd5e1', '#64748b', '#e2e8f0', '#bfdbfe', '#dbeafe'];
+        const darkColors = ['#475569', '#64748b', '#334155', '#94a3b8', '#52525b', '#71717a'];
+        const colors = dark ? darkColors : defaultColors;
 
         // Generate more clouds with varied sizes for depth
         return Array.from({ length: 20 }).map((_, i) => {
@@ -260,7 +264,10 @@ const StrongCloudyEffect = () => {
             const baseOpacity = 0.5 + Math.random() * 0.4; 
             const color = colors[Math.floor(Math.random() * colors.length)];
             
-            // Higher scale = closer = higher z-index = faster (parallax effect)
+            // Scale zIndex to range 0-5 to ensure it stays behind other effects if needed
+            const zIndex = Math.floor(scale * 2); 
+
+            // Higher scale = closer = faster (parallax effect)
             const parallaxDuration = duration / scale; 
 
             return {
@@ -270,7 +277,7 @@ const StrongCloudyEffect = () => {
                     '--height': `${height}px`,
                     '--top': `${top}vh`,
                     '--opacity': baseOpacity,
-                    zIndex: Math.floor(scale * 10), // larger clouds on top
+                    zIndex: zIndex, 
                     animationDuration: `${parallaxDuration}s`,
                     animationDelay: `${delay}s`,
                     filter: scale < 1.0 ? 'blur(3px)' : 'blur(1px)', // distant clouds are blurrier
@@ -280,7 +287,7 @@ const StrongCloudyEffect = () => {
                 color
             };
         });
-    }, []);
+    }, [dark]);
 
     return (
         <>
@@ -375,6 +382,12 @@ const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect }) => {
             {effect === 'strong-cloudy' && <StrongCloudyEffect />}
             {effect === 'river' && <RiverEffect />}
             {effect === 'aurora' && <AuroraEffect />}
+            {effect === 'rain-clouds' && (
+                <>
+                    <StrongCloudyEffect dark />
+                    <RainEffect zIndexOverride={15} />
+                </>
+            )}
         </div>
     );
 };
