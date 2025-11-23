@@ -1,4 +1,6 @@
 
+
+
 import {
     CardTemplates,
     ColorScheme,
@@ -156,6 +158,8 @@ export const DEFAULT_THEMES: ThemeDefinition[] = [
                 cardBorderRadius: 6,
                 cardBackground: "rgba(255, 255, 255, 0.9)",
                 cardBackgroundOn: "rgba(224, 242, 254, 1)",
+                cardBorderColor: "#0891B2",
+                cardBorderWidth: 1,
                 tabTextColor: "#64748B",
                 activeTabTextColor: "#0891B2",
                 tabIndicatorColor: "#0891B2",
@@ -192,6 +196,8 @@ export const DEFAULT_THEMES: ThemeDefinition[] = [
                 cardBorderRadius: 6, // Tech feel
                 cardBackground: "rgba(15, 23, 42, 0.6)", // Dark Slate
                 cardBackgroundOn: "rgba(6, 182, 212, 0.25)", // Cyan glow
+                cardBorderColor: "#22D3EE",
+                cardBorderWidth: 1,
                 tabTextColor: "#475569",
                 activeTabTextColor: "#22D3EE", // Cyan Neon
                 tabIndicatorColor: "#22D3EE",
