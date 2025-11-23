@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device, AuroraSettings } from '../types';
@@ -631,7 +630,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                     </Section>
 
                     <Section title="Тема оформления" description="Выберите тему из списка. Используйте кнопку копирования для создания своей версии.">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 auto-rows-fr">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                             {themes.map(theme => (
                                 <div key={theme.id} className="text-center group relative">
                                     <button
