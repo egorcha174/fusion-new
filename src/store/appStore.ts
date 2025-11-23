@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
@@ -189,17 +190,29 @@ if (initialServers.length === 0) {
   }
 }
 
-// FIX: Robust Theme Loading
-// We load stored themes from localStorage, but we ONLY keep the custom ones.
-// Built-in themes are always sourced from the code (DEFAULT_THEMES) to ensure updates are applied.
-const storedThemes = loadAndMigrate<ThemeDefinition[]>(LOCAL_STORAGE_KEYS.THEMES, []);
-const customThemes = storedThemes.filter(t => t.isCustom);
-// Ensure no ID collisions between custom and default themes (defaults win)
-const uniqueCustomThemes = customThemes.filter(ct => !DEFAULT_THEMES.some(dt => dt.id === ct.id));
+// --- Theme Initialization Logic ---
+// 1. Load CUSTOM themes from the new storage key.
+let customThemes = loadAndMigrate<ThemeDefinition[]>(LOCAL_STORAGE_KEYS.CUSTOM_THEMES, []);
 
+// 2. Migration: If custom themes are empty, check the legacy key.
+// This handles the transition from "all themes in one key" to "custom only in LS".
+if (customThemes.length === 0) {
+    const legacyThemes = loadAndMigrate<ThemeDefinition[]>(LOCAL_STORAGE_KEYS.THEMES_LEGACY, []);
+    if (legacyThemes.length > 0) {
+        const migratedCustom = legacyThemes.filter(t => t.isCustom);
+        if (migratedCustom.length > 0) {
+            console.log("Migrating custom themes to new storage structure...");
+            customThemes = migratedCustom;
+            localStorage.setItem(LOCAL_STORAGE_KEYS.CUSTOM_THEMES, JSON.stringify(customThemes));
+        }
+    }
+}
+
+// 3. Combine DEFAULT themes (from code) with CUSTOM themes (from LS).
+// This ensures that updates to default themes in code (like adding 'Tron') are always applied.
 const initialThemes = [
     ...DEFAULT_THEMES,
-    ...uniqueCustomThemes
+    ...customThemes
 ];
 
 const initialActiveThemeId = loadAndMigrate<string>(LOCAL_STORAGE_KEYS.ACTIVE_THEME_ID, DEFAULT_THEMES[0].id);
@@ -358,7 +371,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
     setThemes: (themes) => {
         set({ themes });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.THEMES, JSON.stringify(themes));
+        // We only save CUSTOM themes to storage. Built-ins are always loaded from code.
+        const customOnly = themes.filter(t => t.isCustom);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.CUSTOM_THEMES, JSON.stringify(customOnly));
     },
     selectTheme: (themeId) => {
         const theme = get().themes.find(t => t.id === themeId);
@@ -369,15 +384,18 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     },
     saveTheme: (themeToSave) => {
         const { themes, setThemes, activeThemeId } = get();
-        const themeExists = themes.some(t => t.id === themeToSave.id);
+        // Mark as custom if not already
+        const themeWithFlag = { ...themeToSave, isCustom: true };
+        
+        const themeExists = themes.some(t => t.id === themeWithFlag.id);
         const newThemes = themeExists
-            ? themes.map(t => t.id === themeToSave.id ? themeToSave : t)
-            : [...themes, themeToSave];
+            ? themes.map(t => t.id === themeWithFlag.id ? themeWithFlag : t)
+            : [...themes, themeWithFlag];
         
         setThemes(newThemes);
     
-        if (activeThemeId === themeToSave.id) {
-            set({ colorScheme: themeToSave.scheme });
+        if (activeThemeId === themeWithFlag.id) {
+            set({ colorScheme: themeWithFlag.scheme });
         }
     },
     deleteTheme: (themeId) => {
