@@ -1,6 +1,4 @@
 
-
-
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device, AuroraSettings } from '../types';
 import ConfirmDialog from './ConfirmDialog';
@@ -614,9 +612,10 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                         <option value="none">Нет</option>
                         <option value="snow">Снег</option>
                         <option value="rain">Дождь</option>
+                        <option value="strong-cloudy">Сильная облачность</option>
                         <option value="leaves">Листопад</option>
                         <option value="river">Речные волны</option>
-                        <option value="aurora">Северное сияние</option>
+                        <option value="aurora">Полярное сияние</option>
                     </select>
                 </LabeledInput>
                 

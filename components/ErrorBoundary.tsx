@@ -19,10 +19,18 @@ interface State {
  * Это предотвращает падение всего приложения из-за ошибки в одном из его частей.
  */
 class ErrorBoundary extends Component<Props, State> {
+  // Explicitly declare props to avoid TS error "Property 'props' does not exist on type 'ErrorBoundary'"
+  public readonly props: Readonly<Props>;
+
   public state: State = {
     hasError: false,
     error: null,
   };
+
+  constructor(props: Props) {
+    super(props);
+    this.props = props;
+  }
 
   /**
    * Этот статический метод жизненного цикла вызывается после того, как в дочернем компоненте

@@ -1,5 +1,4 @@
 
-
 import React, { useMemo } from 'react';
 import { useAppStore, BackgroundEffectType } from '../store/appStore';
 import { applyOpacity } from '../utils/themeUtils';
@@ -176,6 +175,66 @@ const LeavesEffect = () => {
     );
 };
 
+const StrongCloudyEffect = () => {
+    const clouds = useMemo(() => {
+        // Standard Cloud Shape
+        const cloudPath = "M17.5,8.6c0-2.3,1.9-4.2,4.2-4.2c0.4,0,0.8,0.1,1.1,0.2c0.6-1.8,2.3-3.1,4.3-3.1c2.5,0,4.5,2,4.5,4.5c0,0.2,0,0.4,0,0.5c0.2,0,0.4,0,0.5,0c2.3,0,4.2,1.9,4.2,4.2s-1.9,4.2-4.2,4.2H21.7C19.4,14.9,17.5,13,17.5,10.7L17.5,8.6z";
+        
+        const colors = ['#9ca3af', '#6b7280', '#4b5563']; // Shades of grey
+
+        return Array.from({ length: 12 }).map((_, i) => {
+            const width = Math.random() * 300 + 200; // 200px to 500px
+            const height = width * 0.6;
+            const top = Math.random() * 60; // Top 60% of screen
+            const duration = Math.random() * 40 + 30; // 30s to 70s
+            const delay = Math.random() * -60; // Start mid-animation
+            const opacity = Math.random() * 0.4 + 0.4; // 0.4 to 0.8
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const zIndex = Math.floor(Math.random() * 3); 
+
+            return {
+                id: i,
+                path: cloudPath,
+                style: {
+                    '--width': `${width}px`,
+                    '--height': `${height}px`,
+                    '--top': `${top}vh`,
+                    '--opacity': opacity,
+                    zIndex: zIndex,
+                    animationDuration: `${duration}s`,
+                    animationDelay: `${delay}s`,
+                    filter: `blur(${width > 300 ? 8 : 4}px)`,
+                } as React.CSSProperties,
+                color,
+            };
+        });
+    }, []);
+
+    return (
+        <>
+            {clouds.map(cloud => (
+                <div 
+                    key={cloud.id} 
+                    className="cloud" 
+                    style={cloud.style}
+                >
+                    <svg 
+                        viewBox="0 0 50 20" 
+                        preserveAspectRatio="none"
+                        style={{ 
+                            width: '100%', 
+                            height: '100%', 
+                            fill: cloud.color,
+                        }}
+                    >
+                        <path d={cloud.path} transform="scale(1.1, 1)" />
+                    </svg>
+                </div>
+            ))}
+        </>
+    );
+};
+
 const RiverEffect = () => {
     return (
         <div className="absolute bottom-0 left-0 w-full h-[200px] overflow-hidden pointer-events-none">
@@ -236,6 +295,7 @@ const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect }) => {
             {effect === 'snow' && <SnowEffect />}
             {effect === 'rain' && <RainEffect />}
             {effect === 'leaves' && <LeavesEffect />}
+            {effect === 'strong-cloudy' && <StrongCloudyEffect />}
             {effect === 'river' && <RiverEffect />}
             {effect === 'aurora' && <AuroraEffect />}
         </div>
