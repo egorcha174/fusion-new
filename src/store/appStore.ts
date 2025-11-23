@@ -1,5 +1,7 @@
 
 
+
+
 import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
@@ -33,7 +35,7 @@ import {
 } from '../config/defaults';
 import { set as setAtPath } from '../utils/obj-path';
 
-export type BackgroundEffectType = 'none' | 'snow' | 'rain' | 'leaves' | 'river' | 'aurora' | 'strong-cloudy' | 'rain-clouds' | 'snow-rain';
+export type BackgroundEffectType = 'none' | 'snow' | 'rain' | 'leaves' | 'river' | 'aurora' | 'strong-cloudy' | 'rain-clouds' | 'snow-rain' | 'weather';
 
 // --- State and Actions Interfaces ---
 interface AppState {
@@ -81,6 +83,7 @@ interface AppState {
     backgroundEffect: BackgroundEffectType;
     auroraSettings: AuroraSettings;
     DEFAULT_COLOR_SCHEME: ColorScheme;
+    weatherData: any;
 }
 
 interface AppActions {
@@ -130,6 +133,7 @@ interface AppActions {
     setYandexWeatherKey: (key: string) => void;
     setForecaApiKey: (key: string) => void;
     setWeatherSettings: (settings: WeatherSettings) => void;
+    setWeatherData: (data: any) => void;
     setLowBatteryThreshold: (threshold: number) => void;
     
     setEventTimerWidgets: (widgets: EventTimerWidget[]) => void;
@@ -245,6 +249,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     yandexWeatherKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, ''),
     forecaApiKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.FORECA_KEY, ''),
     weatherSettings: loadAndMigrate<WeatherSettings>(LOCAL_STORAGE_KEYS.WEATHER_SETTINGS, DEFAULT_WEATHER_SETTINGS),
+    weatherData: null,
     lowBatteryThreshold: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, DEFAULT_LOW_BATTERY_THRESHOLD),
     eventTimerWidgets: loadAndMigrate<EventTimerWidget[]>(LOCAL_STORAGE_KEYS.EVENT_TIMER_WIDGETS, []),
     customCardWidgets: loadAndMigrate<CustomCardWidget[]>(LOCAL_STORAGE_KEYS.CUSTOM_CARD_WIDGETS, []),
@@ -330,15 +335,15 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     },
     setThemeMode: (theme) => {
         set({ themeMode: theme });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.THEME_MODE, theme);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.THEME_MODE, JSON.stringify(theme));
     },
     setScheduleStartTime: (time) => {
         set({ scheduleStartTime: time });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.SCHEDULE_START_TIME, time);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SCHEDULE_START_TIME, JSON.stringify(time));
     },
     setScheduleEndTime: (time) => {
         set({ scheduleEndTime: time });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.SCHEDULE_END_TIME, time);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SCHEDULE_END_TIME, JSON.stringify(time));
     },
 
     setThemes: (themes) => {
@@ -413,27 +418,30 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
     setWeatherProvider: (provider) => {
         set({ weatherProvider: provider });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, provider);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, JSON.stringify(provider));
     },
     setWeatherEntityId: (entityId) => {
         set({ weatherEntityId: entityId });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.WEATHER_ENTITY_ID, entityId);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.WEATHER_ENTITY_ID, JSON.stringify(entityId));
     },
     setOpenWeatherMapKey: (key) => {
         set({ openWeatherMapKey: key });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, key);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, JSON.stringify(key));
     },
     setYandexWeatherKey: (key) => {
         set({ yandexWeatherKey: key });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, key);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, JSON.stringify(key));
     },
     setForecaApiKey: (key) => {
         set({ forecaApiKey: key });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.FORECA_KEY, key);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.FORECA_KEY, JSON.stringify(key));
     },
     setWeatherSettings: (settings) => {
         set({ weatherSettings: settings });
         localStorage.setItem(LOCAL_STORAGE_KEYS.WEATHER_SETTINGS, JSON.stringify(settings));
+    },
+    setWeatherData: (data) => {
+        set({ weatherData: data });
     },
     setLowBatteryThreshold: (threshold) => {
         set({ lowBatteryThreshold: threshold });
