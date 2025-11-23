@@ -1,5 +1,6 @@
 
 
+
 import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
@@ -10,6 +11,7 @@ import {
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from '../components/DeviceIcon';
 import { loadAndMigrate } from '../utils/localStorage';
+import { loadSecure, saveSecure } from '../utils/secureStorage';
 import { LOCAL_STORAGE_KEYS } from '../constants';
 import {
     defaultTemplates,
@@ -170,7 +172,7 @@ interface AppActions {
 }
 
 // --- Migration logic for single-server to multi-server ---
-const initialServers = loadAndMigrate<ServerConfig[]>(LOCAL_STORAGE_KEYS.SERVERS, []);
+const initialServers = loadSecure<ServerConfig[]>(LOCAL_STORAGE_KEYS.SERVERS, []);
 let initialActiveServerId = loadAndMigrate<string | null>(LOCAL_STORAGE_KEYS.ACTIVE_SERVER_ID, null);
 
 if (initialServers.length === 0) {
@@ -184,7 +186,8 @@ if (initialServers.length === 0) {
     localStorage.removeItem('ha-url');
     localStorage.removeItem('ha-token');
     
-    localStorage.setItem(LOCAL_STORAGE_KEYS.SERVERS, JSON.stringify(initialServers));
+    // Save migrated server securely immediately
+    saveSecure(LOCAL_STORAGE_KEYS.SERVERS, initialServers);
     localStorage.setItem(LOCAL_STORAGE_KEYS.ACTIVE_SERVER_ID, JSON.stringify(initialActiveServerId));
   }
 }
@@ -241,9 +244,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     
     weatherProvider: loadAndMigrate<'openweathermap' | 'yandex' | 'foreca' | 'homeassistant'>(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, DEFAULT_WEATHER_PROVIDER),
     weatherEntityId: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.WEATHER_ENTITY_ID, ''),
-    openWeatherMapKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, ''),
-    yandexWeatherKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, ''),
-    forecaApiKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.FORECA_KEY, ''),
+    openWeatherMapKey: loadSecure<string>(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, ''),
+    yandexWeatherKey: loadSecure<string>(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, ''),
+    forecaApiKey: loadSecure<string>(LOCAL_STORAGE_KEYS.FORECA_KEY, ''),
     weatherSettings: loadAndMigrate<WeatherSettings>(LOCAL_STORAGE_KEYS.WEATHER_SETTINGS, DEFAULT_WEATHER_SETTINGS),
     lowBatteryThreshold: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, DEFAULT_LOW_BATTERY_THRESHOLD),
     eventTimerWidgets: loadAndMigrate<EventTimerWidget[]>(LOCAL_STORAGE_KEYS.EVENT_TIMER_WIDGETS, []),
@@ -257,7 +260,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     setIsEditMode: (isEdit) => set({ isEditMode: isEdit }),
     setEditingDevice: (device) => set({ editingDevice: device }),
     setEditingTab: (tab) => set({ editingTab: tab }),
-    setEditingTemplate: (template) => set({ editingTemplate: template }),
+    setEditingTemplate: (template) => set({ 
+        editingTemplate: template,
+        isSettingsOpen: template ? false : get().isSettingsOpen
+    }),
     setSearchTerm: (term) => set({ searchTerm: term }),
     setContextMenu: (menu) => set({ contextMenu: menu }),
     setFloatingCamera: (device) => set({ floatingCamera: device }),
@@ -268,7 +274,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     // --- Server Management Actions ---
     setServers: (servers) => {
         set({ servers });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.SERVERS, JSON.stringify(servers));
+        saveSecure(LOCAL_STORAGE_KEYS.SERVERS, servers);
     },
     setActiveServerId: (id) => {
         set({ activeServerId: id });
@@ -418,15 +424,15 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     },
     setOpenWeatherMapKey: (key) => {
         set({ openWeatherMapKey: key });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, key);
+        saveSecure(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, key);
     },
     setYandexWeatherKey: (key) => {
         set({ yandexWeatherKey: key });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, key);
+        saveSecure(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, key);
     },
     setForecaApiKey: (key) => {
         set({ forecaApiKey: key });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.FORECA_KEY, key);
+        saveSecure(LOCAL_STORAGE_KEYS.FORECA_KEY, key);
     },
     setWeatherSettings: (settings) => {
         set({ weatherSettings: settings });
