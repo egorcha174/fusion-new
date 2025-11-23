@@ -1,8 +1,6 @@
 
 
 
-
-
 import React, { useMemo } from 'react';
 import { useAppStore, BackgroundEffectType } from '../store/appStore';
 import { applyOpacity } from '../utils/themeUtils';
@@ -375,6 +373,25 @@ const AuroraEffect = () => {
     );
 };
 
+// New Flash Component
+const LightningFlash = () => (
+    <>
+        <style>{`
+            @keyframes lightning {
+                0%, 92%, 100% { opacity: 0; }
+                93% { opacity: 0.6; }
+                94% { opacity: 0.2; }
+                96% { opacity: 0.8; }
+                98% { opacity: 0; }
+            }
+        `}</style>
+        <div 
+            className="absolute inset-0 bg-white pointer-events-none z-20 mix-blend-overlay"
+            style={{ animation: 'lightning 7s infinite' }}
+        />
+    </>
+);
+
 const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect }) => {
     if (effect === 'none') return null;
 
@@ -390,6 +407,20 @@ const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect }) => {
                 <>
                     <StrongCloudyEffect dark />
                     <RainEffect zIndexOverride={15} />
+                </>
+            )}
+            {effect === 'snow-rain' && (
+                <>
+                    <StrongCloudyEffect dark />
+                    <RainEffect zIndexOverride={15} />
+                    <SnowEffect />
+                </>
+            )}
+            {effect === 'thunderstorm' && (
+                <>
+                    <StrongCloudyEffect dark />
+                    <RainEffect zIndexOverride={15} />
+                    <LightningFlash />
                 </>
             )}
         </div>
