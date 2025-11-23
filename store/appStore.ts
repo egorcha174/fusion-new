@@ -33,7 +33,7 @@ import {
 } from '../config/defaults';
 import { set as setAtPath } from '../utils/obj-path';
 
-export type BackgroundEffectType = 'none' | 'snow' | 'rain' | 'leaves' | 'river' | 'aurora';
+export type BackgroundEffectType = 'none' | 'snow' | 'rain' | 'leaves' | 'river' | 'aurora' | 'strong-cloudy';
 
 // --- State and Actions Interfaces ---
 interface AppState {

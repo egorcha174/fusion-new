@@ -1,10 +1,16 @@
 
+
+
 import React, { useMemo } from 'react';
-import { BackgroundEffectType } from '../store/appStore';
+import { useAppStore, BackgroundEffectType } from '../store/appStore';
+import { applyOpacity } from '../utils/themeUtils';
 
 interface BackgroundEffectsProps {
     effect: BackgroundEffectType;
 }
+
+// Helper for generating colors
+const hexToRgba = (hex: string, alpha: number) => applyOpacity(hex, alpha);
 
 const SnowEffect = () => {
     const snowflakes = useMemo(() => {
@@ -171,6 +177,67 @@ const LeavesEffect = () => {
     );
 };
 
+const StrongCloudyEffect = () => {
+    const clouds = useMemo(() => {
+        // Standard Cloud Shape
+        const cloudPath = "M17.5,8.6c0-2.3,1.9-4.2,4.2-4.2c0.4,0,0.8,0.1,1.1,0.2c0.6-1.8,2.3-3.1,4.3-3.1c2.5,0,4.5,2,4.5,4.5c0,0.2,0,0.4,0,0.5c0.2,0,0.4,0,0.5,0c2.3,0,4.2,1.9,4.2,4.2s-1.9,4.2-4.2,4.2H21.7C19.4,14.9,17.5,13,17.5,10.7L17.5,8.6z";
+        
+        const colors = ['#9ca3af', '#6b7280', '#4b5563']; // Shades of grey
+
+        return Array.from({ length: 12 }).map((_, i) => {
+            // Create varied cloud sizes and speeds
+            const width = Math.random() * 300 + 200; // 200px to 500px
+            const height = width * 0.6;
+            const top = Math.random() * 60; // Top 60% of screen
+            const duration = Math.random() * 40 + 30; // 30s to 70s
+            const delay = Math.random() * -60; // Start mid-animation
+            const opacity = Math.random() * 0.4 + 0.4; // 0.4 to 0.8
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const zIndex = Math.floor(Math.random() * 3); // Layering
+
+            return {
+                id: i,
+                path: cloudPath,
+                style: {
+                    '--width': `${width}px`,
+                    '--height': `${height}px`,
+                    '--top': `${top}vh`,
+                    '--opacity': opacity,
+                    zIndex: zIndex,
+                    animationDuration: `${duration}s`,
+                    animationDelay: `${delay}s`,
+                    filter: `blur(${width > 300 ? 8 : 4}px)`,
+                } as React.CSSProperties,
+                color,
+            };
+        });
+    }, []);
+
+    return (
+        <>
+            {clouds.map(cloud => (
+                <div 
+                    key={cloud.id} 
+                    className="cloud" 
+                    style={cloud.style}
+                >
+                    <svg 
+                        viewBox="0 0 50 20" 
+                        preserveAspectRatio="none"
+                        style={{ 
+                            width: '100%', 
+                            height: '100%', 
+                            fill: cloud.color,
+                        }}
+                    >
+                        <path d={cloud.path} transform="scale(1.1, 1)" />
+                    </svg>
+                </div>
+            ))}
+        </>
+    );
+};
+
 const RiverEffect = () => {
     return (
         <div className="absolute bottom-0 left-0 w-full h-[200px] overflow-hidden pointer-events-none">
@@ -184,6 +251,45 @@ const RiverEffect = () => {
     );
 };
 
+const AuroraEffect = () => {
+    const { auroraSettings } = useAppStore();
+    const { color1, color2, color3, speed, intensity, blur, saturate, starsEnabled, starsSpeed } = auroraSettings;
+
+    const containerStyle = {
+        '--c1-mid': hexToRgba(color1, 0.12),
+        '--c2-mid': hexToRgba(color2, 0.18),
+        '--c3-mid': hexToRgba(color3, 0.10),
+        '--c1-transparent': hexToRgba(color1, 0.0),
+        '--c3-transparent': hexToRgba(color3, 0.0),
+        '--global-blur': `${blur}px`,
+        '--global-saturate': `${saturate}%`,
+        '--speed-1': `${speed}s`,
+        '--speed-2': `${Math.round(speed * 1.2)}s`,
+        '--speed-3': `${Math.round(speed * 1.4)}s`,
+        '--speed-4': `${Math.round(speed * 1.1)}s`,
+        '--band-opacity': Math.max(0.3, Math.min(1.2, intensity / 100)),
+        '--stars-speed': `${starsSpeed}s`,
+        '--stars-opacity': starsEnabled ? 0.9 : 0,
+    } as React.CSSProperties;
+
+    return (
+        <div className="fixed inset-0 overflow-hidden pointer-events-none -z-[5] aurora-scene" style={containerStyle}>
+            <div className="absolute inset-0 aurora-stars" />
+            
+            <div className="absolute left-[-20%] right-[-20%] h-[60%] top-[10%] aurora-layer pointer-events-none">
+                <div className="absolute left-0 right-0 h-full aurora-band b1" />
+                <div className="absolute left-0 right-0 h-full aurora-band b2" />
+                <div className="absolute left-0 right-0 h-full aurora-band b3" />
+                <div className="absolute left-0 right-0 h-full aurora-band b4" />
+                <div className="absolute inset-0 aurora-noise" />
+            </div>
+            
+            {/* Horizon gradient for blending */}
+            <div className="absolute left-0 right-0 bottom-0 h-[22%] bg-gradient-to-b from-transparent via-black/60 to-black pointer-events-none" />
+        </div>
+    );
+};
+
 const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect }) => {
     if (effect === 'none') return null;
 
@@ -192,7 +298,9 @@ const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect }) => {
             {effect === 'snow' && <SnowEffect />}
             {effect === 'rain' && <RainEffect />}
             {effect === 'leaves' && <LeavesEffect />}
+            {effect === 'strong-cloudy' && <StrongCloudyEffect />}
             {effect === 'river' && <RiverEffect />}
+            {effect === 'aurora' && <AuroraEffect />}
         </div>
     );
 };
