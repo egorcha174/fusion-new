@@ -388,58 +388,56 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                     }
                                 }
             
-                                if (data.success && initialFetchIds.has(data.id)) {
-                                    let stateUpdate: Partial<HAState> = {};
-                                    let isInitialFetch = false;
-
-                                    if (data.id === fetches.states.id) {
-                                        stateUpdate.entities = data.result.reduce((acc: HassEntities, entity: HassEntity) => ({ ...acc, [entity.entity_id]: entity }), {});
-                                        isInitialFetch = true;
-                                    } else if (data.id === fetches.areas.id) {
-                                        stateUpdate.areas = data.result;
-                                        isInitialFetch = true;
-                                    } else if (data.id === fetches.devices.id) {
-                                        stateUpdate.devices = data.result;
-                                        isInitialFetch = true;
-                                    } else if (data.id === fetches.entities.id) {
-                                        stateUpdate.entityRegistry = data.result;
-                                        isInitialFetch = true;
-                                    }
-                                    
-                                    if(isInitialFetch) {
-                                        set(stateUpdate);
-                                        initialFetchIds.delete(data.id);
+                                if (initialFetchIds.has(data.id)) {
+                                    if (data.success) {
+                                        let stateUpdate: Partial<HAState> = {};
                                         
-                                        if (initialFetchIds.size === 0) {
-                                            try {
-                                                updateDerivedState();
-                                            } catch (err) {
-                                                console.error("Critical error updating derived state during initialization:", err);
-                                            }
-                                            
-                                            const weatherEntities = (Object.values(get().entities) as HassEntity[])
-                                                .filter(e => e.entity_id.startsWith('weather.'))
-                                                .map(e => e.entity_id);
-
-                                            if (weatherEntities.length > 0) {
-                                                get().fetchWeatherForecasts(weatherEntities);
-                                            }
-
-                                            forecastRefreshInterval = setInterval(() => {
-                                                const currentStore = get();
-                                                if (currentStore.connectionStatus === 'connected') {
-                                                    const wEntities = (Object.values(currentStore.entities) as HassEntity[])
-                                                        .filter(e => e.entity_id.startsWith('weather.'))
-                                                        .map(e => e.entity_id);
-                                                    
-                                                    if (wEntities.length > 0) {
-                                                        currentStore.fetchWeatherForecasts(wEntities);
-                                                    }
-                                                }
-                                            }, 30 * 60 * 1000);
-
-                                            set({ isLoading: false });
+                                        if (data.id === fetches.states.id) {
+                                            stateUpdate.entities = data.result.reduce((acc: HassEntities, entity: HassEntity) => ({ ...acc, [entity.entity_id]: entity }), {});
+                                        } else if (data.id === fetches.areas.id) {
+                                            stateUpdate.areas = data.result;
+                                        } else if (data.id === fetches.devices.id) {
+                                            stateUpdate.devices = data.result;
+                                        } else if (data.id === fetches.entities.id) {
+                                            stateUpdate.entityRegistry = data.result;
                                         }
+                                        
+                                        set(stateUpdate);
+                                    } else {
+                                        console.error(`Initial fetch failed for id ${data.id} (type: ${Object.values(fetches).find(f => f.id === data.id)?.type}):`, data.error);
+                                    }
+
+                                    initialFetchIds.delete(data.id);
+                                    
+                                    if (initialFetchIds.size === 0) {
+                                        try {
+                                            updateDerivedState();
+                                        } catch (err) {
+                                            console.error("Critical error updating derived state during initialization:", err);
+                                        }
+                                        
+                                        const weatherEntities = (Object.values(get().entities) as HassEntity[])
+                                            .filter(e => e.entity_id.startsWith('weather.'))
+                                            .map(e => e.entity_id);
+
+                                        if (weatherEntities.length > 0) {
+                                            get().fetchWeatherForecasts(weatherEntities);
+                                        }
+
+                                        forecastRefreshInterval = setInterval(() => {
+                                            const currentStore = get();
+                                            if (currentStore.connectionStatus === 'connected') {
+                                                const wEntities = (Object.values(currentStore.entities) as HassEntity[])
+                                                    .filter(e => e.entity_id.startsWith('weather.'))
+                                                    .map(e => e.entity_id);
+                                                
+                                                if (wEntities.length > 0) {
+                                                    currentStore.fetchWeatherForecasts(wEntities);
+                                                }
+                                            }
+                                        }, 30 * 60 * 1000);
+
+                                        set({ isLoading: false });
                                     }
                                 }
                             } else if (data.type === 'event' && data.event.event_type === 'state_changed') {
