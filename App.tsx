@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet, GridLayoutItem, EventTimerWidget } from './types';
@@ -112,6 +114,7 @@ const App: React.FC = () => {
         colorScheme, getTemplateForDevice, createNewBlankTemplate,
         editingEventTimerId, setEditingEventTimerId, eventTimerWidgets,
         resetCustomWidgetTimer, deleteCustomWidget, backgroundEffect,
+        isSettingsOpen, setSettingsOpen
     } = useAppStore();
 
     const editingDevice = useAppStore(state => state.editingDevice);
@@ -343,7 +346,7 @@ const App: React.FC = () => {
     return (
       <div className="flex min-h-screen w-screen items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
         <Suspense fallback={<div />}>
-          <Settings onConnect={connect} connectionStatus={connectionStatus} error={error} />
+          <Settings onConnect={connect} connectionStatus={connectionStatus} error={error} variant="page" />
         </Suspense>
       </div>
     );
@@ -372,12 +375,6 @@ const App: React.FC = () => {
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'settings':
-        return (
-          <div className="flex justify-center items-start pt-10">
-            <Suspense fallback={<div />}><Settings onConnect={connect} connectionStatus={connectionStatus} error={error} /></Suspense>
-          </div>
-        );
       case 'helpers':
         return <Suspense fallback={<div />}><HelpersPage /></Suspense>;
       case 'all-devices':
@@ -437,6 +434,7 @@ const App: React.FC = () => {
       </div>
       
       <Suspense fallback={null}>
+        {isSettingsOpen && <Settings variant="drawer" isOpen={isSettingsOpen} onClose={() => setSettingsOpen(false)} connectionStatus={connectionStatus} />}
         {editingDevice && <DeviceSettingsModal device={editingDevice} onClose={handleCloseDeviceSettings} />}
         {editingTab && <TabSettingsModal tab={editingTab} onClose={handleCloseTabSettings} />}
         {editingTemplate && <TemplateEditorModal templateToEdit={editingTemplate === 'new' ? createNewBlankTemplate(DeviceType.Sensor) : editingTemplate} onClose={handleCloseTemplateEditor} />}

@@ -1,4 +1,6 @@
 
+
+
 import React from 'react';
 import { useTemplateGalleryStore } from '../../store/templateGalleryStore';
 import { useAppStore } from '../../store/appStore';
@@ -8,14 +10,17 @@ import { Icon } from '@iconify/react';
 
 const TemplateGallery: React.FC = () => {
   const { getFilteredTemplates } = useTemplateGalleryStore();
-  const { setCurrentPage } = useAppStore();
+  const { setCurrentPage, setSettingsOpen } = useAppStore();
   const templates = getFilteredTemplates();
 
   return (
     <div className="container mx-auto min-h-screen p-6">
       <div className="flex items-center gap-4 mb-8">
          <button 
-            onClick={() => setCurrentPage('settings')}
+            onClick={() => {
+                setCurrentPage('dashboard');
+                setSettingsOpen(true);
+            }}
             className="p-2 rounded-full bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ring-1 ring-black/5 dark:ring-white/10"
          >
              <Icon icon="mdi:arrow-left" className="w-6 h-6 text-gray-700 dark:text-gray-300" />

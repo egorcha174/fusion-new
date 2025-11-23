@@ -47,6 +47,7 @@ interface AppState {
     floatingCamera: Device | null;
     historyModalEntityId: string | null;
     editingEventTimerId: string | null;
+    isSettingsOpen: boolean;
 
     servers: ServerConfig[];
     activeServerId: string | null;
@@ -93,6 +94,7 @@ interface AppActions {
     setFloatingCamera: (device: Device | null) => void;
     setHistoryModalEntityId: (id: string | null) => void;
     setEditingEventTimerId: (id: string | null) => void;
+    setSettingsOpen: (isOpen: boolean) => void;
 
     // Server Management
     setServers: (servers: ServerConfig[]) => void;
@@ -161,7 +163,7 @@ interface AppActions {
     handleAddPhysicalDeviceAsCustomCard: (physicalDevice: PhysicalDevice, tabId: string) => void;
 
     handleSaveCustomization: (originalDevice: Device, newValues: Omit<DeviceCustomization, 'name' | 'type' | 'icon' | 'isHidden'> & { name: string; type: DeviceType; icon: string; isHidden: boolean; }) => void;
-    handleToggleVisibility: (device: Device, isHidden: boolean) => void;
+    handleToggleVisibility: (device: Device, isHidden) => void;
     handleSaveTemplate: (template: CardTemplate) => void;
     handleDeleteTemplate: (templateId: string) => void;
     createNewBlankTemplate: (deviceType: DeviceType | 'custom') => CardTemplate;
@@ -216,6 +218,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     floatingCamera: null,
     historyModalEntityId: null,
     editingEventTimerId: null,
+    isSettingsOpen: false,
     
     servers: initialServers,
     activeServerId: initialActiveServerId,
@@ -260,6 +263,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     setFloatingCamera: (device) => set({ floatingCamera: device }),
     setHistoryModalEntityId: (id) => set({ historyModalEntityId: id }),
     setEditingEventTimerId: (id) => set({ editingEventTimerId: id }),
+    setSettingsOpen: (isOpen) => set({ isSettingsOpen: isOpen }),
 
     // --- Server Management Actions ---
     setServers: (servers) => {

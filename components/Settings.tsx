@@ -1,4 +1,6 @@
 
+
+
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device, AuroraSettings } from '../types';
 import ConfirmDialog from './ConfirmDialog';
@@ -11,6 +13,7 @@ import { format } from 'date-fns';
 import { nanoid } from 'nanoid';
 import { set as setAtPath } from '../utils/obj-path';
 import { generatePackage, validatePackage } from '../utils/packageManager';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'failed';
 type SettingsTab = 'appearance' | 'interface' | 'templates' | 'connection' | 'backup';
@@ -180,9 +183,12 @@ interface SettingsProps {
     onConnect?: (url: string, token: string) => void;
     connectionStatus?: ConnectionStatus;
     error?: string | null;
+    variant?: 'page' | 'drawer';
+    isOpen?: boolean;
+    onClose?: () => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error }) => {
+const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error, variant = 'page', isOpen = false, onClose }) => {
     // Состояния для вкладки "Подключение"
     const [selectedServerId, setSelectedServerId] = useState<string | null>(null);
     const [editingServer, setEditingServer] = useState<Partial<ServerConfig> | null>(null);
@@ -436,8 +442,9 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
 
     const isLoginMode = connectionStatus !== 'connected';
 
-    return (
-        <div className="w-full max-w-4xl mx-auto p-4 space-y-8 pb-20">
+    // --- Render Content Logic ---
+    const renderContent = () => (
+        <>
             {/* Connection Section */}
             {isLoginMode && (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-black/5 dark:ring-white/10 overflow-hidden">
@@ -927,6 +934,50 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                 onCancel={() => setServerToDelete(null)}
                 confirmText="Удалить"
             />
+        </>
+    );
+
+    if (variant === 'drawer') {
+        return (
+            <AnimatePresence>
+                {isOpen && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+                            onClick={onClose}
+                        />
+                        <motion.div
+                            initial={{ x: '100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '100%' }}
+                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                            className="fixed inset-y-0 right-0 w-full max-w-md bg-white dark:bg-gray-900 shadow-2xl z-50 flex flex-col"
+                        >
+                            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
+                                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Настройки</h2>
+                                <button 
+                                    onClick={onClose}
+                                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                >
+                                    <Icon icon="mdi:close" className="w-6 h-6 text-gray-500 dark:text-gray-400" />
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-4 pb-20 space-y-6">
+                                {renderContent()}
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+        );
+    }
+
+    return (
+        <div className="w-full max-w-4xl mx-auto p-4 space-y-8 pb-20">
+            {renderContent()}
         </div>
     );
 };
