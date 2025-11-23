@@ -7,7 +7,7 @@ import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
   CameraSettings, ColorScheme, CardTemplate, DeviceType, GridLayoutItem, DeviceCustomization,
   CardElementId, EventTimerWidget, CustomCardWidget, PhysicalDevice, CardElement, WeatherSettings,
-  ServerConfig, ThemeDefinition, ThemePackage, AuroraSettings, WeatherData
+  ServerConfig, ThemeDefinition, ThemePackage, AuroraSettings
 } from '../types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from '../components/DeviceIcon';
@@ -77,13 +77,13 @@ interface AppState {
     yandexWeatherKey: string;
     forecaApiKey: string;
     weatherSettings: WeatherSettings;
-    weatherData: WeatherData | null;
     lowBatteryThreshold: number;
     eventTimerWidgets: EventTimerWidget[];
     customCardWidgets: CustomCardWidget[];
     backgroundEffect: BackgroundEffectType;
     auroraSettings: AuroraSettings;
     DEFAULT_COLOR_SCHEME: ColorScheme;
+    weatherData: any;
 }
 
 interface AppActions {
@@ -133,7 +133,7 @@ interface AppActions {
     setYandexWeatherKey: (key: string) => void;
     setForecaApiKey: (key: string) => void;
     setWeatherSettings: (settings: WeatherSettings) => void;
-    setWeatherData: (data: WeatherData | null) => void;
+    setWeatherData: (data: any) => void;
     setLowBatteryThreshold: (threshold: number) => void;
     
     setEventTimerWidgets: (widgets: EventTimerWidget[]) => void;
