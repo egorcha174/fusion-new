@@ -1,8 +1,9 @@
 
 import React, { useRef, useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device, AuroraSettings } from '../types';
 import ConfirmDialog from './ConfirmDialog';
-import { useAppStore } from '../store/appStore';
+import { useAppStore, BackgroundEffectType } from '../store/appStore';
 import { useHAStore } from '../store/haStore';
 import JSZip from 'jszip';
 import { Icon } from '@iconify/react';
@@ -101,7 +102,9 @@ const ThemeEditor: React.FC<{
         
         const reader = new FileReader();
         reader.onloadend = () => {
-            onUpdate(`${themeType}.dashboardBackgroundImage`, reader.result as string);
+            if (typeof reader.result === 'string') {
+                onUpdate(`${themeType}.dashboardBackgroundImage`, reader.result);
+            }
         };
         reader.readAsDataURL(file);
     };
@@ -295,8 +298,9 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                         const content = await settingsFile.async("string");
                         const importedSettings = JSON.parse(content);
 
+                        const validStorageKeys = Object.values(LOCAL_STORAGE_KEYS) as string[];
                         Object.keys(importedSettings).forEach(key => {
-                            if (Object.values(LOCAL_STORAGE_KEYS).includes(key as any)) {
+                            if (validStorageKeys.includes(key)) {
                                localStorage.setItem(key, JSON.stringify(importedSettings[key]));
                             }
                         });
@@ -722,7 +726,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                     
                     <Section title="Анимация фона" defaultOpen={false}>
                         <LabeledInput label="Эффект">
-                            <select value={backgroundEffect} onChange={e => setBackgroundEffect(e.target.value as any)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm">
+                            <select value={backgroundEffect} onChange={e => setBackgroundEffect(e.target.value as BackgroundEffectType)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm">
                                 <option value="none">Нет</option>
                                 <option value="snow">Снег</option>
                                 <option value="rain">Дождь</option>
@@ -843,13 +847,22 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                                         <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{template.name}</p>
                                         <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">{template.deviceType}</p>
                                     </div>
-                                    <button 
-                                        onClick={() => handleDeleteTemplate(template.id)} 
-                                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
-                                        title="Удалить шаблон"
-                                    >
-                                        <Icon icon="mdi:trash-can-outline" className="w-5 h-5" />
-                                    </button>
+                                    <div className="flex items-center gap-1">
+                                        <button 
+                                            onClick={() => setEditingTemplate(template)} 
+                                            className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors"
+                                            title="Редактировать шаблон"
+                                        >
+                                            <Icon icon="mdi:pencil" className="w-5 h-5" />
+                                        </button>
+                                        <button 
+                                            onClick={() => handleDeleteTemplate(template.id)} 
+                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
+                                            title="Удалить шаблон"
+                                        >
+                                            <Icon icon="mdi:trash-can-outline" className="w-5 h-5" />
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -934,8 +947,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
     );
 
     if (variant === 'drawer') {
-        // When used as a drawer (overlay), isOpen determines visibility.
-        return (
+        return createPortal(
             <div className={`fixed inset-0 z-[60] flex justify-end transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
                  {/* Backdrop */}
                 <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
@@ -952,7 +964,8 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                         {content}
                     </div>
                 </div>
-            </div>
+            </div>,
+            document.body
         );
     }
 
