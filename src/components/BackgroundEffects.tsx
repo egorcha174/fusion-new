@@ -180,44 +180,50 @@ const LeavesEffect = () => {
 
 const CloudShape = React.memo(({ width, height, color, seed }: { width: number, height: number, color: string, seed: number }) => {
     const { circles, gradientId, morphDuration, morphDelay, pulseDuration } = useMemo(() => {
+        // Pseudo-random generator based on seed
         const random = (offset: number) => {
-            // Use a better pseudo-random generator for cloud shape to avoid patterns
             const x = Math.sin(seed * 43758.5453 + offset * 12.9898) * 10000;
             return x - Math.floor(x);
         };
 
         const c = [];
         
-        // 1. Main body structure: A "spine" of overlapping circles to define general shape
-        // Number of spine segments: 3 to 5
-        const spineCount = 3 + Math.floor(random(0) * 3); 
+        // 1. Main "Body" Blobs - Random Cluster approach
+        // Instead of a linear spine (which makes animals), we place large blobs randomly around the center
+        const blobCount = 4 + Math.floor(random(0) * 3); // 4 to 6 main blobs
         
-        for (let i = 0; i < spineCount; i++) {
-            // Distribute horizontally from ~20% to ~80%
-            const t = i / (spineCount - 1 || 1);
-            const baseX = 0.25 + t * 0.5; 
+        for (let i = 0; i < blobCount; i++) {
+            // Scatter around the center (0.5, 0.5)
+            // Spread X: 0.2 to 0.8
+            // Spread Y: 0.3 to 0.7
+            const cx = width * (0.2 + random(i + 1) * 0.6);
+            const cy = height * (0.3 + random(i + 2) * 0.4);
             
-            // Randomize position
-            const cx = width * (baseX + (random(i + 1) - 0.5) * 0.25);
-            const cy = height * (0.55 + (random(i + 2) - 0.5) * 0.3);
-            const r = width * (0.22 + random(i + 3) * 0.15);
+            // Vary radii significantly to avoid uniform "sausages"
+            const r = width * (0.15 + random(i + 3) * 0.25);
             
             c.push({ cx, cy, r });
         }
 
-        // 2. "Fluff" circles to add random details and break regularity
-        // 10 to 20 fluff circles
-        const fluffCount = 10 + Math.floor(random(4) * 11); 
+        // 2. "Fluff" Details - add smaller circles to the edges to create irregular shapes
+        const fluffCount = 15 + Math.floor(random(4) * 15); // 15 to 30 fluff circles
         
         for (let i = 0; i < fluffCount; i++) {
-            // Distributed randomly within bounds
-            const cx = width * (0.15 + random(i + 100) * 0.7);
-            const cy = height * (0.45 + random(i + 200) * 0.4);
-            const r = width * (0.12 + random(i + 300) * 0.12);
+            // Fluff can be anywhere, but bias towards existing blobs
+            const parentBlob = c[Math.floor(random(i + 10) * blobCount)];
+            
+            // Offset from a parent blob
+            const angle = random(i + 20) * Math.PI * 2;
+            const dist = parentBlob.r * (0.5 + random(i + 30) * 0.5);
+            
+            const cx = parentBlob.cx + Math.cos(angle) * dist;
+            const cy = parentBlob.cy + Math.sin(angle) * dist;
+            const r = width * (0.08 + random(i + 40) * 0.12);
+
             c.push({ cx, cy, r });
         }
 
-        const gId = `cloudGrad-${seed}-${nanoid(4)}`;
+        const gId = `cloudGrad-${Math.floor(seed * 10000)}-${nanoid(4)}`;
         
         // Animation parameters
         const mDuration = 20 + random(10) * 20; // 20-40s for morphing
@@ -286,6 +292,9 @@ const StrongCloudyEffect = ({ dark = false }: { dark?: boolean }) => {
 
             // Higher scale = closer = faster (parallax effect)
             const parallaxDuration = duration / scale; 
+            
+            // Use a purely random seed for the shape generation, independent of index
+            const shapeSeed = Math.random() * 100000;
 
             return {
                 id: i,
@@ -301,7 +310,8 @@ const StrongCloudyEffect = ({ dark = false }: { dark?: boolean }) => {
                 } as React.CSSProperties,
                 width,
                 height,
-                color
+                color,
+                shapeSeed
             };
         });
     }, [dark]);
@@ -320,7 +330,7 @@ const StrongCloudyEffect = ({ dark = false }: { dark?: boolean }) => {
                     50% { opacity: 0.4; }
                 }
             `}</style>
-            {clouds.map((cloud, index) => (
+            {clouds.map((cloud) => (
                 <div 
                     key={cloud.id} 
                     className="cloud" 
@@ -329,7 +339,7 @@ const StrongCloudyEffect = ({ dark = false }: { dark?: boolean }) => {
                         animationName: 'cloud-drift'
                     }}
                 >
-                    <CloudShape width={cloud.width} height={cloud.height} color={cloud.color} seed={index} />
+                    <CloudShape width={cloud.width} height={cloud.height} color={cloud.color} seed={cloud.shapeSeed} />
                 </div>
             ))}
         </>
