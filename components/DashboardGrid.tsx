@@ -12,6 +12,9 @@ import { useAppStore } from '../store/appStore';
 import ErrorBoundary from './ErrorBoundary';
 import LoadingSpinner from './LoadingSpinner';
 
+// Workaround for TypeScript errors with framer-motion props
+const MotionDiv = motion.div as any;
+
 // ID шаблонов по умолчанию
 const DEFAULT_SENSOR_TEMPLATE_ID = 'default-sensor';
 const DEFAULT_LIGHT_TEMPLATE_ID = 'default-light';
@@ -176,7 +179,7 @@ const OccupiedCellWrapper: React.FC<{
     };
 
     return (
-        <motion.div
+        <MotionDiv
             ref={setNodeRef}
             style={style}
             className={`relative transition-colors duration-200 ${overClasses}`}
@@ -187,7 +190,7 @@ const OccupiedCellWrapper: React.FC<{
             transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
         >
             {children}
-        </motion.div>
+        </MotionDiv>
     );
 });
 
@@ -455,7 +458,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                     </div>
                      <DragOverlay dropAnimation={null} modifiers={[snapCenterToCursor]}>
                         {activeDevice && activeDragItemRect ? (
-                          <motion.div
+                          <MotionDiv
                             style={{
                               width: activeDragItemRect.width,
                               height: activeDragItemRect.height,
@@ -486,7 +489,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                               onCameraCardClick={() => {}}
                               onEditDevice={() => {}}
                             />
-                          </motion.div>
+                          </MotionDiv>
                         ) : null}
                     </DragOverlay>
                 </DndContext>
