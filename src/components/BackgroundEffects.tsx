@@ -1,6 +1,4 @@
 
-
-
 import React, { useMemo } from 'react';
 import { useAppStore, BackgroundEffectType } from '../store/appStore';
 import { applyOpacity } from '../utils/themeUtils';
@@ -177,38 +175,76 @@ const LeavesEffect = () => {
     );
 };
 
+const CloudShape = React.memo(({ width, height }: { width: number, height: number }) => {
+    const circles = useMemo(() => {
+        // Generate clusters of circles to form a fluffy cloud shape
+        const c = [];
+        const count = 5 + Math.floor(Math.random() * 5); // 5-9 extra puffs
+        
+        // Base: Wider horizontal ellipses/circles at the bottom
+        c.push({ cx: width * 0.5, cy: height * 0.65, r: width * 0.3 });
+        c.push({ cx: width * 0.25, cy: height * 0.7, r: width * 0.2 });
+        c.push({ cx: width * 0.75, cy: height * 0.7, r: width * 0.2 });
+
+        // Top: Smaller puffs to create the cumulus look
+        for(let i=0; i<count; i++) {
+            c.push({
+                cx: width * (0.2 + Math.random() * 0.6),
+                cy: height * (0.25 + Math.random() * 0.4),
+                r: width * (0.15 + Math.random() * 0.15)
+            });
+        }
+        return c;
+    }, [width, height]);
+
+    return (
+        <svg 
+            viewBox={`0 0 ${width} ${height}`} 
+            style={{ 
+                width: '100%', 
+                height: '100%', 
+                overflow: 'visible',
+                // Drop shadow on the container creates the shadow for the unified shape
+                filter: 'drop-shadow(0px 15px 10px rgba(0,0,0,0.15))' 
+            }}
+        >
+            <g fill="#FFFFFF">
+                {circles.map((item, i) => (
+                    <circle key={i} cx={item.cx} cy={item.cy} r={item.r} />
+                ))}
+            </g>
+        </svg>
+    );
+});
+
 const StrongCloudyEffect = () => {
     const clouds = useMemo(() => {
-        // Standard Cloud Shape
-        const cloudPath = "M17.5,8.6c0-2.3,1.9-4.2,4.2-4.2c0.4,0,0.8,0.1,1.1,0.2c0.6-1.8,2.3-3.1,4.3-3.1c2.5,0,4.5,2,4.5,4.5c0,0.2,0,0.4,0,0.5c0.2,0,0.4,0,0.5,0c2.3,0,4.2,1.9,4.2,4.2s-1.9,4.2-4.2,4.2H21.7C19.4,14.9,17.5,13,17.5,10.7L17.5,8.6z";
-        
-        const colors = ['#9ca3af', '#6b7280', '#4b5563']; // Shades of grey
-
-        return Array.from({ length: 12 }).map((_, i) => {
-            // Create varied cloud sizes and speeds
-            const width = Math.random() * 300 + 200; // 200px to 500px
-            const height = width * 0.6;
-            const top = Math.random() * 60; // Top 60% of screen
-            const duration = Math.random() * 40 + 30; // 30s to 70s
-            const delay = Math.random() * -60; // Start mid-animation
-            const opacity = Math.random() * 0.4 + 0.4; // 0.4 to 0.8
-            const color = colors[Math.floor(Math.random() * colors.length)];
-            const zIndex = Math.floor(Math.random() * 3); // Layering
+        // Generate more clouds with varied sizes for depth
+        return Array.from({ length: 18 }).map((_, i) => {
+            const scale = 0.6 + Math.random() * 1.8; // varied scale for 3D effect
+            const width = 220 * scale;
+            const height = 140 * scale;
+            const top = Math.random() * 80; // spread across the top 80%
+            const duration = 60 + Math.random() * 60; // very slow movement (1-2 mins)
+            const delay = Math.random() * -100; // start at random positions
+            const opacity = 0.8 + Math.random() * 0.2; // mostly opaque
+            
+            // Higher scale = closer = higher z-index = faster (parallax effect)
+            const parallaxDuration = duration / scale; 
 
             return {
                 id: i,
-                path: cloudPath,
                 style: {
                     '--width': `${width}px`,
                     '--height': `${height}px`,
                     '--top': `${top}vh`,
                     '--opacity': opacity,
-                    zIndex: zIndex,
-                    animationDuration: `${duration}s`,
+                    zIndex: Math.floor(scale * 10), // larger clouds on top
+                    animationDuration: `${parallaxDuration}s`,
                     animationDelay: `${delay}s`,
-                    filter: `blur(${width > 300 ? 8 : 4}px)`,
                 } as React.CSSProperties,
-                color,
+                width,
+                height
             };
         });
     }, []);
@@ -216,22 +252,8 @@ const StrongCloudyEffect = () => {
     return (
         <>
             {clouds.map(cloud => (
-                <div 
-                    key={cloud.id} 
-                    className="cloud" 
-                    style={cloud.style}
-                >
-                    <svg 
-                        viewBox="0 0 50 20" 
-                        preserveAspectRatio="none"
-                        style={{ 
-                            width: '100%', 
-                            height: '100%', 
-                            fill: cloud.color,
-                        }}
-                    >
-                        <path d={cloud.path} transform="scale(1.1, 1)" />
-                    </svg>
+                <div key={cloud.id} className="cloud" style={cloud.style}>
+                    <CloudShape width={cloud.width} height={cloud.height} />
                 </div>
             ))}
         </>
