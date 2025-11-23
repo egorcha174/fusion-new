@@ -1,9 +1,3 @@
-
-
-
-
-
-
 import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
@@ -195,13 +189,17 @@ if (initialServers.length === 0) {
   }
 }
 
-// FIX: Theme Loading Logic
-// We load stored themes but only keep the ones marked as custom.
-// Built-in themes are always sourced from DEFAULT_THEMES to ensure updates (like new themes) are applied.
-const storedThemes = loadAndMigrate<ThemeDefinition[]>(LOCAL_STORAGE_KEYS.THEMES, DEFAULT_THEMES);
+// FIX: Robust Theme Loading
+// We load stored themes from localStorage, but we ONLY keep the custom ones.
+// Built-in themes are always sourced from the code (DEFAULT_THEMES) to ensure updates are applied.
+const storedThemes = loadAndMigrate<ThemeDefinition[]>(LOCAL_STORAGE_KEYS.THEMES, []);
+const customThemes = storedThemes.filter(t => t.isCustom);
+// Ensure no ID collisions between custom and default themes (defaults win)
+const uniqueCustomThemes = customThemes.filter(ct => !DEFAULT_THEMES.some(dt => dt.id === ct.id));
+
 const initialThemes = [
     ...DEFAULT_THEMES,
-    ...storedThemes.filter(t => t.isCustom)
+    ...uniqueCustomThemes
 ];
 
 const initialActiveThemeId = loadAndMigrate<string>(LOCAL_STORAGE_KEYS.ACTIVE_THEME_ID, DEFAULT_THEMES[0].id);
