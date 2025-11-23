@@ -1,8 +1,3 @@
-
-
-
-
-
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device, AuroraSettings } from '../types';
 import ConfirmDialog from './ConfirmDialog';
@@ -444,9 +439,18 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
 
     const isLoginMode = connectionStatus !== 'connected';
 
-    // --- Render Content Logic ---
-    const renderContent = () => (
-        <>
+    return (
+        <div className={`w-full max-w-4xl mx-auto p-4 space-y-8 pb-20 transition-all duration-300 ${isOpen ? 'opacity-100 translate-x-0' : ''}`}>
+            {/* Title only in drawer mode */}
+            {variant === 'drawer' && (
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Настройки</h2>
+                    <button onClick={onClose} className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                        <Icon icon="mdi:close" className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+                    </button>
+                </div>
+            )}
+
             {/* Connection Section */}
             {isLoginMode && (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-black/5 dark:ring-white/10 overflow-hidden">
@@ -849,22 +853,13 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                                         <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{template.name}</p>
                                         <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">{template.deviceType}</p>
                                     </div>
-                                    <div className="flex items-center gap-1">
-                                        <button 
-                                            onClick={() => setEditingTemplate(template)} 
-                                            className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors"
-                                            title="Редактировать шаблон"
-                                        >
-                                            <Icon icon="mdi:pencil" className="w-5 h-5" />
-                                        </button>
-                                        <button 
-                                            onClick={() => handleDeleteTemplate(template.id)} 
-                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
-                                            title="Удалить шаблон"
-                                        >
-                                            <Icon icon="mdi:trash-can-outline" className="w-5 h-5" />
-                                        </button>
-                                    </div>
+                                    <button 
+                                        onClick={() => handleDeleteTemplate(template.id)} 
+                                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
+                                        title="Удалить шаблон"
+                                    >
+                                        <Icon icon="mdi:trash-can-outline" className="w-5 h-5" />
+                                    </button>
                                 </div>
                             ))}
                         </div>
