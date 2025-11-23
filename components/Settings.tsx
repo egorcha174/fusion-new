@@ -1,6 +1,4 @@
 
-
-
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device, AuroraSettings } from '../types';
 import ConfirmDialog from './ConfirmDialog';
@@ -441,9 +439,8 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
 
     const isLoginMode = connectionStatus !== 'connected';
 
-    // --- Render Content Logic ---
-    const renderContent = () => (
-        <>
+    return (
+        <div className="w-full max-w-4xl mx-auto p-4 space-y-8 pb-20">
             {/* Connection Section */}
             {isLoginMode && (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-black/5 dark:ring-white/10 overflow-hidden">
@@ -731,6 +728,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                                 <option value="rain">Дождь</option>
                                 <option value="strong-cloudy">Сильная облачность</option>
                                 <option value="rain-clouds">Облака и дождь</option>
+                                <option value="snow-rain">Снег с дождем</option>
                                 <option value="leaves">Листопад</option>
                                 <option value="river">Речные волны</option>
                                 <option value="aurora">Полярное сияние</option>
