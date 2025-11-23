@@ -36,7 +36,7 @@ const App: React.FC = () => {
     const {
         connectionStatus, isLoading, error, connect, allKnownDevices,
         allCameras, getCameraStreamUrl, getConfig, getHistory, signPath,
-        haUrl, allRoomsWithPhysicalDevices
+        haUrl, allRoomsWithPhysicalDevices, disconnect
     } = useHAStore();
 
     const {
@@ -58,6 +58,7 @@ const App: React.FC = () => {
     const editingDevice = useAppStore(state => state.editingDevice);
     const floatingCamera = useAppStore(state => state.floatingCamera);
     const [confirmingDeleteWidget, setConfirmingDeleteWidget] = useState<EventTimerWidget | null>(null);
+    const [longLoading, setLongLoading] = useState(false);
 
     const cardSizes = [
         { w: 1, h: 0.5 },
@@ -187,6 +188,16 @@ const App: React.FC = () => {
             }
         }
     }, [connectionStatus, isLoading, tabs, activeTabId, allKnownDevices, setTabs, setActiveTabId]);
+    
+    // Watchdog for long loading
+    useEffect(() => {
+        let timer: number;
+        if (isLoading) {
+            setLongLoading(false);
+            timer = setTimeout(() => setLongLoading(true), 8000);
+        }
+        return () => clearTimeout(timer);
+    }, [isLoading]);
 
   const activeTab = useMemo(() => tabs.find(t => t.id === activeTabId), [tabs, activeTabId]);
   
@@ -320,8 +331,16 @@ const App: React.FC = () => {
   
   if (isLoading) {
     return (
-       <div className="flex h-screen w-screen items-center justify-center">
+       <div className="flex flex-col h-screen w-screen items-center justify-center gap-4">
          <LoadingSpinner />
+         {longLoading && (
+             <button 
+                onClick={() => disconnect()} 
+                className="mt-4 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium"
+             >
+                 Отмена (Загрузка затянулась)
+             </button>
+         )}
        </div>
     );
   }
