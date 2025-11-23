@@ -352,10 +352,30 @@ const AuroraEffect = () => {
                 <div className="absolute inset-0 aurora-noise" />
             </div>
             
+            {/* Horizon gradient for blending */}
             <div className="absolute left-0 right-0 bottom-0 h-[22%] bg-gradient-to-b from-transparent via-black/60 to-black pointer-events-none" />
         </div>
     );
 };
+
+// New Flash Component
+const LightningFlash = () => (
+    <>
+        <style>{`
+            @keyframes lightning {
+                0%, 92%, 100% { opacity: 0; }
+                93% { opacity: 0.6; }
+                94% { opacity: 0.2; }
+                96% { opacity: 0.8; }
+                98% { opacity: 0; }
+            }
+        `}</style>
+        <div 
+            className="absolute inset-0 bg-white pointer-events-none z-20 mix-blend-overlay"
+            style={{ animation: 'lightning 7s infinite' }}
+        />
+    </>
+);
 
 const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect }) => {
     if (effect === 'none') return null;
@@ -379,6 +399,13 @@ const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect }) => {
                     <StrongCloudyEffect dark />
                     <RainEffect zIndexOverride={15} />
                     <SnowEffect />
+                </>
+            )}
+            {effect === 'thunderstorm' && (
+                <>
+                    <StrongCloudyEffect dark />
+                    <RainEffect zIndexOverride={15} />
+                    <LightningFlash />
                 </>
             )}
         </div>

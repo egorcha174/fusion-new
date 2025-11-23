@@ -5,6 +5,9 @@
 
 
 
+
+
+
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet, GridLayoutItem, EventTimerWidget } from './types';
@@ -323,16 +326,18 @@ const App: React.FC = () => {
         if (!icon) return 'none';
 
         // Determine effect based on OWM icon code
-        // Rain (09, 10, 11 - thunderstorm)
-        if (['09', '10', '11'].some(c => icon.startsWith(c))) return 'rain-clouds';
+        // Thunderstorm (11)
+        if (icon.startsWith('11')) return 'thunderstorm';
+        // Rain (09, 10)
+        if (['09', '10'].some(c => icon.startsWith(c))) return 'rain-clouds';
         // Snow (13)
         if (icon.startsWith('13')) return 'snow';
-        // Fog (50) or Clouds (03, 04) - Strong Cloudy
-        if (['03', '04', '50'].some(c => icon.startsWith(c))) return 'strong-cloudy';
-        // Clear Night (01n, 02n) - Aurora
-        if (['01n', '02n'].includes(icon)) return 'aurora';
+        // Fog (50) or Clouds (02, 03, 04) - Strong Cloudy
+        if (['02', '03', '04', '50'].some(c => icon.startsWith(c))) return 'strong-cloudy';
+        // Clear Night (01n) - Aurora
+        if (icon === '01n') return 'aurora';
         
-        // Default for clear day or light clouds
+        // Default for clear day
         return 'none';
     }, [backgroundEffect, weatherData]);
 
