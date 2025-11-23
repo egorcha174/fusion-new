@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Device, DeviceType, CardTemplate, DeviceCustomizations, ColorScheme, CardElement } from '../types';
 import DeviceIcon, { getIconNameForDeviceType } from './DeviceIcon';
@@ -91,14 +89,14 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
               backgroundPosition: 'center',
               backgroundImage: `url(${device.entityPictureUrl})`,
               borderRadius: `${colorScheme.cardBorderRadius}px`,
-              border: colorScheme.cardBorderWidth ? `${colorScheme.cardBorderWidth}px solid ${colorScheme.cardBorderColor}` : undefined,
+              border: colorScheme.cardBorderWidth ? `${colorScheme.cardBorderWidth}px solid ${colorScheme.cardBorderColor || 'transparent'}` : undefined,
           };
       }
       return { 
           backgroundColor: isOn ? colorScheme.cardBackgroundOn : colorScheme.cardBackground,
           backdropFilter: 'blur(16px)',
           borderRadius: `${colorScheme.cardBorderRadius}px`,
-          border: colorScheme.cardBorderWidth ? `${colorScheme.cardBorderWidth}px solid ${colorScheme.cardBorderColor}` : undefined,
+          border: colorScheme.cardBorderWidth ? `${colorScheme.cardBorderWidth}px solid ${colorScheme.cardBorderColor || 'transparent'}` : undefined,
           overflow: 'hidden',
           position: 'relative',
           transition: 'background-color 0.3s ease',
