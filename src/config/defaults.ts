@@ -1,11 +1,8 @@
 
-
-
 import {
     CardTemplates,
     ColorScheme,
     CardTemplate,
-    DeviceType,
     ClockSettings,
     CameraSettings,
     WeatherSettings,
@@ -109,7 +106,8 @@ export const defaultTemplates: CardTemplates = {
 };
 
 // --- Default Color Scheme ---
-export const DEFAULT_COLOR_SCHEME: ColorScheme = (appleTheme as { colorScheme: ColorScheme }).colorScheme;
+const themeData: any = appleTheme;
+export const DEFAULT_COLOR_SCHEME: ColorScheme = themeData.colorScheme;
 
 // --- Other Default Settings ---
 export const defaultClockSettings: ClockSettings = { format: '24h', showSeconds: true, size: 'md' };
