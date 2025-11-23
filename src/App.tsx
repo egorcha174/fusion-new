@@ -1,4 +1,12 @@
 
+
+
+
+
+
+
+
+
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet, GridLayoutItem, EventTimerWidget } from './types';
@@ -9,8 +17,6 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeInjector from './components/ThemeInjector';
 import { useWeather } from './hooks/useWeather';
-import { useIsLg } from './hooks/useIsLg';
-import SubMenuItem from './components/SubMenuItem';
 
 
 const Settings = lazy(() => import('./components/Settings.tsx'));
@@ -31,12 +37,76 @@ const BackgroundEffects = lazy(() => import('./components/BackgroundEffects.tsx'
 const TemplateGallery = lazy(() => import('./components/templateGallery/TemplateGallery.tsx'));
 
 
+const SubMenuItem: React.FC<{
+    children: React.ReactNode;
+    title: string;
+}> = ({ children, title }) => {
+    const itemRef = useRef<HTMLDivElement>(null);
+    const [submenuClasses, setSubmenuClasses] = useState('left-full top-[-5px]');
+
+    const handleMouseEnter = () => {
+        if (!itemRef.current) return;
+        
+        const parentMenu = itemRef.current.closest('[role="menu"]');
+        if (!parentMenu) return;
+        const parentRect = parentMenu.getBoundingClientRect();
+        
+        const SUBMENU_WIDTH_ESTIMATE = 160; 
+        
+        const itemRect = itemRef.current.getBoundingClientRect();
+        const SUBMENU_HEIGHT_ESTIMATE = (React.Children.count(children) * 32) + 16; 
+
+        let classes = '';
+
+        if (parentRect.right + SUBMENU_WIDTH_ESTIMATE > window.innerWidth) {
+            classes += 'right-full ';
+        } else {
+            classes += 'left-full ';
+        }
+
+        if (itemRect.top + SUBMENU_HEIGHT_ESTIMATE > window.innerHeight) {
+            classes += 'bottom-0 ';
+        } else {
+            classes += 'top-[-5px] ';
+        }
+
+        setSubmenuClasses(classes);
+    };
+
+    return (
+        <div
+            ref={itemRef}
+            className="relative group/menu"
+            onMouseEnter={handleMouseEnter}
+        >
+            <div className="px-3 py-1.5 rounded-md cursor-default flex justify-between items-center hover:bg-gray-200 dark:hover:bg-gray-700/80">
+                {title}
+                <span className="text-xs ml-4">▶</span>
+            </div>
+            <div className={`absolute z-10 hidden group-hover/menu:block bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-1 min-w-[150px] ${submenuClasses}`}>
+                {children}
+            </div>
+        </div>
+    );
+};
+
+
+const useIsLg = () => {
+  const [isLg, setIsLg] = useState(window.innerWidth >= 1024);
+  useEffect(() => {
+      const handleResize = () => setIsLg(window.innerWidth >= 1024);
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  return isLg;
+}
+
 const App: React.FC = () => {
     const initializationDone = useRef(false);
     const {
         connectionStatus, isLoading, error, connect, allKnownDevices,
         allCameras, getCameraStreamUrl, getConfig, getHistory, signPath,
-        haUrl, allRoomsWithPhysicalDevices, disconnect
+        haUrl, allRoomsWithPhysicalDevices
     } = useHAStore();
 
     const {
@@ -58,7 +128,6 @@ const App: React.FC = () => {
     const editingDevice = useAppStore(state => state.editingDevice);
     const floatingCamera = useAppStore(state => state.floatingCamera);
     const [confirmingDeleteWidget, setConfirmingDeleteWidget] = useState<EventTimerWidget | null>(null);
-    const [longLoading, setLongLoading] = useState(false);
 
     const cardSizes = [
         { w: 1, h: 0.5 },
@@ -188,16 +257,6 @@ const App: React.FC = () => {
             }
         }
     }, [connectionStatus, isLoading, tabs, activeTabId, allKnownDevices, setTabs, setActiveTabId]);
-    
-    // Watchdog for long loading
-    useEffect(() => {
-        let timer: number;
-        if (isLoading) {
-            setLongLoading(false);
-            timer = setTimeout(() => setLongLoading(true), 8000);
-        }
-        return () => clearTimeout(timer);
-    }, [isLoading]);
 
   const activeTab = useMemo(() => tabs.find(t => t.id === activeTabId), [tabs, activeTabId]);
   
@@ -272,7 +331,7 @@ const App: React.FC = () => {
         if (['09', '10'].some(c => icon.startsWith(c))) return 'rain-clouds';
         // Snow (13)
         if (icon.startsWith('13')) return 'snow';
-        // Fog (50) or Clouds (02, 03, 04) - Strong Cloudy
+        // Fog (50) or Clouds (02, 03, 04) - Cloudy
         if (['02', '03', '04', '50'].some(c => icon.startsWith(c))) return 'strong-cloudy';
         // Clear Night (01n) - Aurora
         if (icon === '01n') return 'aurora';
@@ -331,16 +390,8 @@ const App: React.FC = () => {
   
   if (isLoading) {
     return (
-       <div className="flex flex-col h-screen w-screen items-center justify-center gap-4">
+       <div className="flex h-screen w-screen items-center justify-center">
          <LoadingSpinner />
-         {longLoading && (
-             <button 
-                onClick={() => disconnect()} 
-                className="mt-4 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium"
-             >
-                 Отмена (Загрузка затянулась)
-             </button>
-         )}
        </div>
     );
   }
