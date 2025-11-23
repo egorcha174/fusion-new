@@ -1,18 +1,32 @@
 
-import React, { useRef, useState, useEffect } from 'react';
-import { ColorScheme, ThemeDefinition, ServerConfig, AuroraSettings } from '../types';
+import React, { useRef, useState, useMemo, useEffect } from 'react';
+import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device, AuroraSettings } from '../types';
+import ConfirmDialog from './ConfirmDialog';
 import { useAppStore } from '../store/appStore';
 import { useHAStore } from '../store/haStore';
 import JSZip from 'jszip';
 import { Icon } from '@iconify/react';
 import { LOCAL_STORAGE_KEYS } from '../constants';
+import { format } from 'date-fns';
+import { ru } from 'date-fns/locale/ru';
 import { nanoid } from 'nanoid';
 import { set as setAtPath } from '../utils/obj-path';
 import { generatePackage, validatePackage } from '../utils/packageManager';
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'failed';
-type SettingsTab = 'appearance' | 'interface' | 'templates' | 'connection' | 'backup';
 
+const FONT_FAMILIES = [
+    { name: 'Системный', value: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"` },
+    { name: 'San Francisco (SF Pro)', value: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' },
+    { name: 'Roboto', value: 'Roboto, sans-serif' },
+    { name: 'Verdana', value: 'Verdana, Geneva, sans-serif' },
+    { name: 'Tahoma', value: 'Tahoma, Verdana, Segoe, sans-serif' },
+    { name: 'Arial', value: 'Arial, Helvetica, sans-serif' },
+    { name: 'Times New Roman', value: '"Times New Roman", Times, serif' },
+];
+
+
+// --- Вспомогательные компоненты ---
 const Section: React.FC<{ title: string, children: React.ReactNode, defaultOpen?: boolean, description?: string, key?: string }> = ({ title, children, defaultOpen = true, description, key }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   return (
@@ -154,6 +168,8 @@ const ThemeEditor: React.FC<{
     );
 };
 
+
+// --- Основной компонент настроек ---
 interface SettingsProps {
     onConnect?: (url: string, token: string) => void;
     connectionStatus?: ConnectionStatus;
@@ -166,6 +182,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
     const [serverToDelete, setServerToDelete] = useState<ServerConfig | null>(null);
     
     const {
+        templates, setTemplates,
         themeMode, setThemeMode,
         scheduleStartTime, setScheduleStartTime,
         scheduleEndTime, setScheduleEndTime,
@@ -173,20 +190,24 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
         onResetColorScheme,
         backgroundEffect, setBackgroundEffect,
         servers, activeServerId, addServer, updateServer, deleteServer, setActiveServerId,
-        auroraSettings, setAuroraSettings
+        setCurrentPage, auroraSettings, setAuroraSettings
     } = useAppStore();
+
+    const { allKnownDevices } = useHAStore();
 
     const [editingTheme, setEditingTheme] = useState<ThemeDefinition | null>(null);
     const [confirmingDeleteTheme, setConfirmingDeleteTheme] = useState<ThemeDefinition | null>(null);
     const [activeEditorTab, setActiveEditorTab] = useState<'light' | 'dark'>('light');
 
     useEffect(() => {
+        // При первой загрузке выбрать активный сервер
         if (!selectedServerId && activeServerId) {
             setSelectedServerId(activeServerId);
         }
     }, [activeServerId, selectedServerId]);
     
     useEffect(() => {
+        // Если выбранный сервер удалили, сбрасываем форму редактирования.
         if (editingServer && editingServer.id && !servers.some(s => s.id === editingServer.id)) {
             setEditingServer(null);
         }
@@ -195,8 +216,10 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
     const handleConnect = () => {
         const server = servers.find(s => s.id === selectedServerId);
         if (server && onConnect) {
-            onConnect(server.url, server.token);
+            // Set active server first to ensure state consistency
             setActiveServerId(server.id);
+            // Trigger connection
+            onConnect(server.url, server.token);
         }
     };
     
@@ -206,15 +229,16 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
             return;
         }
 
-        if (editingServer.id) {
+        if (editingServer.id) { // Редактирование существующего
             updateServer(editingServer as ServerConfig);
-        } else {
+        } else { // Добавление нового
             const newServer = addServer({ name: editingServer.name, url: editingServer.url, token: editingServer.token });
             setSelectedServerId(newServer.id);
         }
         setEditingServer(null);
     };
 
+    // --- Theme Management Handlers ---
     const handleCreateNewTheme = () => {
         const baseTheme = themes.find(t => t.id === 'apple-default') || themes[0];
         const newTheme: ThemeDefinition = {
@@ -269,7 +293,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
 
     const handleExportTheme = async (theme: ThemeDefinition) => {
         try {
-            const pkg = await generatePackage(theme, {}, 'User', 'Exported from dashboard'); // Simplified call for now
+            const pkg = await generatePackage(theme, templates, 'User', 'Exported from dashboard');
             const json = JSON.stringify(pkg, null, 2);
             const blob = new Blob([json], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -302,6 +326,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
             {/* Connection Section */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-black/5 dark:ring-white/10 overflow-hidden">
                 <div className="flex h-96">
+                    {/* Левая колонка со списком серверов */}
                     <div className="w-2/5 border-r border-gray-200 dark:border-gray-700 flex flex-col">
                         <div className="p-4 flex-grow overflow-y-auto">
                             <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">Сохраненные серверы</h3>
@@ -329,6 +354,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                         </div>
                     </div>
 
+                    {/* Правая колонка с формой и кнопкой подключения */}
                     <div className="w-3/5 flex flex-col">
                         <div className="p-6 flex-grow space-y-6 overflow-y-auto">
                             {(editingServer) ? (
