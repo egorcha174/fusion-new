@@ -1,15 +1,18 @@
 
 
 
+
+
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet, GridLayoutItem, EventTimerWidget } from './types';
 import { nanoid } from 'nanoid';
-import { useAppStore } from './store/appStore';
+import { useAppStore, BackgroundEffectType } from './store/appStore';
 import { useHAStore } from './store/haStore';
 import ErrorBoundary from './components/ErrorBoundary';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeInjector from './components/ThemeInjector';
+import { useWeather } from './hooks/useWeather';
 
 
 const Settings = lazy(() => import('./components/Settings.tsx'));
@@ -114,7 +117,8 @@ const App: React.FC = () => {
         colorScheme, getTemplateForDevice, createNewBlankTemplate,
         editingEventTimerId, setEditingEventTimerId, eventTimerWidgets,
         resetCustomWidgetTimer, deleteCustomWidget, backgroundEffect,
-        isSettingsOpen, setSettingsOpen
+        isSettingsOpen, setSettingsOpen,
+        weatherData
     } = useAppStore();
 
     const editingDevice = useAppStore(state => state.editingDevice);
@@ -131,6 +135,9 @@ const App: React.FC = () => {
         { w: 3, h: 1 },
         { w: 3, h: 2 },
     ];
+
+  // Invoke custom hook to manage weather data fetching and store updates
+  useWeather();
 
   const isLg = useIsLg();
   const [isDarkBySchedule, setIsDarkBySchedule] = useState(false);
@@ -305,6 +312,29 @@ const App: React.FC = () => {
         return style;
     }, [currentColorScheme]);
 
+    // Resolve effective background effect
+    const effectiveBackgroundEffect = useMemo<BackgroundEffectType>(() => {
+        if (backgroundEffect !== 'weather') return backgroundEffect;
+        
+        // If set to 'weather', derive from current weather data
+        const icon = weatherData?.current?.icon;
+        if (!icon) return 'none';
+
+        // Determine effect based on OWM icon code
+        // Rain (09, 10, 11 - thunderstorm)
+        if (['09', '10', '11'].some(c => icon.startsWith(c))) return 'rain-clouds';
+        // Snow (13)
+        if (icon.startsWith('13')) return 'snow';
+        // Fog (50) or Clouds (03, 04) - Strong Cloudy
+        if (['03', '04', '50'].some(c => icon.startsWith(c))) return 'strong-cloudy';
+        // Clear Night (01n, 02n) - Aurora
+        if (['01n', '02n'].includes(icon)) return 'aurora';
+        
+        // Default for clear day or light clouds
+        return 'none';
+    }, [backgroundEffect, weatherData]);
+
+
     const handleCloseDeviceSettings = useCallback(() => setEditingDevice(null), [setEditingDevice]);
     const handleCloseTabSettings = useCallback(() => setEditingTab(null), [setEditingTab]);
     const handleCloseTemplateEditor = useCallback(() => setEditingTemplate(null), [setEditingTemplate]);
@@ -401,7 +431,7 @@ const App: React.FC = () => {
     <>
       <ThemeInjector theme={currentColorScheme} />
       <div className="fixed inset-0 -z-10 transition-all duration-500" style={backgroundStyle} />
-      {backgroundEffect !== 'none' && <Suspense fallback={null}><BackgroundEffects effect={backgroundEffect} /></Suspense>}
+      {effectiveBackgroundEffect !== 'none' && <Suspense fallback={null}><BackgroundEffects effect={effectiveBackgroundEffect} /></Suspense>}
       <div className="flex min-h-screen relative flex-col lg:flex-row" onContextMenu={handleGlobalContextMenu}>
         {isSidebarVisible && (
         <Suspense fallback={<div className="bg-gray-900 hidden lg:block" style={{ width: `${sidebarWidth}px` }} />}>

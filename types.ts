@@ -1,5 +1,6 @@
 
 
+
 /**
  * Перечисление всех возможных типов устройств, используемых в приложении.
  * Это внутреннее представление, которое используется для определения иконки,
@@ -44,6 +45,25 @@ export interface WeatherForecast {
     temperature: number; // Максимальная температура
     templow: number; // Минимальная температура
     datetime: string; // Дата в формате ISO
+}
+
+// --- Shared Weather Data Types ---
+export interface CurrentWeather {
+    temp: number;
+    desc: string;
+    icon: string; // OWM-style code (e.g., '01d', '10n')
+}
+
+export interface ForecastDay {
+    day: string;
+    tempMax: number;
+    tempMin: number;
+    icon: string;
+}
+
+export interface WeatherData {
+    current: CurrentWeather;
+    forecast: ForecastDay[];
 }
 
 /**

@@ -1,17 +1,17 @@
 
 
 
+
 import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
   CameraSettings, ColorScheme, CardTemplate, DeviceType, GridLayoutItem, DeviceCustomization,
   CardElementId, EventTimerWidget, CustomCardWidget, PhysicalDevice, CardElement, WeatherSettings,
-  ServerConfig, ThemeDefinition, ThemePackage, AuroraSettings
+  ServerConfig, ThemeDefinition, ThemePackage, AuroraSettings, WeatherData
 } from '../types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from '../components/DeviceIcon';
 import { loadAndMigrate } from '../utils/localStorage';
-import { loadSecure, saveSecure } from '../utils/secureStorage';
 import { LOCAL_STORAGE_KEYS } from '../constants';
 import {
     defaultTemplates,
@@ -35,7 +35,7 @@ import {
 } from '../config/defaults';
 import { set as setAtPath } from '../utils/obj-path';
 
-export type BackgroundEffectType = 'none' | 'snow' | 'rain' | 'leaves' | 'river' | 'aurora' | 'strong-cloudy' | 'rain-clouds' | 'snow-rain';
+export type BackgroundEffectType = 'none' | 'snow' | 'rain' | 'leaves' | 'river' | 'aurora' | 'strong-cloudy' | 'rain-clouds' | 'snow-rain' | 'weather';
 
 // --- State and Actions Interfaces ---
 interface AppState {
@@ -77,6 +77,7 @@ interface AppState {
     yandexWeatherKey: string;
     forecaApiKey: string;
     weatherSettings: WeatherSettings;
+    weatherData: WeatherData | null;
     lowBatteryThreshold: number;
     eventTimerWidgets: EventTimerWidget[];
     customCardWidgets: CustomCardWidget[];
@@ -132,6 +133,7 @@ interface AppActions {
     setYandexWeatherKey: (key: string) => void;
     setForecaApiKey: (key: string) => void;
     setWeatherSettings: (settings: WeatherSettings) => void;
+    setWeatherData: (data: WeatherData | null) => void;
     setLowBatteryThreshold: (threshold: number) => void;
     
     setEventTimerWidgets: (widgets: EventTimerWidget[]) => void;
@@ -172,7 +174,7 @@ interface AppActions {
 }
 
 // --- Migration logic for single-server to multi-server ---
-const initialServers = loadSecure<ServerConfig[]>(LOCAL_STORAGE_KEYS.SERVERS, []);
+const initialServers = loadAndMigrate<ServerConfig[]>(LOCAL_STORAGE_KEYS.SERVERS, []);
 let initialActiveServerId = loadAndMigrate<string | null>(LOCAL_STORAGE_KEYS.ACTIVE_SERVER_ID, null);
 
 if (initialServers.length === 0) {
@@ -186,8 +188,7 @@ if (initialServers.length === 0) {
     localStorage.removeItem('ha-url');
     localStorage.removeItem('ha-token');
     
-    // Save migrated server securely immediately
-    saveSecure(LOCAL_STORAGE_KEYS.SERVERS, initialServers);
+    localStorage.setItem(LOCAL_STORAGE_KEYS.SERVERS, JSON.stringify(initialServers));
     localStorage.setItem(LOCAL_STORAGE_KEYS.ACTIVE_SERVER_ID, JSON.stringify(initialActiveServerId));
   }
 }
@@ -244,10 +245,11 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     
     weatherProvider: loadAndMigrate<'openweathermap' | 'yandex' | 'foreca' | 'homeassistant'>(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, DEFAULT_WEATHER_PROVIDER),
     weatherEntityId: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.WEATHER_ENTITY_ID, ''),
-    openWeatherMapKey: loadSecure<string>(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, ''),
-    yandexWeatherKey: loadSecure<string>(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, ''),
-    forecaApiKey: loadSecure<string>(LOCAL_STORAGE_KEYS.FORECA_KEY, ''),
+    openWeatherMapKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, ''),
+    yandexWeatherKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, ''),
+    forecaApiKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.FORECA_KEY, ''),
     weatherSettings: loadAndMigrate<WeatherSettings>(LOCAL_STORAGE_KEYS.WEATHER_SETTINGS, DEFAULT_WEATHER_SETTINGS),
+    weatherData: null,
     lowBatteryThreshold: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, DEFAULT_LOW_BATTERY_THRESHOLD),
     eventTimerWidgets: loadAndMigrate<EventTimerWidget[]>(LOCAL_STORAGE_KEYS.EVENT_TIMER_WIDGETS, []),
     customCardWidgets: loadAndMigrate<CustomCardWidget[]>(LOCAL_STORAGE_KEYS.CUSTOM_CARD_WIDGETS, []),
@@ -274,7 +276,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     // --- Server Management Actions ---
     setServers: (servers) => {
         set({ servers });
-        saveSecure(LOCAL_STORAGE_KEYS.SERVERS, servers);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SERVERS, JSON.stringify(servers));
     },
     setActiveServerId: (id) => {
         set({ activeServerId: id });
@@ -424,19 +426,22 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     },
     setOpenWeatherMapKey: (key) => {
         set({ openWeatherMapKey: key });
-        saveSecure(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, key);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, key);
     },
     setYandexWeatherKey: (key) => {
         set({ yandexWeatherKey: key });
-        saveSecure(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, key);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, key);
     },
     setForecaApiKey: (key) => {
         set({ forecaApiKey: key });
-        saveSecure(LOCAL_STORAGE_KEYS.FORECA_KEY, key);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.FORECA_KEY, key);
     },
     setWeatherSettings: (settings) => {
         set({ weatherSettings: settings });
         localStorage.setItem(LOCAL_STORAGE_KEYS.WEATHER_SETTINGS, JSON.stringify(settings));
+    },
+    setWeatherData: (data) => {
+        set({ weatherData: data });
     },
     setLowBatteryThreshold: (threshold) => {
         set({ lowBatteryThreshold: threshold });
