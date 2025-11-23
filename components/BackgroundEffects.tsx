@@ -358,21 +358,33 @@ const AuroraEffect = () => {
     );
 };
 
-// New Flash Component
+// Sporadic Lightning Flash Component
 const LightningFlash = () => (
     <>
         <style>{`
-            @keyframes lightning {
-                0%, 92%, 100% { opacity: 0; }
-                93% { opacity: 0.6; }
-                94% { opacity: 0.2; }
-                96% { opacity: 0.8; }
-                98% { opacity: 0; }
+            @keyframes lightning-flash-primary {
+                0%, 90%, 100% { opacity: 0; }
+                92% { opacity: 0.3; }
+                93% { opacity: 0.1; }
+                94% { opacity: 0.6; }
+                96% { opacity: 0.1; }
+                97% { opacity: 0; }
+            }
+            @keyframes lightning-flash-secondary {
+                0%, 70%, 100% { opacity: 0; }
+                72% { opacity: 0.2; }
+                73% { opacity: 0; }
             }
         `}</style>
+        {/* Main flash behind clouds, more visible on dark bg */}
         <div 
-            className="absolute inset-0 bg-white pointer-events-none z-20 mix-blend-overlay"
-            style={{ animation: 'lightning 7s infinite' }}
+            className="absolute inset-0 bg-white/90 pointer-events-none z-[0] mix-blend-overlay"
+            style={{ animation: 'lightning-flash-primary 13s infinite', animationDelay: '2s' }}
+        />
+        {/* Secondary sporadic flash, cooler tone */}
+        <div 
+            className="absolute inset-0 bg-blue-100/80 pointer-events-none z-[0] mix-blend-overlay"
+            style={{ animation: 'lightning-flash-secondary 23s infinite', animationDelay: '5s' }}
         />
     </>
 );
@@ -403,9 +415,9 @@ const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect }) => {
             )}
             {effect === 'thunderstorm' && (
                 <>
+                    <LightningFlash />
                     <StrongCloudyEffect dark />
                     <RainEffect zIndexOverride={15} />
-                    <LightningFlash />
                 </>
             )}
         </div>
