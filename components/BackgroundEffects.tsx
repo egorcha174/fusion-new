@@ -2,6 +2,7 @@
 import React, { useMemo } from 'react';
 import { useAppStore, BackgroundEffectType } from '../store/appStore';
 import { applyOpacity } from '../utils/themeUtils';
+import { nanoid } from 'nanoid';
 
 interface BackgroundEffectsProps {
     effect: BackgroundEffectType;
@@ -175,27 +176,40 @@ const LeavesEffect = () => {
     );
 };
 
-const CloudShape = React.memo(({ width, height, color }: { width: number, height: number, color: string }) => {
-    const circles = useMemo(() => {
-        // Generate clusters of circles to form a fluffy cloud shape
-        const c = [];
-        const count = 5 + Math.floor(Math.random() * 5); // 5-9 extra puffs
-        
-        // Base: Wider horizontal ellipses/circles at the bottom
-        c.push({ cx: width * 0.5, cy: height * 0.65, r: width * 0.3 });
-        c.push({ cx: width * 0.25, cy: height * 0.7, r: width * 0.2 });
-        c.push({ cx: width * 0.75, cy: height * 0.7, r: width * 0.2 });
+const CloudShape = React.memo(({ width, height, color, seed }: { width: number, height: number, color: string, seed: number }) => {
+    const { circles, gradientId, morphDuration, morphDelay, pulseDuration } = useMemo(() => {
+        const random = (offset: number) => {
+            const x = Math.sin(seed + offset) * 10000;
+            return x - Math.floor(x);
+        };
 
-        // Top: Smaller puffs to create the cumulus look
-        for(let i=0; i<count; i++) {
+        const c = [];
+        // 12-20 circles per cloud for complex organic shapes
+        const count = 12 + Math.floor(random(0) * 9); 
+        
+        // Core: Large horizontal ellipses for body
+        c.push({ cx: width * 0.5, cy: height * 0.6, r: width * 0.35 });
+        c.push({ cx: width * 0.3, cy: height * 0.65, r: width * 0.25 });
+        c.push({ cx: width * 0.7, cy: height * 0.65, r: width * 0.25 });
+
+        // Random puffs
+        for(let i = 0; i < count; i++) {
             c.push({
-                cx: width * (0.2 + Math.random() * 0.6),
-                cy: height * (0.25 + Math.random() * 0.4),
-                r: width * (0.15 + Math.random() * 0.15)
+                cx: width * (0.1 + random(i + 1) * 0.8),
+                cy: height * (0.2 + random(i + 2) * 0.5),
+                r: width * (0.1 + random(i + 3) * 0.18)
             });
         }
-        return c;
-    }, [width, height]);
+
+        const gId = `cloudGrad-${seed}-${nanoid(4)}`;
+        
+        // Animation parameters
+        const mDuration = 20 + random(10) * 20; // 20-40s for morphing
+        const mDelay = random(11) * -20;
+        const pDuration = 30 + random(12) * 15; // 30-45s for pulsing
+
+        return { circles: c, gradientId: gId, morphDuration: mDuration, morphDelay: mDelay, pulseDuration: pDuration };
+    }, [width, height, seed, color]);
 
     return (
         <svg 
@@ -204,13 +218,26 @@ const CloudShape = React.memo(({ width, height, color }: { width: number, height
                 width: '100%', 
                 height: '100%', 
                 overflow: 'visible',
-                // Drop shadow on the container creates the shadow for the unified shape
-                filter: 'drop-shadow(0px 8px 8px rgba(0,0,0,0.1))' 
+                animation: `cloud-pulse ${pulseDuration}s ease-in-out infinite`
             }}
         >
-            <g fill={color}>
+            <defs>
+                <radialGradient id={gradientId} cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                    <stop offset="0%" stopColor={color} stopOpacity="0.9" />
+                    <stop offset="40%" stopColor={color} stopOpacity="0.8" />
+                    <stop offset="70%" stopColor={color} stopOpacity="0.4" />
+                    <stop offset="100%" stopColor={color} stopOpacity="0" />
+                </radialGradient>
+            </defs>
+            <g 
+                style={{ 
+                    animation: `cloud-morph ${morphDuration}s infinite ease-in-out alternate`, 
+                    animationDelay: `${morphDelay}s`,
+                    transformOrigin: 'center'
+                }}
+            >
                 {circles.map((item, i) => (
-                    <circle key={i} cx={item.cx} cy={item.cy} r={item.r} />
+                    <circle key={i} cx={item.cx} cy={item.cy} r={item.r} fill={`url(#${gradientId})`} />
                 ))}
             </g>
         </svg>
@@ -223,14 +250,14 @@ const StrongCloudyEffect = () => {
         const colors = ['#94a3b8', '#cbd5e1', '#64748b', '#e2e8f0', '#bfdbfe', '#dbeafe'];
 
         // Generate more clouds with varied sizes for depth
-        return Array.from({ length: 15 }).map((_, i) => {
-            const scale = 0.6 + Math.random() * 1.8; // varied scale for 3D effect
-            const width = 220 * scale;
-            const height = 140 * scale;
-            const top = Math.random() * 60 - 10; // spread across the top (-10vh to 50vh)
-            const duration = 60 + Math.random() * 60; // very slow movement (1-2 mins)
-            const delay = Math.random() * -120; // start at random positions (up to 2 mins pre-run)
-            const opacity = 0.6 + Math.random() * 0.3; // 0.6 to 0.9 for dense look
+        return Array.from({ length: 20 }).map((_, i) => {
+            const scale = 0.6 + Math.random() * 1.8; 
+            const width = 250 * scale;
+            const height = 160 * scale;
+            const top = Math.random() * 70 - 15; // Spread: -15vh to 55vh
+            const duration = 80 + Math.random() * 80; // 1.5-3 mins
+            const delay = Math.random() * -200;
+            const baseOpacity = 0.5 + Math.random() * 0.4; 
             const color = colors[Math.floor(Math.random() * colors.length)];
             
             // Higher scale = closer = higher z-index = faster (parallax effect)
@@ -242,10 +269,11 @@ const StrongCloudyEffect = () => {
                     '--width': `${width}px`,
                     '--height': `${height}px`,
                     '--top': `${top}vh`,
-                    '--opacity': opacity,
+                    '--opacity': baseOpacity,
                     zIndex: Math.floor(scale * 10), // larger clouds on top
                     animationDuration: `${parallaxDuration}s`,
                     animationDelay: `${delay}s`,
+                    filter: scale < 1.0 ? 'blur(3px)' : 'blur(1px)', // distant clouds are blurrier
                 } as React.CSSProperties,
                 width,
                 height,
@@ -256,9 +284,28 @@ const StrongCloudyEffect = () => {
 
     return (
         <>
-            {clouds.map(cloud => (
-                <div key={cloud.id} className="cloud" style={cloud.style}>
-                    <CloudShape width={cloud.width} height={cloud.height} color={cloud.color} />
+            <style>{`
+                @keyframes cloud-morph {
+                    0% { transform: scale(1) skewX(0deg); }
+                    33% { transform: scale(1.05, 0.95) skewX(3deg); }
+                    66% { transform: scale(0.95, 1.05) skewX(-2deg); }
+                    100% { transform: scale(1.02, 0.98) skewX(1deg); }
+                }
+                @keyframes cloud-pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.4; }
+                }
+            `}</style>
+            {clouds.map((cloud, index) => (
+                <div 
+                    key={cloud.id} 
+                    className="cloud" 
+                    style={{
+                        ...cloud.style,
+                        animationName: 'cloud-drift'
+                    }}
+                >
+                    <CloudShape width={cloud.width} height={cloud.height} color={cloud.color} seed={index} />
                 </div>
             ))}
         </>
