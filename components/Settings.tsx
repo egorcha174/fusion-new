@@ -208,7 +208,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
         setCurrentPage, auroraSettings, setAuroraSettings
     } = useAppStore();
 
-    const { allKnownDevices } = useHAStore();
+    const { allKnownDevices, disconnect } = useHAStore();
 
     const [editingTheme, setEditingTheme] = useState<ThemeDefinition | null>(null);
     const [confirmingDeleteTheme, setConfirmingDeleteTheme] = useState<ThemeDefinition | null>(null);
@@ -438,6 +438,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
     return (
         <div className="w-full max-w-4xl mx-auto p-4 space-y-8">
             {/* Connection Section */}
+            {isLoginMode && (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-black/5 dark:ring-white/10 overflow-hidden">
                 <div className="flex h-96">
                     {/* Левая колонка со списком серверов */}
@@ -511,10 +512,30 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error 
                     </div>
                 </div>
             </div>
+            )}
 
             {/* Other Settings - Only show when connected */}
             {!isLoginMode && (
                 <>
+                    <Section title="Подключение" description="Управление соединением с Home Assistant.">
+                        <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg">
+                            <div className="overflow-hidden mr-4">
+                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                    {servers.find(s => s.id === activeServerId)?.name || 'Сервер'}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                    {servers.find(s => s.id === activeServerId)?.url}
+                                </p>
+                            </div>
+                            <button 
+                                onClick={() => disconnect()}
+                                className="flex-shrink-0 px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                            >
+                                Отключиться
+                            </button>
+                        </div>
+                    </Section>
+
                     <Section title="Тема оформления" description="Выберите тему из списка. Используйте кнопку копирования для создания своей версии.">
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                             {themes.map(theme => (
