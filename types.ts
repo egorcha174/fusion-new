@@ -1,11 +1,4 @@
 
-
-
-
-
-
-
-
 /**
  * Перечисление всех возможных типов устройств, используемых в приложении.
  * Это внутреннее представление, которое используется для определения иконки,
@@ -137,6 +130,9 @@ export interface Device {
   appName?: string;
   // Для Covers
   currentPosition?: number;
+  // Для Камер (New)
+  customStreamUrl?: string;
+  streamType?: 'auto' | 'hls' | 'mjpeg' | 'iframe';
 }
 
 /**
@@ -235,6 +231,8 @@ export interface DeviceCustomization {
   iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow'; // Анимация иконки
   deviceBindings?: DeviceBinding[]; // Привязки для индикаторов
   thresholds?: ThresholdRule[]; // Правила пороговых значений (для сенсоров)
+  customStreamUrl?: string; // Кастомный URL потока
+  streamType?: 'auto' | 'hls' | 'mjpeg' | 'iframe'; // Тип потока
 }
 
 // Словарь кастомизаций, где ключ - это ID устройства (entity_id).

@@ -7,6 +7,7 @@ import SparklineChart from './SparklineChart';
 import ThermostatDial from './ThermostatDial';
 import EventTimerWidgetCard from './EventTimerWidgetCard';
 import BatteryWidgetCard from './BatteryWidgetCard';
+import { UniversalCameraCard } from './UniversalCameraCard';
 
 interface DeviceCardProps {
   device: Device;
@@ -30,6 +31,7 @@ interface DeviceCardProps {
   setOpenMenuDeviceId?: (id: string | null) => void;
   colorScheme: ColorScheme['light'];
   isDark: boolean;
+  autoPlay?: boolean; // Added prop for grid control
 }
 
 const DeviceCard: React.FC<DeviceCardProps> = ({
@@ -45,7 +47,12 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
   onHvacModeChange,
   onPresetChange,
   onFanSpeedChange,
+  onCameraCardClick,
+  haUrl,
+  signPath,
+  getCameraStreamUrl,
   colorScheme,
+  autoPlay = true
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   
@@ -112,6 +119,22 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
       return (
           <div style={getCardStyle()} className="w-full h-full select-none">
               <BatteryWidgetCard colorScheme={colorScheme} />
+          </div>
+      );
+  }
+
+  // --- Camera Handling (New Universal Widget) ---
+  if (device.type === DeviceType.Camera) {
+      return (
+          <div style={{ ...getCardStyle(), padding: 0, backgroundColor: 'black' }} className="w-full h-full select-none">
+              <UniversalCameraCard 
+                  device={device}
+                  haUrl={haUrl}
+                  signPath={signPath}
+                  getCameraStreamUrl={getCameraStreamUrl}
+                  onCameraCardClick={onCameraCardClick}
+                  autoPlay={autoPlay}
+              />
           </div>
       );
   }

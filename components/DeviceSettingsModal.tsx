@@ -34,6 +34,9 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   const [iconAnimation, setIconAnimation] = useState(customization.iconAnimation ?? 'none');
   const [bindings, setBindings] = useState<DeviceBinding[]>(customization.deviceBindings ?? []);
   const [thresholds, setThresholds] = useState<ThresholdRule[]>(customization.thresholds ?? []);
+  // Camera specific settings
+  const [customStreamUrl, setCustomStreamUrl] = useState(customization.customStreamUrl ?? '');
+  const [streamType, setStreamType] = useState(customization.streamType ?? 'auto');
 
 
   const handleTypeChange = (newType: DeviceType) => {
@@ -52,6 +55,8 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
       iconAnimation,
       deviceBindings: bindings,
       thresholds: thresholds,
+      customStreamUrl: customStreamUrl.trim() || undefined,
+      streamType: streamType as any,
     });
     onClose();
   };
@@ -128,6 +133,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   ].includes(device.type);
 
   const isSensor = type === DeviceType.Sensor;
+  const isCamera = type === DeviceType.Camera;
   
   const getTemplateTypeString = (deviceType: DeviceType): 'sensor' | 'light' | 'switch' | 'climate' | 'humidifier' | 'custom' => {
     switch (deviceType) {
@@ -206,6 +212,36 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                 ))}
             </select>
           </div>
+
+          {isCamera && (
+              <div className="space-y-4 bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Настройки потока</h3>
+                  <div>
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Кастомный URL потока (опционально)</label>
+                      <input 
+                          type="text" 
+                          value={customStreamUrl} 
+                          onChange={e => setCustomStreamUrl(e.target.value)} 
+                          placeholder="http://... или ws://... (для go2rtc)" 
+                          className="w-full bg-white dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm"
+                      />
+                      <p className="text-[10px] text-gray-500 mt-1">Если указано, заменяет стандартный поток HA. Поддерживает go2rtc MSE.</p>
+                  </div>
+                  <div>
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Тип потока</label>
+                      <select 
+                          value={streamType} 
+                          onChange={e => setStreamType(e.target.value)} 
+                          className="w-full bg-white dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm"
+                      >
+                          <option value="auto">Автоматически</option>
+                          <option value="hls">HLS (Video Tag)</option>
+                          <option value="mjpeg">MJPEG (Image/Canvas)</option>
+                          <option value="iframe">IFrame (WebRTC/Go2RTC)</option>
+                      </select>
+                  </div>
+              </div>
+          )}
 
           {isTemplateable && (
             <div>
