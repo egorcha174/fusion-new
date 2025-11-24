@@ -442,6 +442,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
     };
 
     const isLoginMode = connectionStatus !== 'connected';
+    const isConnectingToSelected = connectionStatus === 'connecting' && selectedServerId === activeServerId;
 
     const content = (
         <>
@@ -512,8 +513,8 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                                     <button onClick={handleSaveServer} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Сохранить</button>
                                 </div>
                              ) : (
-                                <button onClick={handleConnect} disabled={!selectedServerId || connectionStatus === 'connecting'} className="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-blue-400 dark:disabled:bg-blue-800 transition-colors">
-                                    {connectionStatus === 'connecting' ? 'Подключение...' : 'Подключиться'}
+                                <button onClick={handleConnect} disabled={!selectedServerId || isConnectingToSelected} className="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-blue-400 dark:disabled:bg-blue-800 transition-colors">
+                                    {isConnectingToSelected ? 'Подключение...' : 'Подключиться'}
                                 </button>
                              )}
                         </div>
@@ -735,7 +736,6 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                                 <option value="rain-clouds">Облака и дождь</option>
                                 <option value="snow-rain">Снег с дождем</option>
                                 <option value="thunderstorm">Гроза</option>
-                                <option value="sun-glare">Солнечные блики</option>
                                 <option value="leaves">Листопад</option>
                                 <option value="river">Речные волны</option>
                                 <option value="aurora">Полярное сияние</option>
