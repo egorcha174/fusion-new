@@ -175,7 +175,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           let widgetsRoom = rooms.find(r => r.id === 'internal::widgets');
           if (!widgetsRoom) {
               widgetsRoom = { id: 'internal::widgets', name: 'Виджеты', devices: [] };
-              // Only add widgets room if we have widgets to show, but for now we push it and filter later or keep it
               rooms.push(widgetsRoom);
           }
           
@@ -361,7 +360,10 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
 
     connect: (url, token) => {
         // Cleanup existing connection
-        if (socketRef) socketRef.close();
+        if (socketRef) {
+            socketRef.close();
+            socketRef = null;
+        }
         clearCallbacks();
         if (forecastRefreshInterval) clearInterval(forecastRefreshInterval);
         if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
@@ -381,7 +383,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             allKnownDevices: new Map(),
         });
         
-        // Safety timeout
+        // Safety timeout to prevent infinite spinner if socket hangs
         connectionTimeoutRef = setTimeout(() => {
             const currentState = get();
             if (currentState.isLoading || currentState.connectionStatus === 'connecting') {
@@ -391,6 +393,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                     connectionStatus: currentState.connectionStatus === 'connected' ? 'connected' : 'failed',
                     error: currentState.connectionStatus === 'connected' ? "Таймаут загрузки данных." : "Таймаут соединения." 
                 });
+                if (socketRef) socketRef.close();
             }
         }, 30000); 
 
@@ -400,133 +403,150 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
 
             socketRef.onopen = () => console.log('WebSocket connected');
 
+            // State to track initial loading progress within this closure
+            // This prevents race conditions where state updates might lag behind websocket messages
+            const initialFetchIds = new Set<number>();
+            let fetches: any = {};
+
             socketRef.onmessage = (event) => {
-                const data = JSON.parse(event.data);
+                let data;
+                try {
+                    data = JSON.parse(event.data);
+                } catch (e) {
+                    console.error("Failed to parse WebSocket message", e);
+                    return;
+                }
+
                 switch (data.type) {
                     case 'auth_required':
                         sendMessage({ type: 'auth', access_token: token });
                         break;
+                    
                     case 'auth_ok':
                         set({ connectionStatus: 'connected', haUrl: url });
                         
-                        // IMPORTANT: Add a small delay before sending initial requests.
-                        // This helps prevent race conditions where the server isn't quite ready to stream 
-                        // responses or the client isn't ready to handle them immediately.
-                        setTimeout(() => {
-                            const initialFetchIds = new Set<number>();
-                            const fetches = {
-                                states: { id: globalMessageId++, type: 'get_states' },
-                                areas: { id: globalMessageId++, type: 'config/area_registry/list' },
-                                devices: { id: globalMessageId++, type: 'config/device_registry/list' },
-                                entities: { id: globalMessageId++, type: 'config/entity_registry/list' },
-                            };
-                            
-                            // Send all requests
-                            Object.values(fetches).forEach(f => {
-                                initialFetchIds.add(f.id);
-                                sendMessage(f);
-                            });
-                            
-                            // Subscribe to events
-                            sendMessage({ id: globalMessageId++, type: 'subscribe_events', event_type: 'state_changed' });
-                            
-                            // Define the main message handler
-                            socketRef!.onmessage = (event: MessageEvent) => {
-                                const data = JSON.parse(event.data);
-                                if (data.type === 'result') {
-                                    // Check explicit promise callbacks first
-                                    const callbacks = [signPathCallbacks, cameraStreamCallbacks, configCallbacks, historyPeriodCallbacks, serviceReturnCallbacks];
-                                    for (const cbMap of callbacks) {
-                                        if (cbMap.has(data.id)) {
-                                            const callback = cbMap.get(data.id);
-                                            if (data.success) callback?.resolve(data.result);
-                                            else callback?.reject(data.error);
-                                            cbMap.delete(data.id);
-                                            return; 
-                                        }
-                                    }
-                
-                                    // Handle Initial Fetches
-                                    if (initialFetchIds.has(data.id)) {
-                                        if (data.success) {
-                                            const stateUpdate: Partial<HAState> = {};
-                                            if (data.id === fetches.states.id) {
-                                                stateUpdate.entities = data.result.reduce((acc: HassEntities, entity: HassEntity) => ({ ...acc, [entity.entity_id]: entity }), {});
-                                            } else if (data.id === fetches.areas.id) {
-                                                stateUpdate.areas = data.result;
-                                            } else if (data.id === fetches.devices.id) {
-                                                stateUpdate.devices = data.result;
-                                            } else if (data.id === fetches.entities.id) {
-                                                stateUpdate.entityRegistry = data.result;
-                                            }
-                                            set(stateUpdate);
-                                        } else {
-                                            console.error(`Initial fetch failed for ID ${data.id}:`, data.error);
-                                            // If get_states fails, we are in trouble.
-                                            if (data.id === fetches.states.id) {
-                                                set({ error: "Ошибка загрузки состояний устройств." });
-                                            }
-                                        }
-
-                                        initialFetchIds.delete(data.id);
-                                        
-                                        // Check if ALL initial requests are done
-                                        if (initialFetchIds.size === 0) {
-                                            if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
-                                            
-                                            // Now it is safe to calculate derived state
-                                            set({ isInitialLoadComplete: true });
-                                            updateDerivedState();
-                                            
-                                            // Start secondary fetches
-                                            const weatherEntities = (Object.values(get().entities) as HassEntity[])
-                                                .filter(e => e.entity_id.startsWith('weather.'))
-                                                .map(e => e.entity_id);
-
-                                            if (weatherEntities.length > 0) {
-                                                get().fetchWeatherForecasts(weatherEntities);
-                                            }
-
-                                            forecastRefreshInterval = setInterval(() => {
-                                                const currentStore = get();
-                                                if (currentStore.connectionStatus === 'connected') {
-                                                    const wEntities = (Object.values(currentStore.entities) as HassEntity[])
-                                                        .filter(e => e.entity_id.startsWith('weather.'))
-                                                        .map(e => e.entity_id);
-                                                    
-                                                    if (wEntities.length > 0) {
-                                                        currentStore.fetchWeatherForecasts(wEntities);
-                                                    }
-                                                }
-                                            }, 30 * 60 * 1000);
-
-                                            set({ isLoading: false });
-                                        }
-                                    }
-                                } else if (data.type === 'event' && data.event.event_type === 'state_changed') {
-                                    const { entity_id, new_state } = data.event.data;
-                                    
-                                    // Optimistic update: Merge into entities immediately
-                                    const newEntities = { ...get().entities, [entity_id]: new_state };
-                                    if (!new_state) delete newEntities[entity_id];
-                                    set({ entities: newEntities });
-                                    
-                                    // BLOCK expensive derived calculations until initialization is 100% done.
-                                    // This prevents partial state from generating incorrect "Unknown" devices or empty rooms.
-                                    if (!get().isInitialLoadComplete) return;
-
-                                    if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
-                                    updateDerivedStateTimeout = setTimeout(() => {
-                                        updateDerivedState();
-                                        updateDerivedStateTimeout = null;
-                                    }, 50);
-                                }
-                            };
-                        }, 100); // 100ms delay
+                        // Prepare initial data requests
+                        fetches = {
+                            states: { id: globalMessageId++, type: 'get_states' },
+                            areas: { id: globalMessageId++, type: 'config/area_registry/list' },
+                            devices: { id: globalMessageId++, type: 'config/device_registry/list' },
+                            entities: { id: globalMessageId++, type: 'config/entity_registry/list' },
+                        };
+                        
+                        // Send all requests immediately
+                        Object.values(fetches).forEach((f: any) => {
+                            initialFetchIds.add(f.id);
+                            sendMessage(f);
+                        });
+                        
+                        // Subscribe to events
+                        sendMessage({ id: globalMessageId++, type: 'subscribe_events', event_type: 'state_changed' });
                         break;
+
                     case 'auth_invalid':
                         set({ error: `Authentication failed: ${data.message}`, connectionStatus: 'failed', isLoading: false });
-                        socketRef?.close();
+                        if (socketRef) socketRef.close();
+                        break;
+
+                    case 'result':
+                        // 1. Check explicit promise callbacks first
+                        const callbacks = [signPathCallbacks, cameraStreamCallbacks, configCallbacks, historyPeriodCallbacks, serviceReturnCallbacks];
+                        let handledCallback = false;
+                        for (const cbMap of callbacks) {
+                            if (cbMap.has(data.id)) {
+                                const callback = cbMap.get(data.id);
+                                if (data.success) callback?.resolve(data.result);
+                                else callback?.reject(data.error);
+                                cbMap.delete(data.id);
+                                handledCallback = true;
+                                break;
+                            }
+                        }
+                        if (handledCallback) return;
+    
+                        // 2. Handle Initial Fetches
+                        if (initialFetchIds.has(data.id)) {
+                            if (data.success) {
+                                const stateUpdate: Partial<HAState> = {};
+                                if (data.id === fetches.states.id) {
+                                    stateUpdate.entities = data.result.reduce((acc: HassEntities, entity: HassEntity) => ({ ...acc, [entity.entity_id]: entity }), {});
+                                } else if (data.id === fetches.areas.id) {
+                                    stateUpdate.areas = data.result;
+                                } else if (data.id === fetches.devices.id) {
+                                    stateUpdate.devices = data.result;
+                                } else if (data.id === fetches.entities.id) {
+                                    stateUpdate.entityRegistry = data.result;
+                                }
+                                set(stateUpdate);
+                            } else {
+                                console.error(`Initial fetch failed for ID ${data.id}:`, data.error);
+                                if (data.id === fetches.states.id) {
+                                    set({ error: "Ошибка загрузки состояний устройств." });
+                                }
+                            }
+
+                            initialFetchIds.delete(data.id);
+                            
+                            // Check if ALL initial requests are done
+                            if (initialFetchIds.size === 0) {
+                                if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
+                                
+                                try {
+                                    // Now it is safe to calculate derived state
+                                    set({ isInitialLoadComplete: true });
+                                    updateDerivedState();
+                                    
+                                    // Start secondary fetches (Weather)
+                                    const weatherEntities = (Object.values(get().entities) as HassEntity[])
+                                        .filter(e => e.entity_id.startsWith('weather.'))
+                                        .map(e => e.entity_id);
+
+                                    if (weatherEntities.length > 0) {
+                                        get().fetchWeatherForecasts(weatherEntities);
+                                    }
+
+                                    // Setup refresh interval
+                                    forecastRefreshInterval = setInterval(() => {
+                                        const currentStore = get();
+                                        if (currentStore.connectionStatus === 'connected') {
+                                            const wEntities = (Object.values(currentStore.entities) as HassEntity[])
+                                                .filter(e => e.entity_id.startsWith('weather.'))
+                                                .map(e => e.entity_id);
+                                            
+                                            if (wEntities.length > 0) {
+                                                currentStore.fetchWeatherForecasts(wEntities);
+                                            }
+                                        }
+                                    }, 30 * 60 * 1000);
+                                } catch (e) {
+                                    console.error("Post-initialization error:", e);
+                                    set({ error: "Ошибка при финализации загрузки." });
+                                } finally {
+                                    // Crucial: Stop spinner
+                                    set({ isLoading: false });
+                                }
+                            }
+                        }
+                        break;
+
+                    case 'event':
+                        if (data.event.event_type === 'state_changed') {
+                            const { entity_id, new_state } = data.event.data;
+                            
+                            // Optimistic update: Merge into entities immediately
+                            const newEntities = { ...get().entities, [entity_id]: new_state };
+                            if (!new_state) delete newEntities[entity_id];
+                            set({ entities: newEntities });
+                            
+                            // Only recalculate derived state if initialization is totally finished
+                            if (!get().isInitialLoadComplete) return;
+
+                            if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
+                            updateDerivedStateTimeout = setTimeout(() => {
+                                updateDerivedState();
+                                updateDerivedStateTimeout = null;
+                            }, 50);
+                        }
                         break;
                 }
             };
@@ -538,11 +558,15 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                 if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
                 clearCallbacks();
                 
-                if (get().connectionStatus === 'connecting') set({ connectionStatus: 'failed' });
-                else set({ connectionStatus: 'idle' });
+                if (get().connectionStatus === 'connecting') {
+                    set({ connectionStatus: 'failed', error: "Соединение закрыто сервером." });
+                } else {
+                    set({ connectionStatus: 'idle' });
+                }
                 
                 set({ isLoading: false, isInitialLoadComplete: false });
             };
+            
             socketRef.onerror = () => {
                 if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
                 set({ error: 'WebSocket error. Check URL and connection.', connectionStatus: 'failed', isLoading: false, isInitialLoadComplete: false });
@@ -566,6 +590,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         
         set({ 
             connectionStatus: 'idle', 
+            // haToken: null, // Keep token for reconnect convenience? Original code cleared it.
             entities: {}, 
             areas: [], 
             devices: [], 
