@@ -1,4 +1,9 @@
 
+
+
+
+
+
 import {
     CardTemplates,
     ColorScheme,
@@ -111,7 +116,7 @@ export const DEFAULT_COLOR_SCHEME: ColorScheme = (appleTheme as { colorScheme: C
 
 // --- Other Default Settings ---
 export const defaultClockSettings: ClockSettings = { format: '24h', showSeconds: true, size: 'md' };
-export const defaultCameraSettings: CameraSettings = { selectedEntityId: null };
+export const defaultCameraSettings: CameraSettings = { selectedEntityId: null, refreshInterval: 10 };
 export const DEFAULT_SIDEBAR_WIDTH = 320;
 export const DEFAULT_SIDEBAR_VISIBLE = true;
 export const DEFAULT_THEME_MODE: 'day' | 'night' | 'auto' | 'schedule' = 'auto';
@@ -140,4 +145,83 @@ export const DEFAULT_THEMES: ThemeDefinition[] = [
     { id: 'apple-mint', name: 'Мята', isCustom: false, scheme: {"light":{"dashboardBackgroundType":"gradient","dashboardBackgroundColor1":"#F0F7F6","dashboardBackgroundColor2":"#E6F0EF","cardOpacity":0.85,"panelOpacity":0.75,"cardBorderRadius":16,"cardBackground":"rgba(255, 255, 255, 0.8)","cardBackgroundOn":"rgba(255, 255, 255, 0.95)","tabTextColor":"#374151","activeTabTextColor":"#065F46","tabIndicatorColor":"#059669","thermostatHandleColor":"#FFFFFF","thermostatDialTextColor":"#065F46","thermostatDialLabelColor":"#374151","thermostatHeatingColor":"#F97316","thermostatCoolingColor":"#3B82F6","clockTextColor":"#065F46","nameTextColor":"#374151","statusTextColor":"#6B7280","valueTextColor":"#065F46","unitTextColor":"#065F46","nameTextColorOn":"#065F46","statusTextColorOn":"#374151","valueTextColorOn":"#065F46","unitTextColorOn":"#065F46"},"dark":{"dashboardBackgroundType":"color","dashboardBackgroundColor1":"#1A2421","cardOpacity":0.8,"panelOpacity":0.75,"cardBorderRadius":16,"cardBackground":"rgba(30, 41, 59, 0.8)","cardBackgroundOn":"rgba(38, 52, 75, 0.85)","tabTextColor":"#9CA3AF","activeTabTextColor":"#A7F3D0","tabIndicatorColor":"#34D399","thermostatHandleColor":"#1A2421","thermostatDialTextColor":"#A7F3D0","thermostatDialLabelColor":"#9CA3AF","thermostatHeatingColor":"#F28C18","thermostatCoolingColor":"#0A84FF","clockTextColor":"#A7F3D0","nameTextColor":"#D1D5DB","statusTextColor":"#9CA3AF","valueTextColor":"#A7F3D0","unitTextColor":"#A7F3D0","nameTextColorOn":"#A7F3D0","statusTextColorOn":"#9CA3AF","valueTextColorOn":"#A7F3D0","unitTextColorOn":"#A7F3D0"}} },
     { id: 'futuristic', name: 'Футуристика', isCustom: false, scheme: {"light":{"dashboardBackgroundType":"gradient","dashboardBackgroundColor1":"#f5f7fa","dashboardBackgroundColor2":"#eef2f7","cardOpacity":0.8,"panelOpacity":0.7,"cardBorderRadius":16,"cardBackground":"rgba(255, 255, 255, 0.8)","cardBackgroundOn":"rgba(255, 255, 255, 1.0)","tabTextColor":"#5c677d","activeTabTextColor":"#007a7a","tabIndicatorColor":"#007a7a","thermostatHandleColor":"#FFFFFF","thermostatDialTextColor":"#005a5a","thermostatDialLabelColor":"#5c677d","thermostatHeatingColor":"#ff6b6b","thermostatCoolingColor":"#4d96ff","clockTextColor":"#005a5a","nameTextColor":"#333d4f","statusTextColor":"#5c677d","valueTextColor":"#005a5a","unitTextColor":"#005a5a","nameTextColorOn":"#005a5a","statusTextColorOn":"#5c677d","valueTextColorOn":"#005a5a","unitTextColorOn":"#005a5a"},"dark":{"dashboardBackgroundType":"gradient","dashboardBackgroundColor1":"#1a2a3a","dashboardBackgroundColor2":"#101a24","cardOpacity":0.8,"panelOpacity":0.7,"cardBorderRadius":16,"cardBackground":"rgba(20, 30, 40, 0.8)","cardBackgroundOn":"rgba(25, 35, 45, 1.0)","tabTextColor":"#9cb3cc","activeTabTextColor":"#00dada","tabIndicatorColor":"#00dada","thermostatHandleColor":"#1a2a3a","thermostatDialTextColor":"#00dada","thermostatDialLabelColor":"#9cb3cc","thermostatHeatingColor":"#ff8787","thermostatCoolingColor":"#74afff","clockTextColor":"#00dada","nameTextColor":"#c0d4e7","statusTextColor":"#9cb3cc","valueTextColor":"#00dada","unitTextColor":"#00dada","nameTextColorOn":"#00dada","statusTextColorOn":"#9cb3cc","valueTextColorOn":"#00dada","unitTextColorOn":"#00dada"}} },
     { id: 'deep-space', name: 'Глубокий космос', isCustom: false, scheme: {"light":{"dashboardBackgroundType":"gradient","dashboardBackgroundColor1":"#D4DEE7","dashboardBackgroundColor2":"#BCC8D6","cardOpacity":0.85,"panelOpacity":0.75,"cardBorderRadius":16,"cardBackground":"rgba(255, 255, 255, 0.7)","cardBackgroundOn":"rgba(255, 255, 255, 0.9)","tabTextColor":"#4A5568","activeTabTextColor":"#1A202C","tabIndicatorColor":"#2D3748","thermostatHandleColor":"#FFFFFF","thermostatDialTextColor":"#1A202C","thermostatDialLabelColor":"#4A5568","thermostatHeatingColor":"#DD6B20","thermostatCoolingColor":"#3182CE","clockTextColor":"#1A202C","nameTextColor":"#2D3748","statusTextColor":"#718096","valueTextColor":"#1A202C","unitTextColor":"#1A202C","nameTextColorOn":"#1A202C","statusTextColorOn":"#2D3748","valueTextColorOn":"#1A202C","unitTextColorOn":"#1A202C"},"dark":{"dashboardBackgroundType":"color","dashboardBackgroundColor1":"#0a0f14","cardOpacity":0.8,"panelOpacity":0.7,"cardBorderRadius":16,"cardBackground":"rgba(18, 25, 35, 0.8)","cardBackgroundOn":"rgba(25, 33, 45, 0.9)","tabTextColor":"#9FB1CC","activeTabTextColor":"#EAF0F6","tabIndicatorColor":"#89B3F8","thermostatHandleColor":"#121923","thermostatDialTextColor":"#EAF0F6","thermostatDialLabelColor":"#9FB1CC","thermostatHeatingColor":"#F6AD55","thermostatCoolingColor":"#63B3ED","clockTextColor":"#EAF0F6","nameTextColor":"#CBD5E0","statusTextColor":"#A0AEC0","valueTextColor":"#EAF0F6","unitTextColor":"#EAF0F6","nameTextColorOn":"#EAF0F6","statusTextColorOn":"#CBD5E0","valueTextColorOn":"#EAF0F6","unitTextColorOn":"#EAF0F6"}} },
+    {
+        id: 'tron',
+        name: 'Трон',
+        isCustom: false,
+        scheme: {
+            light: {
+                dashboardBackgroundType: "gradient",
+                dashboardBackgroundColor1: "#F0F9FF",
+                dashboardBackgroundColor2: "#CFFAFE",
+                dashboardBackgroundImageBlur: 0,
+                dashboardBackgroundImageBrightness: 100,
+                cardOpacity: 0.9,
+                panelOpacity: 0.8,
+                cardBorderRadius: 6,
+                cardBackground: "rgba(255, 255, 255, 0.9)",
+                cardBackgroundOn: "rgba(224, 242, 254, 1)",
+                tabTextColor: "#64748B",
+                activeTabTextColor: "#0891B2",
+                tabIndicatorColor: "#0891B2",
+                thermostatHandleColor: "#FFFFFF",
+                thermostatDialTextColor: "#0891B2",
+                thermostatDialLabelColor: "#64748B",
+                thermostatHeatingColor: "#EA580C",
+                thermostatCoolingColor: "#06B6D4",
+                clockTextColor: "#0891B2",
+                weatherIconSize: 96,
+                weatherForecastIconSize: 48,
+                weatherCurrentTempFontSize: 36,
+                weatherCurrentDescFontSize: 14,
+                weatherForecastDayFontSize: 12,
+                weatherForecastMaxTempFontSize: 18,
+                weatherForecastMinTempFontSize: 14,
+                nameTextColor: "#334155",
+                statusTextColor: "#64748B",
+                valueTextColor: "#0891B2",
+                unitTextColor: "#0891B2",
+                nameTextColorOn: "#0C4A6E",
+                statusTextColorOn: "#0369A1",
+                valueTextColorOn: "#0891B2",
+                unitTextColorOn: "#0891B2"
+            },
+            dark: {
+                dashboardBackgroundType: "gradient",
+                dashboardBackgroundColor1: "#020617", // Nearly black
+                dashboardBackgroundColor2: "#0B1120", // Dark blue-black
+                dashboardBackgroundImageBlur: 0,
+                dashboardBackgroundImageBrightness: 100,
+                cardOpacity: 0.85,
+                panelOpacity: 0.85,
+                cardBorderRadius: 6, // Tech feel
+                cardBackground: "rgba(15, 23, 42, 0.6)", // Dark Slate
+                cardBackgroundOn: "rgba(6, 182, 212, 0.25)", // Cyan glow
+                tabTextColor: "#475569",
+                activeTabTextColor: "#22D3EE", // Cyan Neon
+                tabIndicatorColor: "#22D3EE",
+                thermostatHandleColor: "#0F172A",
+                thermostatDialTextColor: "#22D3EE",
+                thermostatDialLabelColor: "#94A3B8",
+                thermostatHeatingColor: "#F97316", // Neon Orange (Clu)
+                thermostatCoolingColor: "#22D3EE", // Neon Blue (Tron)
+                clockTextColor: "#22D3EE",
+                weatherIconSize: 96,
+                weatherForecastIconSize: 48,
+                weatherCurrentTempFontSize: 36,
+                weatherCurrentDescFontSize: 14,
+                weatherForecastDayFontSize: 12,
+                weatherForecastMaxTempFontSize: 18,
+                weatherForecastMinTempFontSize: 14,
+                nameTextColor: "#E2E8F0",
+                statusTextColor: "#64748B",
+                valueTextColor: "#22D3EE",
+                unitTextColor: "#22D3EE",
+                nameTextColorOn: "#FFFFFF",
+                statusTextColorOn: "#A5F3FC",
+                valueTextColorOn: "#FFFFFF",
+                unitTextColorOn: "#FFFFFF"
+            }
+        }
+    }
 ];

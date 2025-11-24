@@ -1,4 +1,8 @@
 
+
+
+
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ClockSettings, Device, ClockSize, CameraSettings, ColorScheme, WeatherSettings } from '../types';
 import { CameraStreamContent } from './CameraStreamContent';
@@ -84,7 +88,7 @@ const CameraWidget: React.FC<CameraWidgetProps> = React.memo(({ cameras, haUrl, 
     const selectedCamera = useMemo(() => cameras.find(c => c.id === cameraSettings.selectedEntityId), [cameras, cameraSettings.selectedEntityId]);
 
     const handleSelectCamera = (entityId: string | null) => {
-        setCameraSettings({ selectedEntityId: entityId });
+        setCameraSettings({ ...cameraSettings, selectedEntityId: entityId });
         setContextMenu(null);
     };
 
@@ -119,6 +123,9 @@ const CameraWidget: React.FC<CameraWidgetProps> = React.memo(({ cameras, haUrl, 
                             signPath={signPath}
                             getCameraStreamUrl={getCameraStreamUrl}
                             altText={selectedCamera.name}
+                            refreshInterval={cameraSettings.refreshInterval}
+                            showPlayButton={false}
+                            autoPlay={false}
                         />
                         <button 
                             onClick={(e) => { e.stopPropagation(); handleCameraClick(); }}

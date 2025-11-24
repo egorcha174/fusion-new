@@ -1,4 +1,8 @@
 
+
+
+
+
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device, AuroraSettings } from '../types';
@@ -197,6 +201,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
     const {
         templates, setTemplates, handleDeleteTemplate, setEditingTemplate,
         clockSettings, setClockSettings,
+        cameraSettings, setCameraSettings,
         sidebarWidth, setSidebarWidth,
         isSidebarVisible, setIsSidebarVisible,
         themeMode, setThemeMode,
@@ -245,16 +250,9 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
 
     const handleConnect = () => {
         const server = servers.find(s => s.id === selectedServerId);
-        if (server) {
-            // Update active server ID. This will trigger the useHomeAssistant hook to connect.
+        if (server && onConnect) {
+            onConnect(server.url, server.token);
             setActiveServerId(server.id);
-            
-            // If we are currently idle or failed, we can explicitly call connect to force a retry
-            // immediately without waiting for the hook's effect cycle or if the hook sees 'failed'
-            // and doesn't retry automatically.
-            if (onConnect) {
-                onConnect(server.url, server.token);
-            }
         }
     };
     
@@ -543,7 +541,10 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                                 </p>
                             </div>
                             <button 
-                                onClick={() => disconnect()}
+                                onClick={() => {
+                                    disconnect();
+                                    setActiveServerId(null);
+                                }}
                                 className="flex-shrink-0 px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                             >
                                 Отключиться
@@ -583,6 +584,13 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                         <div className="h-px bg-gray-200 dark:bg-gray-700 my-2"></div>
                         <LabeledInput label="Порог низкого заряда" description={`Устройства с зарядом ниже ${lowBatteryThreshold}% будут отмечены как разряженные.`}>
                             <input type="range" min={5} max={50} step={5} value={lowBatteryThreshold} onChange={e => setLowBatteryThreshold(parseInt(e.target.value))} className="w-full accent-red-500"/>
+                        </LabeledInput>
+                        <div className="h-px bg-gray-200 dark:bg-gray-700 my-2"></div>
+                        <LabeledInput label="Обновление камеры" description={`Интервал обновления превью камеры в секундах.`}>
+                            <div className="flex items-center gap-2">
+                                <input type="range" min={2} max={60} step={1} value={cameraSettings.refreshInterval} onChange={e => setCameraSettings({ ...cameraSettings, refreshInterval: parseInt(e.target.value) })} className="w-full accent-blue-500"/>
+                                <span className="text-xs font-mono text-gray-500 dark:text-gray-400 w-8 text-right">{cameraSettings.refreshInterval}s</span>
+                            </div>
                         </LabeledInput>
                     </Section>
 
@@ -823,27 +831,6 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                                             </LabeledInput>
                                         </div>
                                     )}
-                                </div>
-                            </div>
-                        )}
-                    </Section>
-
-                    <Section title="Режим день/ночь" description="Автоматически переключает светлую и темную тему.">
-                        <select value={themeMode} onChange={(e) => setThemeMode(e.target.value as any)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="auto">Как в системе</option>
-                            <option value="day">Всегда светлая</option>
-                            <option value="night">Всегда темная</option>
-                            <option value="schedule">По расписанию</option>
-                        </select>
-                        {themeMode === 'schedule' && (
-                            <div className="grid grid-cols-2 gap-4 mt-2 animate-in fade-in slide-in-from-top-1">
-                                <div>
-                                    <label className="text-xs text-gray-500 dark:text-gray-400">Начало ночи</label>
-                                    <input type="time" value={scheduleStartTime} onChange={e => setScheduleStartTime(e.target.value)} className="w-full bg-gray-200 dark:bg-gray-800 p-2 rounded-md"/>
-                                </div>
-                                <div>
-                                    <label className="text-xs text-gray-500 dark:text-gray-400">Конец ночи</label>
-                                    <input type="time" value={scheduleEndTime} onChange={e => setScheduleEndTime(e.target.value)} className="w-full bg-gray-200 dark:bg-gray-800 p-2 rounded-md"/>
                                 </div>
                             </div>
                         )}

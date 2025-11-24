@@ -1,4 +1,8 @@
 
+
+
+
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Hls from 'hls.js';
 import { constructHaUrl } from '../utils/url';
@@ -64,53 +68,98 @@ interface CameraStreamContentProps {
   signPath: (path: string) => Promise<{ path: string }>;
   getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
   altText?: string;
+  refreshInterval?: number; // seconds
+  autoPlay?: boolean;
+  showPlayButton?: boolean;
 }
 
 /**
  * Основной компонент для отображения контента с камеры.
  * Реализует многоступенчатую логику загрузки:
  * 1. Сначала загружает статическое превью-изображение.
- * 2. По клику на "play" пытается загрузить HLS-поток.
- * 3. Если HLS не удается, автоматически переключается на MJPEG-поток.
+ * 2. Автоматически обновляет превью раз в `refreshInterval` секунд (если задано).
+ * 3. По клику на "play" (или если autoPlay=true) пытается загрузить HLS-поток.
+ * 4. Если HLS не удается, автоматически переключается на MJPEG-поток.
  */
-export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({ entityId, haUrl, signPath, getCameraStreamUrl, altText = 'Прямая трансляция' }) => {
+export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({ 
+    entityId, 
+    haUrl, 
+    signPath, 
+    getCameraStreamUrl, 
+    altText = 'Прямая трансляция',
+    refreshInterval,
+    autoPlay = false,
+    showPlayButton = true
+}) => {
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadState, setLoadState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const [streamType, setStreamType] = useState<'hls' | 'mjpeg' | 'none'>('none');
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(autoPlay);
 
-  // Эффект для загрузки превью при монтировании компонента или смене entityId.
-  useEffect(() => {
-    let isMounted = true;
-    const getPreview = async () => {
+  const getPreview = useCallback(async (currentMounted: boolean) => {
       if (!entityId) {
-        setLoadState('idle');
+        if (currentMounted) setLoadState('idle');
         return;
       }
-      setLoadState('loading');
+      // Don't set loading state on refresh to avoid flashing
+      if (!previewUrl) {
+          if (currentMounted) setLoadState('loading');
+      }
+      
       setError(null);
       try {
         const result = await signPath(`/api/camera_proxy/${entityId}`);
-        if (isMounted) {
-          setPreviewUrl(constructHaUrl(haUrl, result.path, 'http'));
+        if (currentMounted) {
+          const url = constructHaUrl(haUrl, result.path, 'http');
+          // Append timestamp to bust cache for refreshes
+          const urlWithCacheBuster = new URL(url);
+          urlWithCacheBuster.searchParams.set('t', String(new Date().getTime()));
+          setPreviewUrl(urlWithCacheBuster.toString());
           setLoadState('loaded');
         }
       } catch (err) {
-        if (isMounted) {
+        if (currentMounted) {
           console.error(`Failed to load preview for ${entityId}:`, err);
-          setError('Не удалось загрузить превью.');
-          setLoadState('error');
+          // Only show error if we don't have a previous image to fallback to
+          if (!previewUrl) {
+              setError('Не удалось загрузить превью.');
+              setLoadState('error');
+          }
         }
       }
+  }, [entityId, haUrl, signPath, previewUrl]);
+
+  // Initial Preview Load & Refresh Interval
+  useEffect(() => {
+    let isMounted = true;
+    
+    if (!isPlaying) {
+        getPreview(isMounted);
+    }
+
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    if (refreshInterval && refreshInterval > 0 && !isPlaying) {
+        intervalId = setInterval(() => {
+            getPreview(isMounted);
+        }, refreshInterval * 1000);
+    }
+
+    return () => { 
+        isMounted = false; 
+        if (intervalId) clearInterval(intervalId);
     };
-    getPreview();
-    setIsPlaying(false);
-    return () => { isMounted = false; };
-  }, [entityId, haUrl, signPath]);
+  }, [entityId, isPlaying, refreshInterval, getPreview]);
   
-  // Эффект для загрузки живого потока, когда пользователь нажимает "play".
+  // Handle AutoPlay logic updates
+  useEffect(() => {
+      if (autoPlay) {
+          setIsPlaying(true);
+      }
+  }, [autoPlay]);
+
+  // Эффект для загрузки живого потока
   useEffect(() => {
     if (!isPlaying || !entityId) return;
 
@@ -166,18 +215,20 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({ entity
       <div className="relative w-full h-full bg-black flex items-center justify-center group">
         {loadState === 'loading' && <LoadingIndicator />}
         {loadState === 'error' && <ErrorIndicator />}
-        {loadState === 'loaded' && previewUrl && (
+        {previewUrl && (
           <>
             <img src={previewUrl} className="w-full h-full border-0 bg-black object-contain" alt={altText} />
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <button 
-                    onClick={(e) => { e.stopPropagation(); if (entityId) setIsPlaying(true); }} 
-                    className="group/btn p-4 rounded-full bg-white/20 hover:bg-white/30 text-white backdrop-blur-md shadow-lg transition-all transform hover:scale-110 active:scale-95 pointer-events-auto ring-1 ring-white/30" 
-                    title="Смотреть трансляцию"
-                >
-                    <Icon icon="mdi:play" className="w-8 h-8 ml-1 fill-current drop-shadow-md" />
-                </button>
-            </div>
+            {showPlayButton && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); if (entityId) setIsPlaying(true); }} 
+                        className="group/btn p-4 rounded-full bg-white/20 hover:bg-white/30 text-white backdrop-blur-md shadow-lg transition-all transform hover:scale-110 active:scale-95 pointer-events-auto ring-1 ring-white/30" 
+                        title="Смотреть трансляцию"
+                    >
+                        <Icon icon="mdi:play" className="w-8 h-8 ml-1 fill-current drop-shadow-md" />
+                    </button>
+                </div>
+            )}
           </>
         )}
         {loadState === 'idle' && (
@@ -190,7 +241,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({ entity
     );
   }
 
-  // Рендеринг живого потока (после нажатия play)
+  // Рендеринг живого потока
   return (
     <div className="relative w-full h-full bg-black">
       {loadState === 'loading' && <LoadingIndicator />}

@@ -3,6 +3,9 @@
 
 
 
+
+
+
 /**
  * Перечисление всех возможных типов устройств, используемых в приложении.
  * Это внутреннее представление, которое используется для определения иконки,
@@ -249,6 +252,7 @@ export interface ClockSettings {
 
 export interface CameraSettings {
   selectedEntityId: string | null;
+  refreshInterval: number; // интервал обновления в секундах
 }
 
 export interface WeatherSettings {

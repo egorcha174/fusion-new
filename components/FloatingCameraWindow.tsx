@@ -1,4 +1,8 @@
 
+
+
+
+
 import React, { useState, useCallback } from 'react';
 import { Device } from '../types';
 import { CameraStreamContent } from './CameraStreamContent';
@@ -142,6 +146,8 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({
           signPath={signPath}
           getCameraStreamUrl={getCameraStreamUrl}
           altText={device.name}
+          autoPlay={true}
+          showPlayButton={false}
         />
         
         {/* Уголок, который является "ручкой" для изменения размера */}
