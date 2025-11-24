@@ -61,42 +61,56 @@ interface HAActions {
   triggerScript: (entityId: string) => void;
 }
 
-// Move messageIdRef outside the store to ensure uniqueness across re-connects/re-logins
+// Global counter for message IDs to ensure uniqueness across the session
 let globalMessageId = 1;
 
 export const useHAStore = create<HAState & HAActions>((set, get) => {
   let socketRef: WebSocket | null = null;
   
+  // Callback maps to handle responses to specific command IDs
   const signPathCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
   const cameraStreamCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
   const configCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
   const historyPeriodCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
   const serviceReturnCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
+  
+  // Timers and intervals
   let brightnessTimeoutRef: number | null = null;
   let forecastRefreshInterval: any = null;
   let updateDerivedStateTimeout: ReturnType<typeof setTimeout> | null = null;
   let connectionTimeoutRef: ReturnType<typeof setTimeout> | null = null;
 
+  const clearCallbacks = () => {
+      signPathCallbacks.clear();
+      cameraStreamCallbacks.clear();
+      configCallbacks.clear();
+      historyPeriodCallbacks.clear();
+      serviceReturnCallbacks.clear();
+  };
+
   const sendMessage = (message: object) => {
     if (socketRef?.readyState === WebSocket.OPEN) {
       socketRef.send(JSON.stringify(message));
+    } else {
+        console.warn('WebSocket is not open, cannot send message:', message);
     }
   };
   
   const updateDerivedState = () => {
       try {
-          // Prevent derived state calculation if we don't have the complete picture yet.
-          // This prevents entities from being mapped incorrectly (e.g., creating loose devices) because registries aren't loaded.
+          // Strictly block updates until we have the full picture.
           if (!get().isInitialLoadComplete) return;
 
           const { entities, areas, devices, entityRegistry } = get();
           const appStore = useAppStore.getState();
           
-          if (!appStore) return; // Safety check
+          if (!appStore) return;
 
           const { customizations, lowBatteryThreshold, eventTimerWidgets, customCardWidgets } = appStore;
           
+          // MAPPING LOGIC
           const rooms = mapEntitiesToRooms(Object.values(entities), areas, devices, entityRegistry, customizations, true, get().forecasts);
+          
           const deviceMap = new Map<string, Device>();
           rooms.forEach(room => {
               room.devices.forEach(device => {
@@ -104,6 +118,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
               });
           });
           
+          // Helper: map device_id -> entity_ids
           const deviceIdToEntityIds = new Map<string, string[]>();
           entityRegistry.forEach(e => {
             if (e.device_id) {
@@ -114,16 +129,15 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             }
           });
 
+          // BATTERY LEVELS
           const batteryDevicesList: BatteryDevice[] = [];
-
           devices.forEach(haDevice => {
             if (!haDevice.id) return;
-
             const associatedEntityIds = deviceIdToEntityIds.get(haDevice.id) || [];
             if (associatedEntityIds.length === 0) return;
 
             let batteryLevel: number | undefined = undefined;
-
+            // Try finding a battery entity first
             const batterySensorEntity = associatedEntityIds
               .map(id => entities[id])
               .find(entity => entity?.attributes.device_class === 'battery' && !isNaN(parseFloat(entity.state)));
@@ -131,10 +145,10 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             if (batterySensorEntity) {
               batteryLevel = parseFloat(batterySensorEntity.state);
             } else {
+              // Try finding battery_level attribute
               const entityWithBatteryAttribute = associatedEntityIds
                 .map(id => entities[id])
                 .find(entity => typeof entity?.attributes.battery_level === 'number');
-
               if (entityWithBatteryAttribute) {
                 batteryLevel = entityWithBatteryAttribute.attributes.battery_level;
               }
@@ -142,13 +156,12 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
 
             if (batteryLevel !== undefined) {
               const roundedBatteryLevel = Math.round(batteryLevel);
-
               batteryDevicesList.push({
                 deviceId: haDevice.id,
                 deviceName: haDevice.name,
                 batteryLevel: roundedBatteryLevel,
               });
-
+              // Update all entities of this physical device with battery level
               associatedEntityIds.forEach(entityId => {
                 const device = deviceMap.get(entityId);
                 if (device) {
@@ -158,12 +171,15 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             }
           });
           
+          // WIDGETS ROOM
           let widgetsRoom = rooms.find(r => r.id === 'internal::widgets');
           if (!widgetsRoom) {
               widgetsRoom = { id: 'internal::widgets', name: 'Виджеты', devices: [] };
+              // Only add widgets room if we have widgets to show, but for now we push it and filter later or keep it
               rooms.push(widgetsRoom);
           }
           
+          // Battery Widget
           if (batteryDevicesList.length > 0) {
             const lowBatteryCount = batteryDevicesList.filter(d => d.batteryLevel <= lowBatteryThreshold).length;
             const batteryWidgetDevice: Device = {
@@ -180,6 +196,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             }
           }
 
+          // Event Timers
           eventTimerWidgets.forEach(widget => {
             const { id, name, lastResetDate, cycleDays, buttonText, fillColors, animation, fillDirection, showName, nameFontSize, namePosition, daysRemainingFontSize, daysRemainingPosition } = widget;
             let timerDevice: Device;
@@ -201,15 +218,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                     daysRemaining: daysRemaining,
                     state: 'active',
                     widgetId: id,
-                    buttonText: buttonText,
-                    fillColors: fillColors,
-                    animation: animation,
-                    fillDirection: fillDirection,
-                    showName: showName,
-                    nameFontSize,
-                    namePosition,
-                    daysRemainingFontSize,
-                    daysRemainingPosition,
+                    buttonText, fillColors, animation, fillDirection, showName,
+                    nameFontSize, namePosition, daysRemainingFontSize, daysRemainingPosition,
                 };
             } else {
                 timerDevice = {
@@ -222,15 +232,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                     daysRemaining: cycleDays,
                     state: 'inactive',
                     widgetId: id,
-                    buttonText: buttonText,
-                    fillColors: fillColors,
-                    animation: animation,
-                    fillDirection: fillDirection,
-                    showName: showName,
-                    nameFontSize,
-                    namePosition,
-                    daysRemainingFontSize,
-                    daysRemainingPosition,
+                    buttonText, fillColors, animation, fillDirection, showName,
+                    nameFontSize, namePosition, daysRemainingFontSize, daysRemainingPosition,
                 };
             }
             deviceMap.set(timerDevice.id, timerDevice);
@@ -239,6 +242,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             }
           });
           
+          // Custom Cards
           customCardWidgets.forEach(widget => {
               const cardDevice: Device = {
                   id: `internal::custom-card_${widget.id}`,
@@ -255,7 +259,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
               }
           });
 
-
+          // Specific Categories
           const cameras = Array.from(deviceMap.values()).filter((d: Device) => d.haDomain === 'camera');
           const scenes = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Scene);
           const automations = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Automation);
@@ -263,6 +267,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           
           batteryDevicesList.sort((a, b) => a.batteryLevel - b.batteryLevel);
           
+          // Physical Devices Grouping
           const deviceIdToEntities = new Map<string, Device[]>();
           const entityIdToDeviceId = new Map<string, string>();
           entityRegistry.forEach(entry => {
@@ -317,7 +322,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         });
       } catch (e) {
           console.error("Error updating derived state:", e);
-          // Should not block UI entirely, but might result in empty dashboard
       }
   };
   
@@ -328,7 +332,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                              state.eventTimerWidgets !== prevState.eventTimerWidgets ||
                              state.customCardWidgets !== prevState.customCardWidgets;
         
-        // Only trigger update from app store changes if initial load is done
+        // Only trigger update if we are fully loaded.
         if (shouldUpdate && get().isInitialLoadComplete) {
             updateDerivedState();
         }
@@ -356,26 +360,28 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     allScripts: [],
 
     connect: (url, token) => {
+        // Cleanup existing connection
         if (socketRef) socketRef.close();
+        clearCallbacks();
         if (forecastRefreshInterval) clearInterval(forecastRefreshInterval);
         if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
         if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
         
-        // RESET STATE COMPLETELY ON NEW CONNECTION
+        // RESET STATE completely to avoid stale data merging
         set({ 
             connectionStatus: 'connecting', 
             error: null, 
             isLoading: true, 
-            isInitialLoadComplete: false, // Crucial: Block derived state updates
+            isInitialLoadComplete: false,
             haUrl: url,
-            entities: {}, // Clear old data to avoid merging conflicts
+            entities: {}, 
             areas: [],
             devices: [],
             entityRegistry: [],
             allKnownDevices: new Map(),
         });
         
-        // Safety timeout: stop loading if connection/data takes too long
+        // Safety timeout
         connectionTimeoutRef = setTimeout(() => {
             const currentState = get();
             if (currentState.isLoading || currentState.connectionStatus === 'connecting') {
@@ -386,7 +392,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                     error: currentState.connectionStatus === 'connected' ? "Таймаут загрузки данных." : "Таймаут соединения." 
                 });
             }
-        }, 30000); // 30 seconds
+        }, 30000); 
 
         try {
             const wsUrl = constructHaUrl(url, '/api/websocket', 'ws');
@@ -402,103 +408,121 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                         break;
                     case 'auth_ok':
                         set({ connectionStatus: 'connected', haUrl: url });
-                        const initialFetchIds = new Set<number>();
-                        const fetches = {
-                            states: { id: globalMessageId++, type: 'get_states' },
-                            areas: { id: globalMessageId++, type: 'config/area_registry/list' },
-                            devices: { id: globalMessageId++, type: 'config/device_registry/list' },
-                            entities: { id: globalMessageId++, type: 'config/entity_registry/list' },
-                        };
-                        Object.values(fetches).forEach(f => {
-                            initialFetchIds.add(f.id);
-                            sendMessage(f);
-                        });
-                        sendMessage({ id: globalMessageId++, type: 'subscribe_events', event_type: 'state_changed' });
                         
-                        socketRef!.onmessage = (event: MessageEvent) => {
-                            const data = JSON.parse(event.data);
-                            if (data.type === 'result') {
-                                const callbacks = [signPathCallbacks, cameraStreamCallbacks, configCallbacks, historyPeriodCallbacks, serviceReturnCallbacks];
-                                for (const cbMap of callbacks) {
-                                    if (cbMap.has(data.id)) {
-                                        const callback = cbMap.get(data.id);
-                                        if (data.success) callback?.resolve(data.result);
-                                        else callback?.reject(data.error);
-                                        cbMap.delete(data.id);
-                                        return; 
-                                    }
-                                }
-            
-                                if (initialFetchIds.has(data.id)) {
-                                    if (data.success) {
-                                        let stateUpdate: Partial<HAState> = {};
-                                        if (data.id === fetches.states.id) {
-                                            stateUpdate.entities = data.result.reduce((acc: HassEntities, entity: HassEntity) => ({ ...acc, [entity.entity_id]: entity }), {});
-                                        } else if (data.id === fetches.areas.id) {
-                                            stateUpdate.areas = data.result;
-                                        } else if (data.id === fetches.devices.id) {
-                                            stateUpdate.devices = data.result;
-                                        } else if (data.id === fetches.entities.id) {
-                                            stateUpdate.entityRegistry = data.result;
+                        // IMPORTANT: Add a small delay before sending initial requests.
+                        // This helps prevent race conditions where the server isn't quite ready to stream 
+                        // responses or the client isn't ready to handle them immediately.
+                        setTimeout(() => {
+                            const initialFetchIds = new Set<number>();
+                            const fetches = {
+                                states: { id: globalMessageId++, type: 'get_states' },
+                                areas: { id: globalMessageId++, type: 'config/area_registry/list' },
+                                devices: { id: globalMessageId++, type: 'config/device_registry/list' },
+                                entities: { id: globalMessageId++, type: 'config/entity_registry/list' },
+                            };
+                            
+                            // Send all requests
+                            Object.values(fetches).forEach(f => {
+                                initialFetchIds.add(f.id);
+                                sendMessage(f);
+                            });
+                            
+                            // Subscribe to events
+                            sendMessage({ id: globalMessageId++, type: 'subscribe_events', event_type: 'state_changed' });
+                            
+                            // Define the main message handler
+                            socketRef!.onmessage = (event: MessageEvent) => {
+                                const data = JSON.parse(event.data);
+                                if (data.type === 'result') {
+                                    // Check explicit promise callbacks first
+                                    const callbacks = [signPathCallbacks, cameraStreamCallbacks, configCallbacks, historyPeriodCallbacks, serviceReturnCallbacks];
+                                    for (const cbMap of callbacks) {
+                                        if (cbMap.has(data.id)) {
+                                            const callback = cbMap.get(data.id);
+                                            if (data.success) callback?.resolve(data.result);
+                                            else callback?.reject(data.error);
+                                            cbMap.delete(data.id);
+                                            return; 
                                         }
-                                        set(stateUpdate);
-                                    } else {
-                                        console.error(`Initial fetch failed for ID ${data.id}:`, data.error);
-                                        // Critical error: If registry fetch fails, we might want to alert user, 
-                                        // but for now we proceed to try and render what we have.
                                     }
-
-                                    initialFetchIds.delete(data.id);
-                                    
-                                    // Only when ALL initial data is loaded do we proceed to derived state
-                                    if (initialFetchIds.size === 0) {
-                                        if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
-                                        
-                                        set({ isInitialLoadComplete: true }); // UNBLOCK derived state updates
-                                        updateDerivedState();
-                                        
-                                        const weatherEntities = (Object.values(get().entities) as HassEntity[])
-                                            .filter(e => e.entity_id.startsWith('weather.'))
-                                            .map(e => e.entity_id);
-
-                                        if (weatherEntities.length > 0) {
-                                            get().fetchWeatherForecasts(weatherEntities);
-                                        }
-
-                                        forecastRefreshInterval = setInterval(() => {
-                                            const currentStore = get();
-                                            if (currentStore.connectionStatus === 'connected') {
-                                                const wEntities = (Object.values(currentStore.entities) as HassEntity[])
-                                                    .filter(e => e.entity_id.startsWith('weather.'))
-                                                    .map(e => e.entity_id);
-                                                
-                                                if (wEntities.length > 0) {
-                                                    currentStore.fetchWeatherForecasts(wEntities);
-                                                }
+                
+                                    // Handle Initial Fetches
+                                    if (initialFetchIds.has(data.id)) {
+                                        if (data.success) {
+                                            const stateUpdate: Partial<HAState> = {};
+                                            if (data.id === fetches.states.id) {
+                                                stateUpdate.entities = data.result.reduce((acc: HassEntities, entity: HassEntity) => ({ ...acc, [entity.entity_id]: entity }), {});
+                                            } else if (data.id === fetches.areas.id) {
+                                                stateUpdate.areas = data.result;
+                                            } else if (data.id === fetches.devices.id) {
+                                                stateUpdate.devices = data.result;
+                                            } else if (data.id === fetches.entities.id) {
+                                                stateUpdate.entityRegistry = data.result;
                                             }
-                                        }, 30 * 60 * 1000);
+                                            set(stateUpdate);
+                                        } else {
+                                            console.error(`Initial fetch failed for ID ${data.id}:`, data.error);
+                                            // If get_states fails, we are in trouble.
+                                            if (data.id === fetches.states.id) {
+                                                set({ error: "Ошибка загрузки состояний устройств." });
+                                            }
+                                        }
 
-                                        set({ isLoading: false });
+                                        initialFetchIds.delete(data.id);
+                                        
+                                        // Check if ALL initial requests are done
+                                        if (initialFetchIds.size === 0) {
+                                            if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
+                                            
+                                            // Now it is safe to calculate derived state
+                                            set({ isInitialLoadComplete: true });
+                                            updateDerivedState();
+                                            
+                                            // Start secondary fetches
+                                            const weatherEntities = (Object.values(get().entities) as HassEntity[])
+                                                .filter(e => e.entity_id.startsWith('weather.'))
+                                                .map(e => e.entity_id);
+
+                                            if (weatherEntities.length > 0) {
+                                                get().fetchWeatherForecasts(weatherEntities);
+                                            }
+
+                                            forecastRefreshInterval = setInterval(() => {
+                                                const currentStore = get();
+                                                if (currentStore.connectionStatus === 'connected') {
+                                                    const wEntities = (Object.values(currentStore.entities) as HassEntity[])
+                                                        .filter(e => e.entity_id.startsWith('weather.'))
+                                                        .map(e => e.entity_id);
+                                                    
+                                                    if (wEntities.length > 0) {
+                                                        currentStore.fetchWeatherForecasts(wEntities);
+                                                    }
+                                                }
+                                            }, 30 * 60 * 1000);
+
+                                            set({ isLoading: false });
+                                        }
                                     }
-                                }
-                            } else if (data.type === 'event' && data.event.event_type === 'state_changed') {
-                                // Update raw state immediately
-                                const { entity_id, new_state } = data.event.data;
-                                const newEntities = { ...get().entities, [entity_id]: new_state };
-                                if (!new_state) delete newEntities[entity_id];
-                                set({ entities: newEntities });
-                                
-                                // Block derived state updates if we are still initializing.
-                                // This prevents race conditions where mapping happens before registries are loaded.
-                                if (!get().isInitialLoadComplete) return;
+                                } else if (data.type === 'event' && data.event.event_type === 'state_changed') {
+                                    const { entity_id, new_state } = data.event.data;
+                                    
+                                    // Optimistic update: Merge into entities immediately
+                                    const newEntities = { ...get().entities, [entity_id]: new_state };
+                                    if (!new_state) delete newEntities[entity_id];
+                                    set({ entities: newEntities });
+                                    
+                                    // BLOCK expensive derived calculations until initialization is 100% done.
+                                    // This prevents partial state from generating incorrect "Unknown" devices or empty rooms.
+                                    if (!get().isInitialLoadComplete) return;
 
-                                if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
-                                updateDerivedStateTimeout = setTimeout(() => {
-                                    updateDerivedState();
-                                    updateDerivedStateTimeout = null;
-                                }, 50);
-                            }
-                        };
+                                    if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
+                                    updateDerivedStateTimeout = setTimeout(() => {
+                                        updateDerivedState();
+                                        updateDerivedStateTimeout = null;
+                                    }, 50);
+                                }
+                            };
+                        }, 100); // 100ms delay
                         break;
                     case 'auth_invalid':
                         set({ error: `Authentication failed: ${data.message}`, connectionStatus: 'failed', isLoading: false });
@@ -508,9 +532,11 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             };
 
             socketRef.onclose = () => {
+                // Cleanup
                 if (forecastRefreshInterval) clearInterval(forecastRefreshInterval);
                 if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
                 if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
+                clearCallbacks();
                 
                 if (get().connectionStatus === 'connecting') set({ connectionStatus: 'failed' });
                 else set({ connectionStatus: 'idle' });
@@ -531,7 +557,13 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         if (forecastRefreshInterval) clearInterval(forecastRefreshInterval);
         if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
         if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
-        socketRef?.close();
+        clearCallbacks();
+        
+        if (socketRef) {
+            socketRef.close();
+            socketRef = null;
+        }
+        
         set({ 
             connectionStatus: 'idle', 
             entities: {}, 
