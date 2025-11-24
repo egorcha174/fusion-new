@@ -146,7 +146,6 @@ interface AppActions {
     addCustomCard: () => void;
     updateCustomCard: (widgetId: string, updates: Partial<Omit<CustomCardWidget, 'id'>>) => void;
     deleteCustomCard: (widgetId: string) => void;
-    addCustomCamera: () => void;
 
 
     handleTabOrderChange: (newTabs: Tab[]) => void;
@@ -548,26 +547,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         get().setCustomizations(newCustomizations);
         get().setCustomCardWidgets([...get().customCardWidgets, newWidget]);
     },
-    addCustomCamera: () => {
-        const id = nanoid();
-        const deviceId = `internal::custom-camera_${id}`;
-        
-        const newCustomization: DeviceCustomization = {
-            name: 'Новая камера',
-            type: DeviceType.Camera,
-            icon: 'mdi:cctv',
-            streamType: 'iframe', 
-        };
-        
-        const newCustomizations = { ...get().customizations, [deviceId]: newCustomization };
-        get().setCustomizations(newCustomizations);
-        
-        const newWidget: CustomCardWidget = {
-            id: `camera_${id}`,
-            name: 'Новая камера',
-        };
-        get().setCustomCardWidgets([...get().customCardWidgets, newWidget]);
-    },
     updateCustomCard: (widgetId, updates) => {
         const newWidgets = get().customCardWidgets.map(w => w.id === widgetId ? { ...w, ...updates } : w);
         get().setCustomCardWidgets(newWidgets);
@@ -869,6 +848,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
                 iconAnimation: newValues.iconAnimation !== 'none' ? newValues.iconAnimation : undefined,
                 deviceBindings: newValues.deviceBindings?.length ? newValues.deviceBindings : undefined,
                 thresholds: newValues.thresholds?.length ? newValues.thresholds : undefined,
+                customStreamUrl: newValues.customStreamUrl,
+                streamType: newValues.streamType !== 'auto' ? newValues.streamType : undefined,
             }
         };
         get().setCustomizations(newCustoms);
@@ -913,11 +894,11 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         get().setCustomizations(newCustomizations);
     },
     createNewBlankTemplate: (deviceType: DeviceType | 'custom') => {
-        if (deviceType === 'custom' || deviceType === DeviceType.Camera) {
+        if (deviceType === 'custom') {
             return {
                 id: nanoid(),
-                name: deviceType === DeviceType.Camera ? 'Новая камера' : 'Новая кастомная карточка',
-                deviceType: deviceType === DeviceType.Camera ? 'camera' : 'custom',
+                name: 'Новая кастомная карточка',
+                deviceType: 'custom',
                 elements: [{
                     id: 'name',
                     uniqueId: nanoid(),
