@@ -1,6 +1,8 @@
 
 
 
+
+
 /**
  * Перечисление всех возможных типов устройств, используемых в приложении.
  * Это внутреннее представление, которое используется для определения иконки,
@@ -20,21 +22,33 @@ export enum DeviceType {
   DimmableLight,
   Thermostat,
   Sensor,
+  BinarySensor, // New
   Outlet,
   Weather,
   Switch,
   Fan,
-  DoorSensor,
+  DoorSensor, // Keep for backward compatibility, though covered by BinarySensor logic often
   Camera,
   BatteryWidget,
   Humidifier,
-  EventTimer, // Новый тип для виджета-таймера
-  Custom, // Новый тип для кастомных карточек-контейнеров
+  EventTimer, 
+  Custom, 
   Scene,
   Automation,
   Script,
-  MediaPlayer, // Новый тип для медиа-плееров
-  Unknown, // Резервный тип для неопознанных устройств
+  MediaPlayer, 
+  Cover, // New: Blinds, Garage doors
+  Lock, // New
+  Person, // New
+  Vacuum, // New
+  Timer, // New: HA Timer helper
+  Update, // New: System updates
+  InputBoolean, // New
+  InputNumber, // New
+  InputText, // New
+  InputSelect, // New
+  Siren, // New
+  Unknown, 
 }
 
 /**
@@ -118,6 +132,8 @@ export interface Device {
   mediaTitle?: string;
   mediaArtist?: string;
   appName?: string;
+  // Для Covers
+  currentPosition?: number;
 }
 
 /**
@@ -497,6 +513,7 @@ export interface HassEntity {
     battery_level?: number; // Уровень заряда батареи
     percentage?: number; // Для скорости вентилятора
     options?: string[]; // для select
+    current_position?: number; // Для covers (штор, ворот)
     [key: string]: any; // Для других атрибутов
   };
   context: {

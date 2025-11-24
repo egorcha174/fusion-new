@@ -1,5 +1,7 @@
 
 
+
+
 import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization, WeatherForecast } from '../types';
 
 /**
@@ -16,6 +18,7 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
   const friendlyName = (attributes.friendly_name || '').toLowerCase();
   const entityIdLower = entityId.toLowerCase();
   const domain = entityId.split('.')[0];
+  const deviceClass = attributes.device_class;
 
   // --- Приоритет 0: Внутренние виджеты ---
   if (domain === 'internal') {
@@ -28,7 +31,6 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
   switch (domain) {
     case 'camera': return DeviceType.Camera;
     case 'weather': return DeviceType.Weather;
-    case 'sensor': return DeviceType.Sensor;
     case 'climate': return DeviceType.Thermostat;
     case 'fan': return DeviceType.Fan;
     case 'humidifier': return DeviceType.Humidifier;
@@ -36,19 +38,50 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
     case 'automation': return DeviceType.Automation;
     case 'script': return DeviceType.Script;
     case 'media_player': return DeviceType.MediaPlayer;
+    case 'person': return DeviceType.Person;
+    case 'device_tracker': return DeviceType.Person; // Often represents people
+    case 'vacuum': return DeviceType.Vacuum;
+    case 'timer': return DeviceType.Timer;
+    case 'update': return DeviceType.Update;
+    case 'lock': return DeviceType.Lock;
+    case 'siren': return DeviceType.Siren;
+    case 'input_boolean': return DeviceType.InputBoolean;
+    case 'input_number': return DeviceType.InputNumber;
+    case 'input_text': return DeviceType.InputText;
+    case 'input_select': return DeviceType.InputSelect;
   }
 
   // --- Приоритет 2: Домен + Атрибуты/Класс устройства ---
+  
   if (domain === 'light') {
     return attributes.brightness !== undefined ? DeviceType.DimmableLight : DeviceType.Light;
   }
   
   if (domain === 'switch') {
-    if (attributes.device_class === 'outlet') return DeviceType.Outlet;
+    if (deviceClass === 'outlet') return DeviceType.Outlet;
     // Эвристика: если имя переключателя похоже на светильник, классифицируем его как свет.
     if (friendlyName.includes('light') || friendlyName.includes('свет') || friendlyName.includes('лампа') || friendlyName.includes('торшер') || friendlyName.includes('люстра')) {
       return DeviceType.Light;
     }
+    return DeviceType.Switch;
+  }
+
+  if (domain === 'sensor') {
+      // Optionally allow separating specific sensor types later
+      return DeviceType.Sensor;
+  }
+
+  if (domain === 'binary_sensor') {
+      if (deviceClass === 'door' || deviceClass === 'garage_door' || deviceClass === 'window' || deviceClass === 'opening') {
+          return DeviceType.DoorSensor;
+      }
+      if (deviceClass === 'lock') return DeviceType.Lock;
+      return DeviceType.BinarySensor;
+  }
+
+  if (domain === 'cover') {
+      // Covers can be blinds, curtains, garage doors
+      return DeviceType.Cover;
   }
 
   // --- Приоритет 3: Поиск по ключевым словам в имени/ID (для неоднозначных доменов) ---
@@ -61,12 +94,14 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
   if (combinedName.includes('speaker') || combinedName.includes('колонка')) return DeviceType.Speaker;
   if (combinedName.includes('fan') || combinedName.includes('вентилятор')) return DeviceType.Fan;
   
-  // --- Приоритет 4: Резервный вариант для оставшихся доменов ---
-  if (domain === 'switch') return DeviceType.Switch;
-
   // --- Финальный резервный вариант ---
+  // Fallback for unknown domains to be treated as generic sensors or read-only text if state exists
+  if (entity.state) {
+      return DeviceType.Sensor; // Treat anything else with a state as a generic sensor so it at least appears
+  }
+
   // Логируем предупреждение, но не ломаем приложение - устройство будет показано как Unknown
-  console.warn(`[HA Data Mapper] Unknown device type for entity: ${entity.entity_id}`, entity);
+  // console.warn(`[HA Data Mapper] Unknown device type for entity: ${entity.entity_id}`, entity);
   return DeviceType.Unknown;
 };
 
@@ -84,6 +119,7 @@ const getStatusText = (entity: HassEntity): string => {
     
     const domain = entity.entity_id.split('.')[0];
     const attributes = entity.attributes || {};
+    const deviceClass = attributes.device_class;
 
     // Специальная логика для климата (термостатов)
     if (domain === 'climate') {
@@ -120,7 +156,6 @@ const getStatusText = (entity: HassEntity): string => {
         return stateTranslations[entity.state] || entity.state;
     }
 
-
     // Специальная логика для погоды
     if (domain === 'weather') {
         const stateMap: Record<string, string> = {
@@ -131,6 +166,53 @@ const getStatusText = (entity: HassEntity): string => {
             'windy': 'Ветрено', 'windy-variant': 'Ветрено',
         };
         return stateMap[entity.state] || entity.state.charAt(0).toUpperCase() + entity.state.slice(1);
+    }
+
+    // Logic for Covers (Blinds, Garage)
+    if (domain === 'cover') {
+        if (entity.state === 'open') return 'Открыто';
+        if (entity.state === 'closed') return 'Закрыто';
+        if (entity.state === 'opening') return 'Открывается...';
+        if (entity.state === 'closing') return 'Закрывается...';
+        if (attributes.current_position !== undefined) return `${attributes.current_position}%`;
+        return entity.state;
+    }
+
+    // Logic for Locks
+    if (domain === 'lock') {
+        if (entity.state === 'locked') return 'Закрыто';
+        if (entity.state === 'unlocked') return 'Открыто';
+        if (entity.state === 'locking') return 'Закрывается...';
+        if (entity.state === 'unlocking') return 'Открывается...';
+    }
+
+    // Logic for People/Device Trackers
+    if (domain === 'person' || domain === 'device_tracker') {
+        if (entity.state === 'home') return 'Дома';
+        if (entity.state === 'not_home') return 'Не дома';
+        return entity.state; // Could be a zone name
+    }
+
+    // Logic for Vacuum
+    if (domain === 'vacuum') {
+        const map: Record<string, string> = { 'docked': 'На базе', 'cleaning': 'Уборка', 'returning': 'Возврат на базу', 'error': 'Ошибка', 'idle': 'Ожидание' };
+        return map[entity.state] || entity.state;
+    }
+
+    // Logic for Updates
+    if (domain === 'update') {
+        if (entity.state === 'on') {
+            return attributes.installed_version && attributes.latest_version 
+                ? `Доступно: ${attributes.latest_version}` 
+                : 'Доступно обновление';
+        }
+        return 'Обновлено';
+    }
+
+    if (domain === 'timer') {
+        if (entity.state === 'active') return 'Запущен';
+        if (entity.state === 'paused') return 'Пауза';
+        return 'Остановлен';
     }
 
     if (domain === 'automation') {
@@ -147,12 +229,43 @@ const getStatusText = (entity: HassEntity): string => {
         return 'Активировать';
     }
     
-    // Для сенсоров возвращаем "сырое" значение, форматирование будет на стороне компонента.
-    if (domain === 'sensor') {
+    // Binary Sensors - rely on device_class for context
+    if (domain === 'binary_sensor') {
+        const isOn = entity.state === 'on';
+        switch (deviceClass) {
+            case 'battery': return isOn ? 'Разряжена' : 'Норма';
+            case 'connectivity': return isOn ? 'Подключено' : 'Отключено';
+            case 'door':
+            case 'garage_door':
+            case 'opening':
+            case 'window':
+                return isOn ? 'Открыто' : 'Закрыто';
+            case 'lock': return isOn ? 'Открыто' : 'Закрыто';
+            case 'moisture': return isOn ? 'Влага обнаружена' : 'Сухо';
+            case 'motion': return isOn ? 'Движение' : 'Нет движения';
+            case 'occupancy': return isOn ? 'Занято' : 'Свободно';
+            case 'plug': return isOn ? 'Вставлено' : 'Отключено';
+            case 'presence': return isOn ? 'Дома' : 'Не дома';
+            case 'safety': return isOn ? 'Опасно' : 'Безопасно';
+            case 'smoke': return isOn ? 'Дым' : 'Чисто';
+            case 'sound': return isOn ? 'Звук' : 'Тихо';
+            case 'vibration': return isOn ? 'Вибрация' : 'Спокойно';
+            case 'power': return isOn ? 'Есть питание' : 'Нет питания';
+            case 'problem': return isOn ? 'Проблема' : 'ОК';
+            case 'update': return isOn ? 'Есть обновление' : 'Актуально';
+            default: return isOn ? 'Включено' : 'Выключено';
+        }
+    }
+    
+    // Для сенсоров возвращаем "сырое" значение + единицу измерения
+    if (domain === 'sensor' || domain === 'input_number') {
+        if (attributes.unit_of_measurement) {
+            return `${entity.state} ${attributes.unit_of_measurement}`;
+        }
         return entity.state;
     }
     
-    // Общие состояния для переключаемых устройств
+    // Общие состояния для переключаемых устройств (switch, input_boolean, etc)
     if (entity.state === 'on') return 'Включено';
     if (entity.state === 'off') return 'Выключено';
     
@@ -189,7 +302,7 @@ const entityToDevice = (
     haDomain: entity.entity_id.split('.')[0],
     haDeviceClass: attributes.device_class,
     state: entity.state,
-    attributes: attributes, // Added: Store raw attributes
+    attributes: attributes, // Store raw attributes
   };
 
   // Добавляем специфичные для типов устройств атрибуты
@@ -225,12 +338,20 @@ const entityToDevice = (
     device.fanLevels = attributes.options;
   }
   
-    if (device.type === DeviceType.MediaPlayer) {
+  if (device.type === DeviceType.Cover && attributes.current_position !== undefined) {
+      device.currentPosition = attributes.current_position;
+  }
+  
+  if (device.type === DeviceType.MediaPlayer) {
         device.entityPictureUrl = attributes.entity_picture;
         device.mediaTitle = attributes.media_title;
         device.mediaArtist = attributes.media_artist;
         device.appName = attributes.app_name;
-    }
+  }
+  
+  if (device.type === DeviceType.Person && attributes.entity_picture) {
+      device.entityPictureUrl = attributes.entity_picture;
+  }
 
   if (device.type === DeviceType.Weather) {
       device.temperature = attributes.temperature;

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { DeviceType } from '../types';
 import { Icon } from '@iconify/react';
@@ -27,6 +28,7 @@ const iconMap: Record<DeviceType, { on: string; off: string; animation?: 'spin' 
   [DeviceType.Speaker]: { on: 'mdi:speaker', off: 'mdi:speaker' },
   [DeviceType.Playstation]: { on: 'mdi:sony-playstation', off: 'mdi:sony-playstation' },
   [DeviceType.Sensor]: { on: 'mdi:radar', off: 'mdi:radar' },
+  [DeviceType.BinarySensor]: { on: 'mdi:checkbox-marked-circle-outline', off: 'mdi:checkbox-blank-circle-outline' },
   [DeviceType.DoorSensor]: { on: 'mdi:door-open', off: 'mdi:door-closed' },
   [DeviceType.Switch]: { on: 'mdi:toggle-switch', off: 'mdi:toggle-switch-off-outline' },
   [DeviceType.Outlet]: { on: 'mdi:power-socket-eu', off: 'mdi:power-socket-eu' },
@@ -40,6 +42,17 @@ const iconMap: Record<DeviceType, { on: string; off: string; animation?: 'spin' 
   [DeviceType.Automation]: { on: 'mdi:robot-outline', off: 'mdi:robot-off-outline' },
   [DeviceType.Script]: { on: 'mdi:script-text-play-outline', off: 'mdi:script-text-outline' },
   [DeviceType.MediaPlayer]: { on: 'mdi:cast-connected', off: 'mdi:cast' },
+  [DeviceType.Cover]: { on: 'mdi:window-open', off: 'mdi:window-closed' },
+  [DeviceType.Lock]: { on: 'mdi:lock-open', off: 'mdi:lock' },
+  [DeviceType.Person]: { on: 'mdi:account', off: 'mdi:account-outline' },
+  [DeviceType.Vacuum]: { on: 'mdi:robot-vacuum', off: 'mdi:robot-vacuum-off' },
+  [DeviceType.Timer]: { on: 'mdi:timer-play-outline', off: 'mdi:timer-stop-outline' },
+  [DeviceType.Update]: { on: 'mdi:package-up', off: 'mdi:package-check' },
+  [DeviceType.InputBoolean]: { on: 'mdi:toggle-switch', off: 'mdi:toggle-switch-off-outline' },
+  [DeviceType.InputNumber]: { on: 'mdi:ray-vertex', off: 'mdi:ray-vertex' },
+  [DeviceType.InputText]: { on: 'mdi:form-textbox', off: 'mdi:form-textbox' },
+  [DeviceType.InputSelect]: { on: 'mdi:form-dropdown', off: 'mdi:form-dropdown' },
+  [DeviceType.Siren]: { on: 'mdi:bullhorn', off: 'mdi:bullhorn-outline', animation: 'pulse' },
   [DeviceType.Unknown]: { on: 'mdi:help-rhombus-outline', off: 'mdi:help-rhombus-outline' },
 };
 
