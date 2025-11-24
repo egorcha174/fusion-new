@@ -742,6 +742,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                                 <option value="river">Речные волны</option>
                                 <option value="aurora">Полярное сияние</option>
                                 <option value="sun-glare">Солнечные блики</option>
+                                <option value="sun-clouds">Солнечные блики с облаками</option>
                             </select>
                         </LabeledInput>
                         

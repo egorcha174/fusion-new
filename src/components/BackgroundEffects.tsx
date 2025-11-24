@@ -417,6 +417,50 @@ const LightningFlash = () => (
     </>
 );
 
+const SunGlareEffect = () => (
+    <>
+        <style>{`
+            @keyframes sun-spin { 
+                from { transform: rotate(0deg); } 
+                to { transform: rotate(360deg); } 
+            }
+            @keyframes flare-float {
+                0% { transform: translate(0, 0); opacity: 0.3; }
+                50% { transform: translate(10px, -15px); opacity: 0.5; }
+                100% { transform: translate(0, 0); opacity: 0.3; }
+            }
+        `}</style>
+        <div className="fixed inset-0 pointer-events-none overflow-hidden -z-[5]">
+            {/* Main Sun Source (Top Right Corner) */}
+            <div className="absolute -top-[10vw] -right-[10vw] w-[60vw] h-[60vw] bg-yellow-100/20 rounded-full blur-[80px]" />
+            <div className="absolute -top-[5vw] -right-[5vw] w-[30vw] h-[30vw] bg-orange-200/30 rounded-full blur-[50px]" />
+            
+            {/* Rotating Rays */}
+            <div 
+                className="absolute -top-[50vw] -right-[50vw] w-[200vw] h-[200vw] opacity-20 mix-blend-overlay"
+                style={{ 
+                    animation: 'sun-spin 120s linear infinite',
+                    background: 'conic-gradient(from 0deg, transparent 0deg, rgba(255, 223, 150, 0.3) 10deg, transparent 20deg, transparent 40deg, rgba(255, 255, 255, 0.2) 50deg, transparent 60deg, transparent 90deg, rgba(255, 200, 100, 0.1) 100deg, transparent 120deg)' 
+                }} 
+            />
+
+            {/* Lens Flares */}
+            <div 
+                className="absolute top-[30%] right-[30%] w-12 h-12 bg-white/10 rounded-full blur-md mix-blend-screen"
+                style={{ animation: 'flare-float 8s ease-in-out infinite' }} 
+            />
+            <div 
+                className="absolute top-[45%] right-[45%] w-24 h-24 bg-yellow-200/5 rounded-full blur-xl mix-blend-screen"
+                style={{ animation: 'flare-float 12s ease-in-out infinite reverse' }} 
+            />
+            <div 
+                className="absolute top-[60%] right-[60%] w-6 h-6 bg-orange-100/20 rounded-full blur-sm mix-blend-screen"
+                style={{ animation: 'flare-float 15s ease-in-out infinite' }} 
+            />
+        </div>
+    </>
+);
+
 const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect }) => {
     if (effect === 'none') return null;
 
@@ -428,6 +472,13 @@ const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect }) => {
             {effect === 'strong-cloudy' && <StrongCloudyEffect />}
             {effect === 'river' && <RiverEffect />}
             {effect === 'aurora' && <AuroraEffect />}
+            {effect === 'sun-glare' && <SunGlareEffect />}
+            {effect === 'sun-clouds' && (
+                <>
+                    <SunGlareEffect />
+                    <StrongCloudyEffect />
+                </>
+            )}
             {effect === 'rain-clouds' && (
                 <>
                     <StrongCloudyEffect dark />
