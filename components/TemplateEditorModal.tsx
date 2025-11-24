@@ -29,6 +29,7 @@ const ALLOWED_ELEMENTS_FOR_TYPE: Record<CardTemplate['deviceType'], CardElementI
     climate: ['name', 'status', 'temperature', 'target-temperature', 'hvac-modes', 'battery', 'linked-entity'],
     humidifier: ['name', 'status', 'temperature', 'target-temperature', 'hvac-modes', 'battery', 'linked-entity', 'fan-speed-control', 'value'],
     custom: ['name', 'icon', 'value', 'unit', 'chart', 'status', 'battery', 'linked-entity', 'fan-speed-control'],
+    camera: ['name', 'status', 'icon', 'value', 'unit'],
 };
 
 // --- Data Binding Input Component ---
@@ -378,23 +379,18 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
     if (templateToEdit.deviceType === 'switch') return { ...baseDevice, id: 'switch.sample_outlet', name: 'Розетка на кухне', status: 'Включено', type: DeviceType.Switch, state: 'on', haDomain: 'switch' };
     if (templateToEdit.deviceType === 'humidifier') return { ...baseDevice, id: 'humidifier.sample', name: 'Увлажнитель', status: 'Увлажнение', type: DeviceType.Humidifier, targetHumidity: 60, currentHumidity: 45, minTemp: 30, maxTemp: 80, presetModes: ['auto', 'sleep', 'turbo'], presetMode: 'auto', state: 'on', haDomain: 'humidifier' };
     if (templateToEdit.deviceType === 'custom') return { ...baseDevice, id: 'internal::custom-card_123', name: 'Моя карточка', status: 'Активна', type: DeviceType.Custom, state: 'active', haDomain: 'internal' };
+    if (templateToEdit.deviceType === 'camera') return { ...baseDevice, id: 'camera.sample', name: 'Камера двора', status: 'Онлайн', type: DeviceType.Camera, state: 'idle', haDomain: 'camera' };
     return { ...baseDevice, id: 'sensor.sample_temperature', name: 'Температура в кабинете', status: '25.9', type: DeviceType.Sensor, unit: '°C', history: Array.from({ length: 20 }, (_, i) => 25 + Math.sin(i / 3) + (Math.random() - 0.5)), state: '25.9', haDomain: 'sensor' };
   }, [templateToEdit.deviceType]);
   
   const sampleAllKnownDevices = useMemo(() => new Map<string, Device>([[sampleDevice.id, sampleDevice]]), [sampleDevice]);
 
-  // --- Calculate available attributes for data binding suggestions ---
   const availableAttributes = useMemo(() => {
     const attrs = new Set<string>(['state', 'last_changed', 'last_updated', 'entity_id']);
-    
-    // Add from sample device
     if (sampleDevice.attributes) {
         Object.keys(sampleDevice.attributes).forEach(k => attrs.add(`attributes.${k}`));
     }
-
-    // Add from real devices of the same "category"
     const targetType = editedTemplate.deviceType;
-    
     const isMatch = (d: Device) => {
         if (targetType === 'sensor') return d.type === DeviceType.Sensor;
         if (targetType === 'light') return d.type === DeviceType.Light || d.type === DeviceType.DimmableLight;
@@ -402,15 +398,14 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
         if (targetType === 'climate') return d.type === DeviceType.Thermostat;
         if (targetType === 'humidifier') return d.type === DeviceType.Humidifier;
         if (targetType === 'custom') return d.type === DeviceType.Custom;
+        if (targetType === 'camera') return d.type === DeviceType.Camera;
         return false;
     };
-
     for (const d of allKnownDevices.values()) {
         if (isMatch(d) && d.attributes) {
             Object.keys(d.attributes).forEach(k => attrs.add(`attributes.${k}`));
         }
     }
-
     return Array.from(attrs).sort();
   }, [allKnownDevices, editedTemplate.deviceType, sampleDevice]);
 
@@ -545,8 +540,8 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
       iconSize: 24,
       visualStyle: {
         type: 'color_glow',
-        activeColor: '#34d399', // emerald-400
-        inactiveColor: '#6b7280', // gray-500
+        activeColor: '#34d399', 
+        inactiveColor: '#6b7280',
         glowIntensity: 0.7,
         animationType: 'none',
         showValue: false,
@@ -565,7 +560,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
     const { active, delta } = event;
     const type = active.data.current?.type;
     
-    if (type === 'layer') return; // Layer sorting is handled by SortableContext directly
+    if (type === 'layer') return; 
     
     const previewRect = previewRef.current?.getBoundingClientRect();
     if (!previewRect) return;
@@ -600,7 +595,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
             selectedElementIds.includes(el.id) ? applyDrag(el, 'element') as CardElement : el
         )}));
     } else if (type === 'resize') {
-        // Remove "as any" here
         const { handle, elementId } = active.data.current || {};
         if (!handle || !elementId) return;
 

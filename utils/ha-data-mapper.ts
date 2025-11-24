@@ -1,8 +1,4 @@
 
-
-
-
-
 import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization, WeatherForecast } from '../types';
 
 /**
@@ -101,17 +97,11 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
       return DeviceType.Sensor; // Treat anything else with a state as a generic sensor so it at least appears
   }
 
-  // Логируем предупреждение, но не ломаем приложение - устройство будет показано как Unknown
-  // console.warn(`[HA Data Mapper] Unknown device type for entity: ${entity.entity_id}`, entity);
   return DeviceType.Unknown;
 };
 
 /**
  * Преобразует "сырое" состояние сущности из Home Assistant в человекочитаемый текст на русском языке.
- * Обрабатывает специфичные статусы для климата, медиа-плееров, погоды и других доменов.
- * 
- * @param {HassEntity} entity - Сущность Home Assistant.
- * @returns {string} - Человекочитаемый статус.
  */
 const getStatusText = (entity: HassEntity): string => {
     // Обрабатываем универсальные состояния в первую очередь
@@ -304,6 +294,9 @@ const entityToDevice = (
     haDeviceClass: attributes.device_class,
     state: entity.state,
     attributes: attributes, // Store raw attributes
+    // Пробрасываем настройки потока
+    customStreamUrl: customization.customStreamUrl,
+    streamType: customization.streamType,
   };
 
   // Добавляем специфичные для типов устройств атрибуты
@@ -317,7 +310,7 @@ const entityToDevice = (
     device.presetMode = attributes.preset_mode;
     device.presetModes = attributes.preset_modes;
     device.hvacModes = attributes.hvac_modes;
-    device.hvacAction = attributes.hvac_action; // Важно для отображения текущего действия (нагрев/охлаждение)
+    device.hvacAction = attributes.hvac_action;
     device.minTemp = attributes.min_temp;
     device.maxTemp = attributes.max_temp;
   }
@@ -325,11 +318,11 @@ const entityToDevice = (
   if (device.type === DeviceType.Humidifier) {
     device.targetHumidity = attributes.humidity;
     device.currentHumidity = attributes.current_humidity;
-    device.hvacAction = attributes.action; // humidifying, drying, idle
-    device.minTemp = attributes.min_humidity; // Re-use minTemp for min_humidity
-    device.maxTemp = attributes.max_humidity; // Re-use maxTemp for max_humidity
-    device.presetMode = attributes.mode; // Re-use presetMode for mode
-    device.presetModes = attributes.available_modes; // Re-use presetModes for available_modes
+    device.hvacAction = attributes.action;
+    device.minTemp = attributes.min_humidity;
+    device.maxTemp = attributes.max_humidity;
+    device.presetMode = attributes.mode;
+    device.presetModes = attributes.available_modes;
   }
 
   if (device.haDomain === 'fan') {
@@ -358,13 +351,9 @@ const entityToDevice = (
       device.temperature = attributes.temperature;
       device.condition = entity.state;
 
-      // Логика получения прогноза:
-      // 1. Приоритет: данные от сервиса weather.get_forecasts (sideLoadedForecast)
-      // 2. Fallback: данные из атрибута forecast (для старых версий HA или некоторых интеграций)
       if (sideLoadedForecast && sideLoadedForecast.length > 0) {
           device.forecast = sideLoadedForecast;
       } else if (Array.isArray(attributes.forecast) && attributes.forecast.length > 0) {
-          // Fallback для обратной совместимости
           device.forecast = attributes.forecast.map((f: any) => ({
               datetime: f.datetime,
               condition: f.condition,
@@ -376,7 +365,6 @@ const entityToDevice = (
       }
   }
 
-  // Добавляем уровень заряда, если он есть (для любых устройств, не только battery class)
   if (typeof attributes.battery_level === 'number') {
     device.batteryLevel = attributes.battery_level;
   }
@@ -387,16 +375,6 @@ const entityToDevice = (
 /**
  * Главная функция маппинга. Принимает все "сырые" данные из HA
  * и организует их в структуру комнат с устройствами.
- * Гарантирует, что все валидные устройства попадают в вывод.
- * 
- * @param {HassEntity[]} entities - Все сущности.
- * @param {HassArea[]} areas - Все области (комнаты).
- * @param {HassDevice[]} haDevices - Все физические устройства.
- * @param {HassEntityRegistryEntry[]} entityRegistry - Реестр сущностей для связей.
- * @param {DeviceCustomizations} customizations - Пользовательские настройки.
- * @param {boolean} [showHidden=false] - Показывать ли скрытые устройства.
- * @param {Record<string, WeatherForecast[]>} [forecasts={}] - Данные прогнозов погоды, полученные через сервисы.
- * @returns {Room[]} - Массив комнат с устройствами.
  */
 export const mapEntitiesToRooms = (
     entities: HassEntity[], 
@@ -430,17 +408,12 @@ export const mapEntitiesToRooms = (
     const customization = customizations[entity.entity_id] || {};
     if (customization.isHidden && !showHidden) return; // Пропускаем скрытые
 
-    // Передаем side-loaded прогноз, если он доступен для этой сущности
     const sideLoadedForecast = forecasts[entity.entity_id];
     
-    // PROTECTIVE TRY-CATCH: If a single entity crashes the mapper, skip it.
     try {
         const device = entityToDevice(entity, customization, sideLoadedForecast);
 
-        // Добавляем только успешно преобразованные устройства.
-        // ВАЖНО: Фильтрация по DeviceType.Unknown не производится, все устройства попадают в список.
         if (device) {
-            // Определяем, к какой комнате принадлежит устройство (O(1) операции)
             let areaId: string | undefined | null = entityIdToAreaIdMap.get(entity.entity_id);
             if (!areaId && entity.attributes?.device_id) {
                 const haDevice = haDeviceById.get(entity.attributes.device_id);

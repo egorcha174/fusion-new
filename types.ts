@@ -464,7 +464,7 @@ export interface ThresholdRule {
 export interface CardTemplate {
   id: string;
   name: string;
-  deviceType: 'sensor' | 'light' | 'switch' | 'climate' | 'humidifier' | 'custom'; // Для какого типа устройств этот шаблон
+  deviceType: 'sensor' | 'light' | 'switch' | 'climate' | 'humidifier' | 'custom' | 'camera'; // Для какого типа устройств этот шаблон
   elements: CardElement[]; // Элементы внутри карточки
   styles: { // Общие стили для карточки
     // Стили фона перенесены в глобальную ColorScheme

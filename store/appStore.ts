@@ -144,9 +144,9 @@ interface AppActions {
     // Actions for Custom Cards
     setCustomCardWidgets: (widgets: CustomCardWidget[]) => void;
     addCustomCard: () => void;
-    addCustomCamera: () => void;
     updateCustomCard: (widgetId: string, updates: Partial<Omit<CustomCardWidget, 'id'>>) => void;
     deleteCustomCard: (widgetId: string) => void;
+    addCustomCamera: () => void;
 
 
     handleTabOrderChange: (newTabs: Tab[]) => void;
@@ -869,8 +869,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
                 iconAnimation: newValues.iconAnimation !== 'none' ? newValues.iconAnimation : undefined,
                 deviceBindings: newValues.deviceBindings?.length ? newValues.deviceBindings : undefined,
                 thresholds: newValues.thresholds?.length ? newValues.thresholds : undefined,
-                customStreamUrl: newValues.customStreamUrl,
-                streamType: newValues.streamType,
             }
         };
         get().setCustomizations(newCustoms);
@@ -894,8 +892,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             iconAnimation: currentCustomization.iconAnimation,
             deviceBindings: currentCustomization.deviceBindings,
             thresholds: currentCustomization.thresholds,
-            customStreamUrl: currentCustomization.customStreamUrl,
-            streamType: currentCustomization.streamType,
         });
     },
     handleSaveTemplate: (template) => {
@@ -917,11 +913,11 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         get().setCustomizations(newCustomizations);
     },
     createNewBlankTemplate: (deviceType: DeviceType | 'custom') => {
-        if (deviceType === 'custom') {
+        if (deviceType === 'custom' || deviceType === DeviceType.Camera) {
             return {
                 id: nanoid(),
-                name: 'Новая кастомная карточка',
-                deviceType: 'custom',
+                name: deviceType === DeviceType.Camera ? 'Новая камера' : 'Новая кастомная карточка',
+                deviceType: deviceType === DeviceType.Camera ? 'camera' : 'custom',
                 elements: [{
                     id: 'name',
                     uniqueId: nanoid(),
