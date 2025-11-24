@@ -536,7 +536,10 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                                 </p>
                             </div>
                             <button 
-                                onClick={() => disconnect()}
+                                onClick={() => {
+                                    disconnect();
+                                    setActiveServerId(null);
+                                }}
                                 className="flex-shrink-0 px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                             >
                                 Отключиться
@@ -816,27 +819,6 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                                             </LabeledInput>
                                         </div>
                                     )}
-                                </div>
-                            </div>
-                        )}
-                    </Section>
-
-                    <Section title="Режим день/ночь" description="Автоматически переключает светлую и темную тему.">
-                        <select value={themeMode} onChange={(e) => setThemeMode(e.target.value as any)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="auto">Как в системе</option>
-                            <option value="day">Всегда светлая</option>
-                            <option value="night">Всегда темная</option>
-                            <option value="schedule">По расписанию</option>
-                        </select>
-                        {themeMode === 'schedule' && (
-                            <div className="grid grid-cols-2 gap-4 mt-2 animate-in fade-in slide-in-from-top-1">
-                                <div>
-                                    <label className="text-xs text-gray-500 dark:text-gray-400">Начало ночи</label>
-                                    <input type="time" value={scheduleStartTime} onChange={e => setScheduleStartTime(e.target.value)} className="w-full bg-gray-200 dark:bg-gray-800 p-2 rounded-md"/>
-                                </div>
-                                <div>
-                                    <label className="text-xs text-gray-500 dark:text-gray-400">Конец ночи</label>
-                                    <input type="time" value={scheduleEndTime} onChange={e => setScheduleEndTime(e.target.value)} className="w-full bg-gray-200 dark:bg-gray-800 p-2 rounded-md"/>
                                 </div>
                             </div>
                         )}
