@@ -138,6 +138,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
 
   const isMountedRef = useRef(true);
   const activePreviewUrlRef = useRef<string | null>(null);
+  const retryCountRef = useRef(0);
 
   useEffect(() => {
       isMountedRef.current = true;
@@ -168,18 +169,26 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
             if (isMountedRef.current) {
                 setActivePreviewUrl(newUrl);
                 setIsInitialLoad(false);
-                setError(null);
+                setError(null); // Clear error on success
+                retryCountRef.current = 0; // Reset retry count
             }
         };
         img.onerror = (e) => {
             console.warn("Failed to preload camera image", e);
             if (isMountedRef.current) {
-                // Если у нас еще нет изображения, это критическая ошибка, показываем сообщение
-                if (!activePreviewUrlRef.current) {
+                // Если изображение уже есть, просто оставляем старое (silent fail), чтобы не моргало
+                if (activePreviewUrlRef.current) return;
+
+                // Логика ретраев для первоначальной загрузки
+                if (retryCountRef.current < 3) {
+                    retryCountRef.current++;
+                    console.log(`Retrying image load (${retryCountRef.current}/3)...`);
+                    setTimeout(updatePreview, 1000); // Retry after 1s
+                } else {
+                    // Если все попытки исчерпаны, показываем ошибку
                     setError('Ошибка загрузки изображения');
                     setIsInitialLoad(false);
                 }
-                // Если изображение уже есть, просто оставляем старое (silent fail), чтобы не моргало
             }
         };
         img.src = newUrl;
@@ -201,6 +210,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
     setActivePreviewUrl(null);
     setError(null);
     setIsInitialLoad(true);
+    retryCountRef.current = 0;
   }, [entityId, autoPlay]);
 
   // Timer for Preview Updates
@@ -345,6 +355,13 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
                   <div className="text-center p-4">
                       <Icon icon="mdi:alert-circle-outline" className="w-8 h-8 text-red-500 mx-auto mb-2" />
                       <p className="text-red-400 text-sm">{error}</p>
+                      {/* Manual Retry Button */}
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); retryCountRef.current = 0; setIsInitialLoad(true); setError(null); updatePreview(); }}
+                        className="mt-3 px-3 py-1 bg-white/10 hover:bg-white/20 rounded text-xs text-white transition-colors"
+                      >
+                        Повторить
+                      </button>
                   </div>
               </div>
           )}

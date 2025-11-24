@@ -600,7 +600,10 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
             selectedElementIds.includes(el.id) ? applyDrag(el, 'element') as CardElement : el
         )}));
     } else if (type === 'resize') {
-        const { handle, elementId } = active.data.current as any;
+        // Remove "as any" here
+        const { handle, elementId } = active.data.current || {};
+        if (!handle || !elementId) return;
+
         setEditedTemplate(prev => {
             const index = prev.elements.findIndex(el => el.id === elementId);
             if (index === -1) return prev;

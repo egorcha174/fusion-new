@@ -1,8 +1,4 @@
 
-
-
-
-
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device, AuroraSettings } from '../types';
@@ -201,7 +197,6 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
     const {
         templates, setTemplates, handleDeleteTemplate, setEditingTemplate,
         clockSettings, setClockSettings,
-        cameraSettings, setCameraSettings,
         sidebarWidth, setSidebarWidth,
         isSidebarVisible, setIsSidebarVisible,
         themeMode, setThemeMode,
@@ -262,13 +257,13 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
 
             // Собираем все настройки из localStorage
             const settingsToExport: { [key: string]: any } = {};
-            for (const key of Object.values(LOCAL_STORAGE_KEYS) as string[]) {
-                const value = localStorage.getItem(key);
+            for (const key of Object.values(LOCAL_STORAGE_KEYS)) {
+                const value = localStorage.getItem(key as string);
                 if (value !== null) {
                     try {
-                        settingsToExport[key] = JSON.parse(value);
+                        settingsToExport[key as string] = JSON.parse(value);
                     } catch {
-                        settingsToExport[key] = value;
+                        settingsToExport[key as string] = value;
                     }
                 }
             }
@@ -584,13 +579,6 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                         <div className="h-px bg-gray-200 dark:bg-gray-700 my-2"></div>
                         <LabeledInput label="Порог низкого заряда" description={`Устройства с зарядом ниже ${lowBatteryThreshold}% будут отмечены как разряженные.`}>
                             <input type="range" min={5} max={50} step={5} value={lowBatteryThreshold} onChange={e => setLowBatteryThreshold(parseInt(e.target.value))} className="w-full accent-red-500"/>
-                        </LabeledInput>
-                        <div className="h-px bg-gray-200 dark:bg-gray-700 my-2"></div>
-                        <LabeledInput label="Обновление камеры" description={`Интервал обновления превью камеры в секундах.`}>
-                            <div className="flex items-center gap-2">
-                                <input type="range" min={2} max={60} step={1} value={cameraSettings.refreshInterval} onChange={e => setCameraSettings({ ...cameraSettings, refreshInterval: parseInt(e.target.value) })} className="w-full accent-blue-500"/>
-                                <span className="text-xs font-mono text-gray-500 dark:text-gray-400 w-8 text-right">{cameraSettings.refreshInterval}s</span>
-                            </div>
                         </LabeledInput>
                     </Section>
 

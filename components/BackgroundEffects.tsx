@@ -115,16 +115,19 @@ const LeavesEffect = () => {
     const leaves = useMemo(() => {
         const colors = ['#e6a04d', '#d65d45', '#e8c658', '#8B4513'];
         const shapes = [
+            // Birch/Simple (Teardrop)
             "M50 5 Q30 40 10 55 Q5 70 25 95 L50 95 L75 95 Q95 70 90 55 Q70 40 50 5 Z", 
+            // Oak (Lobed)
             "M50 10 Q35 15 35 30 Q20 35 20 50 Q20 65 35 70 Q35 85 50 95 Q65 85 65 70 Q80 65 80 50 Q80 35 65 30 Q65 15 50 10 Z", 
+            // Maple (Spiky)
             "M50 0 L35 30 L10 30 L30 50 L20 80 L50 65 L80 80 L70 50 L90 30 L65 30 Z"
         ];
 
         return Array.from({ length: 35 }).map((_, i) => {
-            const size = Math.random() * 15 + 20;
+            const size = Math.random() * 15 + 20; // Increase size slightly for visibility
             const xStart = Math.random() * 100;
             const xEnd = xStart + (Math.random() - 0.5) * 40;
-            const duration = Math.random() * 5 + 5;
+            const duration = Math.random() * 5 + 5; // 5-10s
             const delay = Math.random() * -10;
             const rotate = (Math.random() - 0.5) * 360;
             const color = colors[Math.floor(Math.random() * colors.length)];
@@ -154,8 +157,8 @@ const LeavesEffect = () => {
                     className="leaf" 
                     style={{
                         ...leaf.style,
-                        backgroundColor: 'transparent',
-                        borderRadius: 0,
+                        backgroundColor: 'transparent', // Override generic leaf style
+                        borderRadius: 0, // Override generic leaf style
                     }}
                 >
                     <svg 
@@ -177,37 +180,55 @@ const LeavesEffect = () => {
 
 const CloudShape = React.memo(({ width, height, color, seed }: { width: number, height: number, color: string, seed: number }) => {
     const { circles, gradientId, morphDuration, morphDelay, pulseDuration } = useMemo(() => {
+        // Pseudo-random generator based on seed
         const random = (offset: number) => {
             const x = Math.sin(seed * 43758.5453 + offset * 12.9898) * 10000;
             return x - Math.floor(x);
         };
 
         const c = [];
-        const blobCount = 4 + Math.floor(random(0) * 3); 
+        
+        // 1. Main "Body" Blobs - Random Cluster approach
+        // Instead of a linear spine (which makes animals), we place large blobs randomly around the center
+        const blobCount = 4 + Math.floor(random(0) * 3); // 4 to 6 main blobs
         
         for (let i = 0; i < blobCount; i++) {
+            // Scatter around the center (0.5, 0.5)
+            // Spread X: 0.2 to 0.8
+            // Spread Y: 0.3 to 0.7
             const cx = width * (0.2 + random(i + 1) * 0.6);
             const cy = height * (0.3 + random(i + 2) * 0.4);
+            
+            // Vary radii significantly to avoid uniform "sausages"
             const r = width * (0.15 + random(i + 3) * 0.25);
+            
             c.push({ cx, cy, r });
         }
 
-        const fluffCount = 15 + Math.floor(random(4) * 15); 
+        // 2. "Fluff" Details - add smaller circles to the edges to create irregular shapes
+        const fluffCount = 15 + Math.floor(random(4) * 15); // 15 to 30 fluff circles
         
         for (let i = 0; i < fluffCount; i++) {
+            // Fluff can be anywhere, but bias towards existing blobs
             const parentBlob = c[Math.floor(random(i + 10) * blobCount)];
+            
+            // Offset from a parent blob
             const angle = random(i + 20) * Math.PI * 2;
             const dist = parentBlob.r * (0.5 + random(i + 30) * 0.5);
+            
             const cx = parentBlob.cx + Math.cos(angle) * dist;
             const cy = parentBlob.cy + Math.sin(angle) * dist;
             const r = width * (0.08 + random(i + 40) * 0.12);
+
             c.push({ cx, cy, r });
         }
 
         const gId = `cloudGrad-${Math.floor(seed * 10000)}-${nanoid(4)}`;
-        const mDuration = 20 + random(10) * 20;
+        
+        // Animation parameters
+        const mDuration = 20 + random(10) * 20; // 20-40s for morphing
         const mDelay = random(11) * -20;
-        const pDuration = 30 + random(12) * 15;
+        const pDuration = 30 + random(12) * 15; // 30-45s for pulsing
 
         return { circles: c, gradientId: gId, morphDuration: mDuration, morphDelay: mDelay, pulseDuration: pDuration };
     }, [width, height, seed, color]);
@@ -247,22 +268,32 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
 
 const StrongCloudyEffect = ({ dark = false }: { dark?: boolean }) => {
     const clouds = useMemo(() => {
+        // Palette selection
         const defaultColors = ['#94a3b8', '#cbd5e1', '#64748b', '#e2e8f0', '#bfdbfe', '#dbeafe'];
         const darkColors = ['#475569', '#64748b', '#334155', '#94a3b8', '#52525b', '#71717a'];
         const colors = dark ? darkColors : defaultColors;
 
+        // Generate more clouds with varied sizes for depth
         return Array.from({ length: 20 }).map((_, i) => {
             const scale = 0.6 + Math.random() * 1.6;
-            const aspectRatio = 1.3 + Math.random() * 0.6; 
+            // Randomize aspect ratio to create variety (flat vs puffy)
+            const aspectRatio = 1.3 + Math.random() * 0.6; // 1.3 - 1.9
             const width = 250 * scale * (0.9 + Math.random() * 0.2);
             const height = width / aspectRatio;
-            const top = Math.random() * 70 - 15; 
-            const duration = 80 + Math.random() * 80; 
+            
+            const top = Math.random() * 70 - 15; // Spread: -15vh to 55vh
+            const duration = 80 + Math.random() * 80; // 1.5-3 mins
             const delay = Math.random() * -200;
             const baseOpacity = 0.5 + Math.random() * 0.4; 
             const color = colors[Math.floor(Math.random() * colors.length)];
+            
+            // Scale zIndex to range 0-5 to ensure it stays behind other effects if needed
             const zIndex = Math.floor(scale * 2); 
+
+            // Higher scale = closer = faster (parallax effect)
             const parallaxDuration = duration / scale; 
+            
+            // Use a purely random seed for the shape generation, independent of index
             const shapeSeed = Math.random() * 100000;
 
             return {
@@ -275,7 +306,7 @@ const StrongCloudyEffect = ({ dark = false }: { dark?: boolean }) => {
                     zIndex: zIndex, 
                     animationDuration: `${parallaxDuration}s`,
                     animationDelay: `${delay}s`,
-                    filter: scale < 1.0 ? 'blur(3px)' : 'blur(1px)',
+                    filter: scale < 1.0 ? 'blur(3px)' : 'blur(1px)', // distant clouds are blurrier
                 } as React.CSSProperties,
                 width,
                 height,
@@ -347,10 +378,10 @@ const AuroraEffect = () => {
         '--band-opacity': Math.max(0.3, Math.min(1.2, intensity / 100)),
         '--stars-speed': `${starsSpeed}s`,
         '--stars-opacity': starsEnabled ? 0.9 : 0,
-    } as React.CSSProperties;
+    };
 
     return (
-        <div className="fixed inset-0 overflow-hidden pointer-events-none -z-[5] aurora-scene" style={containerStyle}>
+        <div className="fixed inset-0 overflow-hidden pointer-events-none -z-[5] aurora-scene" style={containerStyle as React.CSSProperties}>
             <div className="absolute inset-0 aurora-stars" />
             
             <div className="absolute left-[-20%] right-[-20%] h-[60%] top-[10%] aurora-layer pointer-events-none">
@@ -367,6 +398,7 @@ const AuroraEffect = () => {
     );
 };
 
+// New Flash Component
 const LightningFlash = () => (
     <>
         <style>{`

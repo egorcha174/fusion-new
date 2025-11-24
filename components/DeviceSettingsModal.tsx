@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo } from 'react';
 import { Device, DeviceCustomization, DeviceType, CardTemplates, DeviceBinding, CardTemplate, ThresholdRule } from '../types';
 import DeviceIcon, { icons, getIconNameForDeviceType } from './DeviceIcon';
@@ -197,7 +196,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
             <select
                 id="deviceType"
                 value={type}
-                onChange={(e) => handleTypeChange(Number(e.target.value) as DeviceType)}
+                onChange={(e) => handleTypeChange(Number(e.target.value))}
                 className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
             >
                 {availableTypes.map(typeOption => (
@@ -242,7 +241,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                             </button>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
-                            <select value={rule.comparison} onChange={(e) => handleUpdateThreshold(index, 'comparison', e.target.value as 'above' | 'below')} className="w-full bg-white dark:bg-gray-900/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none">
+                            <select value={rule.comparison} onChange={(e) => handleUpdateThreshold(index, 'comparison', e.target.value)} className="w-full bg-white dark:bg-gray-900/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none">
                                 <option value="above">Больше чем</option>
                                 <option value="below">Меньше чем</option>
                             </select>
