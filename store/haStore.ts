@@ -23,6 +23,7 @@ interface HAState {
   isInitialLoadComplete: boolean;
   error: string | null;
   haUrl: string;
+  haToken: string | null; // Store token to check for redundant connects
   entities: HassEntities;
   areas: HassArea[];
   devices: HassDevice[];
@@ -104,34 +105,23 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           const { entities, areas, devices, entityRegistry } = get();
           const appStore = useAppStore.getState();
           
-          if (!appStore) {
-              console.error("AppStore not initialized");
-              return;
-          }
+          if (!appStore) return;
 
           const { customizations, lowBatteryThreshold, eventTimerWidgets, customCardWidgets } = appStore;
           
           // MAPPING LOGIC
-          // Ensure we have arrays before mapping to avoid runtime errors
-          const safeEntities = entities ? Object.values(entities) : [];
-          const safeAreas = areas || [];
-          const safeDevices = devices || [];
-          const safeRegistry = entityRegistry || [];
-
-          const rooms = mapEntitiesToRooms(safeEntities, safeAreas, safeDevices, safeRegistry, customizations, true, get().forecasts);
+          const rooms = mapEntitiesToRooms(Object.values(entities), areas, devices, entityRegistry, customizations, true, get().forecasts);
           
           const deviceMap = new Map<string, Device>();
           rooms.forEach(room => {
               room.devices.forEach(device => {
-                  if (device && device.id) {
-                      deviceMap.set(device.id, device);
-                  }
+                  deviceMap.set(device.id, device);
               });
           });
           
           // Helper: map device_id -> entity_ids
           const deviceIdToEntityIds = new Map<string, string[]>();
-          safeRegistry.forEach(e => {
+          entityRegistry.forEach(e => {
             if (e.device_id) {
               if (!deviceIdToEntityIds.has(e.device_id)) {
                 deviceIdToEntityIds.set(e.device_id, []);
@@ -142,7 +132,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
 
           // BATTERY LEVELS
           const batteryDevicesList: BatteryDevice[] = [];
-          safeDevices.forEach(haDevice => {
+          devices.forEach(haDevice => {
             if (!haDevice.id) return;
             const associatedEntityIds = deviceIdToEntityIds.get(haDevice.id) || [];
             if (associatedEntityIds.length === 0) return;
@@ -151,7 +141,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             // Try finding a battery entity first
             const batterySensorEntity = associatedEntityIds
               .map(id => entities[id])
-              .find(entity => entity?.attributes?.device_class === 'battery' && !isNaN(parseFloat(entity.state)));
+              .find(entity => entity?.attributes.device_class === 'battery' && !isNaN(parseFloat(entity.state)));
             
             if (batterySensorEntity) {
               batteryLevel = parseFloat(batterySensorEntity.state);
@@ -159,7 +149,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
               // Try finding battery_level attribute
               const entityWithBatteryAttribute = associatedEntityIds
                 .map(id => entities[id])
-                .find(entity => typeof entity?.attributes?.battery_level === 'number');
+                .find(entity => typeof entity?.attributes.battery_level === 'number');
               if (entityWithBatteryAttribute) {
                 batteryLevel = entityWithBatteryAttribute.attributes.battery_level;
               }
@@ -186,6 +176,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           let widgetsRoom = rooms.find(r => r.id === 'internal::widgets');
           if (!widgetsRoom) {
               widgetsRoom = { id: 'internal::widgets', name: 'Виджеты', devices: [] };
+              // Only add widgets room if we have widgets to show, but for now we push it and filter later or keep it
               rooms.push(widgetsRoom);
           }
           
@@ -207,73 +198,69 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           }
 
           // Event Timers
-          if (eventTimerWidgets) {
-              eventTimerWidgets.forEach(widget => {
-                const { id, name, lastResetDate, cycleDays, buttonText, fillColors, animation, fillDirection, showName, nameFontSize, namePosition, daysRemainingFontSize, daysRemainingPosition } = widget;
-                let timerDevice: Device;
+          eventTimerWidgets.forEach(widget => {
+            const { id, name, lastResetDate, cycleDays, buttonText, fillColors, animation, fillDirection, showName, nameFontSize, namePosition, daysRemainingFontSize, daysRemainingPosition } = widget;
+            let timerDevice: Device;
 
-                if (lastResetDate) {
-                    const resetDate = new Date(lastResetDate);
-                    const now = new Date();
-                    const daysPassed = Math.floor((now.getTime() - resetDate.getTime()) / (1000 * 60 * 60 * 24));
-                    const daysRemaining = Math.max(0, cycleDays - daysPassed);
-                    const fillPercentage = Math.min(100, (daysPassed / cycleDays) * 100);
+            if (lastResetDate) {
+                const resetDate = new Date(lastResetDate);
+                const now = new Date();
+                const daysPassed = Math.floor((now.getTime() - resetDate.getTime()) / (1000 * 60 * 60 * 24));
+                const daysRemaining = Math.max(0, cycleDays - daysPassed);
+                const fillPercentage = Math.min(100, (daysPassed / cycleDays) * 100);
 
-                    timerDevice = {
-                        id: `internal::event-timer_${id}`,
-                        name: name,
-                        status: `Осталось ${daysRemaining} дн.`,
-                        type: DeviceType.EventTimer,
-                        haDomain: 'internal',
-                        fillPercentage: fillPercentage,
-                        daysRemaining: daysRemaining,
-                        state: 'active',
-                        widgetId: id,
-                        buttonText, fillColors, animation, fillDirection, showName,
-                        nameFontSize, namePosition, daysRemainingFontSize, daysRemainingPosition,
-                    };
-                } else {
-                    timerDevice = {
-                        id: `internal::event-timer_${id}`,
-                        name: name,
-                        status: 'Настройте таймер',
-                        type: DeviceType.EventTimer,
-                        haDomain: 'internal',
-                        fillPercentage: 0,
-                        daysRemaining: cycleDays,
-                        state: 'inactive',
-                        widgetId: id,
-                        buttonText, fillColors, animation, fillDirection, showName,
-                        nameFontSize, namePosition, daysRemainingFontSize, daysRemainingPosition,
-                    };
-                }
-                deviceMap.set(timerDevice.id, timerDevice);
-                if (!widgetsRoom.devices.some(d => d.id === timerDevice.id)) {
-                    widgetsRoom.devices.push(timerDevice);
-                }
-              });
-          }
+                timerDevice = {
+                    id: `internal::event-timer_${id}`,
+                    name: name,
+                    status: `Осталось ${daysRemaining} дн.`,
+                    type: DeviceType.EventTimer,
+                    haDomain: 'internal',
+                    fillPercentage: fillPercentage,
+                    daysRemaining: daysRemaining,
+                    state: 'active',
+                    widgetId: id,
+                    buttonText, fillColors, animation, fillDirection, showName,
+                    nameFontSize, namePosition, daysRemainingFontSize, daysRemainingPosition,
+                };
+            } else {
+                timerDevice = {
+                    id: `internal::event-timer_${id}`,
+                    name: name,
+                    status: 'Настройте таймер',
+                    type: DeviceType.EventTimer,
+                    haDomain: 'internal',
+                    fillPercentage: 0,
+                    daysRemaining: cycleDays,
+                    state: 'inactive',
+                    widgetId: id,
+                    buttonText, fillColors, animation, fillDirection, showName,
+                    nameFontSize, namePosition, daysRemainingFontSize, daysRemainingPosition,
+                };
+            }
+            deviceMap.set(timerDevice.id, timerDevice);
+            if (!widgetsRoom.devices.some(d => d.id === timerDevice.id)) {
+                widgetsRoom.devices.push(timerDevice);
+            }
+          });
           
           // Custom Cards
-          if (customCardWidgets) {
-              customCardWidgets.forEach(widget => {
-                  const cardDevice: Device = {
-                      id: `internal::custom-card_${widget.id}`,
-                      name: widget.name,
-                      status: 'Кастомная карточка',
-                      type: DeviceType.Custom,
-                      haDomain: 'internal',
-                      state: 'active',
-                      widgetId: widget.id,
-                  };
-                  deviceMap.set(cardDevice.id, cardDevice);
-                  if (!widgetsRoom.devices.some(d => d.id === cardDevice.id)) {
-                      widgetsRoom.devices.push(cardDevice);
-                  }
-              });
-          }
+          customCardWidgets.forEach(widget => {
+              const cardDevice: Device = {
+                  id: `internal::custom-card_${widget.id}`,
+                  name: widget.name,
+                  status: 'Кастомная карточка',
+                  type: DeviceType.Custom,
+                  haDomain: 'internal',
+                  state: 'active',
+                  widgetId: widget.id,
+              };
+              deviceMap.set(cardDevice.id, cardDevice);
+              if (!widgetsRoom.devices.some(d => d.id === cardDevice.id)) {
+                  widgetsRoom.devices.push(cardDevice);
+              }
+          });
 
-          // Specific Categories with checks
+          // Specific Categories
           const cameras = Array.from(deviceMap.values()).filter((d: Device) => d.haDomain === 'camera');
           const scenes = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Scene);
           const automations = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Automation);
@@ -284,7 +271,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           // Physical Devices Grouping
           const deviceIdToEntities = new Map<string, Device[]>();
           const entityIdToDeviceId = new Map<string, string>();
-          safeRegistry.forEach(entry => {
+          entityRegistry.forEach(entry => {
               if (entry.device_id) {
                   entityIdToDeviceId.set(entry.entity_id, entry.device_id);
               }
@@ -301,12 +288,12 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           });
 
           const roomsWithPhysicalDevicesMap = new Map<string, RoomWithPhysicalDevices>();
-          safeAreas.forEach(area => {
+          areas.forEach(area => {
               roomsWithPhysicalDevicesMap.set(area.area_id, { id: area.area_id, name: area.name, devices: [] });
           });
           roomsWithPhysicalDevicesMap.set('no_area', { id: 'no_area', name: 'Без пространства', devices: [] });
 
-          safeDevices.forEach(haDevice => { 
+          devices.forEach(haDevice => { 
               const entitiesForDevice = deviceIdToEntities.get(haDevice.id) || [];
               if (entitiesForDevice.length > 0) {
                   const physicalDevice: PhysicalDevice = {
@@ -336,8 +323,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         });
       } catch (e) {
           console.error("Error updating derived state:", e);
-          // In case of error, try to maintain at least empty structures to avoid crashes elsewhere
-          set({ error: "Ошибка обработки данных. Попробуйте перезагрузить." });
       }
   };
   
@@ -361,6 +346,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     isInitialLoadComplete: false,
     error: null,
     haUrl: '',
+    haToken: null,
     entities: {},
     areas: [],
     devices: [],
@@ -376,8 +362,18 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     allScripts: [],
 
     connect: (url, token) => {
+        const currentStore = get();
+        // Prevent redundant connection attempts if we are already connecting/connected to the same host
+        if ((currentStore.connectionStatus === 'connected' || currentStore.connectionStatus === 'connecting') && currentStore.haUrl === url && currentStore.haToken === token) {
+            console.log("Already connected or connecting to this server.");
+            return;
+        }
+
         // Cleanup existing connection
-        if (socketRef) socketRef.close();
+        if (socketRef) {
+            socketRef.close();
+            socketRef = null;
+        }
         clearCallbacks();
         if (forecastRefreshInterval) clearInterval(forecastRefreshInterval);
         if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
@@ -390,6 +386,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             isLoading: true, 
             isInitialLoadComplete: false,
             haUrl: url,
+            haToken: token,
             entities: {}, 
             areas: [],
             devices: [],
@@ -407,6 +404,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                     connectionStatus: currentState.connectionStatus === 'connected' ? 'connected' : 'failed',
                     error: currentState.connectionStatus === 'connected' ? "Таймаут загрузки данных." : "Таймаут соединения." 
                 });
+                if (socketRef) socketRef.close();
             }
         }, 30000); 
 
@@ -416,8 +414,19 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
 
             socketRef.onopen = () => console.log('WebSocket connected');
 
+            // Initialize tracking sets
+            const initialFetchIds = new Set<number>();
+            let fetches: any = {};
+
             socketRef.onmessage = (event) => {
-                const data = JSON.parse(event.data);
+                let data;
+                try {
+                    data = JSON.parse(event.data);
+                } catch (e) {
+                    console.error("Failed to parse WebSocket message", e);
+                    return;
+                }
+
                 switch (data.type) {
                     case 'auth_required':
                         sendMessage({ type: 'auth', access_token: token });
@@ -425,127 +434,129 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                     case 'auth_ok':
                         set({ connectionStatus: 'connected', haUrl: url });
                         
-                        // IMPORTANT: Add a small delay before sending initial requests.
-                        setTimeout(() => {
-                            const initialFetchIds = new Set<number>();
-                            const fetches = {
-                                states: { id: globalMessageId++, type: 'get_states' },
-                                areas: { id: globalMessageId++, type: 'config/area_registry/list' },
-                                devices: { id: globalMessageId++, type: 'config/device_registry/list' },
-                                entities: { id: globalMessageId++, type: 'config/entity_registry/list' },
-                            };
-                            
-                            // Send all requests
-                            Object.values(fetches).forEach(f => {
-                                initialFetchIds.add(f.id);
-                                sendMessage(f);
-                            });
-                            
-                            // Subscribe to events
-                            sendMessage({ id: globalMessageId++, type: 'subscribe_events', event_type: 'state_changed' });
-                            
-                            // Define the main message handler
-                            socketRef!.onmessage = (event: MessageEvent) => {
-                                const data = JSON.parse(event.data);
-                                if (data.type === 'result') {
-                                    // Check explicit promise callbacks first
-                                    const callbacks = [signPathCallbacks, cameraStreamCallbacks, configCallbacks, historyPeriodCallbacks, serviceReturnCallbacks];
-                                    for (const cbMap of callbacks) {
-                                        if (cbMap.has(data.id)) {
-                                            const callback = cbMap.get(data.id);
-                                            if (data.success) callback?.resolve(data.result);
-                                            else callback?.reject(data.error);
-                                            cbMap.delete(data.id);
-                                            return; 
-                                        }
-                                    }
-                
-                                    // Handle Initial Fetches
-                                    if (initialFetchIds.has(data.id)) {
-                                        if (data.success) {
-                                            const stateUpdate: Partial<HAState> = {};
-                                            if (data.id === fetches.states.id) {
-                                                stateUpdate.entities = data.result.reduce((acc: HassEntities, entity: HassEntity) => ({ ...acc, [entity.entity_id]: entity }), {});
-                                            } else if (data.id === fetches.areas.id) {
-                                                stateUpdate.areas = data.result;
-                                            } else if (data.id === fetches.devices.id) {
-                                                stateUpdate.devices = data.result;
-                                            } else if (data.id === fetches.entities.id) {
-                                                stateUpdate.entityRegistry = data.result;
-                                            }
-                                            set(stateUpdate);
-                                        } else {
-                                            console.error(`Initial fetch failed for ID ${data.id}:`, data.error);
-                                            // If get_states fails, we are in trouble.
-                                            if (data.id === fetches.states.id) {
-                                                set({ error: "Ошибка загрузки состояний устройств." });
-                                            }
-                                        }
-
-                                        initialFetchIds.delete(data.id);
-                                        
-                                        // Check if ALL initial requests are done
-                                        if (initialFetchIds.size === 0) {
-                                            if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
-                                            
-                                            try {
-                                                // Now it is safe to calculate derived state
-                                                set({ isInitialLoadComplete: true });
-                                                updateDerivedState();
-                                                
-                                                // Start secondary fetches
-                                                const weatherEntities = (Object.values(get().entities) as HassEntity[])
-                                                    .filter(e => e.entity_id.startsWith('weather.'))
-                                                    .map(e => e.entity_id);
-
-                                                if (weatherEntities.length > 0) {
-                                                    get().fetchWeatherForecasts(weatherEntities);
-                                                }
-
-                                                forecastRefreshInterval = setInterval(() => {
-                                                    const currentStore = get();
-                                                    if (currentStore.connectionStatus === 'connected') {
-                                                        const wEntities = (Object.values(currentStore.entities) as HassEntity[])
-                                                            .filter(e => e.entity_id.startsWith('weather.'))
-                                                            .map(e => e.entity_id);
-                                                        
-                                                        if (wEntities.length > 0) {
-                                                            currentStore.fetchWeatherForecasts(wEntities);
-                                                        }
-                                                    }
-                                                }, 30 * 60 * 1000);
-                                            } catch (e) {
-                                                console.error("Post-initialization error:", e);
-                                                set({ error: "Ошибка при финализации загрузки." });
-                                            } finally {
-                                                // Ensure loading is false so we don't get stuck on white screen
-                                                set({ isLoading: false });
-                                            }
-                                        }
-                                    }
-                                } else if (data.type === 'event' && data.event.event_type === 'state_changed') {
-                                    const { entity_id, new_state } = data.event.data;
-                                    
-                                    // Optimistic update: Merge into entities immediately
-                                    const newEntities = { ...get().entities, [entity_id]: new_state };
-                                    if (!new_state) delete newEntities[entity_id];
-                                    set({ entities: newEntities });
-                                    
-                                    // BLOCK expensive derived calculations until initialization is 100% done.
-                                    if (!get().isInitialLoadComplete) return;
-
-                                    if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
-                                    updateDerivedStateTimeout = setTimeout(() => {
-                                        updateDerivedState();
-                                        updateDerivedStateTimeout = null;
-                                    }, 50);
-                                }
-                            };
-                        }, 100); // 100ms delay
+                        // Initiate fetches immediately without setTimeout to avoid race conditions
+                        fetches = {
+                            states: { id: globalMessageId++, type: 'get_states' },
+                            areas: { id: globalMessageId++, type: 'config/area_registry/list' },
+                            devices: { id: globalMessageId++, type: 'config/device_registry/list' },
+                            entities: { id: globalMessageId++, type: 'config/entity_registry/list' },
+                        };
+                        
+                        // Send all requests
+                        Object.values(fetches).forEach((f: any) => {
+                            initialFetchIds.add(f.id);
+                            sendMessage(f);
+                        });
+                        
+                        // Subscribe to events
+                        sendMessage({ id: globalMessageId++, type: 'subscribe_events', event_type: 'state_changed' });
                         break;
+
                     case 'auth_invalid':
                         set({ error: `Authentication failed: ${data.message}`, connectionStatus: 'failed', isLoading: false });
-                        socketRef?.close();
+                        if (socketRef) socketRef.close();
+                        break;
+
+                    case 'result':
+                        // Check explicit promise callbacks first
+                        const callbacks = [signPathCallbacks, cameraStreamCallbacks, configCallbacks, historyPeriodCallbacks, serviceReturnCallbacks];
+                        let handledCallback = false;
+                        for (const cbMap of callbacks) {
+                            if (cbMap.has(data.id)) {
+                                const callback = cbMap.get(data.id);
+                                if (data.success) callback?.resolve(data.result);
+                                else callback?.reject(data.error);
+                                cbMap.delete(data.id);
+                                handledCallback = true;
+                                break;
+                            }
+                        }
+                        if (handledCallback) return;
+    
+                        // Handle Initial Fetches
+                        if (initialFetchIds.has(data.id)) {
+                            if (data.success) {
+                                const stateUpdate: Partial<HAState> = {};
+                                if (data.id === fetches.states.id) {
+                                    stateUpdate.entities = data.result.reduce((acc: HassEntities, entity: HassEntity) => ({ ...acc, [entity.entity_id]: entity }), {});
+                                } else if (data.id === fetches.areas.id) {
+                                    stateUpdate.areas = data.result;
+                                } else if (data.id === fetches.devices.id) {
+                                    stateUpdate.devices = data.result;
+                                } else if (data.id === fetches.entities.id) {
+                                    stateUpdate.entityRegistry = data.result;
+                                }
+                                set(stateUpdate);
+                            } else {
+                                console.error(`Initial fetch failed for ID ${data.id}:`, data.error);
+                                // Even if get_states fails, we should probably continue or show a specific error, 
+                                // but essentially we must remove the ID to stop the spinner.
+                                if (data.id === fetches.states.id) {
+                                    set({ error: "Ошибка загрузки состояний устройств." });
+                                }
+                            }
+
+                            initialFetchIds.delete(data.id);
+                            
+                            // Check if ALL initial requests are done
+                            if (initialFetchIds.size === 0) {
+                                if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
+                                
+                                try {
+                                    // Now it is safe to calculate derived state
+                                    set({ isInitialLoadComplete: true });
+                                    updateDerivedState();
+                                    
+                                    // Start secondary fetches
+                                    const weatherEntities = (Object.values(get().entities) as HassEntity[])
+                                        .filter(e => e.entity_id.startsWith('weather.'))
+                                        .map(e => e.entity_id);
+
+                                    if (weatherEntities.length > 0) {
+                                        get().fetchWeatherForecasts(weatherEntities);
+                                    }
+
+                                    forecastRefreshInterval = setInterval(() => {
+                                        const currentStore = get();
+                                        if (currentStore.connectionStatus === 'connected') {
+                                            const wEntities = (Object.values(currentStore.entities) as HassEntity[])
+                                                .filter(e => e.entity_id.startsWith('weather.'))
+                                                .map(e => e.entity_id);
+                                            
+                                            if (wEntities.length > 0) {
+                                                currentStore.fetchWeatherForecasts(wEntities);
+                                            }
+                                        }
+                                    }, 30 * 60 * 1000);
+                                } catch (e) {
+                                    console.error("Post-initialization error:", e);
+                                    set({ error: "Ошибка при финализации загрузки." });
+                                } finally {
+                                    // Ensure loading is false so we don't get stuck on white screen
+                                    set({ isLoading: false });
+                                }
+                            }
+                        }
+                        break;
+
+                    case 'event':
+                        if (data.event.event_type === 'state_changed') {
+                            const { entity_id, new_state } = data.event.data;
+                            
+                            // Optimistic update: Merge into entities immediately
+                            const newEntities = { ...get().entities, [entity_id]: new_state };
+                            if (!new_state) delete newEntities[entity_id];
+                            set({ entities: newEntities });
+                            
+                            // BLOCK expensive derived calculations until initialization is 100% done.
+                            if (!get().isInitialLoadComplete) return;
+
+                            if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
+                            updateDerivedStateTimeout = setTimeout(() => {
+                                updateDerivedState();
+                                updateDerivedStateTimeout = null;
+                            }, 50);
+                        }
                         break;
                 }
             };
@@ -557,11 +568,15 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                 if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
                 clearCallbacks();
                 
-                if (get().connectionStatus === 'connecting') set({ connectionStatus: 'failed' });
-                else set({ connectionStatus: 'idle' });
+                if (get().connectionStatus === 'connecting') {
+                    set({ connectionStatus: 'failed', error: "Соединение закрыто сервером." });
+                } else {
+                    set({ connectionStatus: 'idle' });
+                }
                 
                 set({ isLoading: false, isInitialLoadComplete: false });
             };
+            
             socketRef.onerror = () => {
                 if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
                 set({ error: 'WebSocket error. Check URL and connection.', connectionStatus: 'failed', isLoading: false, isInitialLoadComplete: false });
@@ -585,6 +600,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         
         set({ 
             connectionStatus: 'idle', 
+            haToken: null,
             entities: {}, 
             areas: [], 
             devices: [], 

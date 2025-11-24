@@ -245,9 +245,16 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
 
     const handleConnect = () => {
         const server = servers.find(s => s.id === selectedServerId);
-        if (server && onConnect) {
-            onConnect(server.url, server.token);
+        if (server) {
+            // Update active server ID. This will trigger the useHomeAssistant hook to connect.
             setActiveServerId(server.id);
+            
+            // If we are currently idle or failed, we can explicitly call connect to force a retry
+            // immediately without waiting for the hook's effect cycle or if the hook sees 'failed'
+            // and doesn't retry automatically.
+            if (onConnect) {
+                onConnect(server.url, server.token);
+            }
         }
     };
     
@@ -442,7 +449,6 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
     };
 
     const isLoginMode = connectionStatus !== 'connected';
-    const isConnectingToSelected = connectionStatus === 'connecting' && selectedServerId === activeServerId;
 
     const content = (
         <>
@@ -513,8 +519,8 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                                     <button onClick={handleSaveServer} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Сохранить</button>
                                 </div>
                              ) : (
-                                <button onClick={handleConnect} disabled={!selectedServerId || isConnectingToSelected} className="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-blue-400 dark:disabled:bg-blue-800 transition-colors">
-                                    {isConnectingToSelected ? 'Подключение...' : 'Подключиться'}
+                                <button onClick={handleConnect} disabled={!selectedServerId || connectionStatus === 'connecting'} className="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-blue-400 dark:disabled:bg-blue-800 transition-colors">
+                                    {connectionStatus === 'connecting' ? 'Подключение...' : 'Подключиться'}
                                 </button>
                              )}
                         </div>
