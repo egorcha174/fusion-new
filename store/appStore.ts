@@ -32,7 +32,7 @@ import {
 } from '../config/defaults';
 import { set as setAtPath } from '../utils/obj-path';
 
-export type BackgroundEffectType = 'none' | 'snow' | 'rain' | 'leaves' | 'river' | 'aurora' | 'strong-cloudy' | 'rain-clouds' | 'snow-rain' | 'weather' | 'thunderstorm' | 'sun-glare';
+export type BackgroundEffectType = 'none' | 'snow' | 'rain' | 'leaves' | 'river' | 'aurora' | 'strong-cloudy' | 'rain-clouds' | 'snow-rain' | 'weather' | 'thunderstorm' | 'sun-glare' | 'sun-clouds';
 
 // --- State and Actions Interfaces ---
 interface AppState {
@@ -144,6 +144,7 @@ interface AppActions {
     // Actions for Custom Cards
     setCustomCardWidgets: (widgets: CustomCardWidget[]) => void;
     addCustomCard: () => void;
+    addCustomCamera: () => void;
     updateCustomCard: (widgetId: string, updates: Partial<Omit<CustomCardWidget, 'id'>>) => void;
     deleteCustomCard: (widgetId: string) => void;
 
@@ -545,6 +546,26 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
         get().setTemplates(newTemplates);
         get().setCustomizations(newCustomizations);
+        get().setCustomCardWidgets([...get().customCardWidgets, newWidget]);
+    },
+    addCustomCamera: () => {
+        const id = nanoid();
+        const deviceId = `internal::custom-camera_${id}`;
+        
+        const newCustomization: DeviceCustomization = {
+            name: 'Новая камера',
+            type: DeviceType.Camera,
+            icon: 'mdi:cctv',
+            streamType: 'iframe', 
+        };
+        
+        const newCustomizations = { ...get().customizations, [deviceId]: newCustomization };
+        get().setCustomizations(newCustomizations);
+        
+        const newWidget: CustomCardWidget = {
+            id: `camera_${id}`,
+            name: 'Новая камера',
+        };
         get().setCustomCardWidgets([...get().customCardWidgets, newWidget]);
     },
     updateCustomCard: (widgetId, updates) => {
