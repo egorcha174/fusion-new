@@ -463,7 +463,15 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                                             return (
                                                 <div key={item.deviceId} style={wrapperStyle}>
                                                     <ErrorBoundary isCard>
-                                                        <DraggableDevice device={device} template={templateToUse} {...props} openMenuDeviceId={openMenuDeviceId} setOpenMenuDeviceId={setOpenMenuDeviceId} />
+                                                        <DraggableDevice 
+                                                            device={device} 
+                                                            template={templateToUse} 
+                                                            {...props} 
+                                                            openMenuDeviceId={openMenuDeviceId} 
+                                                            setOpenMenuDeviceId={setOpenMenuDeviceId} 
+                                                            // IMPORTANT: Disable autoPlay in grid view to save resources
+                                                            autoPlay={false}
+                                                        />
                                                     </ErrorBoundary>
                                                 </div>
                                             );

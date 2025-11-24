@@ -104,17 +104,16 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           const { entities, areas, devices, entityRegistry } = get();
           const appStore = useAppStore.getState();
           
+          // Protection against uninitialized store
           if (!appStore) {
-              console.warn("AppStore not ready during updateDerivedState");
+              console.warn("[HA Store] AppStore not ready, skipping derived update");
               return;
           }
 
           const { customizations, lowBatteryThreshold, eventTimerWidgets, customCardWidgets } = appStore;
-          
-          // MAPPING LOGIC
-          // We add a safe fallback for customizations if it happens to be undefined
           const safeCustomizations = customizations || {};
           
+          // MAPPING LOGIC
           const rooms = mapEntitiesToRooms(Object.values(entities), areas, devices, entityRegistry, safeCustomizations, true, get().forecasts);
           
           const deviceMap = new Map<string, Device>();
@@ -185,8 +184,9 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           }
           
           // Battery Widget
+          const safeLowBatteryThreshold = lowBatteryThreshold ?? 20;
           if (batteryDevicesList.length > 0) {
-            const lowBatteryCount = batteryDevicesList.filter(d => d.batteryLevel <= lowBatteryThreshold).length;
+            const lowBatteryCount = batteryDevicesList.filter(d => d.batteryLevel <= safeLowBatteryThreshold).length;
             const batteryWidgetDevice: Device = {
               id: 'internal::battery_widget',
               name: 'Уровень заряда',
@@ -202,7 +202,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           }
 
           // Event Timers
-          eventTimerWidgets.forEach(widget => {
+          (eventTimerWidgets || []).forEach(widget => {
             const { id, name, lastResetDate, cycleDays, buttonText, fillColors, animation, fillDirection, showName, nameFontSize, namePosition, daysRemainingFontSize, daysRemainingPosition } = widget;
             let timerDevice: Device;
 
@@ -248,7 +248,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           });
           
           // Custom Cards
-          customCardWidgets.forEach(widget => {
+          (customCardWidgets || []).forEach(widget => {
               const cardDevice: Device = {
                   id: `internal::custom-card_${widget.id}`,
                   name: widget.name,
@@ -326,9 +326,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             allScripts: scripts.sort((a,b) => a.name.localeCompare(b.name)),
         });
       } catch (e) {
-          console.error("CRITICAL: Error updating derived state:", e);
-          // Ensure we don't get stuck in loading state even if mapping fails
-          set({ error: `Data processing error: ${(e as Error).message}` });
+          console.error("Error updating derived state:", e);
       }
   };
   
@@ -367,7 +365,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     allScripts: [],
 
     connect: (url, token) => {
-        console.log(`[HA] Connecting to ${url}...`);
         // Cleanup existing connection
         if (socketRef) {
             socketRef.close();
@@ -396,7 +393,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         connectionTimeoutRef = setTimeout(() => {
             const currentState = get();
             if (currentState.isLoading || currentState.connectionStatus === 'connecting') {
-                console.warn("[HA] Connection or data fetch timed out. Forcing stop.");
+                console.warn("Connection or data fetch timed out.");
                 set({ 
                     isLoading: false, 
                     connectionStatus: currentState.connectionStatus === 'connected' ? 'connected' : 'failed',
@@ -410,7 +407,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             const wsUrl = constructHaUrl(url, '/api/websocket', 'ws');
             socketRef = new WebSocket(wsUrl);
 
-            socketRef.onopen = () => console.log('[HA] WebSocket connected');
+            socketRef.onopen = () => console.log('WebSocket connected');
 
             // State to track initial loading progress within this closure
             // This prevents race conditions where state updates might lag behind websocket messages
@@ -432,7 +429,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                         break;
                     
                     case 'auth_ok':
-                        console.log('[HA] Auth successful. Fetching initial data...');
                         set({ connectionStatus: 'connected', haUrl: url });
                         
                         // Prepare initial data requests
@@ -454,7 +450,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                         break;
 
                     case 'auth_invalid':
-                        console.error('[HA] Auth failed');
                         set({ error: `Authentication failed: ${data.message}`, connectionStatus: 'failed', isLoading: false });
                         if (socketRef) socketRef.close();
                         break;
@@ -500,7 +495,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                             
                             // Check if ALL initial requests are done
                             if (initialFetchIds.size === 0) {
-                                console.log('[HA] Initial data fetch complete. Finalizing...');
                                 if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
                                 
                                 try {
@@ -535,7 +529,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                     set({ error: "Ошибка при финализации загрузки." });
                                 } finally {
                                     // Crucial: Stop spinner
-                                    console.log('[HA] Loading finished.');
                                     set({ isLoading: false });
                                 }
                             }

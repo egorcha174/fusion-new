@@ -7,15 +7,16 @@ import { Icon } from '@iconify/react';
 
 interface VideoPlayerProps {
   src: string;
+  poster?: string;
   onStreamReady?: () => void;
+  onError?: () => void;
 }
 
 /**
- * Внутренний компонент-плеер для HLS-потоков.
- * Использует библиотеку hls.js для воспроизведения, если она поддерживается браузером.
- * В противном случае (например, в Safari) использует нативную поддержку HLS в теге <video>.
+ * Оптимизированный плеер HLS.
+ * Включает capLevelToPlayerSize для экономии трафика на маленьких карточках.
  */
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, onStreamReady }) => {
+const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, poster, onStreamReady, onError }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
 
@@ -23,16 +24,20 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, onStreamReady }) => {
     const video = videoRef.current;
     if (!video || !src) return;
 
-    // Функция, вызываемая когда видео готово к отображению (первый кадр)
     const handleReady = () => {
         if (onStreamReady) onStreamReady();
     };
 
+    const handleError = () => {
+        if (onError) onError();
+    };
+
     if (Hls.isSupported()) {
       const hls = new Hls({ 
-          lowLatencyMode: true, 
-          backBufferLength: 90,
-          enableWorker: true,
+          capLevelToPlayerSize: true, // Критически важно: ограничивает качество размером элемента
+          autoStartLoad: false, // Загружаем только когда элемент виден (контролируется IntersectionObserver выше)
+          startLevel: -1,
+          backBufferLength: 30,
       });
       hlsRef.current = hls;
       
@@ -40,35 +45,43 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, onStreamReady }) => {
       hls.attachMedia(video);
       
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.play().catch(e => console.warn("Autoplay was prevented.", e));
+        // Запускаем загрузку только после привязки
+        hls.startLoad();
+        video.play().catch(e => console.warn("Autoplay prevented:", e));
       });
 
-      // Отслеживаем появление первого кадра или парсинг фрагмента
       hls.on(Hls.Events.FRAG_PARSED, () => {
-          // Небольшая задержка, чтобы убедиться, что рендеринг успел за декодированием
-          setTimeout(handleReady, 100);
+          // Считаем поток готовым, когда распаршен первый фрагмент
+          setTimeout(handleReady, 200);
       });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
         if (data.fatal) {
           switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR: hls.startLoad(); break;
-            case Hls.ErrorTypes.MEDIA_ERROR: hls.recoverMediaError(); break;
-            default: hls.destroy(); break;
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              console.warn("HLS Network error, trying to recover...");
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              console.warn("HLS Media error, trying to recover...");
+              hls.recoverMediaError();
+              break;
+            default:
+              console.error("HLS Fatal error:", data);
+              hls.destroy();
+              handleError();
+              break;
           }
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // Нативная поддержка в Safari.
+      // Native HLS (Safari)
       video.src = src;
       video.addEventListener('loadedmetadata', () => {
-        video.play().catch(e => console.warn("Autoplay was prevented.", e));
+        video.play().catch(e => console.warn("Autoplay prevented:", e));
       });
       video.addEventListener('canplay', handleReady);
-    } else {
-        // Fallback logic for direct file playback if browsers support it
-        video.src = src;
-        video.addEventListener('canplay', handleReady);
+      video.addEventListener('error', handleError);
     }
 
     return () => { 
@@ -76,27 +89,27 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, onStreamReady }) => {
             hlsRef.current.destroy();
             hlsRef.current = null;
         }
-        // Remove event listeners if native
         video.removeEventListener('canplay', handleReady);
+        video.removeEventListener('error', handleError);
+        video.removeAttribute('src');
+        video.load();
     };
-  }, [src, onStreamReady]);
+  }, [src, onStreamReady, onError]);
 
   return (
-    <div className="relative w-full h-full bg-black flex items-center justify-center group">
+    <div className="w-full h-full bg-black flex items-center justify-center">
       <video 
         ref={videoRef} 
-        className="w-full h-full object-contain" 
+        className="w-full h-full object-cover" 
+        poster={poster}
         muted 
         autoPlay 
         playsInline 
-        // onCanPlay может сработать раньше для нативного воспроизведения
-        onCanPlay={() => onStreamReady && onStreamReady()}
       />
-      <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded-md text-white text-xs font-bold tracking-wider fade-in pointer-events-none z-10">LIVE</div>
+      <div className="absolute top-2 left-2 px-2 py-0.5 bg-red-600/80 backdrop-blur-sm rounded text-white text-[10px] font-bold uppercase tracking-wider pointer-events-none z-10 animate-pulse">LIVE</div>
     </div>
   );
 };
-
 
 interface CameraStreamContentProps {
   entityId: string | null;
@@ -104,297 +117,243 @@ interface CameraStreamContentProps {
   signPath: (path: string) => Promise<{ path: string }>;
   getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
   altText?: string;
-  refreshInterval?: number; // seconds
-  autoPlay?: boolean;
+  refreshInterval?: number; // seconds for snapshot refresh
+  autoPlay?: boolean; // If true, loads stream immediately. If false, loads snapshot.
   showPlayButton?: boolean;
 }
 
-/**
- * Основной компонент для отображения контента с камеры.
- * Реализует многоступенчатую логику загрузки с предзагрузкой (preloading) для предотвращения моргания и черных экранов.
- */
 export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({ 
     entityId, 
     haUrl, 
     signPath, 
     getCameraStreamUrl, 
-    altText = 'Прямая трансляция',
-    refreshInterval,
+    altText = 'Камера',
+    refreshInterval = 10,
     autoPlay = false,
     showPlayButton = true
 }) => {
-  // Stream State
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [streamType, setStreamType] = useState<'hls' | 'mjpeg' | 'none'>('none');
+  const [snapshotUrl, setSnapshotUrl] = useState<string | null>(null);
   
-  // Preview Image State
-  const [activePreviewUrl, setActivePreviewUrl] = useState<string | null>(null);
-  
-  // Loading / UI State
   const [error, setError] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(autoPlay);
-  const [isVideoReady, setIsVideoReady] = useState(false); // True, когда видео реально начало играть
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isStreamActive, setIsStreamActive] = useState(autoPlay);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isVisible, setIsVisible] = useState(false); // Intersection Observer state
 
+  const containerRef = useRef<HTMLDivElement>(null);
   const isMountedRef = useRef(true);
-  const activePreviewUrlRef = useRef<string | null>(null);
-  const retryCountRef = useRef(0);
 
   useEffect(() => {
       isMountedRef.current = true;
       return () => { isMountedRef.current = false; };
   }, []);
 
-  // Keep ref in sync for callbacks
+  // Intersection Observer для ленивой загрузки
   useEffect(() => {
-      activePreviewUrlRef.current = activePreviewUrl;
-  }, [activePreviewUrl]);
+      const observer = new IntersectionObserver(
+          ([entry]) => {
+              setIsVisible(entry.isIntersecting);
+          },
+          { threshold: 0.1 } // Trigger when 10% visible
+      );
 
-  // Обновление превью (с предзагрузкой, чтобы не моргало)
-  const updatePreview = useCallback(async () => {
-      if (!entityId || isPlaying) return; // Не обновляем превью, если смотрим видео
+      if (containerRef.current) {
+          observer.observe(containerRef.current);
+      }
+
+      return () => observer.disconnect();
+  }, []);
+
+  // Fetch Snapshot (Lightweight mode)
+  const fetchSnapshot = useCallback(async () => {
+      if (!entityId || isStreamActive || !isVisible) return;
 
       try {
+        // Используем camera_proxy, который возвращает изображение
         const result = await signPath(`/api/camera_proxy/${entityId}`);
         if (!isMountedRef.current) return;
 
         const url = constructHaUrl(haUrl, result.path, 'http');
-        const urlWithCacheBuster = new URL(url);
-        urlWithCacheBuster.searchParams.set('t', String(new Date().getTime()));
-        const newUrl = urlWithCacheBuster.toString();
+        const urlWithCacheBuster = `${url}&t=${Date.now()}`;
 
-        // Предзагрузка изображения перед показом
         const img = new Image();
         img.onload = () => {
             if (isMountedRef.current) {
-                setActivePreviewUrl(newUrl);
-                setIsInitialLoad(false);
-                setError(null); // Clear error on success
-                retryCountRef.current = 0; // Reset retry count
+                setSnapshotUrl(urlWithCacheBuster);
+                setError(null);
             }
         };
-        img.onerror = (e) => {
-            console.warn("Failed to preload camera image", e);
-            if (isMountedRef.current) {
-                // Если изображение уже есть, просто оставляем старое (silent fail), чтобы не моргало
-                if (activePreviewUrlRef.current) return;
+        img.onerror = () => {
+            // Silent fail for snapshots to avoid flickering error states
+            // console.warn("Snapshot load failed"); 
+        };
+        img.src = urlWithCacheBuster;
 
-                // Логика ретраев для первоначальной загрузки
-                if (retryCountRef.current < 3) {
-                    retryCountRef.current++;
-                    console.log(`Retrying image load (${retryCountRef.current}/3)...`);
-                    setTimeout(updatePreview, 1000); // Retry after 1s
-                } else {
-                    // Если все попытки исчерпаны, показываем ошибку
-                    setError('Ошибка загрузки изображения');
-                    setIsInitialLoad(false);
-                }
-            }
-        };
-        img.src = newUrl;
       } catch (err) {
-        console.error(`Failed to get preview path for ${entityId}:`, err);
-        if (isMountedRef.current && !activePreviewUrlRef.current) {
-             setError('Ошибка доступа к камере');
-             setIsInitialLoad(false);
-        }
+          // Ignore auth errors during fast unmounts
       }
-  }, [entityId, haUrl, signPath, isPlaying]);
+  }, [entityId, haUrl, signPath, isStreamActive, isVisible]);
 
-  // Reset State when Entity Changes
+  // Snapshot polling
   useEffect(() => {
-    setIsPlaying(autoPlay);
-    setIsVideoReady(false);
-    setStreamUrl(null);
-    setStreamType('none');
-    setActivePreviewUrl(null);
-    setError(null);
-    setIsInitialLoad(true);
-    retryCountRef.current = 0;
-  }, [entityId, autoPlay]);
+      fetchSnapshot();
+      const interval = setInterval(fetchSnapshot, refreshInterval * 1000);
+      return () => clearInterval(interval);
+  }, [fetchSnapshot, refreshInterval]);
 
-  // Timer for Preview Updates
-  useEffect(() => {
-    if (!isPlaying) {
-        updatePreview();
-    }
-
-    const intervalId = (refreshInterval && refreshInterval > 0 && !isPlaying) 
-        ? setInterval(updatePreview, refreshInterval * 1000) 
-        : null;
-
-    return () => { 
-        if (intervalId) clearInterval(intervalId);
-    };
-  }, [refreshInterval, isPlaying, updatePreview]);
-
-  // Логика запуска видеопотока
-  useEffect(() => {
-    if (!isPlaying || !entityId) return;
-
-    let isMounted = true;
-    
-    const startStream = async () => {
+  // Start Stream Logic
+  const startStream = useCallback(async () => {
+      if (!entityId || !isVisible) return;
+      
+      setIsLoading(true);
       setError(null);
-      setIsVideoReady(false); // Сбрасываем флаг готовности, чтобы показать превью поверх видео пока оно грузится
 
-      // 1. Попытка HLS
       try {
-        const streamData = await getCameraStreamUrl(entityId);
-        if (isMounted && streamData && streamData.url) {
-          const finalUrl = constructHaUrl(haUrl, streamData.url, 'http');
-          setStreamUrl(finalUrl); 
-          setStreamType('hls');
-          return;
-        }
+          // 1. Попытка HLS
+          try {
+              const streamData = await getCameraStreamUrl(entityId);
+              if (isMountedRef.current && streamData?.url) {
+                  const finalUrl = constructHaUrl(haUrl, streamData.url, 'http');
+                  setStreamUrl(finalUrl);
+                  setStreamType('hls');
+                  setIsLoading(false);
+                  return;
+              }
+          } catch (e) {
+              console.warn(`HLS not available for ${entityId}, falling back to MJPEG.`);
+          }
+
+          // 2. Фоллбек MJPEG
+          const result = await signPath(`/api/camera_proxy_stream/${entityId}`);
+          if (isMountedRef.current) {
+              const finalUrl = constructHaUrl(haUrl, result.path, 'http');
+              const urlWithCacheBuster = `${finalUrl}&t=${Date.now()}`; // MJPEG needs cache busting initially
+              setStreamUrl(urlWithCacheBuster);
+              setStreamType('mjpeg');
+          }
       } catch (err) {
-        console.warn(`HLS failed for ${entityId}, trying MJPEG...`);
+          if (isMountedRef.current) {
+              setError("Не удалось загрузить поток");
+              setIsStreamActive(false); // Revert to snapshot mode
+          }
+      } finally {
+          if (isMountedRef.current) setIsLoading(false);
       }
+  }, [entityId, haUrl, getCameraStreamUrl, signPath, isVisible]);
 
-      // 2. Фоллбек на MJPEG
-      try {
-        const result = await signPath(`/api/camera_proxy_stream/${entityId}`);
-        if (isMounted) {
-          const finalUrl = constructHaUrl(haUrl, result.path, 'http');
-          // Для MJPEG тоже добавляем bust, но он обычно долгоживущий
-          const urlWithCacheBuster = new URL(finalUrl);
-          urlWithCacheBuster.searchParams.set('t', String(new Date().getTime()));
-          
-          setStreamUrl(urlWithCacheBuster.toString());
-          setStreamType('mjpeg');
-          // MJPEG "готов" почти сразу, как только начнется загрузка картинки
-          setIsVideoReady(true); 
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError('Ошибка загрузки потока');
-          setIsPlaying(false);
-        }
+  // Handle AutoPlay changes
+  useEffect(() => {
+      if (autoPlay && isVisible) {
+          setIsStreamActive(true);
+      } else {
+          setIsStreamActive(false);
       }
-    };
+  }, [autoPlay, isVisible]);
 
-    startStream();
-    return () => { isMounted = false; };
-  }, [isPlaying, entityId, haUrl, getCameraStreamUrl, signPath]);
+  // Trigger stream load when active and visible
+  useEffect(() => {
+      if (isStreamActive && isVisible && !streamUrl) {
+          startStream();
+      } else if ((!isStreamActive || !isVisible) && streamUrl) {
+          // Cleanup stream if we go inactive or invisible
+          setStreamUrl(null);
+          setStreamType('none');
+      }
+  }, [isStreamActive, isVisible, streamUrl, startStream]);
 
-  const handleVideoReady = () => {
-      setIsVideoReady(true);
-  };
 
-  // --- RENDER LOGIC ---
-  
   if (!entityId) {
       return (
-        <div className="relative w-full h-full bg-black flex items-center justify-center group rounded-lg overflow-hidden">
-            <div className="text-gray-500 text-center p-4">
-                <Icon icon="mdi:cctv-off" className="w-10 h-10 mx-auto mb-2" />
-                <p className="mt-2 text-sm">Камера не выбрана</p>
+        <div ref={containerRef} className="w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded-lg">
+            <div className="text-gray-400 flex flex-col items-center">
+                <Icon icon="mdi:camera-off" className="w-8 h-8 mb-1" />
+                <span className="text-xs">Нет сигнала</span>
             </div>
         </div>
       );
   }
 
   return (
-    <div className="relative w-full h-full bg-black overflow-hidden rounded-lg">
-      {/* 
-          LAYER 1: VIDEO PLAYER (Bottom) 
-          Рендерим его, если isPlaying = true. 
-          Он может быть еще черным (грузится), поэтому сверху может лежать превью.
-      */}
-      {isPlaying && streamUrl && (
-          <div className="absolute inset-0 z-0 flex items-center justify-center">
-              {streamType === 'hls' ? (
-                  <VideoPlayer src={streamUrl} onStreamReady={handleVideoReady} />
-              ) : (
-                  <div className="relative w-full h-full">
+    <div ref={containerRef} className="relative w-full h-full bg-black overflow-hidden rounded-lg group">
+        
+        {/* 1. Video Layer */}
+        {isStreamActive && streamUrl && (
+            <div className="absolute inset-0 z-10">
+                {streamType === 'hls' ? (
+                    <VideoPlayer 
+                        src={streamUrl} 
+                        poster={snapshotUrl || undefined}
+                        onError={() => setError("Ошибка потока")}
+                    />
+                ) : (
                     <img 
                         src={streamUrl} 
-                        className="w-full h-full object-contain" 
-                        alt={altText} 
-                        onLoad={() => setIsVideoReady(true)}
+                        className="w-full h-full object-cover" 
+                        alt={altText}
                     />
-                    <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded-md text-white text-xs font-bold tracking-wider pointer-events-none">MJPEG</div>
-                  </div>
-              )}
-          </div>
-      )}
-
-      {/* 
-          LAYER 2: STATIC PREVIEW (Top)
-          Показываем, если:
-          1. Мы НЕ играем видео (!isPlaying)
-          2. ИЛИ мы играем видео, но оно еще не готово (!isVideoReady) - чтобы скрыть черный экран загрузки
-          
-          Используем opacity для плавного перехода.
-      */}
-      <div 
-        className="absolute inset-0 z-10 bg-black flex items-center justify-center transition-opacity duration-500 ease-in-out pointer-events-none"
-        style={{ opacity: (isPlaying && isVideoReady) ? 0 : 1 }}
-      >
-          {activePreviewUrl ? (
-              <img 
-                src={activePreviewUrl} 
-                className="w-full h-full object-contain" 
-                alt={altText} 
-              />
-          ) : (
-              // Если нет URL...
-              <div className="flex flex-col items-center justify-center text-gray-500">
-                  {isInitialLoad ? (
-                      <LoadingSpinner />
-                  ) : (
-                      // Если не загрузка и нет URL - значит ошибка, которую мы обработаем ниже, или просто пусто
-                      <div className="w-full h-full bg-black" />
-                  )}
-              </div>
-          )}
-          
-          {/* Показываем ошибку поверх превью, если есть */}
-          {error && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/60 pointer-events-auto">
-                  <div className="text-center p-4">
-                      <Icon icon="mdi:alert-circle-outline" className="w-8 h-8 text-red-500 mx-auto mb-2" />
-                      <p className="text-red-400 text-sm">{error}</p>
-                      {/* Manual Retry Button */}
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); retryCountRef.current = 0; setIsInitialLoad(true); setError(null); updatePreview(); }}
-                        className="mt-3 px-3 py-1 bg-white/10 hover:bg-white/20 rounded text-xs text-white transition-colors"
-                      >
-                        Повторить
-                      </button>
-                  </div>
-              </div>
-          )}
-      </div>
-
-      {/* 
-          LAYER 3: CONTROLS (Overlay)
-          Кнопка Play. Видна только если мы НЕ играем.
-          pointer-events-auto нужна, чтобы клик прошел сквозь прозрачный слой превью (если он исчезает) или попал сюда.
-      */}
-      {!isPlaying && showPlayButton && !error && activePreviewUrl && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-auto group cursor-pointer" onClick={(e) => { e.stopPropagation(); setIsPlaying(true); }}>
-            <button 
-                className="p-4 rounded-full bg-white/20 hover:bg-white/30 text-white backdrop-blur-md shadow-lg transition-all transform group-hover:scale-110 active:scale-95 ring-1 ring-white/30" 
-                title="Смотреть трансляцию"
-            >
-                {isInitialLoad && !activePreviewUrl ? (
-                    <LoadingSpinner /> 
-                ) : (
-                    <Icon icon="mdi:play" className="w-8 h-8 ml-1 fill-current drop-shadow-md" />
                 )}
-            </button>
-        </div>
-      )}
-      
-      {/* Loader Video - показываем спиннер поверх всего, если нажали Play, но видео еще не готово */}
-      {isPlaying && !isVideoReady && !error && (
-          <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
-              <div className="bg-black/40 p-3 rounded-full backdrop-blur-sm">
+            </div>
+        )}
+
+        {/* 2. Snapshot Layer (Visible when not streaming or loading) */}
+        {(!isStreamActive || isLoading) && (
+            <div className="absolute inset-0 z-0 flex items-center justify-center bg-gray-900">
+                {snapshotUrl ? (
+                    <img 
+                        src={snapshotUrl} 
+                        className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity duration-300" 
+                        alt={altText} 
+                    />
+                ) : (
+                    <div className="flex flex-col items-center text-gray-500">
+                        <Icon icon="mdi:camera" className="w-10 h-10 opacity-20" />
+                    </div>
+                )}
+            </div>
+        )}
+
+        {/* 3. Loading Overlay */}
+        {isLoading && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-sm">
                 <LoadingSpinner />
-              </div>
-          </div>
-      )}
+            </div>
+        )}
+
+        {/* 4. Error Overlay */}
+        {error && (
+            <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60">
+                <div className="text-center p-2">
+                    <Icon icon="mdi:alert-circle" className="w-6 h-6 text-red-500 mx-auto" />
+                    <p className="text-red-400 text-[10px] mt-1">{error}</p>
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); startStream(); }} 
+                        className="mt-2 px-2 py-1 bg-white/10 hover:bg-white/20 rounded text-xs text-white"
+                    >
+                        Повторить
+                    </button>
+                </div>
+            </div>
+        )}
+
+        {/* 5. Play Button Overlay (Only in snapshot mode) */}
+        {!isStreamActive && showPlayButton && !error && (
+            <div 
+                className="absolute inset-0 z-20 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                onClick={(e) => { e.stopPropagation(); setIsStreamActive(true); }}
+            >
+                <div className="p-3 rounded-full bg-black/50 hover:bg-blue-600 text-white backdrop-blur-md transition-colors transform hover:scale-110">
+                    <Icon icon="mdi:play" className="w-8 h-8" />
+                </div>
+            </div>
+        )}
+        
+        {/* 6. Badge for Snapshot Mode */}
+        {!isStreamActive && snapshotUrl && (
+             <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/40 rounded text-white/70 text-[9px] pointer-events-none">
+                 {refreshInterval}s
+             </div>
+        )}
     </div>
   );
 };
