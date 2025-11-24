@@ -136,62 +136,87 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
   const [isVideoReady, setIsVideoReady] = useState(false); // True, когда видео реально начало играть
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
+  const isMountedRef = useRef(true);
+  const activePreviewUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+      isMountedRef.current = true;
+      return () => { isMountedRef.current = false; };
+  }, []);
+
+  // Keep ref in sync for callbacks
+  useEffect(() => {
+      activePreviewUrlRef.current = activePreviewUrl;
+  }, [activePreviewUrl]);
+
   // Обновление превью (с предзагрузкой, чтобы не моргало)
-  const updatePreview = useCallback(async (isMounted: boolean) => {
+  const updatePreview = useCallback(async () => {
       if (!entityId || isPlaying) return; // Не обновляем превью, если смотрим видео
 
       try {
         const result = await signPath(`/api/camera_proxy/${entityId}`);
-        if (isMounted) {
-          const url = constructHaUrl(haUrl, result.path, 'http');
-          const urlWithCacheBuster = new URL(url);
-          urlWithCacheBuster.searchParams.set('t', String(new Date().getTime()));
-          const newUrl = urlWithCacheBuster.toString();
+        if (!isMountedRef.current) return;
 
-          // Предзагрузка изображения перед показом
-          const img = new Image();
-          img.onload = () => {
-              if (isMounted) {
-                  setActivePreviewUrl(newUrl);
-                  setIsInitialLoad(false);
-              }
-          };
-          img.onerror = (e) => {
-              console.warn("Failed to preload camera image", e);
-              // Если это первая загрузка и она упала, показываем ошибку или старый URL
-              if (isInitialLoad && isMounted) setIsInitialLoad(false);
-          };
-          img.src = newUrl;
-        }
+        const url = constructHaUrl(haUrl, result.path, 'http');
+        const urlWithCacheBuster = new URL(url);
+        urlWithCacheBuster.searchParams.set('t', String(new Date().getTime()));
+        const newUrl = urlWithCacheBuster.toString();
+
+        // Предзагрузка изображения перед показом
+        const img = new Image();
+        img.onload = () => {
+            if (isMountedRef.current) {
+                setActivePreviewUrl(newUrl);
+                setIsInitialLoad(false);
+                setError(null);
+            }
+        };
+        img.onerror = (e) => {
+            console.warn("Failed to preload camera image", e);
+            if (isMountedRef.current) {
+                // Если у нас еще нет изображения, это критическая ошибка, показываем сообщение
+                if (!activePreviewUrlRef.current) {
+                    setError('Ошибка загрузки изображения');
+                    setIsInitialLoad(false);
+                }
+                // Если изображение уже есть, просто оставляем старое (silent fail), чтобы не моргало
+            }
+        };
+        img.src = newUrl;
       } catch (err) {
         console.error(`Failed to get preview path for ${entityId}:`, err);
+        if (isMountedRef.current && !activePreviewUrlRef.current) {
+             setError('Ошибка доступа к камере');
+             setIsInitialLoad(false);
+        }
       }
-  }, [entityId, haUrl, signPath, isPlaying, isInitialLoad]);
+  }, [entityId, haUrl, signPath, isPlaying]);
 
-  // Initial Preview Load & Timer
+  // Reset State when Entity Changes
   useEffect(() => {
-    let isMounted = true;
-    
-    // Сбрасываем состояние при смене камеры
     setIsPlaying(autoPlay);
     setIsVideoReady(false);
     setStreamUrl(null);
     setStreamType('none');
     setActivePreviewUrl(null);
+    setError(null);
     setIsInitialLoad(true);
+  }, [entityId, autoPlay]);
 
-    // Initial fetch
-    updatePreview(isMounted);
+  // Timer for Preview Updates
+  useEffect(() => {
+    if (!isPlaying) {
+        updatePreview();
+    }
 
-    const intervalId = (refreshInterval && refreshInterval > 0) 
-        ? setInterval(() => updatePreview(isMounted), refreshInterval * 1000) 
+    const intervalId = (refreshInterval && refreshInterval > 0 && !isPlaying) 
+        ? setInterval(updatePreview, refreshInterval * 1000) 
         : null;
 
     return () => { 
-        isMounted = false; 
         if (intervalId) clearInterval(intervalId);
     };
-  }, [entityId, refreshInterval, autoPlay]); // Removed updatePreview from dependency to avoid re-triggering loop if logic changes
+  }, [refreshInterval, isPlaying, updatePreview]);
 
   // Логика запуска видеопотока
   useEffect(() => {
@@ -250,7 +275,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
   
   if (!entityId) {
       return (
-        <div className="relative w-full h-full bg-black flex items-center justify-center group">
+        <div className="relative w-full h-full bg-black flex items-center justify-center group rounded-lg overflow-hidden">
             <div className="text-gray-500 text-center p-4">
                 <Icon icon="mdi:cctv-off" className="w-10 h-10 mx-auto mb-2" />
                 <p className="mt-2 text-sm">Камера не выбрана</p>
@@ -260,7 +285,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
   }
 
   return (
-    <div className="relative w-full h-full bg-black overflow-hidden">
+    <div className="relative w-full h-full bg-black overflow-hidden rounded-lg">
       {/* 
           LAYER 1: VIDEO PLAYER (Bottom) 
           Рендерим его, если isPlaying = true. 
@@ -303,14 +328,24 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
                 alt={altText} 
               />
           ) : (
-              // Если нет URL и это первая загрузка - спиннер
-              isInitialLoad && <LoadingSpinner />
+              // Если нет URL...
+              <div className="flex flex-col items-center justify-center text-gray-500">
+                  {isInitialLoad ? (
+                      <LoadingSpinner />
+                  ) : (
+                      // Если не загрузка и нет URL - значит ошибка, которую мы обработаем ниже, или просто пусто
+                      <div className="w-full h-full bg-black" />
+                  )}
+              </div>
           )}
           
           {/* Показываем ошибку поверх превью, если есть */}
           {error && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-                  <p className="text-red-400 text-sm px-4 text-center">{error}</p>
+              <div className="absolute inset-0 flex items-center justify-center bg-black/60 pointer-events-auto">
+                  <div className="text-center p-4">
+                      <Icon icon="mdi:alert-circle-outline" className="w-8 h-8 text-red-500 mx-auto mb-2" />
+                      <p className="text-red-400 text-sm">{error}</p>
+                  </div>
               </div>
           )}
       </div>
@@ -321,14 +356,13 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
           pointer-events-auto нужна, чтобы клик прошел сквозь прозрачный слой превью (если он исчезает) или попал сюда.
       */}
       {!isPlaying && showPlayButton && !error && activePreviewUrl && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-auto">
+        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-auto group cursor-pointer" onClick={(e) => { e.stopPropagation(); setIsPlaying(true); }}>
             <button 
-                onClick={(e) => { e.stopPropagation(); setIsPlaying(true); }} 
-                className="group/btn p-4 rounded-full bg-white/20 hover:bg-white/30 text-white backdrop-blur-md shadow-lg transition-all transform hover:scale-110 active:scale-95 ring-1 ring-white/30" 
+                className="p-4 rounded-full bg-white/20 hover:bg-white/30 text-white backdrop-blur-md shadow-lg transition-all transform group-hover:scale-110 active:scale-95 ring-1 ring-white/30" 
                 title="Смотреть трансляцию"
             >
                 {isInitialLoad && !activePreviewUrl ? (
-                    <LoadingSpinner /> // Fallback visual inside button just in case
+                    <LoadingSpinner /> 
                 ) : (
                     <Icon icon="mdi:play" className="w-8 h-8 ml-1 fill-current drop-shadow-md" />
                 )}
