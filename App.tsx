@@ -8,6 +8,7 @@
 
 
 
+
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet, GridLayoutItem, EventTimerWidget } from './types';
@@ -336,8 +337,10 @@ const App: React.FC = () => {
         if (['02', '03', '04', '50'].some(c => icon.startsWith(c))) return 'strong-cloudy';
         // Clear Night (01n) - Aurora
         if (icon === '01n') return 'aurora';
+        // Clear Day (01d) - Sun Glare
+        if (icon === '01d') return 'sun-glare';
         
-        // Default for clear day
+        // Default for clear day/night if no match
         return 'none';
     }, [backgroundEffect, weatherData]);
 

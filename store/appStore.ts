@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
@@ -31,7 +32,7 @@ import {
 } from '../config/defaults';
 import { set as setAtPath } from '../utils/obj-path';
 
-export type BackgroundEffectType = 'none' | 'snow' | 'rain' | 'leaves' | 'river' | 'aurora' | 'strong-cloudy' | 'rain-clouds' | 'snow-rain' | 'weather' | 'thunderstorm';
+export type BackgroundEffectType = 'none' | 'snow' | 'rain' | 'leaves' | 'river' | 'aurora' | 'strong-cloudy' | 'rain-clouds' | 'snow-rain' | 'weather' | 'thunderstorm' | 'sun-glare';
 
 // --- State and Actions Interfaces ---
 interface AppState {
@@ -189,9 +190,35 @@ if (initialServers.length === 0) {
   }
 }
 
-const initialThemes = loadAndMigrate<ThemeDefinition[]>(LOCAL_STORAGE_KEYS.THEMES, DEFAULT_THEMES);
+// --- Theme Initialization Logic ---
+// 1. Load CUSTOM themes from the new storage key.
+let customThemes = loadAndMigrate<ThemeDefinition[]>(LOCAL_STORAGE_KEYS.CUSTOM_THEMES, []);
+
+// 2. Migration: If custom themes are empty, check the legacy key.
+// This handles the transition from "all themes in one key" to "custom only in LS".
+if (customThemes.length === 0) {
+    const legacyThemes = loadAndMigrate<ThemeDefinition[]>(LOCAL_STORAGE_KEYS.THEMES_LEGACY, []);
+    if (legacyThemes.length > 0) {
+        const migratedCustom = legacyThemes.filter(t => t.isCustom);
+        if (migratedCustom.length > 0) {
+            console.log("Migrating custom themes to new storage structure...");
+            customThemes = migratedCustom;
+            localStorage.setItem(LOCAL_STORAGE_KEYS.CUSTOM_THEMES, JSON.stringify(customThemes));
+        }
+    }
+}
+
+// 3. Combine DEFAULT themes (from code) with CUSTOM themes (from LS).
+// This ensures that updates to default themes in code (like adding 'Tron') are always applied.
+const initialThemes = [
+    ...DEFAULT_THEMES,
+    ...customThemes
+];
+
 const initialActiveThemeId = loadAndMigrate<string>(LOCAL_STORAGE_KEYS.ACTIVE_THEME_ID, DEFAULT_THEMES[0].id);
-const initialColorScheme = initialThemes.find(t => t.id === initialActiveThemeId)?.scheme || DEFAULT_THEMES[0].scheme;
+// Ensure active theme still exists, otherwise fallback
+const validActiveThemeId = initialThemes.some(t => t.id === initialActiveThemeId) ? initialActiveThemeId : DEFAULT_THEMES[0].id;
+const initialColorScheme = initialThemes.find(t => t.id === validActiveThemeId)?.scheme || DEFAULT_THEMES[0].scheme;
 
 // Migration for Christmas Theme
 const migratedEffect = loadAndMigrate<BackgroundEffectType>(LOCAL_STORAGE_KEYS.BACKGROUND_EFFECT, 'none');
@@ -236,7 +263,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     scheduleEndTime: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.SCHEDULE_END_TIME, '07:00'),
     
     themes: initialThemes,
-    activeThemeId: initialActiveThemeId,
+    activeThemeId: validActiveThemeId,
     colorScheme: initialColorScheme,
     
     weatherProvider: loadAndMigrate<'openweathermap' | 'yandex' | 'foreca' | 'homeassistant'>(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, DEFAULT_WEATHER_PROVIDER),
@@ -331,20 +358,22 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     },
     setThemeMode: (theme) => {
         set({ themeMode: theme });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.THEME_MODE, theme);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.THEME_MODE, JSON.stringify(theme));
     },
     setScheduleStartTime: (time) => {
         set({ scheduleStartTime: time });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.SCHEDULE_START_TIME, time);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SCHEDULE_START_TIME, JSON.stringify(time));
     },
     setScheduleEndTime: (time) => {
         set({ scheduleEndTime: time });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.SCHEDULE_END_TIME, time);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SCHEDULE_END_TIME, JSON.stringify(time));
     },
 
     setThemes: (themes) => {
         set({ themes });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.THEMES, JSON.stringify(themes));
+        // We only save CUSTOM themes to storage. Built-ins are always loaded from code.
+        const customOnly = themes.filter(t => t.isCustom);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.CUSTOM_THEMES, JSON.stringify(customOnly));
     },
     selectTheme: (themeId) => {
         const theme = get().themes.find(t => t.id === themeId);
@@ -355,15 +384,18 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     },
     saveTheme: (themeToSave) => {
         const { themes, setThemes, activeThemeId } = get();
-        const themeExists = themes.some(t => t.id === themeToSave.id);
+        // Mark as custom if not already
+        const themeWithFlag = { ...themeToSave, isCustom: true };
+        
+        const themeExists = themes.some(t => t.id === themeWithFlag.id);
         const newThemes = themeExists
-            ? themes.map(t => t.id === themeToSave.id ? themeToSave : t)
-            : [...themes, themeToSave];
+            ? themes.map(t => t.id === themeWithFlag.id ? themeWithFlag : t)
+            : [...themes, themeWithFlag];
         
         setThemes(newThemes);
     
-        if (activeThemeId === themeToSave.id) {
-            set({ colorScheme: themeToSave.scheme });
+        if (activeThemeId === themeWithFlag.id) {
+            set({ colorScheme: themeWithFlag.scheme });
         }
     },
     deleteTheme: (themeId) => {
@@ -414,23 +446,23 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
     setWeatherProvider: (provider) => {
         set({ weatherProvider: provider });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, provider);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, JSON.stringify(provider));
     },
     setWeatherEntityId: (entityId) => {
         set({ weatherEntityId: entityId });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.WEATHER_ENTITY_ID, entityId);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.WEATHER_ENTITY_ID, JSON.stringify(entityId));
     },
     setOpenWeatherMapKey: (key) => {
         set({ openWeatherMapKey: key });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, key);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, JSON.stringify(key));
     },
     setYandexWeatherKey: (key) => {
         set({ yandexWeatherKey: key });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, key);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, JSON.stringify(key));
     },
     setForecaApiKey: (key) => {
         set({ forecaApiKey: key });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.FORECA_KEY, key);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.FORECA_KEY, JSON.stringify(key));
     },
     setWeatherSettings: (settings) => {
         set({ weatherSettings: settings });

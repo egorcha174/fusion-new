@@ -178,30 +178,36 @@ const LeavesEffect = () => {
 const CloudShape = React.memo(({ width, height, color, seed }: { width: number, height: number, color: string, seed: number }) => {
     const { circles, gradientId, morphDuration, morphDelay, pulseDuration } = useMemo(() => {
         const random = (offset: number) => {
-            const x = Math.sin(seed + offset) * 10000;
+            const x = Math.sin(seed * 43758.5453 + offset * 12.9898) * 10000;
             return x - Math.floor(x);
         };
 
         const c = [];
-        const count = 12 + Math.floor(random(0) * 9); 
+        const blobCount = 4 + Math.floor(random(0) * 3); 
         
-        c.push({ cx: width * 0.5, cy: height * 0.6, r: width * 0.35 });
-        c.push({ cx: width * 0.3, cy: height * 0.65, r: width * 0.25 });
-        c.push({ cx: width * 0.7, cy: height * 0.65, r: width * 0.25 });
-
-        for(let i = 0; i < count; i++) {
-            c.push({
-                cx: width * (0.1 + random(i + 1) * 0.8),
-                cy: height * (0.2 + random(i + 2) * 0.5),
-                r: width * (0.1 + random(i + 3) * 0.18)
-            });
+        for (let i = 0; i < blobCount; i++) {
+            const cx = width * (0.2 + random(i + 1) * 0.6);
+            const cy = height * (0.3 + random(i + 2) * 0.4);
+            const r = width * (0.15 + random(i + 3) * 0.25);
+            c.push({ cx, cy, r });
         }
 
-        const gId = `cloudGrad-${seed}-${nanoid(4)}`;
+        const fluffCount = 15 + Math.floor(random(4) * 15); 
         
-        const mDuration = 20 + random(10) * 20; 
+        for (let i = 0; i < fluffCount; i++) {
+            const parentBlob = c[Math.floor(random(i + 10) * blobCount)];
+            const angle = random(i + 20) * Math.PI * 2;
+            const dist = parentBlob.r * (0.5 + random(i + 30) * 0.5);
+            const cx = parentBlob.cx + Math.cos(angle) * dist;
+            const cy = parentBlob.cy + Math.sin(angle) * dist;
+            const r = width * (0.08 + random(i + 40) * 0.12);
+            c.push({ cx, cy, r });
+        }
+
+        const gId = `cloudGrad-${Math.floor(seed * 10000)}-${nanoid(4)}`;
+        const mDuration = 20 + random(10) * 20;
         const mDelay = random(11) * -20;
-        const pDuration = 30 + random(12) * 15; 
+        const pDuration = 30 + random(12) * 15;
 
         return { circles: c, gradientId: gId, morphDuration: mDuration, morphDelay: mDelay, pulseDuration: pDuration };
     }, [width, height, seed, color]);
@@ -246,9 +252,10 @@ const StrongCloudyEffect = ({ dark = false }: { dark?: boolean }) => {
         const colors = dark ? darkColors : defaultColors;
 
         return Array.from({ length: 20 }).map((_, i) => {
-            const scale = 0.6 + Math.random() * 1.8; 
-            const width = 250 * scale;
-            const height = 160 * scale;
+            const scale = 0.6 + Math.random() * 1.6;
+            const aspectRatio = 1.3 + Math.random() * 0.6; 
+            const width = 250 * scale * (0.9 + Math.random() * 0.2);
+            const height = width / aspectRatio;
             const top = Math.random() * 70 - 15; 
             const duration = 80 + Math.random() * 80; 
             const delay = Math.random() * -200;
@@ -256,6 +263,7 @@ const StrongCloudyEffect = ({ dark = false }: { dark?: boolean }) => {
             const color = colors[Math.floor(Math.random() * colors.length)];
             const zIndex = Math.floor(scale * 2); 
             const parallaxDuration = duration / scale; 
+            const shapeSeed = Math.random() * 100000;
 
             return {
                 id: i,
@@ -271,7 +279,8 @@ const StrongCloudyEffect = ({ dark = false }: { dark?: boolean }) => {
                 } as React.CSSProperties,
                 width,
                 height,
-                color
+                color,
+                shapeSeed
             };
         });
     }, [dark]);
@@ -290,7 +299,7 @@ const StrongCloudyEffect = ({ dark = false }: { dark?: boolean }) => {
                     50% { opacity: 0.4; }
                 }
             `}</style>
-            {clouds.map((cloud, index) => (
+            {clouds.map((cloud) => (
                 <div 
                     key={cloud.id} 
                     className="cloud" 
@@ -299,7 +308,7 @@ const StrongCloudyEffect = ({ dark = false }: { dark?: boolean }) => {
                         animationName: 'cloud-drift'
                     }}
                 >
-                    <CloudShape width={cloud.width} height={cloud.height} color={cloud.color} seed={index} />
+                    <CloudShape width={cloud.width} height={cloud.height} color={cloud.color} seed={cloud.shapeSeed} />
                 </div>
             ))}
         </>
@@ -358,34 +367,65 @@ const AuroraEffect = () => {
     );
 };
 
-// Sporadic Lightning Flash Component
 const LightningFlash = () => (
     <>
         <style>{`
-            @keyframes lightning-flash-primary {
-                0%, 90%, 100% { opacity: 0; }
-                92% { opacity: 0.3; }
-                93% { opacity: 0.1; }
-                94% { opacity: 0.6; }
-                96% { opacity: 0.1; }
-                97% { opacity: 0; }
-            }
-            @keyframes lightning-flash-secondary {
-                0%, 70%, 100% { opacity: 0; }
-                72% { opacity: 0.2; }
-                73% { opacity: 0; }
+            @keyframes lightning {
+                0%, 92%, 100% { opacity: 0; }
+                93% { opacity: 0.6; }
+                94% { opacity: 0.2; }
+                96% { opacity: 0.8; }
+                98% { opacity: 0; }
             }
         `}</style>
-        {/* Main flash behind clouds, more visible on dark bg */}
         <div 
-            className="absolute inset-0 bg-white/90 pointer-events-none z-[0] mix-blend-overlay"
-            style={{ animation: 'lightning-flash-primary 13s infinite', animationDelay: '2s' }}
+            className="absolute inset-0 bg-white pointer-events-none z-20 mix-blend-overlay"
+            style={{ animation: 'lightning 7s infinite' }}
         />
-        {/* Secondary sporadic flash, cooler tone */}
-        <div 
-            className="absolute inset-0 bg-blue-100/80 pointer-events-none z-[0] mix-blend-overlay"
-            style={{ animation: 'lightning-flash-secondary 23s infinite', animationDelay: '5s' }}
-        />
+    </>
+);
+
+const SunGlareEffect = () => (
+    <>
+        <style>{`
+            @keyframes sun-spin { 
+                from { transform: rotate(0deg); } 
+                to { transform: rotate(360deg); } 
+            }
+            @keyframes flare-float {
+                0% { transform: translate(0, 0); opacity: 0.3; }
+                50% { transform: translate(10px, -15px); opacity: 0.5; }
+                100% { transform: translate(0, 0); opacity: 0.3; }
+            }
+        `}</style>
+        <div className="fixed inset-0 pointer-events-none overflow-hidden -z-[5]">
+            {/* Main Sun Source (Top Right Corner) */}
+            <div className="absolute -top-[10vw] -right-[10vw] w-[60vw] h-[60vw] bg-yellow-100/20 rounded-full blur-[80px]" />
+            <div className="absolute -top-[5vw] -right-[5vw] w-[30vw] h-[30vw] bg-orange-200/30 rounded-full blur-[50px]" />
+            
+            {/* Rotating Rays */}
+            <div 
+                className="absolute -top-[50vw] -right-[50vw] w-[200vw] h-[200vw] opacity-20 mix-blend-overlay"
+                style={{ 
+                    animation: 'sun-spin 120s linear infinite',
+                    background: 'conic-gradient(from 0deg, transparent 0deg, rgba(255, 223, 150, 0.3) 10deg, transparent 20deg, transparent 40deg, rgba(255, 255, 255, 0.2) 50deg, transparent 60deg, transparent 90deg, rgba(255, 200, 100, 0.1) 100deg, transparent 120deg)' 
+                }} 
+            />
+
+            {/* Lens Flares */}
+            <div 
+                className="absolute top-[30%] right-[30%] w-12 h-12 bg-white/10 rounded-full blur-md mix-blend-screen"
+                style={{ animation: 'flare-float 8s ease-in-out infinite' }} 
+            />
+            <div 
+                className="absolute top-[45%] right-[45%] w-24 h-24 bg-yellow-200/5 rounded-full blur-xl mix-blend-screen"
+                style={{ animation: 'flare-float 12s ease-in-out infinite reverse' }} 
+            />
+            <div 
+                className="absolute top-[60%] right-[60%] w-6 h-6 bg-orange-100/20 rounded-full blur-sm mix-blend-screen"
+                style={{ animation: 'flare-float 15s ease-in-out infinite' }} 
+            />
+        </div>
     </>
 );
 
@@ -400,6 +440,7 @@ const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect }) => {
             {effect === 'strong-cloudy' && <StrongCloudyEffect />}
             {effect === 'river' && <RiverEffect />}
             {effect === 'aurora' && <AuroraEffect />}
+            {effect === 'sun-glare' && <SunGlareEffect />}
             {effect === 'rain-clouds' && (
                 <>
                     <StrongCloudyEffect dark />
@@ -415,9 +456,9 @@ const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect }) => {
             )}
             {effect === 'thunderstorm' && (
                 <>
-                    <LightningFlash />
                     <StrongCloudyEffect dark />
                     <RainEffect zIndexOverride={15} />
+                    <LightningFlash />
                 </>
             )}
         </div>

@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device, AuroraSettings } from '../types';
@@ -630,7 +631,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                     </Section>
 
                     <Section title="Тема оформления" description="Выберите тему из списка. Используйте кнопку копирования для создания своей версии.">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 auto-rows-fr">
                             {themes.map(theme => (
                                 <div key={theme.id} className="text-center group relative">
                                     <button
@@ -734,6 +735,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                                 <option value="rain-clouds">Облака и дождь</option>
                                 <option value="snow-rain">Снег с дождем</option>
                                 <option value="thunderstorm">Гроза</option>
+                                <option value="sun-glare">Солнечные блики</option>
                                 <option value="leaves">Листопад</option>
                                 <option value="river">Речные волны</option>
                                 <option value="aurora">Полярное сияние</option>

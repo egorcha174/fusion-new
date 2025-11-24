@@ -14,9 +14,9 @@ export const LOCAL_STORAGE_KEYS = {
   CARD_TEMPLATES: 'ha-card-templates',
   SIDEBAR_WIDTH: 'ha-sidebar-width',
   CAMERA_SETTINGS: 'ha-camera-settings',
-  THEME_MODE: 'ha-theme-mode', 
+  THEME_MODE: 'ha-theme-mode',
   // LEGACY KEY: 'ha-themes' contains mixed built-in and custom themes. Used for migration.
-  THEMES_LEGACY: 'ha-themes', 
+  THEMES_LEGACY: 'ha-themes',
   // NEW KEY: Stores ONLY custom user themes.
   CUSTOM_THEMES: 'ha-custom-themes',
   ACTIVE_THEME_ID: 'ha-active-theme-id',
