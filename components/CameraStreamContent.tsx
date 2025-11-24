@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Hls from 'hls.js';
 import { constructHaUrl } from '../utils/url';
 import LoadingSpinner from './LoadingSpinner';
+import { Icon } from '@iconify/react';
 
 interface VideoPlayerProps {
   src: string;
@@ -51,7 +52,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
   return (
     <div className="relative w-full h-full bg-black flex items-center justify-center group">
       <video ref={videoRef} className="w-full h-full object-contain" muted autoPlay playsInline />
-      <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded-md text-white text-xs font-bold tracking-wider fade-in">HLS</div>
+      <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded-md text-white text-xs font-bold tracking-wider fade-in pointer-events-none">HLS</div>
     </div>
   );
 };
@@ -168,17 +169,20 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({ entity
         {loadState === 'loaded' && previewUrl && (
           <>
             <img src={previewUrl} className="w-full h-full border-0 bg-black object-contain" alt={altText} />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-start p-3 pointer-events-none">
-                <button onClick={(e) => { e.stopPropagation(); if (entityId) setIsPlaying(true); }} className="flex items-center gap-2 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1.5 text-sm font-semibold text-white hover:bg-black/70 transition-colors pointer-events-auto" title="Смотреть трансляцию">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
-                    <span>Смотреть</span>
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <button 
+                    onClick={(e) => { e.stopPropagation(); if (entityId) setIsPlaying(true); }} 
+                    className="group/btn p-4 rounded-full bg-white/20 hover:bg-white/30 text-white backdrop-blur-md shadow-lg transition-all transform hover:scale-110 active:scale-95 pointer-events-auto ring-1 ring-white/30" 
+                    title="Смотреть трансляцию"
+                >
+                    <Icon icon="mdi:play" className="w-8 h-8 ml-1 fill-current drop-shadow-md" />
                 </button>
             </div>
           </>
         )}
         {loadState === 'idle' && (
           <div className="text-gray-500 text-center p-4">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.55a2 2 0 01.95 1.664V16a2 2 0 01-2 2H5a2 2 0 01-2 2v-2.336a2 2 0 01.95-1.664L8 10l3 3 4-3z" /></svg>
+            <Icon icon="mdi:cctv-off" className="w-10 h-10 mx-auto mb-2" />
             <p className="mt-2 text-sm">Камера не выбрана</p>
           </div>
         )}
@@ -197,7 +201,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({ entity
           {streamType === 'mjpeg' && (
             <>
               <img src={streamUrl} className="w-full h-full object-contain" alt={altText} />
-              <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded-md text-white text-xs font-bold tracking-wider fade-in">MJPEG</div>
+              <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded-md text-white text-xs font-bold tracking-wider fade-in pointer-events-none">MJPEG</div>
             </>
           )}
         </>

@@ -120,9 +120,13 @@ const CameraWidget: React.FC<CameraWidgetProps> = React.memo(({ cameras, haUrl, 
                             getCameraStreamUrl={getCameraStreamUrl}
                             altText={selectedCamera.name}
                         />
-                         <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer pointer-events-none">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" viewBox="0 0 20 20" fill="currentColor"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5zM5 5a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V11a1 1 0 10-2 0v6H5V7h6a1 1 0 000-2H5z" /></svg>
-                        </div>
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); handleCameraClick(); }}
+                            className="absolute top-2 right-2 p-2 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100 transform hover:scale-105 z-10"
+                            title="Развернуть"
+                        >
+                            <Icon icon="mdi:arrow-expand-all" className="w-5 h-5 drop-shadow-md" />
+                        </button>
                     </>
                 ) : (
                     <div className="text-gray-500 dark:text-gray-500 text-center p-4">
