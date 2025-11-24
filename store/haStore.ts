@@ -71,6 +71,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   let brightnessTimeoutRef: number | null = null;
   let forecastRefreshInterval: any = null;
   let updateDerivedStateTimeout: ReturnType<typeof setTimeout> | null = null;
+  let connectionTimeoutRef: ReturnType<typeof setTimeout> | null = null;
 
   const sendMessage = (message: object) => {
     if (socketRef?.readyState === WebSocket.OPEN) {
@@ -79,232 +80,237 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   };
   
   const updateDerivedState = () => {
-      const { entities, areas, devices, entityRegistry } = get();
-      const appStore = useAppStore.getState();
-      
-      if (!appStore) return; // Safety check
+      try {
+          const { entities, areas, devices, entityRegistry } = get();
+          const appStore = useAppStore.getState();
+          
+          if (!appStore) return; // Safety check
 
-      const { customizations, lowBatteryThreshold, eventTimerWidgets, customCardWidgets } = appStore;
-      
-      const rooms = mapEntitiesToRooms(Object.values(entities), areas, devices, entityRegistry, customizations, true, get().forecasts);
-      const deviceMap = new Map<string, Device>();
-      rooms.forEach(room => {
-          room.devices.forEach(device => {
-              deviceMap.set(device.id, device);
+          const { customizations, lowBatteryThreshold, eventTimerWidgets, customCardWidgets } = appStore;
+          
+          const rooms = mapEntitiesToRooms(Object.values(entities), areas, devices, entityRegistry, customizations, true, get().forecasts);
+          const deviceMap = new Map<string, Device>();
+          rooms.forEach(room => {
+              room.devices.forEach(device => {
+                  deviceMap.set(device.id, device);
+              });
           });
-      });
-      
-      const deviceIdToEntityIds = new Map<string, string[]>();
-      entityRegistry.forEach(e => {
-        if (e.device_id) {
-          if (!deviceIdToEntityIds.has(e.device_id)) {
-            deviceIdToEntityIds.set(e.device_id, []);
-          }
-          deviceIdToEntityIds.get(e.device_id)!.push(e.entity_id);
-        }
-      });
-
-      const batteryDevicesList: BatteryDevice[] = [];
-
-      devices.forEach(haDevice => {
-        if (!haDevice.id) return;
-
-        const associatedEntityIds = deviceIdToEntityIds.get(haDevice.id) || [];
-        if (associatedEntityIds.length === 0) return;
-
-        let batteryLevel: number | undefined = undefined;
-
-        const batterySensorEntity = associatedEntityIds
-          .map(id => entities[id])
-          .find(entity => entity?.attributes.device_class === 'battery' && !isNaN(parseFloat(entity.state)));
-        
-        if (batterySensorEntity) {
-          batteryLevel = parseFloat(batterySensorEntity.state);
-        } else {
-          const entityWithBatteryAttribute = associatedEntityIds
-            .map(id => entities[id])
-            .find(entity => typeof entity?.attributes.battery_level === 'number');
-
-          if (entityWithBatteryAttribute) {
-            batteryLevel = entityWithBatteryAttribute.attributes.battery_level;
-          }
-        }
-
-        if (batteryLevel !== undefined) {
-          const roundedBatteryLevel = Math.round(batteryLevel);
-
-          batteryDevicesList.push({
-            deviceId: haDevice.id,
-            deviceName: haDevice.name,
-            batteryLevel: roundedBatteryLevel,
-          });
-
-          associatedEntityIds.forEach(entityId => {
-            const device = deviceMap.get(entityId);
-            if (device) {
-              device.batteryLevel = roundedBatteryLevel;
+          
+          const deviceIdToEntityIds = new Map<string, string[]>();
+          entityRegistry.forEach(e => {
+            if (e.device_id) {
+              if (!deviceIdToEntityIds.has(e.device_id)) {
+                deviceIdToEntityIds.set(e.device_id, []);
+              }
+              deviceIdToEntityIds.get(e.device_id)!.push(e.entity_id);
             }
           });
-        }
-      });
-      
-      let widgetsRoom = rooms.find(r => r.id === 'internal::widgets');
-      if (!widgetsRoom) {
-          widgetsRoom = { id: 'internal::widgets', name: 'Виджеты', devices: [] };
-          rooms.push(widgetsRoom);
-      }
-      
-      if (batteryDevicesList.length > 0) {
-        const lowBatteryCount = batteryDevicesList.filter(d => d.batteryLevel <= lowBatteryThreshold).length;
-        const batteryWidgetDevice: Device = {
-          id: 'internal::battery_widget',
-          name: 'Уровень заряда',
-          status: lowBatteryCount > 0 ? `${lowBatteryCount} устр. с низким зарядом` : 'Все устройства заряжены',
-          type: DeviceType.BatteryWidget,
-          state: String(batteryDevicesList.length),
-          haDomain: 'internal',
-        };
-        deviceMap.set(batteryWidgetDevice.id, batteryWidgetDevice);
-        if (!widgetsRoom.devices.some(d => d.id === batteryWidgetDevice.id)) {
-            widgetsRoom.devices.push(batteryWidgetDevice);
-        }
-      }
 
-      eventTimerWidgets.forEach(widget => {
-        const { id, name, lastResetDate, cycleDays, buttonText, fillColors, animation, fillDirection, showName, nameFontSize, namePosition, daysRemainingFontSize, daysRemainingPosition } = widget;
-        let timerDevice: Device;
+          const batteryDevicesList: BatteryDevice[] = [];
 
-        if (lastResetDate) {
-            const resetDate = new Date(lastResetDate);
-            const now = new Date();
-            const daysPassed = Math.floor((now.getTime() - resetDate.getTime()) / (1000 * 60 * 60 * 24));
-            const daysRemaining = Math.max(0, cycleDays - daysPassed);
-            const fillPercentage = Math.min(100, (daysPassed / cycleDays) * 100);
+          devices.forEach(haDevice => {
+            if (!haDevice.id) return;
 
-            timerDevice = {
-                id: `internal::event-timer_${id}`,
-                name: name,
-                status: `Осталось ${daysRemaining} дн.`,
-                type: DeviceType.EventTimer,
-                haDomain: 'internal',
-                fillPercentage: fillPercentage,
-                daysRemaining: daysRemaining,
-                state: 'active',
-                widgetId: id,
-                buttonText: buttonText,
-                fillColors: fillColors,
-                animation: animation,
-                fillDirection: fillDirection,
-                showName: showName,
-                nameFontSize,
-                namePosition,
-                daysRemainingFontSize,
-                daysRemainingPosition,
-            };
-        } else {
-            timerDevice = {
-                id: `internal::event-timer_${id}`,
-                name: name,
-                status: 'Настройте таймер',
-                type: DeviceType.EventTimer,
-                haDomain: 'internal',
-                fillPercentage: 0,
-                daysRemaining: cycleDays,
-                state: 'inactive',
-                widgetId: id,
-                buttonText: buttonText,
-                fillColors: fillColors,
-                animation: animation,
-                fillDirection: fillDirection,
-                showName: showName,
-                nameFontSize,
-                namePosition,
-                daysRemainingFontSize,
-                daysRemainingPosition,
-            };
-        }
-        deviceMap.set(timerDevice.id, timerDevice);
-        if (!widgetsRoom.devices.some(d => d.id === timerDevice.id)) {
-            widgetsRoom.devices.push(timerDevice);
-        }
-      });
-      
-      customCardWidgets.forEach(widget => {
-          const cardDevice: Device = {
-              id: `internal::custom-card_${widget.id}`,
-              name: widget.name,
-              status: 'Кастомная карточка',
-              type: DeviceType.Custom,
-              haDomain: 'internal',
-              state: 'active',
-              widgetId: widget.id,
-          };
-          deviceMap.set(cardDevice.id, cardDevice);
-          if (!widgetsRoom.devices.some(d => d.id === cardDevice.id)) {
-              widgetsRoom.devices.push(cardDevice);
-          }
-      });
+            const associatedEntityIds = deviceIdToEntityIds.get(haDevice.id) || [];
+            if (associatedEntityIds.length === 0) return;
 
+            let batteryLevel: number | undefined = undefined;
 
-      const cameras = Array.from(deviceMap.values()).filter((d: Device) => d.haDomain === 'camera');
-      const scenes = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Scene);
-      const automations = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Automation);
-      const scripts = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Script);
-      
-      batteryDevicesList.sort((a, b) => a.batteryLevel - b.batteryLevel);
-      
-      const deviceIdToEntities = new Map<string, Device[]>();
-      const entityIdToDeviceId = new Map<string, string>();
-      entityRegistry.forEach(entry => {
-          if (entry.device_id) {
-              entityIdToDeviceId.set(entry.entity_id, entry.device_id);
-          }
-      });
+            const batterySensorEntity = associatedEntityIds
+              .map(id => entities[id])
+              .find(entity => entity?.attributes.device_class === 'battery' && !isNaN(parseFloat(entity.state)));
+            
+            if (batterySensorEntity) {
+              batteryLevel = parseFloat(batterySensorEntity.state);
+            } else {
+              const entityWithBatteryAttribute = associatedEntityIds
+                .map(id => entities[id])
+                .find(entity => typeof entity?.attributes.battery_level === 'number');
 
-      deviceMap.forEach((device, entityId) => {
-          const deviceId = entityIdToDeviceId.get(entityId);
-          if (deviceId) {
-              if (!deviceIdToEntities.has(deviceId)) {
-                  deviceIdToEntities.set(deviceId, []);
+              if (entityWithBatteryAttribute) {
+                batteryLevel = entityWithBatteryAttribute.attributes.battery_level;
               }
-              deviceIdToEntities.get(deviceId)!.push(device);
+            }
+
+            if (batteryLevel !== undefined) {
+              const roundedBatteryLevel = Math.round(batteryLevel);
+
+              batteryDevicesList.push({
+                deviceId: haDevice.id,
+                deviceName: haDevice.name,
+                batteryLevel: roundedBatteryLevel,
+              });
+
+              associatedEntityIds.forEach(entityId => {
+                const device = deviceMap.get(entityId);
+                if (device) {
+                  device.batteryLevel = roundedBatteryLevel;
+                }
+              });
+            }
+          });
+          
+          let widgetsRoom = rooms.find(r => r.id === 'internal::widgets');
+          if (!widgetsRoom) {
+              widgetsRoom = { id: 'internal::widgets', name: 'Виджеты', devices: [] };
+              rooms.push(widgetsRoom);
           }
-      });
+          
+          if (batteryDevicesList.length > 0) {
+            const lowBatteryCount = batteryDevicesList.filter(d => d.batteryLevel <= lowBatteryThreshold).length;
+            const batteryWidgetDevice: Device = {
+              id: 'internal::battery_widget',
+              name: 'Уровень заряда',
+              status: lowBatteryCount > 0 ? `${lowBatteryCount} устр. с низким зарядом` : 'Все устройства заряжены',
+              type: DeviceType.BatteryWidget,
+              state: String(batteryDevicesList.length),
+              haDomain: 'internal',
+            };
+            deviceMap.set(batteryWidgetDevice.id, batteryWidgetDevice);
+            if (!widgetsRoom.devices.some(d => d.id === batteryWidgetDevice.id)) {
+                widgetsRoom.devices.push(batteryWidgetDevice);
+            }
+          }
 
-      const roomsWithPhysicalDevicesMap = new Map<string, RoomWithPhysicalDevices>();
-      areas.forEach(area => {
-          roomsWithPhysicalDevicesMap.set(area.area_id, { id: area.area_id, name: area.name, devices: [] });
-      });
-      roomsWithPhysicalDevicesMap.set('no_area', { id: 'no_area', name: 'Без пространства', devices: [] });
+          eventTimerWidgets.forEach(widget => {
+            const { id, name, lastResetDate, cycleDays, buttonText, fillColors, animation, fillDirection, showName, nameFontSize, namePosition, daysRemainingFontSize, daysRemainingPosition } = widget;
+            let timerDevice: Device;
 
-      devices.forEach(haDevice => { 
-          const entitiesForDevice = deviceIdToEntities.get(haDevice.id) || [];
-          if (entitiesForDevice.length > 0) {
-              const physicalDevice: PhysicalDevice = {
-                  id: haDevice.id,
-                  name: haDevice.name,
-                  entities: entitiesForDevice.sort((a,b) => a.name.localeCompare(b.name)),
+            if (lastResetDate) {
+                const resetDate = new Date(lastResetDate);
+                const now = new Date();
+                const daysPassed = Math.floor((now.getTime() - resetDate.getTime()) / (1000 * 60 * 60 * 24));
+                const daysRemaining = Math.max(0, cycleDays - daysPassed);
+                const fillPercentage = Math.min(100, (daysPassed / cycleDays) * 100);
+
+                timerDevice = {
+                    id: `internal::event-timer_${id}`,
+                    name: name,
+                    status: `Осталось ${daysRemaining} дн.`,
+                    type: DeviceType.EventTimer,
+                    haDomain: 'internal',
+                    fillPercentage: fillPercentage,
+                    daysRemaining: daysRemaining,
+                    state: 'active',
+                    widgetId: id,
+                    buttonText: buttonText,
+                    fillColors: fillColors,
+                    animation: animation,
+                    fillDirection: fillDirection,
+                    showName: showName,
+                    nameFontSize,
+                    namePosition,
+                    daysRemainingFontSize,
+                    daysRemainingPosition,
+                };
+            } else {
+                timerDevice = {
+                    id: `internal::event-timer_${id}`,
+                    name: name,
+                    status: 'Настройте таймер',
+                    type: DeviceType.EventTimer,
+                    haDomain: 'internal',
+                    fillPercentage: 0,
+                    daysRemaining: cycleDays,
+                    state: 'inactive',
+                    widgetId: id,
+                    buttonText: buttonText,
+                    fillColors: fillColors,
+                    animation: animation,
+                    fillDirection: fillDirection,
+                    showName: showName,
+                    nameFontSize,
+                    namePosition,
+                    daysRemainingFontSize,
+                    daysRemainingPosition,
+                };
+            }
+            deviceMap.set(timerDevice.id, timerDevice);
+            if (!widgetsRoom.devices.some(d => d.id === timerDevice.id)) {
+                widgetsRoom.devices.push(timerDevice);
+            }
+          });
+          
+          customCardWidgets.forEach(widget => {
+              const cardDevice: Device = {
+                  id: `internal::custom-card_${widget.id}`,
+                  name: widget.name,
+                  status: 'Кастомная карточка',
+                  type: DeviceType.Custom,
+                  haDomain: 'internal',
+                  state: 'active',
+                  widgetId: widget.id,
               };
-              const areaId = haDevice.area_id || 'no_area';
-              const room = roomsWithPhysicalDevicesMap.get(areaId);
-              room?.devices.push(physicalDevice);
-          }
-      });
+              deviceMap.set(cardDevice.id, cardDevice);
+              if (!widgetsRoom.devices.some(d => d.id === cardDevice.id)) {
+                  widgetsRoom.devices.push(cardDevice);
+              }
+          });
 
-      const allRoomsWithPhysicalDevices = Array.from(roomsWithPhysicalDevicesMap.values())
-          .filter(room => room.devices.length > 0)
-          .sort((a,b) => a.name.localeCompare(b.name));
 
-      set({ 
-        allKnownDevices: deviceMap, 
-        allRoomsForDevicePage: rooms, 
-        allCameras: cameras, 
-        batteryDevices: batteryDevicesList, 
-        allRoomsWithPhysicalDevices,
-        allScenes: scenes.sort((a,b) => a.name.localeCompare(b.name)),
-        allAutomations: automations.sort((a,b) => a.name.localeCompare(b.name)),
-        allScripts: scripts.sort((a,b) => a.name.localeCompare(b.name)),
-    });
+          const cameras = Array.from(deviceMap.values()).filter((d: Device) => d.haDomain === 'camera');
+          const scenes = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Scene);
+          const automations = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Automation);
+          const scripts = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Script);
+          
+          batteryDevicesList.sort((a, b) => a.batteryLevel - b.batteryLevel);
+          
+          const deviceIdToEntities = new Map<string, Device[]>();
+          const entityIdToDeviceId = new Map<string, string>();
+          entityRegistry.forEach(entry => {
+              if (entry.device_id) {
+                  entityIdToDeviceId.set(entry.entity_id, entry.device_id);
+              }
+          });
+
+          deviceMap.forEach((device, entityId) => {
+              const deviceId = entityIdToDeviceId.get(entityId);
+              if (deviceId) {
+                  if (!deviceIdToEntities.has(deviceId)) {
+                      deviceIdToEntities.set(deviceId, []);
+                  }
+                  deviceIdToEntities.get(deviceId)!.push(device);
+              }
+          });
+
+          const roomsWithPhysicalDevicesMap = new Map<string, RoomWithPhysicalDevices>();
+          areas.forEach(area => {
+              roomsWithPhysicalDevicesMap.set(area.area_id, { id: area.area_id, name: area.name, devices: [] });
+          });
+          roomsWithPhysicalDevicesMap.set('no_area', { id: 'no_area', name: 'Без пространства', devices: [] });
+
+          devices.forEach(haDevice => { 
+              const entitiesForDevice = deviceIdToEntities.get(haDevice.id) || [];
+              if (entitiesForDevice.length > 0) {
+                  const physicalDevice: PhysicalDevice = {
+                      id: haDevice.id,
+                      name: haDevice.name,
+                      entities: entitiesForDevice.sort((a,b) => a.name.localeCompare(b.name)),
+                  };
+                  const areaId = haDevice.area_id || 'no_area';
+                  const room = roomsWithPhysicalDevicesMap.get(areaId);
+                  room?.devices.push(physicalDevice);
+              }
+          });
+
+          const allRoomsWithPhysicalDevices = Array.from(roomsWithPhysicalDevicesMap.values())
+              .filter(room => room.devices.length > 0)
+              .sort((a,b) => a.name.localeCompare(b.name));
+
+          set({ 
+            allKnownDevices: deviceMap, 
+            allRoomsForDevicePage: rooms, 
+            allCameras: cameras, 
+            batteryDevices: batteryDevicesList, 
+            allRoomsWithPhysicalDevices,
+            allScenes: scenes.sort((a,b) => a.name.localeCompare(b.name)),
+            allAutomations: automations.sort((a,b) => a.name.localeCompare(b.name)),
+            allScripts: scripts.sort((a,b) => a.name.localeCompare(b.name)),
+        });
+      } catch (e) {
+          console.error("Error updating derived state:", e);
+          // Should not block UI entirely, but might result in empty dashboard
+      }
   };
   
   useAppStore.subscribe(
@@ -343,9 +349,23 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         if (socketRef) socketRef.close();
         if (forecastRefreshInterval) clearInterval(forecastRefreshInterval);
         if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
+        if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
         
         set({ connectionStatus: 'connecting', error: null, isLoading: true, haUrl: url });
         messageIdRef = 1;
+
+        // Safety timeout: stop loading if connection/data takes too long
+        connectionTimeoutRef = setTimeout(() => {
+            const currentState = get();
+            if (currentState.isLoading || currentState.connectionStatus === 'connecting') {
+                console.warn("Connection or data fetch timed out.");
+                set({ 
+                    isLoading: false, 
+                    connectionStatus: currentState.connectionStatus === 'connected' ? 'connected' : 'failed',
+                    error: currentState.connectionStatus === 'connected' ? "Таймаут загрузки данных." : "Таймаут соединения." 
+                });
+            }
+        }, 30000); // 30 seconds
 
         try {
             const wsUrl = constructHaUrl(url, '/api/websocket', 'ws');
@@ -388,54 +408,54 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                     }
                                 }
             
-                                if (data.success && initialFetchIds.has(data.id)) {
-                                    let stateUpdate: Partial<HAState> = {};
-                                    let isInitialFetch = false;
-
-                                    if (data.id === fetches.states.id) {
-                                        stateUpdate.entities = data.result.reduce((acc: HassEntities, entity: HassEntity) => ({ ...acc, [entity.entity_id]: entity }), {});
-                                        isInitialFetch = true;
-                                    } else if (data.id === fetches.areas.id) {
-                                        stateUpdate.areas = data.result;
-                                        isInitialFetch = true;
-                                    } else if (data.id === fetches.devices.id) {
-                                        stateUpdate.devices = data.result;
-                                        isInitialFetch = true;
-                                    } else if (data.id === fetches.entities.id) {
-                                        stateUpdate.entityRegistry = data.result;
-                                        isInitialFetch = true;
-                                    }
-                                    
-                                    if(isInitialFetch) {
-                                        set(stateUpdate);
-                                        initialFetchIds.delete(data.id);
-                                        
-                                        if (initialFetchIds.size === 0) {
-                                            updateDerivedState();
-                                            
-                                            const weatherEntities = (Object.values(get().entities) as HassEntity[])
-                                                .filter(e => e.entity_id.startsWith('weather.'))
-                                                .map(e => e.entity_id);
-
-                                            if (weatherEntities.length > 0) {
-                                                get().fetchWeatherForecasts(weatherEntities);
-                                            }
-
-                                            forecastRefreshInterval = setInterval(() => {
-                                                const currentStore = get();
-                                                if (currentStore.connectionStatus === 'connected') {
-                                                    const wEntities = (Object.values(currentStore.entities) as HassEntity[])
-                                                        .filter(e => e.entity_id.startsWith('weather.'))
-                                                        .map(e => e.entity_id);
-                                                    
-                                                    if (wEntities.length > 0) {
-                                                        currentStore.fetchWeatherForecasts(wEntities);
-                                                    }
-                                                }
-                                            }, 30 * 60 * 1000);
-
-                                            set({ isLoading: false });
+                                if (initialFetchIds.has(data.id)) {
+                                    if (data.success) {
+                                        let stateUpdate: Partial<HAState> = {};
+                                        if (data.id === fetches.states.id) {
+                                            stateUpdate.entities = data.result.reduce((acc: HassEntities, entity: HassEntity) => ({ ...acc, [entity.entity_id]: entity }), {});
+                                        } else if (data.id === fetches.areas.id) {
+                                            stateUpdate.areas = data.result;
+                                        } else if (data.id === fetches.devices.id) {
+                                            stateUpdate.devices = data.result;
+                                        } else if (data.id === fetches.entities.id) {
+                                            stateUpdate.entityRegistry = data.result;
                                         }
+                                        set(stateUpdate);
+                                    } else {
+                                        console.error(`Initial fetch failed for ID ${data.id}:`, data.error);
+                                        // We don't abort connection, just log and proceed (partial load)
+                                    }
+
+                                    initialFetchIds.delete(data.id);
+                                    
+                                    if (initialFetchIds.size === 0) {
+                                        // All initial requests handled (success or fail)
+                                        if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
+                                        
+                                        updateDerivedState();
+                                        
+                                        const weatherEntities = (Object.values(get().entities) as HassEntity[])
+                                            .filter(e => e.entity_id.startsWith('weather.'))
+                                            .map(e => e.entity_id);
+
+                                        if (weatherEntities.length > 0) {
+                                            get().fetchWeatherForecasts(weatherEntities);
+                                        }
+
+                                        forecastRefreshInterval = setInterval(() => {
+                                            const currentStore = get();
+                                            if (currentStore.connectionStatus === 'connected') {
+                                                const wEntities = (Object.values(currentStore.entities) as HassEntity[])
+                                                    .filter(e => e.entity_id.startsWith('weather.'))
+                                                    .map(e => e.entity_id);
+                                                
+                                                if (wEntities.length > 0) {
+                                                    currentStore.fetchWeatherForecasts(wEntities);
+                                                }
+                                            }
+                                        }, 30 * 60 * 1000);
+
+                                        set({ isLoading: false });
                                     }
                                 }
                             } else if (data.type === 'event' && data.event.event_type === 'state_changed') {
@@ -462,21 +482,25 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             socketRef.onclose = () => {
                 if (forecastRefreshInterval) clearInterval(forecastRefreshInterval);
                 if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
+                if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
                 if (get().connectionStatus === 'connecting') set({ connectionStatus: 'failed' });
                 else set({ connectionStatus: 'idle' });
                 set({ isLoading: false });
             };
             socketRef.onerror = () => {
+                if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
                 set({ error: 'WebSocket error. Check URL and connection.', connectionStatus: 'failed', isLoading: false });
             };
 
         } catch (e) {
+            if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
             set({ error: 'Failed to connect. Invalid URL?', connectionStatus: 'failed', isLoading: false });
         }
     },
     disconnect: () => {
         if (forecastRefreshInterval) clearInterval(forecastRefreshInterval);
         if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
+        if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
         socketRef?.close();
         set({ connectionStatus: 'idle', entities: {}, areas: [], devices: [], entityRegistry: [], error: null, isLoading: false });
     },
