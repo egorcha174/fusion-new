@@ -1,14 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet, GridLayoutItem, EventTimerWidget } from './types';
@@ -19,6 +9,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeInjector from './components/ThemeInjector';
 import { useWeather } from './hooks/useWeather';
+import { useHomeAssistant } from './hooks/useHomeAssistant';
 
 
 const Settings = lazy(() => import('./components/Settings.tsx'));
@@ -104,7 +95,9 @@ const useIsLg = () => {
 }
 
 const App: React.FC = () => {
-    const initializationDone = useRef(false);
+    // useHomeAssistant hook handles auto-connection logic
+    useHomeAssistant();
+    
     const {
         connectionStatus, isLoading, error, connect, allKnownDevices,
         allCameras, getCameraStreamUrl, getConfig, getHistory, signPath,
@@ -204,11 +197,12 @@ const App: React.FC = () => {
     return () => mediaQuery.removeEventListener('change', updateTheme);
   }, [themeMode, isDarkBySchedule]);
 
+    // Automatic Tab Creation Logic
     useEffect(() => {
-        if (connectionStatus === 'connected' && !isLoading && !initializationDone.current) {
-            initializationDone.current = true;
-            
+        if (connectionStatus === 'connected' && !isLoading) {
+            // If we have devices but no tabs, automatically create a default "Home" tab with devices
             if (tabs.length === 0 && allKnownDevices.size > 0) {
+                console.log('Auto-generating default tab...');
                 const { getTemplateForDevice } = useAppStore.getState();
                 const devices = Array.from<Device>(allKnownDevices.values()).sort((a, b) => a.name.localeCompare(b.name));
                 
@@ -252,13 +246,13 @@ const App: React.FC = () => {
 
                 setTabs([newTab]);
                 setActiveTabId(newTab.id);
-            } else if (!activeTabId || !tabs.some(t => t.id === activeTabId)) {
-                if (tabs.length > 0) {
-                    setActiveTabId(tabs[0].id);
-                }
+            } 
+            // Ensure an active tab is selected if one exists
+            else if ((!activeTabId || !tabs.some(t => t.id === activeTabId)) && tabs.length > 0) {
+                setActiveTabId(tabs[0].id);
             }
         }
-    }, [connectionStatus, isLoading, tabs, activeTabId, allKnownDevices, setTabs, setActiveTabId]);
+    }, [connectionStatus, isLoading, tabs.length, allKnownDevices.size, activeTabId, setTabs, setActiveTabId, allKnownDevices]);
 
   const activeTab = useMemo(() => tabs.find(t => t.id === activeTabId), [tabs, activeTabId]);
   
