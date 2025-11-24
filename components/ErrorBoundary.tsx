@@ -1,6 +1,9 @@
 
+
+
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Icon } from '@iconify/react';
+import { LOCAL_STORAGE_KEYS } from '../constants';
 
 interface Props {
   children?: ReactNode;
@@ -55,6 +58,14 @@ class ErrorBoundary extends Component<Props, State> {
     window.location.reload();
   };
 
+  // Обработчик для сброса настроек при критической ошибке.
+  handleFactoryReset = () => {
+      if (confirm("Вы уверены? Это удалит ВСЕ ваши настройки, включая серверы, темы и шаблоны. Используйте это, если приложение не работает.")) {
+          Object.values(LOCAL_STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
+          window.location.reload();
+      }
+  };
+
   render(): ReactNode {
     // Если произошла ошибка, рендерим запасной UI.
     if (this.state.hasError) {
@@ -83,12 +94,20 @@ class ErrorBoundary extends Component<Props, State> {
                 </pre>
               </details>
             )}
-            <button
-              onClick={this.handleReload}
-              className="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200"
-            >
-              Перезагрузить приложение
-            </button>
+            <div className="flex flex-col gap-3 mt-6">
+                <button
+                  onClick={this.handleReload}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200"
+                >
+                  Перезагрузить приложение
+                </button>
+                <button
+                  onClick={this.handleFactoryReset}
+                  className="w-full bg-transparent border border-red-500/30 text-red-400 hover:bg-red-500/10 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                >
+                  Сбросить настройки (Исправить зависание)
+                </button>
+            </div>
           </div>
         </div>
       );

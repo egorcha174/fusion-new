@@ -2,6 +2,7 @@
 
 
 
+
 import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization, WeatherForecast } from '../types';
 
 /**
@@ -431,20 +432,26 @@ export const mapEntitiesToRooms = (
 
     // Передаем side-loaded прогноз, если он доступен для этой сущности
     const sideLoadedForecast = forecasts[entity.entity_id];
-    const device = entityToDevice(entity, customization, sideLoadedForecast);
+    
+    // PROTECTIVE TRY-CATCH: If a single entity crashes the mapper, skip it.
+    try {
+        const device = entityToDevice(entity, customization, sideLoadedForecast);
 
-    // Добавляем только успешно преобразованные устройства.
-    // ВАЖНО: Фильтрация по DeviceType.Unknown не производится, все устройства попадают в список.
-    if (device) {
-        // Определяем, к какой комнате принадлежит устройство (O(1) операции)
-        let areaId: string | undefined | null = entityIdToAreaIdMap.get(entity.entity_id);
-        if (!areaId && entity.attributes?.device_id) {
-            const haDevice = haDeviceById.get(entity.attributes.device_id);
-            if (haDevice?.area_id) areaId = haDevice.area_id;
+        // Добавляем только успешно преобразованные устройства.
+        // ВАЖНО: Фильтрация по DeviceType.Unknown не производится, все устройства попадают в список.
+        if (device) {
+            // Определяем, к какой комнате принадлежит устройство (O(1) операции)
+            let areaId: string | undefined | null = entityIdToAreaIdMap.get(entity.entity_id);
+            if (!areaId && entity.attributes?.device_id) {
+                const haDevice = haDeviceById.get(entity.attributes.device_id);
+                if (haDevice?.area_id) areaId = haDevice.area_id;
+            }
+
+            const targetRoom = roomsMap.get(areaId || 'no_area') || roomsMap.get('no_area');
+            targetRoom?.devices.push(device);
         }
-
-        const targetRoom = roomsMap.get(areaId || 'no_area') || roomsMap.get('no_area');
-        targetRoom?.devices.push(device);
+    } catch (err) {
+        console.error(`Failed to map entity ${entity.entity_id}:`, err);
     }
   });
 

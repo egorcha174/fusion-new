@@ -79,6 +79,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   let forecastRefreshInterval: any = null;
   let updateDerivedStateTimeout: ReturnType<typeof setTimeout> | null = null;
   let connectionTimeoutRef: ReturnType<typeof setTimeout> | null = null;
+  let initialLoadWatchdogRef: ReturnType<typeof setTimeout> | null = null;
 
   const clearCallbacks = () => {
       signPathCallbacks.clear();
@@ -104,17 +105,12 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           const { entities, areas, devices, entityRegistry } = get();
           const appStore = useAppStore.getState();
           
-          // Protection against uninitialized store
-          if (!appStore) {
-              console.warn("[HA Store] AppStore not ready, skipping derived update");
-              return;
-          }
+          if (!appStore) return;
 
           const { customizations, lowBatteryThreshold, eventTimerWidgets, customCardWidgets } = appStore;
-          const safeCustomizations = customizations || {};
           
           // MAPPING LOGIC
-          const rooms = mapEntitiesToRooms(Object.values(entities), areas, devices, entityRegistry, safeCustomizations, true, get().forecasts);
+          const rooms = mapEntitiesToRooms(Object.values(entities), areas, devices, entityRegistry, customizations, true, get().forecasts);
           
           const deviceMap = new Map<string, Device>();
           rooms.forEach(room => {
@@ -184,9 +180,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           }
           
           // Battery Widget
-          const safeLowBatteryThreshold = lowBatteryThreshold ?? 20;
           if (batteryDevicesList.length > 0) {
-            const lowBatteryCount = batteryDevicesList.filter(d => d.batteryLevel <= safeLowBatteryThreshold).length;
+            const lowBatteryCount = batteryDevicesList.filter(d => d.batteryLevel <= lowBatteryThreshold).length;
             const batteryWidgetDevice: Device = {
               id: 'internal::battery_widget',
               name: 'Уровень заряда',
@@ -202,7 +197,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           }
 
           // Event Timers
-          (eventTimerWidgets || []).forEach(widget => {
+          eventTimerWidgets.forEach(widget => {
             const { id, name, lastResetDate, cycleDays, buttonText, fillColors, animation, fillDirection, showName, nameFontSize, namePosition, daysRemainingFontSize, daysRemainingPosition } = widget;
             let timerDevice: Device;
 
@@ -248,7 +243,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           });
           
           // Custom Cards
-          (customCardWidgets || []).forEach(widget => {
+          customCardWidgets.forEach(widget => {
               const cardDevice: Device = {
                   id: `internal::custom-card_${widget.id}`,
                   name: widget.name,
@@ -374,6 +369,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         if (forecastRefreshInterval) clearInterval(forecastRefreshInterval);
         if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
         if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
+        if (initialLoadWatchdogRef) clearTimeout(initialLoadWatchdogRef);
         
         // RESET STATE completely to avoid stale data merging
         set({ 
@@ -445,6 +441,23 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                             sendMessage(f);
                         });
                         
+                        // WATCHDOG: Ensure we don't get stuck in infinite spinner if one of these requests fails silently
+                        // Force finish after 15s even if data is incomplete
+                        initialLoadWatchdogRef = setTimeout(() => {
+                            if (initialFetchIds.size > 0) {
+                                console.warn("Initial load watchdog triggered. Forcing load completion. Missing IDs:", Array.from(initialFetchIds));
+                                initialFetchIds.clear();
+                                set({ isInitialLoadComplete: true });
+                                try {
+                                    updateDerivedState();
+                                } catch (e) {
+                                    console.error("Error updating derived state in watchdog:", e);
+                                } finally {
+                                    set({ isLoading: false });
+                                }
+                            }
+                        }, 15000); 
+                        
                         // Subscribe to events
                         sendMessage({ id: globalMessageId++, type: 'subscribe_events', event_type: 'state_changed' });
                         break;
@@ -495,6 +508,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                             
                             // Check if ALL initial requests are done
                             if (initialFetchIds.size === 0) {
+                                if (initialLoadWatchdogRef) clearTimeout(initialLoadWatchdogRef);
                                 if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
                                 
                                 try {
@@ -562,6 +576,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                 if (forecastRefreshInterval) clearInterval(forecastRefreshInterval);
                 if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
                 if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
+                if (initialLoadWatchdogRef) clearTimeout(initialLoadWatchdogRef);
                 clearCallbacks();
                 
                 if (get().connectionStatus === 'connecting') {
@@ -575,11 +590,13 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             
             socketRef.onerror = () => {
                 if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
+                if (initialLoadWatchdogRef) clearTimeout(initialLoadWatchdogRef);
                 set({ error: 'WebSocket error. Check URL and connection.', connectionStatus: 'failed', isLoading: false, isInitialLoadComplete: false });
             };
 
         } catch (e) {
             if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
+            if (initialLoadWatchdogRef) clearTimeout(initialLoadWatchdogRef);
             set({ error: 'Failed to connect. Invalid URL?', connectionStatus: 'failed', isLoading: false, isInitialLoadComplete: false });
         }
     },
@@ -587,6 +604,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         if (forecastRefreshInterval) clearInterval(forecastRefreshInterval);
         if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
         if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
+        if (initialLoadWatchdogRef) clearTimeout(initialLoadWatchdogRef);
         clearCallbacks();
         
         if (socketRef) {

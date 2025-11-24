@@ -1,4 +1,14 @@
 
+
+
+
+
+
+
+
+
+
+
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet, GridLayoutItem, EventTimerWidget } from './types';
@@ -194,14 +204,6 @@ const App: React.FC = () => {
     return () => mediaQuery.removeEventListener('change', updateTheme);
   }, [themeMode, isDarkBySchedule]);
 
-    // Auto-fix active tab if it becomes invalid
-    useEffect(() => {
-        if (tabs.length > 0 && (!activeTabId || !tabs.some(t => t.id === activeTabId))) {
-            console.warn("Active tab ID is invalid or missing, resetting to first tab.");
-            setActiveTabId(tabs[0].id);
-        }
-    }, [tabs, activeTabId, setActiveTabId]);
-
     useEffect(() => {
         if (connectionStatus === 'connected' && !isLoading && !initializationDone.current) {
             initializationDone.current = true;
@@ -250,6 +252,10 @@ const App: React.FC = () => {
 
                 setTabs([newTab]);
                 setActiveTabId(newTab.id);
+            } else if (!activeTabId || !tabs.some(t => t.id === activeTabId)) {
+                if (tabs.length > 0) {
+                    setActiveTabId(tabs[0].id);
+                }
             }
         }
     }, [connectionStatus, isLoading, tabs, activeTabId, allKnownDevices, setTabs, setActiveTabId]);
@@ -416,13 +422,15 @@ const App: React.FC = () => {
       case 'dashboard':
       default:
         return activeTab ? (
-          <TabContent
-            key={activeTab.id}
-            tab={activeTab}
-            isEditMode={isEditMode}
-            currentColorScheme={currentColorScheme}
-            isDark={isDark}
-          />
+          <ErrorBoundary>
+            <TabContent
+              key={activeTab.id}
+              tab={activeTab}
+              isEditMode={isEditMode}
+              currentColorScheme={currentColorScheme}
+              isDark={isDark}
+            />
+          </ErrorBoundary>
         ) : (
           <div className="text-center text-gray-500">Выберите или создайте вкладку</div>
         );
