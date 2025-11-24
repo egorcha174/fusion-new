@@ -356,7 +356,7 @@ export interface ColorThemeSet {
   // --- Текст карточки (Вкл.) ---
   /** Цвет названия устройства. */
   nameTextColorOn: string;
-  /** Цвет статуса устройства (например, "Включено"). */
+  /** Цвет статуса устройства (например, "Выключено"). */
   statusTextColorOn: string;
   /** Цвет значения сенсора или состояния. */
   valueTextColorOn: string;

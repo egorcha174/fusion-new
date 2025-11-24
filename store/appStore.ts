@@ -869,6 +869,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
                 iconAnimation: newValues.iconAnimation !== 'none' ? newValues.iconAnimation : undefined,
                 deviceBindings: newValues.deviceBindings?.length ? newValues.deviceBindings : undefined,
                 thresholds: newValues.thresholds?.length ? newValues.thresholds : undefined,
+                customStreamUrl: newValues.customStreamUrl,
+                streamType: newValues.streamType,
             }
         };
         get().setCustomizations(newCustoms);
@@ -892,6 +894,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             iconAnimation: currentCustomization.iconAnimation,
             deviceBindings: currentCustomization.deviceBindings,
             thresholds: currentCustomization.thresholds,
+            customStreamUrl: currentCustomization.customStreamUrl,
+            streamType: currentCustomization.streamType,
         });
     },
     handleSaveTemplate: (template) => {
