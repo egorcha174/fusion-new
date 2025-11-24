@@ -7,6 +7,8 @@
 
 
 
+
+
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet, GridLayoutItem, EventTimerWidget } from './types';
@@ -400,7 +402,7 @@ const App: React.FC = () => {
   const isTemplateable = contextMenuDevice ? [
     DeviceType.Sensor, DeviceType.DimmableLight, DeviceType.Light,
     DeviceType.Switch, DeviceType.Thermostat, DeviceType.Humidifier,
-    DeviceType.Custom
+    DeviceType.Custom, DeviceType.Camera
   ].includes(contextMenuDevice.type) : false;
   const currentTemplate = getTemplateForDevice(contextMenuDevice);
   const historyDevice = historyModalEntityId ? allKnownDevices.get(historyModalEntityId) : null;
@@ -420,13 +422,15 @@ const App: React.FC = () => {
       case 'dashboard':
       default:
         return activeTab ? (
-          <TabContent
-            key={activeTab.id}
-            tab={activeTab}
-            isEditMode={isEditMode}
-            currentColorScheme={currentColorScheme}
-            isDark={isDark}
-          />
+          <ErrorBoundary>
+            <TabContent
+              key={activeTab.id}
+              tab={activeTab}
+              isEditMode={isEditMode}
+              currentColorScheme={currentColorScheme}
+              isDark={isDark}
+            />
+          </ErrorBoundary>
         ) : (
           <div className="text-center text-gray-500">Выберите или создайте вкладку</div>
         );

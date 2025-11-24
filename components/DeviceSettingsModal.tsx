@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useMemo } from 'react';
 import { Device, DeviceCustomization, DeviceType, CardTemplates, DeviceBinding, CardTemplate, ThresholdRule } from '../types';
 import DeviceIcon, { icons, getIconNameForDeviceType } from './DeviceIcon';
@@ -129,14 +131,14 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   const isTemplateable = [
     DeviceType.Sensor, DeviceType.Light, DeviceType.DimmableLight,
     DeviceType.Switch, DeviceType.Thermostat, DeviceType.Humidifier,
-    DeviceType.Custom,
+    DeviceType.Custom, DeviceType.Camera
   ].includes(device.type);
 
   // Ensure strictly checking boolean true for Camera type or if customStreamUrl is active
   const isCamera = type === DeviceType.Camera || !!customStreamUrl;
   const isSensor = type === DeviceType.Sensor;
   
-  const getTemplateTypeString = (deviceType: DeviceType): 'sensor' | 'light' | 'switch' | 'climate' | 'humidifier' | 'custom' => {
+  const getTemplateTypeString = (deviceType: DeviceType): 'sensor' | 'light' | 'switch' | 'climate' | 'humidifier' | 'custom' | 'camera' => {
     switch (deviceType) {
         case DeviceType.Light:
         case DeviceType.DimmableLight:
@@ -149,6 +151,8 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
             return 'humidifier';
         case DeviceType.Custom:
             return 'custom';
+        case DeviceType.Camera:
+            return 'camera';
         case DeviceType.Sensor:
         default:
             return 'sensor';

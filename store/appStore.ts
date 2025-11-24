@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
@@ -144,6 +143,7 @@ interface AppActions {
     // Actions for Custom Cards
     setCustomCardWidgets: (widgets: CustomCardWidget[]) => void;
     addCustomCard: () => void;
+    addCustomCamera: () => void;
     updateCustomCard: (widgetId: string, updates: Partial<Omit<CustomCardWidget, 'id'>>) => void;
     deleteCustomCard: (widgetId: string) => void;
 
@@ -544,6 +544,24 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         const newCustomizations = { ...get().customizations, [deviceId]: newCustomization };
 
         get().setTemplates(newTemplates);
+        get().setCustomizations(newCustomizations);
+        get().setCustomCardWidgets([...get().customCardWidgets, newWidget]);
+    },
+    addCustomCamera: () => {
+        const id = `camera_${nanoid()}`;
+        const newWidget: CustomCardWidget = {
+            id,
+            name: 'Новая камера',
+        };
+
+        const deviceId = `internal::custom-card_${id}`;
+        const newCustomization: DeviceCustomization = {
+            ...get().customizations[deviceId],
+            type: DeviceType.Camera,
+            icon: 'mdi:cctv',
+        };
+        const newCustomizations = { ...get().customizations, [deviceId]: newCustomization };
+
         get().setCustomizations(newCustomizations);
         get().setCustomCardWidgets([...get().customCardWidgets, newWidget]);
     },
