@@ -23,7 +23,6 @@ interface HAState {
   isInitialLoadComplete: boolean;
   error: string | null;
   haUrl: string;
-  haToken: string | null; // Store token to check for redundant connects
   entities: HassEntities;
   areas: HassArea[];
   devices: HassDevice[];
@@ -105,12 +104,18 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           const { entities, areas, devices, entityRegistry } = get();
           const appStore = useAppStore.getState();
           
-          if (!appStore) return;
+          if (!appStore) {
+              console.warn("AppStore not ready during updateDerivedState");
+              return;
+          }
 
           const { customizations, lowBatteryThreshold, eventTimerWidgets, customCardWidgets } = appStore;
           
           // MAPPING LOGIC
-          const rooms = mapEntitiesToRooms(Object.values(entities), areas, devices, entityRegistry, customizations, true, get().forecasts);
+          // We add a safe fallback for customizations if it happens to be undefined
+          const safeCustomizations = customizations || {};
+          
+          const rooms = mapEntitiesToRooms(Object.values(entities), areas, devices, entityRegistry, safeCustomizations, true, get().forecasts);
           
           const deviceMap = new Map<string, Device>();
           rooms.forEach(room => {
@@ -176,7 +181,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           let widgetsRoom = rooms.find(r => r.id === 'internal::widgets');
           if (!widgetsRoom) {
               widgetsRoom = { id: 'internal::widgets', name: 'Виджеты', devices: [] };
-              // Only add widgets room if we have widgets to show, but for now we push it and filter later or keep it
               rooms.push(widgetsRoom);
           }
           
@@ -322,7 +326,9 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             allScripts: scripts.sort((a,b) => a.name.localeCompare(b.name)),
         });
       } catch (e) {
-          console.error("Error updating derived state:", e);
+          console.error("CRITICAL: Error updating derived state:", e);
+          // Ensure we don't get stuck in loading state even if mapping fails
+          set({ error: `Data processing error: ${(e as Error).message}` });
       }
   };
   
@@ -346,7 +352,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     isInitialLoadComplete: false,
     error: null,
     haUrl: '',
-    haToken: null,
     entities: {},
     areas: [],
     devices: [],
@@ -362,13 +367,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     allScripts: [],
 
     connect: (url, token) => {
-        const currentStore = get();
-        // Prevent redundant connection attempts if we are already connecting/connected to the same host
-        if ((currentStore.connectionStatus === 'connected' || currentStore.connectionStatus === 'connecting') && currentStore.haUrl === url && currentStore.haToken === token) {
-            console.log("Already connected or connecting to this server.");
-            return;
-        }
-
+        console.log(`[HA] Connecting to ${url}...`);
         // Cleanup existing connection
         if (socketRef) {
             socketRef.close();
@@ -386,7 +385,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             isLoading: true, 
             isInitialLoadComplete: false,
             haUrl: url,
-            haToken: token,
             entities: {}, 
             areas: [],
             devices: [],
@@ -394,11 +392,11 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             allKnownDevices: new Map(),
         });
         
-        // Safety timeout
+        // Safety timeout to prevent infinite spinner if socket hangs
         connectionTimeoutRef = setTimeout(() => {
             const currentState = get();
             if (currentState.isLoading || currentState.connectionStatus === 'connecting') {
-                console.warn("Connection or data fetch timed out.");
+                console.warn("[HA] Connection or data fetch timed out. Forcing stop.");
                 set({ 
                     isLoading: false, 
                     connectionStatus: currentState.connectionStatus === 'connected' ? 'connected' : 'failed',
@@ -412,9 +410,10 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             const wsUrl = constructHaUrl(url, '/api/websocket', 'ws');
             socketRef = new WebSocket(wsUrl);
 
-            socketRef.onopen = () => console.log('WebSocket connected');
+            socketRef.onopen = () => console.log('[HA] WebSocket connected');
 
-            // Initialize tracking sets
+            // State to track initial loading progress within this closure
+            // This prevents race conditions where state updates might lag behind websocket messages
             const initialFetchIds = new Set<number>();
             let fetches: any = {};
 
@@ -431,10 +430,12 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                     case 'auth_required':
                         sendMessage({ type: 'auth', access_token: token });
                         break;
+                    
                     case 'auth_ok':
+                        console.log('[HA] Auth successful. Fetching initial data...');
                         set({ connectionStatus: 'connected', haUrl: url });
                         
-                        // Initiate fetches immediately without setTimeout to avoid race conditions
+                        // Prepare initial data requests
                         fetches = {
                             states: { id: globalMessageId++, type: 'get_states' },
                             areas: { id: globalMessageId++, type: 'config/area_registry/list' },
@@ -442,7 +443,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                             entities: { id: globalMessageId++, type: 'config/entity_registry/list' },
                         };
                         
-                        // Send all requests
+                        // Send all requests immediately
                         Object.values(fetches).forEach((f: any) => {
                             initialFetchIds.add(f.id);
                             sendMessage(f);
@@ -453,12 +454,13 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                         break;
 
                     case 'auth_invalid':
+                        console.error('[HA] Auth failed');
                         set({ error: `Authentication failed: ${data.message}`, connectionStatus: 'failed', isLoading: false });
                         if (socketRef) socketRef.close();
                         break;
 
                     case 'result':
-                        // Check explicit promise callbacks first
+                        // 1. Check explicit promise callbacks first
                         const callbacks = [signPathCallbacks, cameraStreamCallbacks, configCallbacks, historyPeriodCallbacks, serviceReturnCallbacks];
                         let handledCallback = false;
                         for (const cbMap of callbacks) {
@@ -473,7 +475,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                         }
                         if (handledCallback) return;
     
-                        // Handle Initial Fetches
+                        // 2. Handle Initial Fetches
                         if (initialFetchIds.has(data.id)) {
                             if (data.success) {
                                 const stateUpdate: Partial<HAState> = {};
@@ -489,8 +491,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                 set(stateUpdate);
                             } else {
                                 console.error(`Initial fetch failed for ID ${data.id}:`, data.error);
-                                // Even if get_states fails, we should probably continue or show a specific error, 
-                                // but essentially we must remove the ID to stop the spinner.
                                 if (data.id === fetches.states.id) {
                                     set({ error: "Ошибка загрузки состояний устройств." });
                                 }
@@ -500,6 +500,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                             
                             // Check if ALL initial requests are done
                             if (initialFetchIds.size === 0) {
+                                console.log('[HA] Initial data fetch complete. Finalizing...');
                                 if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
                                 
                                 try {
@@ -507,7 +508,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                     set({ isInitialLoadComplete: true });
                                     updateDerivedState();
                                     
-                                    // Start secondary fetches
+                                    // Start secondary fetches (Weather)
                                     const weatherEntities = (Object.values(get().entities) as HassEntity[])
                                         .filter(e => e.entity_id.startsWith('weather.'))
                                         .map(e => e.entity_id);
@@ -516,6 +517,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                         get().fetchWeatherForecasts(weatherEntities);
                                     }
 
+                                    // Setup refresh interval
                                     forecastRefreshInterval = setInterval(() => {
                                         const currentStore = get();
                                         if (currentStore.connectionStatus === 'connected') {
@@ -532,7 +534,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                     console.error("Post-initialization error:", e);
                                     set({ error: "Ошибка при финализации загрузки." });
                                 } finally {
-                                    // Ensure loading is false so we don't get stuck on white screen
+                                    // Crucial: Stop spinner
+                                    console.log('[HA] Loading finished.');
                                     set({ isLoading: false });
                                 }
                             }
@@ -548,7 +551,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                             if (!new_state) delete newEntities[entity_id];
                             set({ entities: newEntities });
                             
-                            // BLOCK expensive derived calculations until initialization is 100% done.
+                            // Only recalculate derived state if initialization is totally finished
                             if (!get().isInitialLoadComplete) return;
 
                             if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
@@ -600,7 +603,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         
         set({ 
             connectionStatus: 'idle', 
-            haToken: null,
+            // haToken: null, // Keep token for reconnect convenience? Original code cleared it.
             entities: {}, 
             areas: [], 
             devices: [], 

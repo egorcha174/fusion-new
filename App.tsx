@@ -9,7 +9,6 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeInjector from './components/ThemeInjector';
 import { useWeather } from './hooks/useWeather';
-import { useHomeAssistant } from './hooks/useHomeAssistant';
 
 
 const Settings = lazy(() => import('./components/Settings.tsx'));
@@ -95,9 +94,7 @@ const useIsLg = () => {
 }
 
 const App: React.FC = () => {
-    // useHomeAssistant hook handles auto-connection logic
-    useHomeAssistant();
-    
+    const initializationDone = useRef(false);
     const {
         connectionStatus, isLoading, error, connect, allKnownDevices,
         allCameras, getCameraStreamUrl, getConfig, getHistory, signPath,
@@ -197,12 +194,19 @@ const App: React.FC = () => {
     return () => mediaQuery.removeEventListener('change', updateTheme);
   }, [themeMode, isDarkBySchedule]);
 
-    // Automatic Tab Creation Logic
+    // Auto-fix active tab if it becomes invalid
     useEffect(() => {
-        if (connectionStatus === 'connected' && !isLoading) {
-            // If we have devices but no tabs, automatically create a default "Home" tab with devices
+        if (tabs.length > 0 && (!activeTabId || !tabs.some(t => t.id === activeTabId))) {
+            console.warn("Active tab ID is invalid or missing, resetting to first tab.");
+            setActiveTabId(tabs[0].id);
+        }
+    }, [tabs, activeTabId, setActiveTabId]);
+
+    useEffect(() => {
+        if (connectionStatus === 'connected' && !isLoading && !initializationDone.current) {
+            initializationDone.current = true;
+            
             if (tabs.length === 0 && allKnownDevices.size > 0) {
-                console.log('Auto-generating default tab...');
                 const { getTemplateForDevice } = useAppStore.getState();
                 const devices = Array.from<Device>(allKnownDevices.values()).sort((a, b) => a.name.localeCompare(b.name));
                 
@@ -246,13 +250,9 @@ const App: React.FC = () => {
 
                 setTabs([newTab]);
                 setActiveTabId(newTab.id);
-            } 
-            // Ensure an active tab is selected if one exists
-            else if ((!activeTabId || !tabs.some(t => t.id === activeTabId)) && tabs.length > 0) {
-                setActiveTabId(tabs[0].id);
             }
         }
-    }, [connectionStatus, isLoading, tabs.length, allKnownDevices.size, activeTabId, setTabs, setActiveTabId, allKnownDevices]);
+    }, [connectionStatus, isLoading, tabs, activeTabId, allKnownDevices, setTabs, setActiveTabId]);
 
   const activeTab = useMemo(() => tabs.find(t => t.id === activeTabId), [tabs, activeTabId]);
   
@@ -327,14 +327,12 @@ const App: React.FC = () => {
         if (['09', '10'].some(c => icon.startsWith(c))) return 'rain-clouds';
         // Snow (13)
         if (icon.startsWith('13')) return 'snow';
-        // Fog (50) or Clouds (02, 03, 04) - Strong Cloudy
+        // Fog (50) or Clouds (02, 03, 04) - Cloudy
         if (['02', '03', '04', '50'].some(c => icon.startsWith(c))) return 'strong-cloudy';
         // Clear Night (01n) - Aurora
         if (icon === '01n') return 'aurora';
-        // Clear Day (01d) - Sun Glare
-        if (icon === '01d') return 'sun-glare';
         
-        // Default for clear day/night if no match
+        // Default for clear day
         return 'none';
     }, [backgroundEffect, weatherData]);
 

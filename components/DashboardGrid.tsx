@@ -1,5 +1,5 @@
 
-import React, { useRef, useState, useLayoutEffect, useMemo } from 'react';
+import React, { useRef, useState, useLayoutEffect, useMemo, useEffect } from 'react';
 import {
   DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent,
   useDraggable, useDroppable, DragOverlay, pointerWithin,
@@ -11,6 +11,9 @@ import { Tab, Device, DeviceType, GridLayoutItem, CardTemplates, DeviceCustomiza
 import { useAppStore } from '../store/appStore';
 import ErrorBoundary from './ErrorBoundary';
 import LoadingSpinner from './LoadingSpinner';
+
+// Workaround for TypeScript errors with motion.div props in some environments
+const MotionDiv = motion.div as any;
 
 // ID шаблонов по умолчанию
 const DEFAULT_SENSOR_TEMPLATE_ID = 'default-sensor';
@@ -176,7 +179,7 @@ const OccupiedCellWrapper: React.FC<{
     };
 
     return (
-        <motion.div
+        <MotionDiv
             ref={setNodeRef}
             style={style}
             className={`relative transition-colors duration-200 ${overClasses}`}
@@ -187,7 +190,7 @@ const OccupiedCellWrapper: React.FC<{
             transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
         >
             {children}
-        </motion.div>
+        </MotionDiv>
     );
 });
 
@@ -222,6 +225,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
     const [activeId, setActiveId] = useState<string | null>(null);
     const [activeDragItemRect, setActiveDragItemRect] = useState<{ width: number; height: number } | null>(null);
     const [openMenuDeviceId, setOpenMenuDeviceId] = useState<string | null>(null);
+    // Failsafe to ensure grid renders even if calculations are slightly off initially
+    const [forceRender, setForceRender] = useState(false);
 
     // Calculation Logic
     useLayoutEffect(() => {
@@ -233,12 +238,16 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
             
             // Use a minimal fallback height if the container is collapsed (avoids blank screen)
             const effectiveHeight = height > 0 ? height : Math.max(window.innerHeight - 200, 600);
+            const effectiveWidth = width > 0 ? width : window.innerWidth; // Fallback width
             
-            const cellWidth = (width - (cols + 1) * gap) / cols;
+            const cellWidth = (effectiveWidth - (cols + 1) * gap) / cols;
             const cellHeight = (effectiveHeight - (rows + 1) * gap) / rows;
             const cellSize = Math.floor(Math.min(cellWidth, cellHeight));
             
-            if (cellSize <= 0) return;
+            if (cellSize <= 0) {
+                console.warn("[DashboardGrid] Calculated cell size is 0. Waiting for resize...");
+                return;
+            }
             
             setGridMetrics({
                 containerWidth: cols * cellSize + (cols - 1) * gap,
@@ -251,7 +260,18 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         if (viewportRef.current) resizeObserver.observe(viewportRef.current);
         calculateGrid();
         return () => resizeObserver.disconnect();
-    }, [tab.gridSettings]);
+    }, [tab.gridSettings, forceRender]);
+
+    // Failsafe Effect: If metrics are 0 after mount, try to force update after a delay
+    useEffect(() => {
+        if (gridMetrics.cellSize === 0) {
+            const timer = setTimeout(() => {
+                console.log("[DashboardGrid] Forcing render retry...");
+                setForceRender(prev => !prev);
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [gridMetrics.cellSize]);
 
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -455,7 +475,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                     </div>
                      <DragOverlay dropAnimation={null} modifiers={[snapCenterToCursor]}>
                         {activeDevice && activeDragItemRect ? (
-                          <motion.div
+                          <MotionDiv
                             style={{
                               width: activeDragItemRect.width,
                               height: activeDragItemRect.height,
@@ -486,7 +506,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                               onCameraCardClick={() => {}}
                               onEditDevice={() => {}}
                             />
-                          </motion.div>
+                          </MotionDiv>
                         ) : null}
                     </DragOverlay>
                 </DndContext>
