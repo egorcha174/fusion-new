@@ -37,7 +37,7 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
   const [isVisible, setIsVisible] = useState(false);
   const [pageVisible, setPageVisible] = useState(!document.hidden);
 
-  // 1. Intersection Observer (Загружаем только когда видим)
+  // 1. Intersection Observer (Load only when in viewport)
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => setIsVisible(entry.isIntersecting),
@@ -47,17 +47,17 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
     return () => observer.disconnect();
   }, []);
 
-  // 2. Page Visibility API (Пауза если ушли с вкладки)
+  // 2. Page Visibility API (Pause when tab is backgrounded)
   useEffect(() => {
     const handleVisibilityChange = () => setPageVisible(!document.hidden);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
-  // FIX: Combine conditions to strictly control video playback
+  // FIX: Video plays ONLY when visible AND page is active
   const shouldPlay = autoPlay && isVisible && pageVisible;
 
-  // 3. Получение Snapshot (Картинка-заглушка)
+  // 3. Load Snapshot (Placeholder)
   const loadSnapshot = useCallback(async () => {
     try {
       // IMPROVED: Check for image extension in custom URL to use as snapshot
@@ -66,7 +66,7 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
          return;
       }
 
-      // Иначе идем в HA API (работает и для камер HA)
+      // Otherwise fetch from HA API (works for both internal proxies and HA cameras)
       if (!device.id.startsWith('internal::')) {
           const result = await signPath(`/api/camera_proxy/${device.id}`);
           const fullUrl = constructHaUrl(haUrl, result.path, 'http') + `&t=${Date.now()}`;
@@ -77,17 +77,15 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
     }
   }, [device, haUrl, signPath]);
 
-  // Грузим снапшот при монтировании или появлении
+  // Load snapshot on mount or appearance
   useEffect(() => {
     if (isVisible) loadSnapshot();
   }, [isVisible, loadSnapshot]);
 
-  // 4. Логика определения потока
+  // 4. Stream Resolution Logic
   useEffect(() => {
-    // Cleanup function for HLS or previous stream attempts could be handled here if needed,
-    // but CameraStreamContent handles its own internal cleanup.
-    
     if (!shouldPlay) {
+      // FIX: Cleanly reset state when playback stops
       setFinalStreamUrl(null);
       setStreamType('none');
       setIsLive(false);
@@ -102,19 +100,20 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
 
     const resolveStream = async () => {
       try {
-        // --- ВЕТКА 1: Кастомная камера (настроена вручную) ---
+        // --- BRANCH 1: Custom Camera (Manual Config) ---
         if (device.haDomain === 'internal' || device.customStreamUrl) {
            const url = device.customStreamUrl;
            if (!url) throw new Error("URL не указан");
 
            let type: any = device.streamType || 'auto';
            
+           // IMPROVED: Robust stream type detection
            if (type === 'auto') {
              const cleanUrl = url.split('?')[0].toLowerCase();
              if (cleanUrl.endsWith('.m3u8')) type = 'hls';
-             else if (cleanUrl.match(/\.(mp4|webm|mov|mkv)$/)) type = 'file';
-             else if (cleanUrl.match(/\.(jpg|jpeg|png)$/)) type = 'mjpeg';
-             else type = 'iframe'; // Fallback to iframe for WebRTC/Unknown
+             else if (/\.(mp4|webm|mov|mkv)$/.test(cleanUrl)) type = 'file';
+             else if (/\.(jpg|jpeg|png|webp)$/.test(cleanUrl)) type = 'mjpeg';
+             else type = 'iframe'; // Fallback for WebRTC/Unknown
            }
            
            if (!isCancelled) {
@@ -124,8 +123,8 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
            return;
         }
 
-        // --- ВЕТКА 2: Native HA Camera ---
-        // Пытаемся получить HLS поток от HA
+        // --- BRANCH 2: Native HA Camera ---
+        // Try HLS first
         try {
           const streamData = await getCameraStreamUrl(device.id);
           if (streamData && streamData.url) {
@@ -172,7 +171,7 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
       className="relative w-full h-full bg-black overflow-hidden rounded-lg select-none group"
       onClick={() => onCameraCardClick && onCameraCardClick(device)}
     >
-      {/* 1. Snapshot Layer (Z-Index 1) */}
+      {/* Layer 1: Snapshot (z-index 1) */}
       {finalSnapshotUrl && (
         <img 
           src={finalSnapshotUrl} 
@@ -181,7 +180,7 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
         />
       )}
 
-      {/* 2. Video Layer (Z-Index 2) */}
+      {/* Layer 2: Live Stream (z-index 2) */}
       {shouldPlay && finalStreamUrl && (
         <div className="absolute inset-0 z-[2]">
           <CameraStreamContent
@@ -202,12 +201,10 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
         </div>
       )}
 
-      {/* 3. UI Overlays (Z-Index 3+) */}
-      
-      {/* Loading Spinner - FIX: Removed backdrop-blur and added transparency logic */}
+      {/* Layer 3: Loading Spinner (z-index 3) */}
       {isLoading && (
         <div className="absolute inset-0 z-[3] flex items-center justify-center transition-all duration-300">
-          {/* Only dim the background if we DON'T have a snapshot. If we have a snapshot, keep it clear. */}
+          {/* Dim background only if no snapshot is present */}
           {!finalSnapshotUrl && <div className="absolute inset-0 bg-black/20" />}
           <div className="z-10">
              <LoadingSpinner />
@@ -215,7 +212,7 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
         </div>
       )}
 
-      {/* Error Message */}
+      {/* Layer 4: Error Message (z-index 4) */}
       {error && (
         <div className="absolute inset-0 z-[4] flex flex-col items-center justify-center bg-black/60 p-4 text-center animate-in fade-in">
           <Icon icon="mdi:alert-circle-outline" className="w-8 h-8 text-red-500 mb-2" />
@@ -229,7 +226,7 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
         </div>
       )}
 
-      {/* Status Badges */}
+      {/* Layer 5: Status Badges (z-index 5) */}
       <div className="absolute top-2 right-2 z-[5] flex gap-1 pointer-events-none">
         {isLive && (
           <div className="px-1.5 py-0.5 bg-red-600/90 backdrop-blur-sm rounded text-white text-[9px] font-bold uppercase tracking-wider animate-pulse shadow-sm">
@@ -243,7 +240,7 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
         )}
       </div>
       
-      {/* Play Overlay (Fallback for completely empty state) */}
+      {/* Fallback for empty state */}
       {!shouldPlay && !finalSnapshotUrl && !isLoading && (
          <div className="absolute inset-0 z-[3] flex items-center justify-center text-gray-500">
             <Icon icon="mdi:cctv-off" className="w-12 h-12 opacity-50" />
