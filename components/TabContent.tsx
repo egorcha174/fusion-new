@@ -1,13 +1,14 @@
+
 import React, { useMemo } from 'react';
 import DashboardGrid from './DashboardGrid';
-import { Tab, Device, GridLayoutItem, CardTemplates, DeviceCustomizations, ColorScheme, ColorThemeSet } from '../types';
+import { Tab, Device, GridLayoutItem, CardTemplates, DeviceCustomizations, ColorScheme, ColorThemeSet, ThemeColors } from '../types';
 import { useHAStore } from '../store/haStore';
 import { useAppStore } from '../store/appStore';
 
 interface TabContentProps {
   tab: Tab;
   isEditMode: boolean;
-  currentColorScheme: ColorThemeSet;
+  currentColorScheme: ThemeColors;
   isDark: boolean;
 }
 

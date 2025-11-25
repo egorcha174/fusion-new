@@ -1,10 +1,11 @@
+
 import React from 'react';
-import { Device, ColorThemeSet } from '../types';
+import { Device, ThemeColors } from '../types';
 import { useAppStore } from '../store/appStore';
 
 interface EventTimerWidgetCardProps {
     device: Device;
-    colorScheme: ColorThemeSet;
+    colorScheme: ThemeColors;
 }
 
 const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, colorScheme }) => {

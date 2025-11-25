@@ -1,10 +1,10 @@
 
 import React from 'react';
-import { ColorThemeSet } from '../types';
+import { ThemeColors } from '../types';
 import { generateThemeCss } from '../utils/themeUtils';
 
 interface ThemeInjectorProps {
-    theme: ColorThemeSet;
+    theme: ThemeColors;
 }
 
 const ThemeInjector: React.FC<ThemeInjectorProps> = ({ theme }) => {

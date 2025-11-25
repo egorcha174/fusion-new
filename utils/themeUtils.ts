@@ -1,5 +1,5 @@
 
-import { ColorThemeSet } from '../types';
+import { ThemeColors } from '../types';
 
 /**
  * Применяет заданную прозрачность к строке цвета.
@@ -42,7 +42,7 @@ export const applyOpacity = (color: string | undefined, opacity: number | undefi
 /**
  * Generates CSS variables string from a theme configuration.
  */
-export const generateThemeCss = (theme: ColorThemeSet): string => {
+export const generateThemeCss = (theme: ThemeColors): string => {
     const cardBg = applyOpacity(theme.cardBackground, theme.cardOpacity ?? 1);
     const cardBgOn = applyOpacity(theme.cardBackgroundOn, theme.cardOpacity ?? 1);
     const panelBg = `rgba(30, 30, 30, ${theme.panelOpacity ?? 0.75})`; // Base dark, overridden by specific logic in components if needed, or standardized here.

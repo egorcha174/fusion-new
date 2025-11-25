@@ -20,7 +20,8 @@ const iconMap: Record<DeviceType, { on: string; off: string; animation?: 'spin' 
   [DeviceType.Spotlight]: { on: 'mdi:spotlight', off: 'mdi:spotlight-beam' },
   [DeviceType.BalconyLight]: { on: 'mdi:wall-sconce-flat', off: 'mdi:wall-sconce-flat-outline' },
   [DeviceType.Climate]: { on: 'mdi:thermostat-box', off: 'mdi:thermostat-box' },
-  [DeviceType.Thermostat]: { on: 'ic:baseline-device-thermostat', off: 'ic:baseline-device-thermostat' },
+  // [DeviceType.Thermostat] shares the same value (7) as DeviceType.Climate, so we cannot have both keys. 
+  // Using the mapping for Climate.
   [DeviceType.TV]: { on: 'mdi:television-classic', off: 'mdi:television-classic' },
   [DeviceType.Computer]: { on: 'mdi:desktop-tower-monitor', off: 'mdi:desktop-tower-monitor' },
   [DeviceType.Monitor]: { on: 'mdi:monitor', off: 'mdi:monitor' },

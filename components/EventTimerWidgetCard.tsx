@@ -1,10 +1,10 @@
 
 import React, { useMemo } from 'react';
-import { Device, ColorThemeSet } from '../types';
+import { Device, ThemeColors } from '../types';
 
 interface EventTimerWidgetCardProps {
     device: Device;
-    colorScheme: ColorThemeSet;
+    colorScheme: ThemeColors;
 }
 
 // Вспомогательные функции для работы с цветом

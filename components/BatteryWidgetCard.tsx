@@ -3,10 +3,10 @@ import React, { useState } from 'react';
 import { useHAStore } from '../store/haStore';
 import { useAppStore } from '../store/appStore';
 import { Icon } from '@iconify/react';
-import { ColorThemeSet } from '../types';
+import { ThemeColors } from '../types';
 
 interface BatteryWidgetCardProps {
-    colorScheme: ColorThemeSet;
+    colorScheme: ThemeColors;
 }
 
 const BatteryWidgetCard: React.FC<BatteryWidgetCardProps> = ({ colorScheme }) => {

@@ -1,11 +1,10 @@
 
-
 import React, { useState, useMemo } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Tab, ColorThemeSet } from '../types';
+import { Tab, ColorThemeSet, ThemeColors } from '../types';
 import { Icon } from '@iconify/react';
 import { useAppStore } from '../store/appStore';
 
@@ -16,7 +15,7 @@ interface SortableTabProps {
     isEditMode: boolean;
     onSelect: () => void;
     onEdit: () => void;
-    colorScheme: ColorThemeSet;
+    colorScheme: ThemeColors;
 }
 
 /**
@@ -59,7 +58,7 @@ const SortableTab: React.FC<SortableTabProps> = ({ tab, isActive, isEditMode, on
 };
 
 interface DashboardHeaderProps {
-    currentColorScheme: ColorThemeSet;
+    currentColorScheme: ThemeColors;
     isDark: boolean;
 }
 

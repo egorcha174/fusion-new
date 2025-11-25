@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { EventTimerWidget, Device, DeviceType, ColorThemeSet } from '../types';
+import { EventTimerWidget, Device, DeviceType, ThemeColors } from '../types';
 import { useAppStore } from '../store/appStore';
 import { format } from 'date-fns';
 import EventTimerWidgetCard from './EventTimerWidgetCard';
@@ -8,7 +8,7 @@ import EventTimerWidgetCard from './EventTimerWidgetCard';
 interface EventTimerSettingsModalProps {
     widgetId: string;
     onClose: () => void;
-    currentColorScheme: ColorThemeSet;
+    currentColorScheme: ThemeColors;
 }
 
 const LabeledInput: React.FC<{ label: string, children: React.ReactNode }> = ({ label, children }) => (
