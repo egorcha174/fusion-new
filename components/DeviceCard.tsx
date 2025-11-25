@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Device, DeviceType, CardTemplate, DeviceCustomizations, ColorScheme, CardElement } from '../types';
 import DeviceIcon, { getIconNameForDeviceType } from './DeviceIcon';
@@ -98,6 +96,9 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
   };
   const isOn = getIsOn();
 
+  // We consider it a camera card if it's strictly a camera OR if it has a custom stream URL configured.
+  const isCameraCard = device.type === DeviceType.Camera || !!device.customStreamUrl;
+
   const getCardStyle = (): React.CSSProperties => {
       if (device.type === DeviceType.MediaPlayer && (device.state === 'playing' || device.state === 'paused') && device.entityPictureUrl) {
           return {
@@ -110,7 +111,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
       
       // For Camera or custom stream, if no template elements or default background is desired, use black. 
       // But we allow styling via theme too.
-      if (device.type === DeviceType.Camera || device.customStreamUrl) {
+      if (isCameraCard) {
           return {
               backgroundColor: 'black',
               borderRadius: `${colorScheme.cardBorderRadius}px`,
@@ -287,9 +288,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
         return null;
     }
   };
-
-  // We consider it a camera card if it's strictly a camera OR if it has a custom stream URL configured.
-  const isCameraCard = device.type === DeviceType.Camera || !!device.customStreamUrl;
 
   return (
     <div 
