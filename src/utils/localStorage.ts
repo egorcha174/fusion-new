@@ -115,7 +115,8 @@ export function loadAndMigrate<T>(key: string, initialValue: T): T {
               const defaultEl = defaultElementsMap.get(storedEl.id);
               if (defaultEl) {
                 // Глубокое слияние: структура от default, значения от stored.
-                return { ...defaultEl, ...storedEl, position: { ...defaultEl.position, ...(storedEl.position || {}) }, size: { ...defaultEl.size, ...(storedEl.size || {}) }, styles: { ...defaultEl.styles, ...(storedEl.styles || {}) }, };
+                // Fix spread errors by explicit casting
+                return { ...defaultEl, ...storedEl, position: { ...defaultEl.position, ...((storedEl as any).position || {}) }, size: { ...defaultEl.size, ...((storedEl as any).size || {}) }, styles: { ...defaultEl.styles, ...((storedEl as any).styles || {}) }, };
               }
               return null; // Отбрасываем элементы, которых больше нет в шаблоне по умолчанию.
             })

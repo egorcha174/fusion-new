@@ -1,11 +1,6 @@
-
-
-
-
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ClockSettings, Device, ClockSize, CameraSettings, ColorScheme, WeatherSettings } from '../types';
-import { CameraStreamContent } from './CameraStreamContent';
+import { UniversalCameraCard } from './UniversalCameraCard';
 import ContextMenu from './ContextMenu';
 import WeatherWidget from './WeatherWidget';
 import { useAppStore } from '../store/appStore';
@@ -117,15 +112,14 @@ const CameraWidget: React.FC<CameraWidgetProps> = React.memo(({ cameras, haUrl, 
             >
                 {selectedCamera ? (
                     <>
-                        <CameraStreamContent
-                            entityId={cameraSettings.selectedEntityId}
+                        {/* FIX: Use UniversalCameraCard for better stream handling */}
+                        <UniversalCameraCard
+                            device={selectedCamera}
                             haUrl={haUrl}
                             signPath={signPath}
                             getCameraStreamUrl={getCameraStreamUrl}
-                            altText={selectedCamera.name}
-                            refreshInterval={cameraSettings.refreshInterval}
-                            showPlayButton={false}
-                            autoPlay={false}
+                            autoPlay={true}
+                            muted={true}
                         />
                         <button 
                             onClick={(e) => { e.stopPropagation(); handleCameraClick(); }}

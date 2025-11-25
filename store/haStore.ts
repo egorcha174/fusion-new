@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device, Room, RoomWithPhysicalDevices, PhysicalDevice, DeviceType, WeatherForecast } from '../types';
 import { constructHaUrl } from '../utils/url';
@@ -59,10 +58,16 @@ interface HAActions {
   triggerScene: (entityId: string) => void;
   triggerAutomation: (entityId: string) => void;
   triggerScript: (entityId: string) => void;
+  // FIX: Add missing method to interface
+  updateDerivedState: () => void;
 }
 
 // Global counter for message IDs to ensure uniqueness across the session
 let globalMessageId = 1;
+
+// Batching globals to reduce render frequency
+let pendingUpdates: Record<string, any> = {};
+let updateThrottleTimeout: ReturnType<typeof setTimeout> | null = null;
 
 export const useHAStore = create<HAState & HAActions>((set, get) => {
   let socketRef: WebSocket | null = null;
@@ -77,7 +82,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   // Timers and intervals
   let brightnessTimeoutRef: number | null = null;
   let forecastRefreshInterval: any = null;
-  let updateDerivedStateTimeout: ReturnType<typeof setTimeout> | null = null;
   let connectionTimeoutRef: ReturnType<typeof setTimeout> | null = null;
   let initialLoadWatchdogRef: ReturnType<typeof setTimeout> | null = null;
 
@@ -95,6 +99,31 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     } else {
         console.warn('WebSocket is not open, cannot send message:', message);
     }
+  };
+
+  // Helper to flush batched updates to state
+  const flushUpdates = () => {
+      const currentPending = pendingUpdates;
+      pendingUpdates = {}; // Clear immediately to start collecting next batch
+      updateThrottleTimeout = null;
+
+      if (Object.keys(currentPending).length > 0) {
+          // 1. Update Entities State
+          set((state) => {
+              const newEntities = { ...state.entities, ...currentPending };
+              // Remove deleted entities (if new_state is null)
+              Object.keys(currentPending).forEach(key => {
+                  if (currentPending[key] === null) {
+                      delete newEntities[key];
+                  }
+              });
+              return { entities: newEntities };
+          });
+
+          // 2. Update Derived State (Only once per batch)
+          // We check isInitialLoadComplete inside the function
+          get().updateDerivedState();
+      }
   };
   
   const updateDerivedState = () => {
@@ -325,6 +354,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
       }
   };
   
+  // Subscribe to app settings changes to trigger re-calculation
   useAppStore.subscribe(
     (state, prevState) => {
         const shouldUpdate = state.customizations !== prevState.customizations ||
@@ -367,9 +397,10 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         }
         clearCallbacks();
         if (forecastRefreshInterval) clearInterval(forecastRefreshInterval);
-        if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
+        if (updateThrottleTimeout) clearTimeout(updateThrottleTimeout);
         if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
         if (initialLoadWatchdogRef) clearTimeout(initialLoadWatchdogRef);
+        pendingUpdates = {};
         
         // RESET STATE completely to avoid stale data merging
         set({ 
@@ -406,7 +437,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             socketRef.onopen = () => console.log('WebSocket connected');
 
             // State to track initial loading progress within this closure
-            // This prevents race conditions where state updates might lag behind websocket messages
             const initialFetchIds = new Set<number>();
             let fetches: any = {};
 
@@ -442,7 +472,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                         });
                         
                         // WATCHDOG: Ensure we don't get stuck in infinite spinner if one of these requests fails silently
-                        // Force finish after 15s even if data is incomplete
                         initialLoadWatchdogRef = setTimeout(() => {
                             if (initialFetchIds.size > 0) {
                                 console.warn("Initial load watchdog triggered. Forcing load completion. Missing IDs:", Array.from(initialFetchIds));
@@ -550,22 +579,18 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                         break;
 
                     case 'event':
+                        // Batched State Updates
                         if (data.event.event_type === 'state_changed') {
                             const { entity_id, new_state } = data.event.data;
                             
-                            // Optimistic update: Merge into entities immediately
-                            const newEntities = { ...get().entities, [entity_id]: new_state };
-                            if (!new_state) delete newEntities[entity_id];
-                            set({ entities: newEntities });
-                            
-                            // Only recalculate derived state if initialization is totally finished
-                            if (!get().isInitialLoadComplete) return;
+                            // Accumulate update
+                            pendingUpdates[entity_id] = new_state;
 
-                            if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
-                            updateDerivedStateTimeout = setTimeout(() => {
-                                updateDerivedState();
-                                updateDerivedStateTimeout = null;
-                            }, 50);
+                            // Schedule flush if not already scheduled
+                            if (!updateThrottleTimeout) {
+                                // 100ms throttle provides good responsiveness while significantly reducing CPU load
+                                updateThrottleTimeout = setTimeout(flushUpdates, 100);
+                            }
                         }
                         break;
                 }
@@ -574,10 +599,11 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             socketRef.onclose = () => {
                 // Cleanup
                 if (forecastRefreshInterval) clearInterval(forecastRefreshInterval);
-                if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
+                if (updateThrottleTimeout) clearTimeout(updateThrottleTimeout);
                 if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
                 if (initialLoadWatchdogRef) clearTimeout(initialLoadWatchdogRef);
                 clearCallbacks();
+                pendingUpdates = {};
                 
                 if (get().connectionStatus === 'connecting') {
                     set({ connectionStatus: 'failed', error: "Соединение закрыто сервером." });
@@ -602,10 +628,11 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     },
     disconnect: () => {
         if (forecastRefreshInterval) clearInterval(forecastRefreshInterval);
-        if (updateDerivedStateTimeout) clearTimeout(updateDerivedStateTimeout);
+        if (updateThrottleTimeout) clearTimeout(updateThrottleTimeout);
         if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
         if (initialLoadWatchdogRef) clearTimeout(initialLoadWatchdogRef);
         clearCallbacks();
+        pendingUpdates = {};
         
         if (socketRef) {
             socketRef.close();
@@ -614,7 +641,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         
         set({ 
             connectionStatus: 'idle', 
-            // haToken: null, // Keep token for reconnect convenience? Original code cleared it.
             entities: {}, 
             areas: [], 
             devices: [], 
@@ -790,5 +816,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     triggerScript: (entityId) => {
         get().callService('script', 'turn_on', { entity_id: entityId });
     },
+    updateDerivedState, // Export for internal usage if needed
   };
 });

@@ -43,19 +43,27 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
     const video = videoRef.current;
     if (!video) return;
 
-    // Функция безопасного воспроизведения
-    const tryPlay = async () => {
+    // IMPROVED: Named function for safe removal of event listener
+    const handlePlay = async () => {
       try {
         if (video.paused && autoPlay) {
           await video.play();
         }
+        // FIX: Ensure loading state is cleared even if play fails (e.g. low power mode)
         setIsLoading(false);
         if (onLoaded) onLoaded();
       } catch (e) {
         console.warn("Autoplay blocked or failed:", e);
-        // Не считаем блокировку автоплея критической ошибкой, поток готов
         setIsLoading(false); 
       }
+    };
+
+    // IMPROVED: Named function for error handling
+    const handleError = (e: Event) => {
+        console.error("Video Error:", e);
+        setHasError(true);
+        if(onError) onError("Ошибка воспроизведения");
+        setIsLoading(false);
     };
 
     // Очистка предыдущего HLS
@@ -66,12 +74,10 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
 
     // Сценарий 1: Native HLS (Safari)
     if (type === 'hls' && video.canPlayType('application/vnd.apple.mpegurl')) {
+      // FIX: Ensure src is set before attaching listeners
       video.src = streamUrl;
-      video.addEventListener('loadedmetadata', tryPlay);
-      video.addEventListener('error', () => {
-          setHasError(true);
-          if(onError) onError("Ошибка нативного плеера");
-      });
+      video.addEventListener('loadedmetadata', handlePlay);
+      video.addEventListener('error', handleError);
     } 
     // Сценарий 2: HLS.js (Chrome, Firefox)
     else if (type === 'hls' && Hls.isSupported()) {
@@ -82,25 +88,29 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
       });
       hlsRef.current = hls;
       hls.loadSource(streamUrl);
-      hls.attachMedia(video);
+      
+      // FIX: Wrap attachMedia in try/catch for safety
+      try {
+          hls.attachMedia(video);
+      } catch (e) {
+          console.error("HLS Attach Error:", e);
+          setHasError(true);
+      }
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        tryPlay();
+        handlePlay();
       });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              // Пытаемся восстановить сеть
-              hls.startLoad();
+              hls.startLoad(); // Try to recover network error
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
-              // Пытаемся восстановить медиа
-              hls.recoverMediaError();
+              hls.recoverMediaError(); // Try to recover media error
               break;
             default:
-              // Критическая ошибка
               hls.destroy();
               setHasError(true);
               if(onError) onError(`HLS Error: ${data.details}`);
@@ -112,20 +122,23 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
     // Сценарий 3: Просто видео файл (mp4, webm)
     else if (type === 'file') {
       video.src = streamUrl;
-      video.addEventListener('loadedmetadata', tryPlay);
-      video.addEventListener('error', () => {
-          setHasError(true);
-          if(onError) onError("Ошибка загрузки файла");
-      });
+      video.addEventListener('loadedmetadata', handlePlay);
+      video.addEventListener('error', handleError);
     }
 
+    // FIX: Clean up event listeners on unmount
     return () => {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-      }
       if (video) {
+        video.removeEventListener('loadedmetadata', handlePlay);
+        video.removeEventListener('error', handleError);
+        
+        // FIX: Stop downloading content
         video.removeAttribute('src');
         video.load();
+      }
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
       }
     };
   }, [streamUrl, type, autoPlay]); // Re-run only if url or type changes

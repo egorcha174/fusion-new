@@ -1,11 +1,6 @@
-
-
-
-
-
 import React, { useState, useCallback } from 'react';
 import { Device } from '../types';
-import { CameraStreamContent } from './CameraStreamContent';
+import { UniversalCameraCard } from './UniversalCameraCard';
 
 // --- Типы для пропсов ---
 interface FloatingCameraWindowProps {
@@ -140,14 +135,14 @@ const FloatingCameraWindow: React.FC<FloatingCameraWindowProps> = ({
       
       {/* Контейнер для видеопотока */}
       <div className="flex-grow bg-black min-h-0 relative">
-        <CameraStreamContent
-          entityId={device.id}
+        {/* FIX: Use UniversalCameraCard instead of CameraStreamContent */}
+        <UniversalCameraCard
+          device={device}
           haUrl={haUrl}
           signPath={signPath}
           getCameraStreamUrl={getCameraStreamUrl}
-          altText={device.name}
           autoPlay={true}
-          showPlayButton={false}
+          muted={true}
         />
         
         {/* Уголок, который является "ручкой" для изменения размера */}

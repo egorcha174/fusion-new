@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import {
   DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent,
@@ -149,7 +148,14 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
     
     const newLayoutItem = { ...currentItem, col: destCol, row: destRow };
     
-    const hasCollision = checkCollision(tab.layout, newLayoutItem, tab.gridSettings, deviceId);
+    // FIX: checkCollision expects width and height to be numbers
+    const itemToCheck = {
+        ...newLayoutItem,
+        width: newLayoutItem.width || 1,
+        height: newLayoutItem.height || 1
+    };
+    
+    const hasCollision = checkCollision(tab.layout, itemToCheck, tab.gridSettings, deviceId);
     
     if (!hasCollision) {
         const newLayout = tab.layout.map((item) =>

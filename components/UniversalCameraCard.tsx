@@ -54,13 +54,13 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
-  // Активен ли поток сейчас?
+  // FIX: Combine conditions to strictly control video playback
   const shouldPlay = autoPlay && isVisible && pageVisible;
 
   // 3. Получение Snapshot (Картинка-заглушка)
   const loadSnapshot = useCallback(async () => {
     try {
-      // Если это кастомная камера и у неё есть URL, похожий на картинку, используем его
+      // IMPROVED: Check for image extension in custom URL to use as snapshot
       if (device.haDomain === 'internal' && device.customStreamUrl?.match(/\.(jpg|jpeg|png|webp)$/i)) {
          setFinalSnapshotUrl(device.customStreamUrl);
          return;
@@ -109,7 +109,7 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
              if (cleanUrl.endsWith('.m3u8')) type = 'hls';
              else if (cleanUrl.match(/\.(mp4|webm|mov|mkv)$/)) type = 'file';
              else if (cleanUrl.match(/\.(jpg|jpeg|png)$/)) type = 'mjpeg';
-             else type = 'iframe'; // WebRTC / Go2RTC usually fits here if unknown
+             else type = 'iframe'; // Fallback to iframe for WebRTC/Unknown
            }
            
            setFinalStreamUrl(url);
@@ -133,7 +133,7 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
 
         // Fallback: MJPEG Proxy Stream
         const result = await signPath(`/api/camera_proxy_stream/${device.id}`);
-        const mjpegUrl = constructHaUrl(haUrl, result.path, 'http') + `&t=${Date.now()}`; // cache bust needed?
+        const mjpegUrl = constructHaUrl(haUrl, result.path, 'http') + `&t=${Date.now()}`;
         setFinalStreamUrl(mjpegUrl);
         setStreamType('mjpeg');
 
@@ -221,7 +221,7 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
         )}
       </div>
       
-      {/* Оверлей Play для ручного запуска (если отключен autoplay, но здесь он форсирован, оставим на всякий случай) */}
+      {/* Play Overlay (Fallback) */}
       {!shouldPlay && !finalSnapshotUrl && (
          <div className="absolute inset-0 z-[3] flex items-center justify-center text-gray-500">
             <Icon icon="mdi:cctv-off" className="w-12 h-12 opacity-50" />
