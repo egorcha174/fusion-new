@@ -103,8 +103,11 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
         
         // If custom camera has no stream URL, check if the URL itself is an image
         if (isCustomCamera) {
-            if (customStreamUrl && (preferredStreamType === 'mjpeg' || customStreamUrl.match(/\.(jpg|jpeg|png|gif|webp)/i))) {
-                setSnapshotUrl(customStreamUrl);
+            if (customStreamUrl) {
+                const cleanUrl = customStreamUrl.split('?')[0].toLowerCase();
+                if (preferredStreamType === 'mjpeg' || cleanUrl.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
+                    setSnapshotUrl(customStreamUrl);
+                }
             }
             return;
         }
@@ -157,15 +160,17 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
                     finalUrl = customStreamUrl;
                     // Auto-detect type for custom cameras
                     if (type === 'auto') {
-                        const lowerUrl = finalUrl.toLowerCase();
-                        if (lowerUrl.includes('.m3u8')) {
+                        // Remove query string for extension check
+                        const cleanUrl = finalUrl.split('?')[0].toLowerCase();
+                        
+                        if (cleanUrl.endsWith('.m3u8')) {
                             type = 'hls'; // Use the video player for HLS
-                        } else if (lowerUrl.match(/\.(mp4|webm|mov|kv)$/)) {
+                        } else if (cleanUrl.match(/\.(mp4|webm|mov|mkv|avi)$/)) {
                             type = 'file'; // Use the video player for direct files
-                        } else if (lowerUrl.match(/\.(jpg|jpeg|png)/i)) {
+                        } else if (cleanUrl.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
                             type = 'mjpeg';
                         } else {
-                            type = 'iframe'; // WebRTC/Go2RTC typical interface
+                            type = 'iframe'; // WebRTC/Go2RTC typical interface or unknown source
                         }
                     }
                 } else {
@@ -206,7 +211,7 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
                 } else if (type === 'hls' || type === 'file') {
                     setStreamUrl(finalUrl); 
                     setStreamType(type as any);
-                    // HLS/File loading continues in the child component
+                    // HLS/File loading continues in the child component which handles loading state
                 }
 
             } catch (e: any) {

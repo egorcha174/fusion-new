@@ -16,6 +16,7 @@ interface VideoPlayerProps {
 /**
  * A robust video player that handles both HLS streams and direct video files (MP4/WebM).
  * Prioritizes native HLS (Safari) and falls back to hls.js.
+ * Based on robust HTML5 video handling patterns.
  */
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, poster, muted = true, onStreamReady, onError }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -42,44 +43,54 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, poster, muted = true, on
         }
     };
 
-    // Cleanup previous HLS instance if any (safety check)
-    if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-    }
+    const showError = (msg: string) => {
+        console.error("Video Player Error:", msg);
+        if (onErrorRef.current) onErrorRef.current();
+    };
 
     const attemptPlay = async () => {
         if (!video) return;
         try {
             await video.play();
         } catch (e) {
-            // Autoplay might be blocked, but stream is ready
+            // Autoplay might be blocked (interaction required), but stream is technically ready
+            console.warn("Autoplay prevented/failed:", e);
         } finally {
             if (onStreamReadyRef.current) onStreamReadyRef.current();
         }
     };
 
+    // CLEANUP PREVIOUS STATE
+    if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+    }
+    
+    // Important: Reset video element state to avoid lingering buffers
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+
+    // EVENT LISTENERS
+    const handleLoadedMetadata = () => {
+        attemptPlay();
+    };
+
     const handleError = () => {
-         if (onErrorRef.current) onErrorRef.current();
+        // If we have a valid HLS error handler, it might have already handled this
+        if (!hlsRef.current) { 
+            showError('Video element error');
+        }
     };
 
-    const handleNativeHls = () => {
-        video.src = src;
-        video.addEventListener('loadedmetadata', attemptPlay);
-        video.addEventListener('error', handleError);
-    };
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('error', handleError);
 
-    const handleDirectFile = () => {
-        video.src = src;
-        video.addEventListener('loadedmetadata', attemptPlay);
-        video.addEventListener('error', handleError);
-        video.load();
-    };
-
+    // INITIALIZATION
     if (isHls(src)) {
         if (video.canPlayType('application/vnd.apple.mpegurl')) {
             // Native HLS support (Safari)
-            handleNativeHls();
+            video.src = src;
         } else if (Hls.isSupported()) {
             // MSE HLS support (Chrome, Firefox, etc.)
             const hls = new Hls({
@@ -89,14 +100,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, poster, muted = true, on
             });
             hlsRef.current = hls;
             
-            try {
-                hls.loadSource(src);
-                hls.attachMedia(video);
-            } catch (e) {
-                console.error('HLS Attach Error:', e);
-                handleError();
-            }
-
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
                 attemptPlay();
             });
@@ -104,17 +107,34 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, poster, muted = true, on
             hls.on(Hls.Events.ERROR, (event, data) => {
                 if (data.fatal) {
                     console.error('HLS Fatal Error:', data);
-                    hls.destroy();
-                    handleError();
+                    switch (data.type) {
+                        case Hls.ErrorTypes.NETWORK_ERROR:
+                            hls.startLoad();
+                            break;
+                        case Hls.ErrorTypes.MEDIA_ERROR:
+                            hls.recoverMediaError();
+                            break;
+                        default:
+                            hls.destroy();
+                            showError(`HLS Fatal: ${data.type}`);
+                            break;
+                    }
                 }
             });
+
+            try {
+                hls.loadSource(src);
+                hls.attachMedia(video);
+            } catch (e) {
+                console.error('HLS Attach Error:', e);
+                showError('Failed to attach HLS');
+            }
         } else {
-            console.error('HLS not supported in this browser');
-            handleError();
+            showError('HLS not supported in this browser');
         }
     } else {
-        // Not an .m3u8 file, assume direct MP4/WebM
-        handleDirectFile();
+        // Not an .m3u8 file, assume direct MP4/WebM/etc
+        video.src = src;
     }
 
     return () => { 
@@ -123,23 +143,24 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, poster, muted = true, on
             hlsRef.current = null;
         }
         if (video) {
-            video.removeEventListener('loadedmetadata', attemptPlay);
+            video.removeEventListener('loadedmetadata', handleLoadedMetadata);
             video.removeEventListener('error', handleError);
             video.pause();
             video.removeAttribute('src');
             video.load();
         }
     };
-  }, [src]); // Dependencies reduced to src only
+  }, [src]); // Re-run only if src changes
 
   return (
     <div className="w-full h-full bg-black flex items-center justify-center relative">
       <video 
         ref={videoRef} 
-        className="w-full h-full object-cover" 
+        className="w-full h-full object-contain" 
         poster={poster}
         muted={muted}
         playsInline 
+        controls={false}
       />
     </div>
   );
