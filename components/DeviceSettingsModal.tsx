@@ -132,7 +132,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
     DeviceType.Sensor, DeviceType.Light, DeviceType.DimmableLight,
     DeviceType.Switch, DeviceType.Thermostat, DeviceType.Humidifier,
     DeviceType.Custom, DeviceType.Camera
-  ].includes(device.type);
+  ].includes(type);
 
   // Ensure strictly checking boolean true for Camera type or if customStreamUrl is active
   const isCamera = type === DeviceType.Camera || !!customStreamUrl;
@@ -159,7 +159,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
     }
   };
 
-  const templateType = getTemplateTypeString(device.type);
+  const templateType = getTemplateTypeString(type);
 
   const animationOptions = [
     { value: 'none', name: 'Нет' },
