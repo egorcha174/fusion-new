@@ -1,199 +1,18 @@
 
-import React, { useRef, useState, useLayoutEffect, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent,
   useDraggable, useDroppable, DragOverlay, pointerWithin,
 } from '@dnd-kit/core';
 import { snapCenterToCursor } from '@dnd-kit/modifiers';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import DeviceCard from './DeviceCard';
-import { Tab, Device, DeviceType, GridLayoutItem, CardTemplates, DeviceCustomizations, CardTemplate, ColorScheme } from '../types';
+import { Tab, Device, GridLayoutItem, CardTemplates, DeviceCustomizations, ThemeColors, CardTemplate } from '../types';
 import { useAppStore } from '../store/appStore';
 import ErrorBoundary from './ErrorBoundary';
-import LoadingSpinner from './LoadingSpinner';
 
 // Workaround for TypeScript errors with motion.div props in some environments
 const MotionDiv = motion.div as any;
-
-// ID шаблонов по умолчанию
-const DEFAULT_SENSOR_TEMPLATE_ID = 'default-sensor';
-const DEFAULT_LIGHT_TEMPLATE_ID = 'default-light';
-const DEFAULT_SWITCH_TEMPLATE_ID = 'default-switch';
-const DEFAULT_CLIMATE_TEMPLATE_ID = 'default-climate';
-
-/**
- * Обертка над DeviceCard, делающая его перетаскиваемым (Draggable) и зоной для сброса (Droppable).
- */
-const DraggableDevice: React.FC<{
-  device: Device;
-  isEditMode: boolean;
-  onDeviceToggle: (id: string) => void;
-  onShowHistory: (id: string) => void;
-  template?: CardTemplate;
-  allKnownDevices: Map<string, Device>;
-  customizations: DeviceCustomizations;
-  colorScheme: ColorScheme['light'];
-  isDark: boolean;
-  [key: string]: any;
-}> = React.memo(({ device, isEditMode, onDeviceToggle, onShowHistory, template, allKnownDevices, customizations, colorScheme, isDark, ...cardProps }) => {
-  const { attributes, listeners, setNodeRef: setDraggableNodeRef, isDragging } = useDraggable({
-    id: device.id,
-    disabled: !isEditMode,
-  });
-  
-  const { setNodeRef: setDroppableNodeRef } = useDroppable({
-    id: device.id,
-    data: { type: 'device' }
-  });
-  
-  const setNodeRef = (node: HTMLElement | null) => {
-      setDraggableNodeRef(node);
-      setDroppableNodeRef(node);
-  };
-
-  const handleClick = (e: React.MouseEvent) => {
-    if (isEditMode) { e.preventDefault(); e.stopPropagation(); return; }
-    
-    if (device.type === DeviceType.Custom) {
-        if (template?.interactionType === 'active' && template.mainActionEntityId) {
-            onDeviceToggle(template.mainActionEntityId);
-        }
-        return;
-    }
-    
-    if (device.type === DeviceType.Sensor) {
-      onShowHistory(device.id);
-      return;
-    }
-
-    const isCamera = device.type === DeviceType.Camera;
-    const isTogglable = !isCamera;
-    if (isTogglable) {
-      onDeviceToggle(device.id);
-    }
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={{ visibility: isDragging ? 'hidden' : 'visible' }}
-      className={`w-full h-full relative ${isEditMode ? 'cursor-move' : ''}`}
-      {...listeners}
-      {...attributes}
-      onClick={handleClick}
-      data-device-id={device.id}
-      data-tab-id={cardProps.tab.id}
-    >
-      <DeviceCard
-        device={device}
-        template={template}
-        allKnownDevices={allKnownDevices}
-        customizations={customizations}
-        onDeviceToggle={onDeviceToggle}
-        onTemperatureChange={(temp, isDelta) => cardProps.onTemperatureChange(device.id, temp, isDelta)}
-        onBrightnessChange={(brightness) => cardProps.onBrightnessChange(device.id, brightness)}
-        onHvacModeChange={(mode) => cardProps.onHvacModeChange(device.id, mode)}
-        onPresetChange={(preset) => cardProps.onPresetChange(device.id, preset)}
-        onFanSpeedChange={(deviceId, percentage) => cardProps.onFanSpeedChange(deviceId, percentage)}
-        onCameraCardClick={cardProps.onCameraCardClick}
-        isEditMode={isEditMode}
-        onEditDevice={() => cardProps.onEditDevice(device)}
-        haUrl={cardProps.haUrl}
-        signPath={cardProps.signPath}
-        getCameraStreamUrl={cardProps.getCameraStreamUrl}
-        openMenuDeviceId={cardProps.openMenuDeviceId}
-        setOpenMenuDeviceId={cardProps.setOpenMenuDeviceId}
-        colorScheme={colorScheme}
-        isDark={isDark}
-        autoPlay={true} // Explicitly enable autoPlay for grid cameras
-      />
-    </div>
-  );
-});
-
-const DroppableCell: React.FC<{
-  col: number;
-  row: number;
-  isEditMode: boolean;
-  metrics: { cellSize: number; gap: number; };
-  borderRadius: number;
-}> = React.memo(({ col, row, isEditMode, metrics, borderRadius }) => {
-  const { setNodeRef, isOver } = useDroppable({
-    id: `cell-${col}-${row}`,
-    data: { type: 'cell', col, row }
-  });
-
-  const baseClasses = 'absolute transition-colors duration-200';
-  const editModeClasses = isEditMode ? 'bg-gray-800/50 border-2 border-dashed border-gray-700/50' : '';
-  const overClasses = isOver ? 'bg-blue-500/20 border-solid border-blue-400' : '';
-  
-  const style: React.CSSProperties = {
-    width: `${metrics.cellSize}px`,
-    height: `${metrics.cellSize}px`,
-    left: `${col * (metrics.cellSize + metrics.gap)}px`,
-    top: `${row * (metrics.cellSize + metrics.gap)}px`,
-    borderRadius: `${borderRadius}px`,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`${baseClasses} ${isOver ? overClasses : editModeClasses}`}
-    />
-  );
-});
-
-const OccupiedCellWrapper: React.FC<{
-    group: GridLayoutItem[];
-    children: React.ReactNode;
-    isEditMode: boolean;
-    activeId: string | null;
-    openMenuDeviceId: string | null;
-    metrics: { cellSize: number; gap: number; };
-    borderRadius: number;
-}> = React.memo(({ group, children, isEditMode, activeId, openMenuDeviceId, metrics, borderRadius }) => {
-    const firstItem = group[0];
-    const { setNodeRef, isOver } = useDroppable({
-        id: `cell-${firstItem.col}-${firstItem.row}`,
-        data: { type: 'cell', col: firstItem.col, row: firstItem.row }
-    });
-    
-    const isSingleStackable = group.length === 1 && firstItem.height === 0.5;
-    const isStackedPair = group.length === 2 && group.every(item => item.height === 0.5) && group[0].width === group[1].width;
-    
-    const width = firstItem.width || 1;
-    const containerHeight = (isSingleStackable || isStackedPair) ? 1 : (firstItem.height || 1);
-    const groupHasOpenMenu = group.some(item => item.deviceId === openMenuDeviceId);
-    const groupIsActive = group.some(item => item.deviceId === activeId);
-
-    const overClasses = (isEditMode && isOver && !groupIsActive) ? 'bg-blue-500/20 ring-2 ring-blue-400' : '';
-    
-    const style: React.CSSProperties = {
-        position: 'absolute',
-        width: `${width * metrics.cellSize + (Math.ceil(width) - 1) * metrics.gap}px`,
-        height: `${containerHeight * metrics.cellSize + (Math.ceil(containerHeight) - 1) * metrics.gap}px`,
-        left: `${firstItem.col * (metrics.cellSize + metrics.gap)}px`,
-        top: `${firstItem.row * (metrics.cellSize + metrics.gap)}px`,
-        zIndex: groupHasOpenMenu ? 40 : (groupIsActive ? 0 : 1),
-        borderRadius: `${borderRadius}px`,
-    };
-
-    return (
-        <MotionDiv
-            ref={setNodeRef}
-            style={style}
-            className={`relative transition-colors duration-200 ${overClasses}`}
-            layout="position"
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-        >
-            {children}
-        </MotionDiv>
-    );
-});
 
 interface DashboardGridProps {
   tab: Tab;
@@ -215,308 +34,251 @@ interface DashboardGridProps {
   getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
   templates: CardTemplates;
   customizations: DeviceCustomizations;
-  colorScheme: ColorScheme['light'];
+  colorScheme: ThemeColors;
   isDark: boolean;
 }
 
-const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
-    const { tab, allKnownDevices, isEditMode, onDeviceLayoutChange, templates, customizations, colorScheme } = props;
-    const viewportRef = useRef<HTMLDivElement>(null);
-    const [gridMetrics, setGridMetrics] = useState({ containerWidth: 0, containerHeight: 0, cellSize: 0, gap: 16 });
-    const [activeId, setActiveId] = useState<string | null>(null);
-    const [activeDragItemRect, setActiveDragItemRect] = useState<{ width: number; height: number } | null>(null);
-    const [openMenuDeviceId, setOpenMenuDeviceId] = useState<string | null>(null);
-    const [forceRender, setForceRender] = useState(false);
+const DraggableDevice: React.FC<{
+  device: Device;
+  isEditMode: boolean;
+  children: React.ReactNode;
+}> = ({ device, isEditMode, children }) => {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: device.id,
+    disabled: !isEditMode,
+    data: { device },
+  });
 
-    useLayoutEffect(() => {
-        const calculateGrid = () => {
-            if (!viewportRef.current) return;
-            const { width, height } = viewportRef.current.getBoundingClientRect();
-            const { cols, rows } = tab.gridSettings;
-            const gap = 16;
-            
-            const effectiveHeight = height > 0 ? height : Math.max(window.innerHeight - 200, 600);
-            const effectiveWidth = width > 0 ? width : window.innerWidth;
-            
-            const cellWidth = (effectiveWidth - (cols + 1) * gap) / cols;
-            const cellHeight = (effectiveHeight - (rows + 1) * gap) / rows;
-            const cellSize = Math.floor(Math.min(cellWidth, cellHeight));
-            
-            if (cellSize <= 0) {
-                return;
-            }
-            
-            setGridMetrics({
-                containerWidth: cols * cellSize + (cols - 1) * gap,
-                containerHeight: rows * cellSize + (rows - 1) * gap,
-                cellSize: cellSize,
-                gap: gap
-            });
-        };
-        const resizeObserver = new ResizeObserver(calculateGrid);
-        if (viewportRef.current) resizeObserver.observe(viewportRef.current);
-        calculateGrid();
-        return () => resizeObserver.disconnect();
-    }, [tab.gridSettings, forceRender]);
+  const style: React.CSSProperties = {
+    opacity: isDragging ? 0.3 : 1,
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+    height: '100%',
+    width: '100%',
+    cursor: isEditMode ? 'grab' : 'default',
+    touchAction: 'none',
+  };
 
-    useEffect(() => {
-        if (gridMetrics.cellSize === 0) {
-            const timer = setTimeout(() => {
-                setForceRender(prev => !prev);
-            }, 500);
-            return () => clearTimeout(timer);
-        }
-    }, [gridMetrics.cellSize]);
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      {children}
+    </div>
+  );
+};
 
-    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+const DroppableCell: React.FC<{
+  col: number;
+  row: number;
+  children?: React.ReactNode;
+  isEditMode: boolean;
+}> = ({ col, row, children, isEditMode }) => {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `cell-${col}-${row}`,
+    data: { col, row },
+    disabled: !isEditMode,
+  });
 
-    const validLayout = useMemo(() => 
-        tab.layout.filter(item => allKnownDevices.has(item.deviceId)),
-    [tab.layout, allKnownDevices]);
+  return (
+    <div
+      ref={setNodeRef}
+      className={`w-full h-full rounded-xl transition-colors duration-200 ${
+        isOver && isEditMode ? 'bg-blue-500/30 ring-2 ring-blue-500' : ''
+      }`}
+    >
+      {children}
+    </div>
+  );
+};
 
-    const handleDragStart = (event: DragStartEvent) => {
-        setActiveId(event.active.id as string);
-        const rect = event.active.rect.current.initial;
-        if (rect) {
-            setActiveDragItemRect({ width: rect.width, height: rect.height });
-        } else {
-            const layoutItem = validLayout.find(item => item.deviceId === event.active.id);
-            if (layoutItem && gridMetrics.cellSize > 0) {
-                const width = (layoutItem.width || 1) * gridMetrics.cellSize + (Math.ceil(layoutItem.width || 1) - 1) * gridMetrics.gap;
-                const height = (layoutItem.height || 1) * gridMetrics.cellSize + (Math.ceil(layoutItem.height || 1) - 1) * gridMetrics.gap;
-                setActiveDragItemRect({ width, height });
-            }
-        }
-    };
+const DashboardGrid: React.FC<DashboardGridProps> = ({
+  tab,
+  isEditMode,
+  allKnownDevices,
+  searchTerm,
+  onDeviceLayoutChange,
+  onDeviceToggle,
+  onTemperatureChange,
+  onBrightnessChange,
+  onHvacModeChange,
+  onPresetChange,
+  onFanSpeedChange,
+  onCameraCardClick,
+  onEditDevice,
+  haUrl,
+  signPath,
+  getCameraStreamUrl,
+  customizations,
+  colorScheme,
+  isDark,
+}) => {
+  const { getTemplateForDevice, checkCollision } = useAppStore();
+  const [activeId, setActiveId] = useState<string | null>(null);
 
-    const handleDragEnd = (event: DragEndEvent) => {
-        setActiveId(null);
-        setActiveDragItemRect(null);
-        const { active, over } = event;
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+
+    if (!over) return;
+
+    const overId = over.id as string;
+    // Expecting overId to be "cell-col-row"
+    if (!overId.startsWith('cell-')) return;
+
+    const parts = overId.split('-');
+    const destCol = parseInt(parts[1]);
+    const destRow = parseInt(parts[2]);
+
+    const deviceId = active.id as string;
+    const currentItem = tab.layout.find((item) => item.deviceId === deviceId);
+
+    if (!currentItem) return;
     
-        if (!over || !isEditMode || active.id === over.id) return;
+    const newLayoutItem = { ...currentItem, col: destCol, row: destRow };
     
-        const currentLayout = validLayout;
-        const draggedDeviceId = active.id as string;
-        const draggedItemIndex = currentLayout.findIndex(item => item.deviceId === draggedDeviceId);
-        if (draggedItemIndex === -1) return;
+    const hasCollision = checkCollision(tab.layout, newLayoutItem, tab.gridSettings, deviceId);
     
-        const draggedItem = currentLayout[draggedItemIndex];
-        let newLayout = [...currentLayout];
-    
-        let targetCol: number | undefined;
-        let targetRow: number | undefined;
-        let overItem: GridLayoutItem | undefined;
-    
-        if (over.data.current?.type === 'cell') {
-            targetCol = over.data.current.col;
-            targetRow = over.data.current.row;
-        } else if (over.data.current?.type === 'device') {
-            overItem = currentLayout.find(item => item.deviceId === over.id);
-            if (!overItem) return;
-            targetCol = overItem.col;
-            targetRow = overItem.row;
-        } else {
-            return;
-        }
-    
-        if (targetCol === undefined || targetRow === undefined) return;
-    
-        const draggedWidth = draggedItem.width || 1;
-        const draggedHeight = draggedItem.height || 1;
-        const newPositionItem = { col: targetCol, row: targetRow, width: draggedWidth, height: draggedHeight };
-
-        const hasCollision = useAppStore.getState().checkCollision(currentLayout, newPositionItem, tab.gridSettings, draggedDeviceId);
-        
-        if (!hasCollision) {
-            newLayout[draggedItemIndex] = { ...draggedItem, col: targetCol, row: targetRow };
-            onDeviceLayoutChange(tab.id, newLayout);
-            return;
-        }
-        
-        if (overItem) {
-            const overItemIndex = currentLayout.findIndex(i => i.deviceId === overItem.deviceId);
-            const overWidth = overItem.width || 1;
-            const overHeight = overItem.height || 1;
-            
-            if (draggedWidth === overWidth && draggedHeight === overHeight) {
-                const overItemNewPos = { col: draggedItem.col, row: draggedItem.row, width: overWidth, height: overHeight };
-                const swapHasCollision = useAppStore.getState().checkCollision(currentLayout, overItemNewPos, tab.gridSettings, overItem.deviceId);
-
-                if (!swapHasCollision) {
-                    newLayout[draggedItemIndex] = { ...draggedItem, col: overItem.col, row: overItem.row };
-                    newLayout[overItemIndex] = { ...overItem, col: draggedItem.col, row: draggedItem.row };
-                    onDeviceLayoutChange(tab.id, newLayout);
-                }
-            }
-        }
-    };
-    
-    const occupiedCells = useMemo(() => {
-      const cells = new Set<string>();
-      validLayout.forEach(item => {
-        const w = Math.ceil(item.width || 1);
-        const h = Math.ceil(item.height || 1);
-        for (let r_offset = 0; r_offset < h; r_offset++) {
-          for (let c_offset = 0; c_offset < w; c_offset++) {
-            cells.add(`${item.col + c_offset},${item.row + r_offset}`);
-          }
-        }
-      });
-      return cells;
-    }, [validLayout]);
-
-    const activeDevice = activeId ? allKnownDevices.get(activeId) : null;
-    let activeDeviceTemplate: CardTemplate | undefined;
-    if (activeDevice) {
-        const custom = customizations[activeDevice.id];
-        let templateId = custom?.templateId;
-        if (!templateId) {
-            if (activeDevice.type === DeviceType.Sensor) templateId = DEFAULT_SENSOR_TEMPLATE_ID;
-            else if (activeDevice.type === DeviceType.Light || activeDevice.type === DeviceType.DimmableLight) templateId = DEFAULT_LIGHT_TEMPLATE_ID;
-            else if (activeDevice.type === DeviceType.Switch) templateId = DEFAULT_SWITCH_TEMPLATE_ID;
-            else if (activeDevice.type === DeviceType.Thermostat) templateId = DEFAULT_CLIMATE_TEMPLATE_ID;
-        }
-        activeDeviceTemplate = templateId ? templates[templateId] : undefined;
+    if (!hasCollision) {
+        const newLayout = tab.layout.map((item) =>
+            item.deviceId === deviceId ? newLayoutItem : item
+        );
+        onDeviceLayoutChange(tab.id, newLayout);
     }
+  };
 
-    const groupedLayout = useMemo(() => {
-        const groups = new Map<string, GridLayoutItem[]>();
-        validLayout.forEach(item => {
-            const key = `${item.col},${item.row}`;
-            if (!groups.has(key)) groups.set(key, []);
-            groups.get(key)!.push(item);
-        });
-        groups.forEach(group => group.sort((a, b) => a.deviceId.localeCompare(b.deviceId)));
-        return Array.from(groups.values());
-    }, [validLayout]);
-    
-    const borderRadius = colorScheme.cardBorderRadius ?? 16;
+  const activeDevice = activeId ? allKnownDevices.get(activeId) : null;
+  
+  const cols = tab.gridSettings.cols || 8;
+  const layoutMaxRow = Math.max(...tab.layout.map(i => i.row + (i.height || 1)), 0);
+  const rows = Math.max(tab.gridSettings.rows || 5, layoutMaxRow + 1);
 
-    return (
-        <div ref={viewportRef} className="w-full h-full flex items-center justify-center min-h-[400px]">
-            {gridMetrics.cellSize > 0 ? (
-                <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={pointerWithin}>
-                    <div className="relative dashboard-grid-container" style={{ width: gridMetrics.containerWidth, height: gridMetrics.containerHeight }}>
-                        {isEditMode && Array.from({ length: tab.gridSettings.cols * tab.gridSettings.rows }).map((_, index) => {
-                            const col = index % tab.gridSettings.cols;
-                            const row = Math.floor(index / tab.gridSettings.cols);
-                            const isOccupied = occupiedCells.has(`${col},${row}`);
-                            if (isOccupied) return null;
-                            return <DroppableCell key={`cell-${col}-${row}`} col={col} row={row} isEditMode={isEditMode} metrics={gridMetrics} borderRadius={borderRadius} />;
-                        })}
-                        <AnimatePresence>
-                            {groupedLayout.map((group) => {
-                                const firstItem = group[0];
-                                if (!firstItem) return null;
-                                
-                                const groupKey = group.map(i => i.deviceId).join('-');
-                                
-                                return (
-                                    <OccupiedCellWrapper key={groupKey} group={group} isEditMode={isEditMode} activeId={activeId} openMenuDeviceId={openMenuDeviceId} metrics={gridMetrics} borderRadius={borderRadius}>
-                                        {group.map((item, index) => {
-                                            const device = allKnownDevices.get(item.deviceId);
-                                            if (!device) return null;
+  const filteredLayout = useMemo(() => {
+      if (!searchTerm) return tab.layout;
+      return tab.layout.filter(item => {
+          const dev = allKnownDevices.get(item.deviceId);
+          return dev && dev.name.toLowerCase().includes(searchTerm.toLowerCase());
+      });
+  }, [tab.layout, searchTerm, allKnownDevices]);
 
-                                            const custom = customizations[device.id];
-                                            let templateId = custom?.templateId;
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={pointerWithin}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="w-full h-full overflow-y-auto p-4 no-scrollbar">
+        <div
+          className="grid gap-4 auto-rows-[100px]"
+          style={{
+            gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+            minHeight: '100%',
+          }}
+        >
+          {isEditMode && Array.from({ length: cols * rows }).map((_, index) => {
+            const col = index % cols;
+            const row = Math.floor(index / cols);
+            return (
+              <div
+                key={`cell-${col}-${row}`}
+                style={{ gridColumnStart: col + 1, gridRowStart: row + 1 }}
+                className="z-0 pointer-events-auto"
+              >
+                <DroppableCell col={col} row={row} isEditMode={isEditMode}>
+                    <div className="w-full h-full border border-dashed border-gray-300 dark:border-gray-700 rounded-xl opacity-50" />
+                </DroppableCell>
+              </div>
+            );
+          })}
 
-                                            if (!templateId) {
-                                                if (device.type === DeviceType.Sensor) templateId = DEFAULT_SENSOR_TEMPLATE_ID;
-                                                else if (device.type === DeviceType.Light || device.type === DeviceType.DimmableLight) templateId = DEFAULT_LIGHT_TEMPLATE_ID;
-                                                else if (device.type === DeviceType.Switch) templateId = DEFAULT_SWITCH_TEMPLATE_ID;
-                                                else if (device.type === DeviceType.Thermostat) templateId = DEFAULT_CLIMATE_TEMPLATE_ID;
-                                            }
-                                            const templateToUse = templateId ? templates[templateId] : undefined;
-                                            
-                                            const isStackedPair = group.length === 2 && group.every(i => i.height === 0.5) && group[0].width === group[1].width;
-                                            const isSingleStackableItem = group.length === 1 && item.height === 0.5;
+          {filteredLayout.map((item) => {
+            const device = allKnownDevices.get(item.deviceId);
+            if (!device) return null;
 
-                                            const wrapperStyle: React.CSSProperties = {
-                                                position: 'absolute',
-                                                zIndex: group.length - index,
-                                            };
+            const template = getTemplateForDevice(device);
+            const width = item.width || template?.width || 1;
+            const height = item.height || template?.height || 1;
 
-                                            if (isStackedPair) {
-                                                wrapperStyle.height = `calc(50% - ${gridMetrics.gap / 2}px)`;
-                                                wrapperStyle.left = '0';
-                                                wrapperStyle.right = '0';
-                                                if (index === 0) { 
-                                                    wrapperStyle.top = '0';
-                                                } else {
-                                                    wrapperStyle.bottom = '0';
-                                                }
-                                            } else if (isSingleStackableItem) {
-                                                wrapperStyle.height = `calc(50% - ${gridMetrics.gap / 2}px)`;
-                                                wrapperStyle.top = '0';
-                                                wrapperStyle.left = '0';
-                                                wrapperStyle.right = '0';
-                                            } else {
-                                                wrapperStyle.inset = 0;
-                                            }
-
-                                            return (
-                                                <div key={item.deviceId} style={wrapperStyle}>
-                                                    <ErrorBoundary isCard>
-                                                        <DraggableDevice 
-                                                            device={device} 
-                                                            template={templateToUse} 
-                                                            {...props} 
-                                                            openMenuDeviceId={openMenuDeviceId} 
-                                                            setOpenMenuDeviceId={setOpenMenuDeviceId} 
-                                                            autoPlay={true}
-                                                        />
-                                                    </ErrorBoundary>
-                                                </div>
-                                            );
-                                        })}
-                                    </OccupiedCellWrapper>
-                                )
-                            })}
-                        </AnimatePresence>
-                    </div>
-                     <DragOverlay dropAnimation={null} modifiers={[snapCenterToCursor]}>
-                        {activeDevice && activeDragItemRect ? (
-                          <MotionDiv
-                            style={{
-                              width: activeDragItemRect.width,
-                              height: activeDragItemRect.height,
-                              borderRadius: `${borderRadius}px`,
-                            }}
-                            initial={{ scale: 1, boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)' }}
-                            animate={{ scale: 1.05, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.45)' }}
-                            transition={{ duration: 0.2 }}
-                          >
-                            <DeviceCard
-                              device={activeDevice}
-                              template={activeDeviceTemplate}
-                              allKnownDevices={props.allKnownDevices}
-                              customizations={props.customizations}
-                              colorScheme={props.colorScheme}
-                              isDark={props.isDark}
-                              haUrl={props.haUrl}
-                              signPath={props.signPath}
-                              getCameraStreamUrl={props.getCameraStreamUrl}
-                              isEditMode={true}
-                              isPreview={true}
-                              onDeviceToggle={() => {}}
-                              onTemperatureChange={() => {}}
-                              onBrightnessChange={() => {}}
-                              onHvacModeChange={() => {}}
-                              onPresetChange={() => {}}
-                              onFanSpeedChange={() => {}}
-                              onCameraCardClick={() => {}}
-                              onEditDevice={() => {}}
-                            />
-                          </MotionDiv>
-                        ) : null}
-                    </DragOverlay>
-                </DndContext>
-            ) : (
-                <LoadingSpinner />
-            )}
+            return (
+              <MotionDiv
+                key={item.deviceId}
+                layout={!isEditMode}
+                initial={false}
+                className="z-10"
+                style={{
+                  gridColumn: `${item.col + 1} / span ${width}`,
+                  gridRow: `${item.row + 1} / span ${height}`,
+                }}
+              >
+                <DraggableDevice device={device} isEditMode={isEditMode}>
+                  <ErrorBoundary isCard>
+                    <DeviceCard
+                      device={device}
+                      template={template || undefined}
+                      allKnownDevices={allKnownDevices}
+                      customizations={customizations}
+                      isEditMode={isEditMode}
+                      onDeviceToggle={onDeviceToggle}
+                      onTemperatureChange={onTemperatureChange}
+                      onBrightnessChange={onBrightnessChange}
+                      onHvacModeChange={onHvacModeChange}
+                      onPresetChange={onPresetChange}
+                      onFanSpeedChange={onFanSpeedChange}
+                      onCameraCardClick={onCameraCardClick}
+                      onEditDevice={onEditDevice}
+                      haUrl={haUrl}
+                      signPath={signPath}
+                      getCameraStreamUrl={getCameraStreamUrl}
+                      colorScheme={colorScheme}
+                      isDark={isDark}
+                    />
+                  </ErrorBoundary>
+                </DraggableDevice>
+              </MotionDiv>
+            );
+          })}
         </div>
-    );
+      </div>
+
+      <DragOverlay adjustScale style={{ transformOrigin: '0 0' }} zIndex={100}>
+        {activeDevice ? (
+            <div className="w-full h-full opacity-90 shadow-2xl scale-105">
+                 <DeviceCard
+                      device={activeDevice}
+                      template={getTemplateForDevice(activeDevice) || undefined}
+                      allKnownDevices={allKnownDevices}
+                      customizations={customizations}
+                      isEditMode={false}
+                      onDeviceToggle={() => {}}
+                      onTemperatureChange={() => {}}
+                      onBrightnessChange={() => {}}
+                      onHvacModeChange={() => {}}
+                      onPresetChange={() => {}}
+                      onFanSpeedChange={() => {}}
+                      onCameraCardClick={() => {}}
+                      onEditDevice={() => {}}
+                      haUrl={haUrl}
+                      signPath={signPath}
+                      getCameraStreamUrl={getCameraStreamUrl}
+                      colorScheme={colorScheme}
+                      isDark={isDark}
+                      autoPlay={false}
+                    />
+            </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
+  );
 };
 
 export default React.memo(DashboardGrid);

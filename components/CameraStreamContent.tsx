@@ -112,7 +112,21 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
       return () => { isMountedRef.current = false; };
   }, []);
 
-  // Force snapshot refresh immediately
+  // Safety timeout for loading
+  useEffect(() => {
+      let timeout: ReturnType<typeof setTimeout>;
+      if (isLoading) {
+          timeout = setTimeout(() => {
+              if(isMountedRef.current && isLoading) {
+                  setIsLoading(false);
+                  // Don't force error state, let it show what it can
+              }
+          }, 15000);
+      }
+      return () => clearTimeout(timeout);
+  }, [isLoading]);
+
+  // Initial Snapshot Load
   useEffect(() => {
       if (entityId) fetchSnapshot();
   }, [entityId]);
@@ -120,15 +134,26 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
   const fetchSnapshot = useCallback(async () => {
       if (!entityId) return;
       try {
+        // Only works for standard HA cameras
+        if (entityId.startsWith('internal::')) return;
+
         const result = await signPath(`/api/camera_proxy/${entityId}`);
         if (!isMountedRef.current) return;
         const url = constructHaUrl(haUrl, result.path, 'http');
-        setSnapshotUrl(`${url}&t=${Date.now()}`);
-        setError(null);
+        
+        // Preload
+        const img = new Image();
+        const finalUrl = `${url}&t=${Date.now()}`;
+        img.onload = () => {
+            if(isMountedRef.current) setSnapshotUrl(finalUrl);
+        };
+        img.src = finalUrl;
+        
+        if(!isStreamActive) setError(null);
       } catch (err) {
           // Silent fallback
       }
-  }, [entityId, haUrl, signPath]);
+  }, [entityId, haUrl, signPath, isStreamActive]);
 
   useEffect(() => {
       if (!isStreamActive) {
@@ -149,7 +174,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
               if (isMountedRef.current && streamData?.url) {
                   setStreamUrl(constructHaUrl(haUrl, streamData.url, 'http'));
                   setStreamType('hls');
-                  return; // Wait for VideoPlayer to clear loading
+                  return; 
               }
           } catch (e) {}
 
@@ -175,6 +200,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
       else if (!isStreamActive) {
           setStreamUrl(null);
           setStreamType('none');
+          setIsLoading(false);
       }
   }, [isStreamActive, streamUrl, startStream]);
 
@@ -188,18 +214,16 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
 
   return (
     <div className="relative w-full h-full bg-black overflow-hidden rounded-lg group">
-        {/* Snapshot Layer */}
-        {(!isStreamActive || isLoading || error) && (
-            <div className="absolute inset-0 z-0">
-                {snapshotUrl ? (
-                    <img src={snapshotUrl} className="w-full h-full object-cover opacity-70" alt={altText} />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-800 text-gray-600">
-                        <Icon icon="mdi:cctv" className="w-12 h-12" />
-                    </div>
-                )}
-            </div>
-        )}
+        {/* Snapshot Layer (Always visible underneath) */}
+        <div className="absolute inset-0 z-0 flex items-center justify-center">
+            {snapshotUrl ? (
+                <img src={snapshotUrl} className="w-full h-full object-cover opacity-70" alt={altText} />
+            ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gray-800 text-gray-600">
+                    <Icon icon="mdi:cctv" className="w-12 h-12" />
+                </div>
+            )}
+        </div>
 
         {/* Stream Layer */}
         {isStreamActive && streamUrl && !error && (
@@ -207,6 +231,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
                 {streamType === 'hls' ? (
                     <VideoPlayer 
                         src={streamUrl} 
+                        poster={snapshotUrl || undefined}
                         onStreamReady={() => setIsLoading(false)}
                         onError={() => { setError("Ошибка потока"); setIsLoading(false); }}
                     />
@@ -216,34 +241,39 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
             </div>
         )}
 
-        {/* Overlays */}
+        {/* Loading Overlay */}
         {isLoading && (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/50 backdrop-blur-sm">
                 <LoadingSpinner />
             </div>
         )}
 
+        {/* Error Overlay */}
         {error && (
             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/70 p-4 text-center">
                 <Icon icon="mdi:alert-circle" className="w-8 h-8 text-red-500 mb-2" />
                 <p className="text-xs text-white mb-2">{error}</p>
-                <button onClick={() => startStream()} className="px-3 py-1 bg-white/20 rounded text-xs text-white hover:bg-white/30">Повторить</button>
+                <button onClick={() => startStream()} className="px-3 py-1 bg-white/20 rounded text-xs text-white hover:bg-white/30 backdrop-blur-md">
+                    Повторить
+                </button>
             </div>
         )}
 
+        {/* Play Button Overlay (Manual Mode) */}
         {!isStreamActive && showPlayButton && !error && (
             <div 
                 className="absolute inset-0 z-20 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={(e) => { e.stopPropagation(); setIsStreamActive(true); }}
             >
-                <div className="p-3 rounded-full bg-white/20 backdrop-blur-md hover:bg-blue-600 hover:text-white transition-all">
+                <div className="p-3 rounded-full bg-white/20 backdrop-blur-md hover:bg-blue-600 hover:text-white transition-all shadow-lg">
                     <Icon icon="mdi:play" className="w-8 h-8 text-white" />
                 </div>
             </div>
         )}
         
+        {/* Live Badge */}
         {isStreamActive && !error && !isLoading && (
-             <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-red-600/90 rounded text-white text-[9px] font-bold uppercase tracking-wider pointer-events-none z-40 animate-pulse">
+             <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-red-600/80 backdrop-blur-sm rounded text-white text-[9px] font-bold uppercase tracking-wider pointer-events-none z-40 animate-pulse">
                 LIVE
             </div>
         )}

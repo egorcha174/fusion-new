@@ -26,7 +26,7 @@ const valueToAngle = (value: number, min: number, max: number, startAngle: numbe
 };
 
 
-// --- Gradient Generation Helpers (NEW) ---
+// --- Gradient Generation Helpers ---
 const DEFAULT_GRADIENT_COLORS = ["#4169E1", "#8B5CF6", "#EC4899", "#F97316", "#EF4444"];
 
 const hexToRgb = (hex: string) => {
@@ -59,7 +59,7 @@ const interpolateColor = (ratio: number, colors: string[]) => {
     return rgbToHex(r, g, b);
 };
 
-// --- Gradient Arc Component (NEW) ---
+// --- Gradient Arc Component ---
 const GradientArc: React.FC<{
     center: number;
     radius: number;
@@ -76,7 +76,6 @@ const GradientArc: React.FC<{
         <g>
             {Array.from({ length: steps }).map((_, i) => {
                 const currentAngleStart = startAngle + i * angleStep;
-                // Add a small overlap to ensure no gaps from anti-aliasing
                 const currentAngleEnd = startAngle + (i + 1) * angleStep + 0.5;
                 const colorRatio = (i + 0.5) / steps;
                 const color = interpolateColor(colorRatio, colors);
@@ -174,14 +173,12 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
 
   useEffect(() => {
     if (isEditing) {
-        // Ensure input value is up-to-date with the prop when editing starts
         setInputValue(value.toFixed(1).replace('.', ','));
         inputRef.current?.focus();
     }
   }, [isEditing, value]);
   
   const submitNewValue = () => {
-    // Replace comma with a dot for robust parsing, handle empty input
     const newTemp = parseFloat(inputValue.replace(',', '.'));
     if (!isNaN(newTemp) && newTemp >= min && newTemp <= max) {
         onChange(newTemp);
@@ -195,11 +192,9 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
   };
   
   const adjustTemp = (delta: number) => {
-    // Replace comma with dot for robust parsing
     const currentTemp = parseFloat(inputValue.replace(',', '.')) || value;
     let newTemp = currentTemp + delta;
-    newTemp = Math.max(min, Math.min(max, newTemp)); // clamp value
-    // Format back with a comma for display
+    newTemp = Math.max(min, Math.min(max, newTemp));
     setInputValue(newTemp.toFixed(1).replace('.', ','));
   };
 
@@ -214,10 +209,8 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
     let angleDeg = (angleRad * 180) / Math.PI + 90;
     if (angleDeg < 0) angleDeg += 360;
 
-    // Check if the pointer is within the arc's angular range before clamping.
     const isWithinArc = (angleDeg >= START_ANGLE && angleDeg <= END_ANGLE) || (angleDeg + 360 >= START_ANGLE && angleDeg + 360 <= END_ANGLE);
     
-    // Clamp angle to the allowed range only if mouse is dragged outside
     if (!isWithinArc) {
         const startDist = Math.min(Math.abs(angleDeg - START_ANGLE), Math.abs(angleDeg - (START_ANGLE + 360)));
         const endDist = Math.min(Math.abs(angleDeg - END_ANGLE), Math.abs(angleDeg - (END_ANGLE - 360)));
@@ -228,7 +221,7 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
     const angleRange = END_ANGLE - START_ANGLE;
     const valueRatio = (angleDeg - START_ANGLE) / angleRange;
     const rawNewValue = valueRatio * range + min;
-    const newValue = Math.round(rawNewValue * 10) / 10; // Round to nearest 0.1
+    const newValue = Math.round(rawNewValue * 10) / 10; 
     
     if (newValue >= min && newValue <= max) {
       onChange(newValue);
@@ -239,26 +232,16 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const target = e.target as HTMLElement; // No 'as' assertion needed here for JS, but 'as HTMLElement' is usually fine. Removing just in case.
-    // But wait, e.target IS EventTarget. In TS we need cast.
-    // The error is specifically about "Unexpected identifier 'as'".
-    // I will use standard JS property access or simple variable assignment if possible.
-    // Since this is TS, I can't easily remove `as HTMLElement` without `any`.
-    // But `as` is breaking the runtime. I will assume implicit typing or cast to any if I must avoid `as`.
-    // Actually, simply removing `as HTMLElement` will make TS complain about `setPointerCapture`.
-    // But I am fixing a RUNTIME error where `as` is leaking.
-    // The safest bet for the runtime environment that doesn't strip `as` is to remove it.
-    // If TS complains, the user's environment might ignore it or I can use `any`.
-    // I'll use `(e.target as any)`? No, that uses `as`.
-    // `(<any>e.target)`? That's old TS syntax.
-    // I will just remove the type assertion and let it be implicit any or use comments to suppress if needed, but for this output I'll just remove it.
     
-    if (target && typeof target.setPointerCapture === 'function') {
+    // Fix for "Unexpected identifier 'as'" error: remove explicit cast
+    const target = e.target;
+    
+    if (target instanceof Element) {
         target.setPointerCapture(e.pointerId);
     }
 
     const handlePointerUp = () => {
-      if (target && typeof target.releasePointerCapture === 'function') {
+      if (target instanceof Element) {
           target.releasePointerCapture(e.pointerId);
       }
       window.removeEventListener('pointermove', handlePointerMove);
@@ -268,7 +251,6 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
     window.addEventListener('pointermove', handlePointerMove);
     window.addEventListener('pointerup', handlePointerUp);
     
-    // Trigger first move immediately
      handlePointerMove(e.nativeEvent);
   }, [handlePointerMove]);
 
@@ -326,7 +308,6 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
           </mask>
         </defs>
 
-        {/* Background Arc */}
         <path
           d={describeArc(CENTER, CENTER, RADIUS, START_ANGLE, END_ANGLE)}
           fill="none"
@@ -335,7 +316,6 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
           strokeLinecap="round"
         />
         
-        {/* Full Gradient Track (to be masked) */}
         <g mask="url(#thermoValueMask)">
             <GradientArc
                 center={CENTER}
@@ -347,7 +327,6 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
             />
         </g>
         
-         {/* Invisible wider track for easier interaction */}
         <path
             d={describeArc(CENTER, CENTER, RADIUS, START_ANGLE, END_ANGLE)}
             fill="none"
@@ -358,7 +337,6 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
             onPointerDown={handlePointerDown}
         />
 
-        {/* Handle */}
         <circle
           cx={handlePosition.x}
           cy={handlePosition.y}
