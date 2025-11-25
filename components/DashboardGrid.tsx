@@ -105,6 +105,8 @@ const DraggableDevice: React.FC<{
         setOpenMenuDeviceId={cardProps.setOpenMenuDeviceId}
         colorScheme={colorScheme}
         isDark={isDark}
+        // Enable autoplay but rely on IntersectionObserver in the card to pause when off-screen
+        autoPlay={true}
       />
     </div>
   );
@@ -469,8 +471,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
                                                             {...props} 
                                                             openMenuDeviceId={openMenuDeviceId} 
                                                             setOpenMenuDeviceId={setOpenMenuDeviceId} 
-                                                            // IMPORTANT: Disable autoPlay in grid view to save resources
-                                                            autoPlay={false}
+                                                            autoPlay={true}
                                                         />
                                                     </ErrorBoundary>
                                                 </div>
