@@ -98,6 +98,10 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
 
   // We consider it a camera card if it's strictly a camera OR if it has a custom stream URL configured.
   const isCameraCard = device.type === DeviceType.Camera || !!device.customStreamUrl;
+  
+  // Check if the template has a 'video' element explicitly defined.
+  // If so, we disable the default background video rendering to avoid duplicates.
+  const hasVideoElement = template?.elements.some(el => el.id === 'video' && el.visible);
 
   const getCardStyle = (): React.CSSProperties => {
       if (device.type === DeviceType.MediaPlayer && (device.state === 'playing' || device.state === 'paused') && device.entityPictureUrl) {
@@ -111,7 +115,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
       
       // For Camera or custom stream, if no template elements or default background is desired, use black. 
       // But we allow styling via theme too.
-      if (isCameraCard) {
+      if (isCameraCard && !hasVideoElement) {
           return {
               backgroundColor: 'black',
               borderRadius: `${colorScheme.cardBorderRadius}px`,
@@ -284,6 +288,28 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
                  />
              </div>
          );
+      case 'video':
+          if (isEditMode) {
+              return (
+                  <div key={element.uniqueId} style={commonStyle} className="bg-gray-900 flex flex-col items-center justify-center rounded border border-gray-600 text-gray-400">
+                      <Icon icon="mdi:cctv" className="w-8 h-8" />
+                      <span className="text-[10px] mt-1">Видео поток</span>
+                  </div>
+              );
+          }
+          return (
+              <div key={element.uniqueId} style={{...commonStyle, overflow: 'hidden'}} className="rounded-md bg-black">
+                  <UniversalCameraCard 
+                      device={device}
+                      haUrl={haUrl}
+                      signPath={signPath}
+                      getCameraStreamUrl={getCameraStreamUrl}
+                      onCameraCardClick={onCameraCardClick}
+                      autoPlay={autoPlay}
+                      muted={true}
+                  />
+              </div>
+          );
       default:
         return null;
     }
@@ -295,8 +321,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
         style={getCardStyle()} 
         onClick={handleMainToggle}
     >
-       {/* Layer 0: Camera Video (Background) */}
-       {isCameraCard && (
+       {/* Layer 0: Camera Video (Background) - Only if NO video element is present */}
+       {isCameraCard && !hasVideoElement && (
            <div className="absolute inset-0 z-0">
               <UniversalCameraCard 
                   device={device}

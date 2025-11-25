@@ -28,8 +28,8 @@ const ALLOWED_ELEMENTS_FOR_TYPE: Record<CardTemplate['deviceType'], CardElementI
     switch: ['name', 'icon', 'status', 'battery', 'linked-entity'],
     climate: ['name', 'status', 'temperature', 'target-temperature', 'hvac-modes', 'battery', 'linked-entity'],
     humidifier: ['name', 'status', 'temperature', 'target-temperature', 'hvac-modes', 'battery', 'linked-entity', 'fan-speed-control', 'value'],
-    custom: ['name', 'icon', 'value', 'unit', 'chart', 'status', 'battery', 'linked-entity', 'fan-speed-control'],
-    camera: ['name', 'status', 'icon', 'value', 'unit'],
+    custom: ['name', 'icon', 'value', 'unit', 'chart', 'status', 'battery', 'linked-entity', 'fan-speed-control', 'video'],
+    camera: ['name', 'status', 'icon', 'value', 'unit', 'video'],
 };
 
 // --- Data Binding Input Component ---
@@ -305,7 +305,8 @@ interface TemplateEditorModalProps {
 const ELEMENT_LABELS_BASE: Record<CardElementId, string> = {
   name: 'Название', icon: 'Иконка', value: 'Значение', unit: 'Единица изм.', chart: 'График',
   status: 'Статус', slider: 'Слайдер', temperature: 'Текущая темп.', 'target-temperature': 'Термостат (кольцо)',
-  'hvac-modes': 'Режимы климата', 'linked-entity': 'Связанное устройство', battery: 'Уровень заряда', 'fan-speed-control': 'Скорость вентилятора'
+  'hvac-modes': 'Режимы климата', 'linked-entity': 'Связанное устройство', battery: 'Уровень заряда', 'fan-speed-control': 'Скорость вентилятора',
+  video: 'Видео поток'
 };
 
 // --- Sortable Layer Item Component ---

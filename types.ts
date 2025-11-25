@@ -386,7 +386,7 @@ export interface ThemeDefinition {
 // --- Система шаблонов карточек ---
 
 // ID доступных элементов внутри шаблона карточки.
-export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status' | 'slider' | 'temperature' | 'target-temperature' | 'hvac-modes' | 'linked-entity' | 'battery' | 'fan-speed-control';
+export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status' | 'slider' | 'temperature' | 'target-temperature' | 'hvac-modes' | 'linked-entity' | 'battery' | 'fan-speed-control' | 'video';
 
 /**
  * Описывает один элемент (например, иконку, название) внутри шаблона карточки.
