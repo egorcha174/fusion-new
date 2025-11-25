@@ -1,11 +1,10 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import Hls from 'hls.js';
-import { constructHaUrl } from '../utils/url';
-import LoadingSpinner from './LoadingSpinner';
-import { Icon } from '@iconify/react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Device } from '../types';
+import { constructHaUrl } from '../utils/url';
 import { CameraStreamContent } from './CameraStreamContent';
+import { Icon } from '@iconify/react';
+import LoadingSpinner from './LoadingSpinner';
 
 interface UniversalCameraCardProps {
   device: Device;
@@ -17,309 +16,217 @@ interface UniversalCameraCardProps {
   muted?: boolean;
 }
 
-// Helper to detect if we are visible in viewport
-const useInView = (ref: React.RefObject<HTMLElement>) => {
-    const [isInView, setIsInView] = useState(false);
-    useEffect(() => {
-        if (!ref.current) return;
-        const observer = new IntersectionObserver(
-            ([entry]) => setIsInView(entry.isIntersecting),
-            { threshold: 0.05 } // 5% visible
-        );
-        observer.observe(ref.current);
-        return () => observer.disconnect();
-    }, []);
-    return isInView;
-};
-
-// Helper to detect page visibility (tab switching)
-const usePageVisibility = () => {
-    const [isVisible, setIsVisible] = useState(!document.hidden);
-    useEffect(() => {
-        const handler = () => setIsVisible(!document.hidden);
-        document.addEventListener("visibilitychange", handler);
-        return () => document.removeEventListener("visibilitychange", handler);
-    }, []);
-    return isVisible;
-};
-
 export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
-    device,
-    haUrl,
-    signPath,
-    getCameraStreamUrl,
-    onCameraCardClick,
-    autoPlay = true,
-    muted = true
+  device,
+  haUrl,
+  signPath,
+  getCameraStreamUrl,
+  onCameraCardClick,
+  autoPlay = true,
+  muted = true
 }) => {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const isMountedRef = useRef(true);
-    
-    const isInView = useInView(containerRef);
-    const isPageVisible = usePageVisibility();
-    const shouldPlayStream = autoPlay && isInView && isPageVisible;
+  const [finalStreamUrl, setFinalStreamUrl] = useState<string | null>(null);
+  const [finalSnapshotUrl, setFinalSnapshotUrl] = useState<string | null>(null);
+  const [streamType, setStreamType] = useState<'hls' | 'mjpeg' | 'iframe' | 'file' | 'none'>('none');
+  
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isLive, setIsLive] = useState(false);
+  
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const [pageVisible, setPageVisible] = useState(!document.hidden);
 
-    const [streamUrl, setStreamUrl] = useState<string | null>(null);
-    // 'hls' or 'file' acts as a generic 'video player' type (HLS, MP4, WebM)
-    const [streamType, setStreamType] = useState<'hls' | 'file' | 'mjpeg' | 'iframe' | 'none'>('none');
-    const [snapshotUrl, setSnapshotUrl] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [retryTrigger, setRetryTrigger] = useState(0);
-    
-    const customStreamUrl = device.customStreamUrl;
-    const preferredStreamType = device.streamType || 'auto';
-    const isCustomCamera = device.haDomain === 'internal' || device.id.startsWith('internal::');
-
-    useEffect(() => {
-        isMountedRef.current = true;
-        return () => { isMountedRef.current = false; };
-    }, []);
-
-    // --- Re-trigger load when visibility changes back to true ---
-    useEffect(() => {
-        if (shouldPlayStream) {
-            setRetryTrigger(prev => prev + 1);
-        }
-    }, [shouldPlayStream]);
-
-    // --- Safety Timeout for Loading ---
-    useEffect(() => {
-        let timeout: ReturnType<typeof setTimeout>;
-        if (isLoading) {
-            timeout = setTimeout(() => {
-                if (isMountedRef.current && isLoading) {
-                    setIsLoading(false);
-                    console.warn("Camera loading timed out");
-                }
-            }, 15000); // 15s timeout
-        }
-        return () => clearTimeout(timeout);
-    }, [isLoading]);
-
-    // --- Snapshot Logic ---
-    const fetchSnapshot = useCallback(async () => {
-        if (!isMountedRef.current) return;
-        
-        // If custom camera has no stream URL, check if the URL itself is an image
-        if (isCustomCamera) {
-            if (customStreamUrl) {
-                const cleanUrl = customStreamUrl.split('?')[0].toLowerCase();
-                if (preferredStreamType === 'mjpeg' || cleanUrl.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
-                    setSnapshotUrl(customStreamUrl);
-                }
-            }
-            return;
-        }
-
-        // Standard HA Camera
-        try {
-            const result = await signPath(`/api/camera_proxy/${device.id}`);
-            if (!isMountedRef.current) return;
-
-            const url = constructHaUrl(haUrl, result.path, 'http');
-            const urlWithCacheBuster = `${url}&t=${Date.now()}`;
-
-            // Preload image to avoid flickering
-            const img = new Image();
-            img.onload = () => {
-                if (isMountedRef.current) setSnapshotUrl(urlWithCacheBuster);
-            };
-            img.src = urlWithCacheBuster;
-        } catch (err) {
-            // Silent fail for snapshot
-        }
-    }, [device.id, haUrl, signPath, isCustomCamera, customStreamUrl, preferredStreamType]);
-
-    // Fetch snapshot on mount and visibility change
-    useEffect(() => {
-        if (isInView) fetchSnapshot();
-    }, [fetchSnapshot, isInView]);
-
-    // --- Stream Logic ---
-    useEffect(() => {
-        if (!shouldPlayStream) {
-            setStreamUrl(null);
-            setStreamType('none');
-            setIsLoading(false);
-            return;
-        }
-
-        setIsLoading(true);
-        setError(null);
-
-        const resolveUrl = async () => {
-            try {
-                let finalUrl = '';
-                let type: 'auto' | 'hls' | 'mjpeg' | 'iframe' | 'file' = preferredStreamType;
-
-                if (isCustomCamera) {
-                    if (!customStreamUrl) {
-                        throw new Error("URL не настроен");
-                    }
-                    finalUrl = customStreamUrl;
-                    // Auto-detect type for custom cameras
-                    if (type === 'auto') {
-                        // Remove query string for extension check
-                        const cleanUrl = finalUrl.split('?')[0].toLowerCase();
-                        
-                        if (cleanUrl.endsWith('.m3u8')) {
-                            type = 'hls'; // Use the video player for HLS
-                        } else if (cleanUrl.match(/\.(mp4|webm|mov|mkv|avi)$/)) {
-                            type = 'file'; // Use the video player for direct files
-                        } else if (cleanUrl.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
-                            type = 'mjpeg';
-                        } else {
-                            type = 'iframe'; // WebRTC/Go2RTC typical interface or unknown source
-                        }
-                    }
-                } else {
-                    // HA Native Camera
-                    if (type === 'auto' || type === 'hls') {
-                        try {
-                            const streamData = await getCameraStreamUrl(device.id);
-                            if (streamData?.url) {
-                                finalUrl = constructHaUrl(haUrl, streamData.url, 'http');
-                                type = 'hls';
-                            } else {
-                                // Fallback to MJPEG if getStreamUrl fails/returns empty
-                                type = 'mjpeg';
-                            }
-                        } catch (e) {
-                            type = 'mjpeg';
-                        }
-                    } 
-                    
-                    if (type === 'mjpeg') {
-                         const result = await signPath(`/api/camera_proxy_stream/${device.id}`);
-                         finalUrl = constructHaUrl(haUrl, result.path, 'http');
-                    }
-                }
-
-                if (!isMountedRef.current) return;
-                
-                if (type === 'iframe') {
-                    setStreamUrl(finalUrl);
-                    setStreamType('iframe');
-                    setIsLoading(false);
-                } else if (type === 'mjpeg') {
-                    // Ensure token/auth is preserved or timestamp added
-                    const urlToUse = finalUrl.includes('token=') ? finalUrl : `${finalUrl}${finalUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
-                    setStreamUrl(urlToUse);
-                    setStreamType('mjpeg');
-                    setIsLoading(false);
-                } else if (type === 'hls' || type === 'file') {
-                    setStreamUrl(finalUrl); 
-                    setStreamType(type as any);
-                    // HLS/File loading continues in the child component which handles loading state
-                }
-
-            } catch (e: any) {
-                console.error("Camera load error:", e);
-                if (isMountedRef.current) {
-                    setError(e.message || "Ошибка");
-                    setIsLoading(false);
-                    fetchSnapshot(); // Ensure snapshot is visible if stream fails
-                }
-            }
-        };
-
-        resolveUrl();
-    }, [shouldPlayStream, device.id, customStreamUrl, preferredStreamType, haUrl, signPath, getCameraStreamUrl, retryTrigger, isCustomCamera]);
-
-
-    const handleRetry = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setIsLoading(true);
-        setError(null);
-        setRetryTrigger(prev => prev + 1);
-    };
-
-    // --- Render Content ---
-    const renderStream = () => {
-        if (streamType === 'iframe' && streamUrl) {
-            return <iframe src={streamUrl} className="w-full h-full border-0 bg-black" title={device.name} />;
-        }
-        if (streamType === 'mjpeg' && streamUrl) {
-            return <img src={streamUrl} className="w-full h-full object-cover" alt={device.name} onError={() => setError("Ошибка MJPEG")} />;
-        }
-        if ((streamType === 'hls' || streamType === 'file') && streamUrl) {
-            // This uses the updated robust VideoPlayer inside CameraStreamContent
-            return (
-                <CameraStreamContent 
-                    entityId={null} // Not used for custom/resolved URLs
-                    haUrl={haUrl} // Not used here
-                    signPath={signPath} // Not used here
-                    getCameraStreamUrl={getCameraStreamUrl} // Not used here
-                    streamUrlOverride={streamUrl} // Pass the resolved URL directly
-                    snapshotUrlOverride={snapshotUrl}
-                    onStreamReady={() => setIsLoading(false)}
-                    onError={() => { setError("Ошибка потока"); setIsLoading(false); }}
-                    muted={muted}
-                />
-            );
-        }
-        return null;
-    };
-
-    return (
-        <div 
-            ref={containerRef}
-            className="w-full h-full relative bg-black overflow-hidden flex items-center justify-center group select-none"
-            onClick={() => onCameraCardClick && onCameraCardClick(device)}
-        >
-            {/* 1. Background Layer: Snapshot or Placeholder */}
-            <div className="absolute inset-0 z-[1] flex items-center justify-center">
-                {snapshotUrl ? (
-                    <img 
-                        src={snapshotUrl} 
-                        className="w-full h-full object-cover transition-opacity duration-500"
-                        style={{ opacity: (shouldPlayStream && !isLoading && !error) ? 0 : 1 }}
-                        alt="snapshot" 
-                    />
-                ) : (
-                    <div className="flex flex-col items-center justify-center text-gray-600">
-                        <Icon icon={isCustomCamera ? "mdi:cctv-off" : "mdi:camera-off"} className="w-12 h-12 opacity-50 mb-2" />
-                        {isCustomCamera && !customStreamUrl && (
-                            <p className="text-[10px] px-2 text-center text-gray-500">Настройте URL</p>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {/* 2. Stream Layer */}
-            {shouldPlayStream && !error && (
-                <div className={`absolute inset-0 z-[2] transition-opacity duration-500 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
-                    {renderStream()}
-                </div>
-            )}
-
-            {/* 3. Loading Overlay */}
-            {isLoading && (
-                <div className="absolute inset-0 z-[3] flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
-                    <LoadingSpinner />
-                </div>
-            )}
-
-            {/* 4. Error Overlay */}
-            {error && (
-                <div className="absolute inset-0 z-[4] flex flex-col items-center justify-center bg-black/60 p-4 text-center">
-                    <Icon icon="mdi:alert-circle-outline" className="w-8 h-8 text-red-500 mb-2" />
-                    <button 
-                        onClick={handleRetry}
-                        className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded text-xs text-white transition-colors backdrop-blur-md"
-                    >
-                        Повторить
-                    </button>
-                </div>
-            )}
-
-            {/* 5. Badges */}
-            {shouldPlayStream && !error && !isLoading && (
-                <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-red-600/80 backdrop-blur-sm rounded text-white text-[9px] font-bold uppercase tracking-wider pointer-events-none z-[5] animate-pulse">
-                    LIVE
-                </div>
-            )}
-        </div>
+  // 1. Intersection Observer (Загружаем только когда видим)
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsVisible(entry.isIntersecting),
+      { threshold: 0.1 }
     );
+    if (containerRef.current) observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // 2. Page Visibility API (Пауза если ушли с вкладки)
+  useEffect(() => {
+    const handleVisibilityChange = () => setPageVisible(!document.hidden);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  // Активен ли поток сейчас?
+  const shouldPlay = autoPlay && isVisible && pageVisible;
+
+  // 3. Получение Snapshot (Картинка-заглушка)
+  const loadSnapshot = useCallback(async () => {
+    try {
+      // Если это кастомная камера и у неё есть URL, похожий на картинку, используем его
+      if (device.haDomain === 'internal' && device.customStreamUrl?.match(/\.(jpg|jpeg|png|webp)$/i)) {
+         setFinalSnapshotUrl(device.customStreamUrl);
+         return;
+      }
+
+      // Иначе идем в HA API (работает и для камер HA)
+      if (!device.id.startsWith('internal::')) {
+          const result = await signPath(`/api/camera_proxy/${device.id}`);
+          const fullUrl = constructHaUrl(haUrl, result.path, 'http') + `&t=${Date.now()}`;
+          setFinalSnapshotUrl(fullUrl);
+      }
+    } catch (e) {
+      console.warn("Failed to load snapshot", e);
+    }
+  }, [device, haUrl, signPath]);
+
+  // Грузим снапшот при монтировании или появлении
+  useEffect(() => {
+    if (isVisible) loadSnapshot();
+  }, [isVisible, loadSnapshot]);
+
+  // 4. Логика определения потока
+  useEffect(() => {
+    if (!shouldPlay) {
+      setFinalStreamUrl(null);
+      setStreamType('none');
+      setIsLive(false);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    const resolveStream = async () => {
+      try {
+        // --- ВЕТКА 1: Кастомная камера (настроена вручную) ---
+        if (device.haDomain === 'internal' || device.customStreamUrl) {
+           const url = device.customStreamUrl;
+           if (!url) throw new Error("URL не указан");
+
+           let type: any = device.streamType || 'auto';
+           
+           if (type === 'auto') {
+             const cleanUrl = url.split('?')[0].toLowerCase();
+             if (cleanUrl.endsWith('.m3u8')) type = 'hls';
+             else if (cleanUrl.match(/\.(mp4|webm|mov|mkv)$/)) type = 'file';
+             else if (cleanUrl.match(/\.(jpg|jpeg|png)$/)) type = 'mjpeg';
+             else type = 'iframe'; // WebRTC / Go2RTC usually fits here if unknown
+           }
+           
+           setFinalStreamUrl(url);
+           setStreamType(type);
+           return;
+        }
+
+        // --- ВЕТКА 2: Native HA Camera ---
+        // Пытаемся получить HLS поток от HA
+        try {
+          const streamData = await getCameraStreamUrl(device.id);
+          if (streamData && streamData.url) {
+            const fullUrl = constructHaUrl(haUrl, streamData.url, 'http');
+            setFinalStreamUrl(fullUrl);
+            setStreamType('hls');
+            return;
+          }
+        } catch (err) {
+          console.warn("HLS stream not available via API, falling back to MJPEG proxy");
+        }
+
+        // Fallback: MJPEG Proxy Stream
+        const result = await signPath(`/api/camera_proxy_stream/${device.id}`);
+        const mjpegUrl = constructHaUrl(haUrl, result.path, 'http') + `&t=${Date.now()}`; // cache bust needed?
+        setFinalStreamUrl(mjpegUrl);
+        setStreamType('mjpeg');
+
+      } catch (e: any) {
+        console.error("Stream resolution failed:", e);
+        setError("Ошибка подключения");
+        setIsLoading(false);
+      }
+    };
+
+    resolveStream();
+
+  }, [shouldPlay, device, haUrl, signPath, getCameraStreamUrl]);
+
+  return (
+    <div 
+      ref={containerRef} 
+      className="relative w-full h-full bg-black overflow-hidden rounded-lg select-none group"
+      onClick={() => onCameraCardClick && onCameraCardClick(device)}
+    >
+      {/* 1. Snapshot Layer (Z-Index 1) */}
+      {finalSnapshotUrl && (
+        <img 
+          src={finalSnapshotUrl} 
+          alt={device.name}
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 z-[1] ${isLive ? 'opacity-0' : 'opacity-100'}`}
+        />
+      )}
+
+      {/* 2. Video Layer (Z-Index 2) */}
+      {shouldPlay && finalStreamUrl && (
+        <div className="absolute inset-0 z-[2]">
+          <CameraStreamContent
+            streamUrl={finalStreamUrl}
+            type={streamType}
+            muted={muted}
+            autoPlay={true}
+            onLoaded={() => {
+              setIsLive(true);
+              setIsLoading(false);
+            }}
+            onError={(msg) => {
+              setError(msg);
+              setIsLoading(false);
+              setIsLive(false);
+            }}
+          />
+        </div>
+      )}
+
+      {/* 3. UI Overlays (Z-Index 3+) */}
+      
+      {/* Loading Spinner */}
+      {isLoading && (
+        <div className="absolute inset-0 z-[3] flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
+          <LoadingSpinner />
+        </div>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <div className="absolute inset-0 z-[4] flex flex-col items-center justify-center bg-black/60 p-4 text-center animate-in fade-in">
+          <Icon icon="mdi:alert-circle-outline" className="w-8 h-8 text-red-500 mb-2" />
+          <p className="text-xs text-white font-medium">{error}</p>
+          <button 
+            onClick={(e) => { e.stopPropagation(); setIsLoading(true); setError(null); }} 
+            className="mt-2 px-3 py-1 bg-white/10 hover:bg-white/20 rounded text-[10px] text-white transition-colors"
+          >
+            Повторить
+          </button>
+        </div>
+      )}
+
+      {/* Status Badges */}
+      <div className="absolute top-2 right-2 z-[5] flex gap-1">
+        {isLive && (
+          <div className="px-1.5 py-0.5 bg-red-600/90 backdrop-blur-sm rounded text-white text-[9px] font-bold uppercase tracking-wider animate-pulse shadow-sm">
+            LIVE
+          </div>
+        )}
+        {!isLive && !isLoading && !error && (
+           <div className="px-1.5 py-0.5 bg-gray-800/60 backdrop-blur-sm rounded text-white text-[9px] font-medium uppercase tracking-wider">
+            SNAPSHOT
+          </div>
+        )}
+      </div>
+      
+      {/* Оверлей Play для ручного запуска (если отключен autoplay, но здесь он форсирован, оставим на всякий случай) */}
+      {!shouldPlay && !finalSnapshotUrl && (
+         <div className="absolute inset-0 z-[3] flex items-center justify-center text-gray-500">
+            <Icon icon="mdi:cctv-off" className="w-12 h-12 opacity-50" />
+         </div>
+      )}
+    </div>
+  );
 };

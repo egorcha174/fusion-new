@@ -1,417 +1,180 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
-import { constructHaUrl } from '../utils/url';
 import LoadingSpinner from './LoadingSpinner';
 import { Icon } from '@iconify/react';
 
-interface VideoPlayerProps {
-  src: string;
-  poster?: string;
+interface CameraStreamContentProps {
+  streamUrl: string | null;
+  type: 'hls' | 'mjpeg' | 'iframe' | 'file' | 'none';
+  posterUrl?: string | null;
   muted?: boolean;
-  onStreamReady?: () => void;
-  onError?: () => void;
+  autoPlay?: boolean;
+  onLoaded?: () => void;
+  onError?: (msg: string) => void;
+  className?: string;
 }
 
-/**
- * A robust video player that handles both HLS streams and direct video files (MP4/WebM).
- * Prioritizes native HLS (Safari) and falls back to hls.js.
- * Based on robust HTML5 video handling patterns.
- */
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, poster, muted = true, onStreamReady, onError }) => {
+export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
+  streamUrl,
+  type,
+  posterUrl,
+  muted = true,
+  autoPlay = true,
+  onLoaded,
+  onError,
+  className = "w-full h-full object-cover"
+}) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
-  
-  // Use refs for callbacks to avoid effect re-runs on render
-  const onStreamReadyRef = useRef(onStreamReady);
-  const onErrorRef = useRef(onError);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
+  // Сброс состояния при смене URL
   useEffect(() => {
-      onStreamReadyRef.current = onStreamReady;
-      onErrorRef.current = onError;
-  }, [onStreamReady, onError]);
+    setIsLoading(true);
+    setHasError(false);
+  }, [streamUrl, type]);
 
+  // --- Логика HLS и Native Video ---
   useEffect(() => {
+    if (!streamUrl || (type !== 'hls' && type !== 'file')) return;
+
     const video = videoRef.current;
-    if (!video || !src) return;
+    if (!video) return;
 
-    const isHls = (url: string) => {
-        try {
-            return url.split('?')[0].toLowerCase().endsWith('.m3u8');
-        } catch {
-            return false;
+    // Функция безопасного воспроизведения
+    const tryPlay = async () => {
+      try {
+        if (video.paused && autoPlay) {
+          await video.play();
         }
+        setIsLoading(false);
+        if (onLoaded) onLoaded();
+      } catch (e) {
+        console.warn("Autoplay blocked or failed:", e);
+        // Не считаем блокировку автоплея критической ошибкой, поток готов
+        setIsLoading(false); 
+      }
     };
 
-    const showError = (msg: string) => {
-        console.error("Video Player Error:", msg);
-        if (onErrorRef.current) onErrorRef.current();
-    };
-
-    const attemptPlay = async () => {
-        if (!video) return;
-        try {
-            await video.play();
-        } catch (e) {
-            // Autoplay might be blocked (interaction required), but stream is technically ready
-            console.warn("Autoplay prevented/failed:", e);
-        } finally {
-            if (onStreamReadyRef.current) onStreamReadyRef.current();
-        }
-    };
-
-    // CLEANUP PREVIOUS STATE
+    // Очистка предыдущего HLS
     if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+
+    // Сценарий 1: Native HLS (Safari)
+    if (type === 'hls' && video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = streamUrl;
+      video.addEventListener('loadedmetadata', tryPlay);
+      video.addEventListener('error', () => {
+          setHasError(true);
+          if(onError) onError("Ошибка нативного плеера");
+      });
+    } 
+    // Сценарий 2: HLS.js (Chrome, Firefox)
+    else if (type === 'hls' && Hls.isSupported()) {
+      const hls = new Hls({
+        maxBufferLength: 30, // 30 секунд буфера
+        manifestLoadingTimeOut: 15000,
+        levelLoadingTimeOut: 15000,
+      });
+      hlsRef.current = hls;
+      hls.loadSource(streamUrl);
+      hls.attachMedia(video);
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        tryPlay();
+      });
+
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              // Пытаемся восстановить сеть
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              // Пытаемся восстановить медиа
+              hls.recoverMediaError();
+              break;
+            default:
+              // Критическая ошибка
+              hls.destroy();
+              setHasError(true);
+              if(onError) onError(`HLS Error: ${data.details}`);
+              break;
+          }
+        }
+      });
+    } 
+    // Сценарий 3: Просто видео файл (mp4, webm)
+    else if (type === 'file') {
+      video.src = streamUrl;
+      video.addEventListener('loadedmetadata', tryPlay);
+      video.addEventListener('error', () => {
+          setHasError(true);
+          if(onError) onError("Ошибка загрузки файла");
+      });
+    }
+
+    return () => {
+      if (hlsRef.current) {
         hlsRef.current.destroy();
-        hlsRef.current = null;
-    }
-    
-    // Important: Reset video element state to avoid lingering buffers
-    video.pause();
-    video.removeAttribute('src');
-    video.load();
-
-    // EVENT LISTENERS
-    const handleLoadedMetadata = () => {
-        attemptPlay();
+      }
+      if (video) {
+        video.removeAttribute('src');
+        video.load();
+      }
     };
+  }, [streamUrl, type, autoPlay]); // Re-run only if url or type changes
 
-    const handleError = () => {
-        // If we have a valid HLS error handler, it might have already handled this
-        if (!hlsRef.current) { 
-            showError('Video element error');
-        }
-    };
+  // --- Рендеринг в зависимости от типа ---
 
-    video.addEventListener('loadedmetadata', handleLoadedMetadata);
-    video.addEventListener('error', handleError);
+  if (!streamUrl) return null;
 
-    // INITIALIZATION
-    if (isHls(src)) {
-        if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            // Native HLS support (Safari)
-            video.src = src;
-        } else if (Hls.isSupported()) {
-            // MSE HLS support (Chrome, Firefox, etc.)
-            const hls = new Hls({
-                capLevelToPlayerSize: true,
-                maxBufferLength: 30,
-                startLevel: -1, // Auto start level
-            });
-            hlsRef.current = hls;
-            
-            hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                attemptPlay();
-            });
-
-            hls.on(Hls.Events.ERROR, (event, data) => {
-                if (data.fatal) {
-                    console.error('HLS Fatal Error:', data);
-                    switch (data.type) {
-                        case Hls.ErrorTypes.NETWORK_ERROR:
-                            hls.startLoad();
-                            break;
-                        case Hls.ErrorTypes.MEDIA_ERROR:
-                            hls.recoverMediaError();
-                            break;
-                        default:
-                            hls.destroy();
-                            showError(`HLS Fatal: ${data.type}`);
-                            break;
-                    }
-                }
-            });
-
-            try {
-                hls.loadSource(src);
-                hls.attachMedia(video);
-            } catch (e) {
-                console.error('HLS Attach Error:', e);
-                showError('Failed to attach HLS');
-            }
-        } else {
-            showError('HLS not supported in this browser');
-        }
-    } else {
-        // Not an .m3u8 file, assume direct MP4/WebM/etc
-        video.src = src;
-    }
-
-    return () => { 
-        if (hlsRef.current) {
-            hlsRef.current.destroy();
-            hlsRef.current = null;
-        }
-        if (video) {
-            video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-            video.removeEventListener('error', handleError);
-            video.pause();
-            video.removeAttribute('src');
-            video.load();
-        }
-    };
-  }, [src]); // Re-run only if src changes
-
-  return (
-    <div className="w-full h-full bg-black flex items-center justify-center relative">
-      <video 
-        ref={videoRef} 
-        className="w-full h-full object-contain" 
-        poster={poster}
-        muted={muted}
-        playsInline 
-        controls={false}
+  // IFrame (WebRTC, Go2RTC Embeds)
+  if (type === 'iframe') {
+    return (
+      <iframe
+        src={streamUrl}
+        className={className}
+        allowFullScreen
+        onLoad={() => { setIsLoading(false); if(onLoaded) onLoaded(); }}
+        style={{ border: 'none', background: 'black' }}
       />
-    </div>
-  );
-};
-
-interface CameraStreamContentProps {
-  entityId: string | null;
-  haUrl: string;
-  signPath: (path: string) => Promise<{ path: string }>;
-  getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
-  altText?: string;
-  refreshInterval?: number;
-  autoPlay?: boolean;
-  showPlayButton?: boolean;
-  // New props to allow direct usage without internal logic
-  streamUrlOverride?: string;
-  snapshotUrlOverride?: string | null;
-  onStreamReady?: () => void;
-  onError?: () => void;
-  muted?: boolean;
-}
-
-export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({ 
-    entityId, 
-    haUrl, 
-    signPath, 
-    getCameraStreamUrl, 
-    altText = 'Камера',
-    refreshInterval = 10,
-    autoPlay = false,
-    showPlayButton = true,
-    streamUrlOverride,
-    snapshotUrlOverride,
-    onStreamReady,
-    onError,
-    muted = true
-}) => {
-  const [streamUrl, setStreamUrl] = useState<string | null>(streamUrlOverride || null);
-  const [streamType, setStreamType] = useState<'hls' | 'mjpeg' | 'none'>('none');
-  const [snapshotUrl, setSnapshotUrl] = useState<string | null>(snapshotUrlOverride || null);
-  
-  const [error, setError] = useState<string | null>(null);
-  const [isStreamActive, setIsStreamActive] = useState(autoPlay || !!streamUrlOverride);
-  const [isLoading, setIsLoading] = useState(!!streamUrlOverride);
-  const isMountedRef = useRef(true);
-
-  // If overrides are provided (from UniversalCameraCard), rely on them
-  const isManagedMode = !!streamUrlOverride;
-
-  useEffect(() => {
-      isMountedRef.current = true;
-      return () => { isMountedRef.current = false; };
-  }, []);
-
-  useEffect(() => {
-      if (streamUrlOverride) {
-          setStreamUrl(streamUrlOverride);
-          setStreamType('hls'); // Uses the unified VideoPlayer
-          setIsLoading(true);
-      }
-  }, [streamUrlOverride]);
-
-  // Safety timeout for loading
-  useEffect(() => {
-      let timeout: ReturnType<typeof setTimeout>;
-      if (isLoading) {
-          timeout = setTimeout(() => {
-              if(isMountedRef.current && isLoading) {
-                  setIsLoading(false);
-              }
-          }, 15000);
-      }
-      return () => clearTimeout(timeout);
-  }, [isLoading]);
-
-  // Initial Snapshot Load (only if not managed)
-  useEffect(() => {
-      if (entityId && !isManagedMode) fetchSnapshot();
-  }, [entityId, isManagedMode]);
-
-  const fetchSnapshot = useCallback(async () => {
-      if (!entityId || isManagedMode) return;
-      try {
-        if (entityId.startsWith('internal::')) return;
-
-        const result = await signPath(`/api/camera_proxy/${entityId}`);
-        if (!isMountedRef.current) return;
-        const url = constructHaUrl(haUrl, result.path, 'http');
-        
-        const img = new Image();
-        const finalUrl = `${url}&t=${Date.now()}`;
-        img.onload = () => {
-            if(isMountedRef.current) setSnapshotUrl(finalUrl);
-        };
-        img.src = finalUrl;
-        
-        if(!isStreamActive) setError(null);
-      } catch (err) {
-          // Silent fallback
-      }
-  }, [entityId, haUrl, signPath, isStreamActive, isManagedMode]);
-
-  useEffect(() => {
-      if (!isStreamActive && !isManagedMode) {
-          const interval = setInterval(fetchSnapshot, refreshInterval * 1000);
-          return () => clearInterval(interval);
-      }
-  }, [fetchSnapshot, refreshInterval, isStreamActive, isManagedMode]);
-
-  const startStream = useCallback(async () => {
-      if (!entityId || isManagedMode) return;
-      setIsLoading(true);
-      setError(null);
-
-      try {
-          // Try HLS first
-          try {
-              const streamData = await getCameraStreamUrl(entityId);
-              if (isMountedRef.current && streamData?.url) {
-                  setStreamUrl(constructHaUrl(haUrl, streamData.url, 'http'));
-                  setStreamType('hls'); // Uses unified VideoPlayer
-                  return; 
-              }
-          } catch (e) {}
-
-          // Fallback to MJPEG
-          const result = await signPath(`/api/camera_proxy_stream/${entityId}`);
-          if (isMountedRef.current) {
-              const finalUrl = constructHaUrl(haUrl, result.path, 'http');
-              setStreamUrl(`${finalUrl}&t=${Date.now()}`);
-              setStreamType('mjpeg');
-              setIsLoading(false);
-          }
-      } catch (err) {
-          if (isMountedRef.current) {
-              setError("Ошибка подключения");
-              setIsLoading(false);
-              setIsStreamActive(false);
-          }
-      }
-  }, [entityId, haUrl, getCameraStreamUrl, signPath, isManagedMode]);
-
-  useEffect(() => {
-      if (!isManagedMode) {
-          if (isStreamActive && !streamUrl) startStream();
-          else if (!isStreamActive) {
-              setStreamUrl(null);
-              setStreamType('none');
-              setIsLoading(false);
-          }
-      }
-  }, [isStreamActive, streamUrl, startStream, isManagedMode]);
-
-  const handleStreamReady = () => {
-      setIsLoading(false);
-      if (onStreamReady) onStreamReady();
-  };
-
-  const handleError = () => {
-      setError("Ошибка потока");
-      setIsLoading(false);
-      if (onError) onError();
-  };
-
-  // If used purely as a player component (isManagedMode), just render the player
-  if (isManagedMode) {
-      return (
-          <VideoPlayer 
-              src={streamUrlOverride!} 
-              poster={snapshotUrlOverride || undefined}
-              onStreamReady={handleStreamReady}
-              onError={handleError}
-              muted={muted}
-          />
-      );
+    );
   }
 
-  if (!entityId) {
-      return (
-        <div className="w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded-lg text-gray-400">
-            <Icon icon="mdi:camera-off" className="w-10 h-10" />
-        </div>
-      );
+  // MJPEG (Image stream)
+  if (type === 'mjpeg') {
+    return (
+      <img
+        src={streamUrl}
+        className={className}
+        onLoad={() => { setIsLoading(false); if(onLoaded) onLoaded(); }}
+        onError={() => { setHasError(true); if(onError) onError("MJPEG Error"); }}
+        alt="Camera Stream"
+      />
+    );
   }
 
-  return (
-    <div className="relative w-full h-full bg-black overflow-hidden rounded-lg group">
-        {/* Snapshot Layer */}
-        <div className="absolute inset-0 z-[1] flex items-center justify-center">
-            {snapshotUrl ? (
-                <img src={snapshotUrl} className="w-full h-full object-cover opacity-70" alt={altText} />
-            ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gray-800 text-gray-600">
-                    <Icon icon="mdi:cctv" className="w-12 h-12" />
-                </div>
-            )}
-        </div>
+  // Video Tag (HLS, File)
+  if (type === 'hls' || type === 'file') {
+    return (
+      <video
+        ref={videoRef}
+        className={className}
+        poster={posterUrl || undefined}
+        muted={muted}
+        playsInline
+        autoPlay={autoPlay}
+        controls={false}
+        style={{ display: hasError ? 'none' : 'block' }}
+      />
+    );
+  }
 
-        {/* Stream Layer */}
-        {isStreamActive && streamUrl && !error && (
-            <div className="absolute inset-0 z-[2]">
-                {streamType === 'hls' ? (
-                    <VideoPlayer 
-                        src={streamUrl} 
-                        poster={snapshotUrl || undefined}
-                        onStreamReady={handleStreamReady}
-                        onError={handleError}
-                        muted={muted}
-                    />
-                ) : (
-                    <img src={streamUrl} className="w-full h-full object-cover" alt={altText} onError={() => setError("Ошибка MJPEG")} />
-                )}
-            </div>
-        )}
-
-        {/* Loading Overlay */}
-        {isLoading && (
-            <div className="absolute inset-0 z-[3] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                <LoadingSpinner />
-            </div>
-        )}
-
-        {/* Error Overlay */}
-        {error && (
-            <div className="absolute inset-0 z-[4] flex flex-col items-center justify-center bg-black/70 p-4 text-center">
-                <Icon icon="mdi:alert-circle" className="w-8 h-8 text-red-500 mb-2" />
-                <p className="text-xs text-white mb-2">{error}</p>
-                <button onClick={() => startStream()} className="px-3 py-1 bg-white/20 rounded text-xs text-white hover:bg-white/30 backdrop-blur-md">
-                    Повторить
-                </button>
-            </div>
-        )}
-
-        {/* Play Button Overlay (Manual Mode) */}
-        {!isStreamActive && showPlayButton && !error && (
-            <div 
-                className="absolute inset-0 z-[3] flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={(e) => { e.stopPropagation(); setIsStreamActive(true); }}
-            >
-                <div className="p-3 rounded-full bg-white/20 backdrop-blur-md hover:bg-blue-600 hover:text-white transition-all shadow-lg">
-                    <Icon icon="mdi:play" className="w-8 h-8 text-white" />
-                </div>
-            </div>
-        )}
-        
-        {/* Live Badge */}
-        {isStreamActive && !error && !isLoading && (
-             <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-red-600/80 backdrop-blur-sm rounded text-white text-[9px] font-bold uppercase tracking-wider pointer-events-none z-[5] animate-pulse">
-                LIVE
-            </div>
-        )}
-    </div>
-  );
+  return null;
 };
