@@ -126,7 +126,11 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
         // gap-4 equals 1rem (16px)
         const gap = 16; 
         // Calculate width of 1 column
-        const calculatedHeight = (width - (cols - 1) * gap) / cols;
+        const calculatedWidth = (width - (cols - 1) * gap) / cols;
+        // Apply a small factor (0.96) to height to correct visual aspect ratio perception
+        // or compensate for minor grid rendering differences.
+        const calculatedHeight = calculatedWidth * 0.96;
+        
         // Ensure sane minimum
         setRowHeight(Math.max(50, calculatedHeight));
     };
