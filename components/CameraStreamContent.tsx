@@ -43,18 +43,19 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
     const video = videoRef.current;
     if (!video) return;
 
-    // IMPROVED: Named function for safe removal of event listener
+    // IMPROVED: Safe play handler that ensures state is updated even if playback is blocked
     const handlePlay = async () => {
       try {
         if (video.paused && autoPlay) {
           await video.play();
         }
-        // FIX: Ensure loading state is cleared even if play fails (e.g. low power mode)
-        setIsLoading(false);
-        if (onLoaded) onLoaded();
       } catch (e) {
         console.warn("Autoplay blocked or failed:", e);
-        setIsLoading(false); 
+        // Even if autoplay fails, we consider it loaded (showing poster/frame)
+      } finally {
+        // FIX: Always clear loading state
+        setIsLoading(false);
+        if (onLoaded) onLoaded();
       }
     };
 
@@ -98,6 +99,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
       }
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        // Try to play immediately when manifest is parsed
         handlePlay();
       });
 
@@ -132,7 +134,8 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
         video.removeEventListener('loadedmetadata', handlePlay);
         video.removeEventListener('error', handleError);
         
-        // FIX: Stop downloading content
+        // FIX: Stop downloading content properly
+        video.pause();
         video.removeAttribute('src');
         video.load();
       }
@@ -141,7 +144,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
         hlsRef.current = null;
       }
     };
-  }, [streamUrl, type, autoPlay]); // Re-run only if url or type changes
+  }, [streamUrl, type, autoPlay]);
 
   // --- Рендеринг в зависимости от типа ---
 

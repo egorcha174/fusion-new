@@ -84,6 +84,9 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
 
   // 4. Логика определения потока
   useEffect(() => {
+    // Cleanup function for HLS or previous stream attempts could be handled here if needed,
+    // but CameraStreamContent handles its own internal cleanup.
+    
     if (!shouldPlay) {
       setFinalStreamUrl(null);
       setStreamType('none');
@@ -94,6 +97,8 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
 
     setIsLoading(true);
     setError(null);
+
+    let isCancelled = false;
 
     const resolveStream = async () => {
       try {
@@ -112,8 +117,10 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
              else type = 'iframe'; // Fallback to iframe for WebRTC/Unknown
            }
            
-           setFinalStreamUrl(url);
-           setStreamType(type);
+           if (!isCancelled) {
+               setFinalStreamUrl(url);
+               setStreamType(type);
+           }
            return;
         }
 
@@ -123,8 +130,10 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
           const streamData = await getCameraStreamUrl(device.id);
           if (streamData && streamData.url) {
             const fullUrl = constructHaUrl(haUrl, streamData.url, 'http');
-            setFinalStreamUrl(fullUrl);
-            setStreamType('hls');
+            if (!isCancelled) {
+                setFinalStreamUrl(fullUrl);
+                setStreamType('hls');
+            }
             return;
           }
         } catch (err) {
@@ -134,17 +143,26 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
         // Fallback: MJPEG Proxy Stream
         const result = await signPath(`/api/camera_proxy_stream/${device.id}`);
         const mjpegUrl = constructHaUrl(haUrl, result.path, 'http') + `&t=${Date.now()}`;
-        setFinalStreamUrl(mjpegUrl);
-        setStreamType('mjpeg');
+        
+        if (!isCancelled) {
+            setFinalStreamUrl(mjpegUrl);
+            setStreamType('mjpeg');
+        }
 
       } catch (e: any) {
-        console.error("Stream resolution failed:", e);
-        setError("Ошибка подключения");
-        setIsLoading(false);
+        if (!isCancelled) {
+            console.error("Stream resolution failed:", e);
+            setError("Ошибка подключения");
+            setIsLoading(false);
+        }
       }
     };
 
     resolveStream();
+
+    return () => {
+        isCancelled = true;
+    };
 
   }, [shouldPlay, device, haUrl, signPath, getCameraStreamUrl]);
 
@@ -186,10 +204,14 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
 
       {/* 3. UI Overlays (Z-Index 3+) */}
       
-      {/* Loading Spinner */}
+      {/* Loading Spinner - FIX: Removed backdrop-blur and added transparency logic */}
       {isLoading && (
-        <div className="absolute inset-0 z-[3] flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
-          <LoadingSpinner />
+        <div className="absolute inset-0 z-[3] flex items-center justify-center transition-all duration-300">
+          {/* Only dim the background if we DON'T have a snapshot. If we have a snapshot, keep it clear. */}
+          {!finalSnapshotUrl && <div className="absolute inset-0 bg-black/20" />}
+          <div className="z-10">
+             <LoadingSpinner />
+          </div>
         </div>
       )}
 
@@ -208,7 +230,7 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
       )}
 
       {/* Status Badges */}
-      <div className="absolute top-2 right-2 z-[5] flex gap-1">
+      <div className="absolute top-2 right-2 z-[5] flex gap-1 pointer-events-none">
         {isLive && (
           <div className="px-1.5 py-0.5 bg-red-600/90 backdrop-blur-sm rounded text-white text-[9px] font-bold uppercase tracking-wider animate-pulse shadow-sm">
             LIVE
@@ -221,8 +243,8 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
         )}
       </div>
       
-      {/* Play Overlay (Fallback) */}
-      {!shouldPlay && !finalSnapshotUrl && (
+      {/* Play Overlay (Fallback for completely empty state) */}
+      {!shouldPlay && !finalSnapshotUrl && !isLoading && (
          <div className="absolute inset-0 z-[3] flex items-center justify-center text-gray-500">
             <Icon icon="mdi:cctv-off" className="w-12 h-12 opacity-50" />
          </div>

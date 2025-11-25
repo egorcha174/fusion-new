@@ -113,8 +113,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
           };
       }
       
-      // For Camera or custom stream, if no template elements or default background is desired, use black. 
-      // But we allow styling via theme too.
+      // FIX: For Camera cards, default to black background to avoid "gray box" during loading
       if (isCameraCard && !hasVideoElement) {
           return {
               backgroundColor: 'black',
@@ -323,7 +322,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
     >
        {/* Layer 0: Camera Video (Background) - Only if NO video element is present */}
        {isCameraCard && !hasVideoElement && (
-           <div className="absolute inset-0 z-0">
+           <div className="absolute inset-0 z-0 bg-black">
               <UniversalCameraCard 
                   device={device}
                   haUrl={haUrl}

@@ -111,7 +111,9 @@ export function loadAndMigrate<T>(key: string, initialValue: T): T {
           // Шаг 2: Объединяем сохраненные элементы с элементами по умолчанию.
           const migratedElements = storedElements
             .map((item: unknown) => {
-              const storedEl = item as any;
+              // Explicitly cast to an object type that supports spread and property access
+              const storedEl = item as Partial<CardElement> & Record<string, any>;
+              
               if (!storedEl || !storedEl.id) return null;
               const defaultEl = defaultElementsMap.get(storedEl.id);
               if (defaultEl) {
