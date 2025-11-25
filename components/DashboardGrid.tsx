@@ -115,36 +115,47 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
   const [activeId, setActiveId] = useState<string | null>(null);
   
   // Dynamic Row Height Calculation
-  const gridRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [rowHeight, setRowHeight] = useState(100);
   const cols = tab.gridSettings.cols || 8;
+  const rows = tab.gridSettings.rows || 5;
 
   useEffect(() => {
-    const updateHeight = () => {
-        if (!gridRef.current) return;
-        const width = gridRef.current.clientWidth;
-        // gap-4 equals 1rem (16px)
-        const gap = 16; 
-        // Calculate width of 1 column
-        const calculatedWidth = (width - (cols - 1) * gap) / cols;
-        // Apply a small factor (0.96) to height to correct visual aspect ratio perception
-        // or compensate for minor grid rendering differences.
-        const calculatedHeight = calculatedWidth * 0.96;
+    const updateLayout = () => {
+        if (!containerRef.current) return;
         
-        // Ensure sane minimum
+        // Получаем доступную высоту контейнера (viewport)
+        const height = containerRef.current.clientHeight;
+        
+        // p-4 = 1rem сверху + 1rem снизу = 32px
+        const verticalPadding = 32;
+        // gap-4 = 1rem = 16px
+        const gap = 16;
+
+        // Рассчитываем доступное пространство для самих ячеек
+        const availableHeight = height - verticalPadding;
+        
+        // Вычитаем пространство, занимаемое отступами между строками
+        const totalGapHeight = Math.max(0, rows - 1) * gap;
+
+        // Делим оставшееся пространство на количество строк
+        const calculatedHeight = (availableHeight - totalGapHeight) / rows;
+        
+        // Устанавливаем минимальную высоту, чтобы интерфейс не "схлопывался" на очень маленьких экранах
+        // Но в целом стараемся уместить всё в экран.
         setRowHeight(Math.max(50, calculatedHeight));
     };
 
-    // Create observer to react to container resize (e.g. sidebar toggle)
-    const observer = new ResizeObserver(updateHeight);
-    if (gridRef.current) {
-        observer.observe(gridRef.current);
+    // Create observer to react to container resize (e.g. sidebar toggle or window resize)
+    const observer = new ResizeObserver(updateLayout);
+    if (containerRef.current) {
+        observer.observe(containerRef.current);
     }
     // Initial call
-    updateHeight();
+    updateLayout();
 
     return () => observer.disconnect();
-  }, [cols]);
+  }, [rows, cols]); // Пересчитываем, если меняются настройки сетки
 
 
   const sensors = useSensors(
@@ -192,9 +203,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
 
   const activeDevice = activeId ? allKnownDevices.get(activeId) : null;
   
-  const layoutMaxRow = Math.max(...tab.layout.map(i => i.row + (i.height || 1)), 0);
-  const rows = Math.max(tab.gridSettings.rows || 5, layoutMaxRow + 1);
-
   const filteredLayout = useMemo(() => {
       if (!searchTerm) return tab.layout;
       return tab.layout.filter(item => {
@@ -210,14 +218,16 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="w-full h-full overflow-y-auto p-4 no-scrollbar">
+      <div 
+        ref={containerRef}
+        className="w-full h-full overflow-y-auto p-4 no-scrollbar"
+      >
         <div
-          ref={gridRef}
           className="grid gap-4"
           style={{
             gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
             gridAutoRows: `${rowHeight}px`,
-            minHeight: '100%',
+            // minHeight: '100%', // Removed to allow precise fit
           }}
         >
           {isEditMode && Array.from({ length: cols * rows }).map((_, index) => {
