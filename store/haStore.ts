@@ -58,7 +58,6 @@ interface HAActions {
   triggerScene: (entityId: string) => void;
   triggerAutomation: (entityId: string) => void;
   triggerScript: (entityId: string) => void;
-  // FIX: Add missing method to interface
   updateDerivedState: () => void;
 }
 
@@ -121,8 +120,9 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           });
 
           // 2. Update Derived State (Only once per batch)
-          // We check isInitialLoadComplete inside the function
-          get().updateDerivedState();
+          if (get().isInitialLoadComplete) {
+              get().updateDerivedState();
+          }
       }
   };
   
@@ -586,7 +586,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                             // Accumulate update
                             pendingUpdates[entity_id] = new_state;
 
-                            // Schedule flush if not already scheduled
+                            // Schedule flush if not already scheduled (Throttling)
                             if (!updateThrottleTimeout) {
                                 // 100ms throttle provides good responsiveness while significantly reducing CPU load
                                 updateThrottleTimeout = setTimeout(flushUpdates, 100);

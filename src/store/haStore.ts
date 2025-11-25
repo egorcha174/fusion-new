@@ -58,7 +58,6 @@ interface HAActions {
   triggerScene: (entityId: string) => void;
   triggerAutomation: (entityId: string) => void;
   triggerScript: (entityId: string) => void;
-  // FIX: Add missing method to interface
   updateDerivedState: () => void;
 }
 
@@ -66,6 +65,8 @@ interface HAActions {
 let globalMessageId = 1;
 
 // Batching globals to reduce render frequency
+// We use pendingUpdates to accumulate state changes and apply them in a batch.
+// This drastically reduces React render cycles during high-traffic events.
 let pendingUpdates: Record<string, any> = {};
 let updateThrottleTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -102,13 +103,14 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   };
 
   // Helper to flush batched updates to state
+  // This function applies all accumulated updates to the Zustand store at once.
   const flushUpdates = () => {
       const currentPending = pendingUpdates;
       pendingUpdates = {}; // Clear immediately to start collecting next batch
       updateThrottleTimeout = null;
 
       if (Object.keys(currentPending).length > 0) {
-          // 1. Update Entities State
+          // 1. Update Entities State (Single Store Update)
           set((state) => {
               const newEntities = { ...state.entities, ...currentPending };
               // Remove deleted entities (if new_state is null)
@@ -121,8 +123,10 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           });
 
           // 2. Update Derived State (Only once per batch)
-          // We check isInitialLoadComplete inside the function
-          get().updateDerivedState();
+          // This is the heavy calculation part (mapping to rooms, etc.)
+          if (get().isInitialLoadComplete) {
+              get().updateDerivedState();
+          }
       }
   };
   
@@ -586,7 +590,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                             // Accumulate update
                             pendingUpdates[entity_id] = new_state;
 
-                            // Schedule flush if not already scheduled
+                            // Schedule flush if not already scheduled (Throttling)
                             if (!updateThrottleTimeout) {
                                 // 100ms throttle provides good responsiveness while significantly reducing CPU load
                                 updateThrottleTimeout = setTimeout(flushUpdates, 100);

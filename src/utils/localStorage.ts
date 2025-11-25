@@ -110,13 +110,19 @@ export function loadAndMigrate<T>(key: string, initialValue: T): T {
           
           // Шаг 2: Объединяем сохраненные элементы с элементами по умолчанию.
           const migratedElements = storedElements
-            .map((storedEl: any) => {
+            .map((item: unknown) => {
+              const storedEl = item as any;
               if (!storedEl || !storedEl.id) return null;
               const defaultEl = defaultElementsMap.get(storedEl.id);
               if (defaultEl) {
                 // Глубокое слияние: структура от default, значения от stored.
-                // Fix spread errors by explicit casting
-                return { ...defaultEl, ...storedEl, position: { ...defaultEl.position, ...((storedEl as any).position || {}) }, size: { ...defaultEl.size, ...((storedEl as any).size || {}) }, styles: { ...defaultEl.styles, ...((storedEl as any).styles || {}) }, };
+                return { 
+                  ...defaultEl, 
+                  ...storedEl, 
+                  position: { ...defaultEl.position, ...(storedEl.position || {}) }, 
+                  size: { ...defaultEl.size, ...(storedEl.size || {}) }, 
+                  styles: { ...defaultEl.styles, ...(storedEl.styles || {}) }, 
+                };
               }
               return null; // Отбрасываем элементы, которых больше нет в шаблоне по умолчанию.
             })

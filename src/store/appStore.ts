@@ -144,7 +144,6 @@ interface AppActions {
     // Actions for Custom Cards
     setCustomCardWidgets: (widgets: CustomCardWidget[]) => void;
     addCustomCard: () => void;
-    // FIX: Add missing method to interface
     addCustomCamera: () => void;
     updateCustomCard: (widgetId: string, updates: Partial<Omit<CustomCardWidget, 'id'>>) => void;
     deleteCustomCard: (widgetId: string) => void;
@@ -166,7 +165,7 @@ interface AppActions {
     handleAddPhysicalDeviceAsCustomCard: (physicalDevice: PhysicalDevice, tabId: string) => void;
 
     handleSaveCustomization: (originalDevice: Device, newValues: Omit<DeviceCustomization, 'name' | 'type' | 'icon' | 'isHidden'> & { name: string; type: DeviceType; icon: string; isHidden: boolean; }) => void;
-    handleToggleVisibility: (device: Device, isHidden) => void;
+    handleToggleVisibility: (device: Device, isHidden: boolean) => void;
     handleSaveTemplate: (template: CardTemplate) => void;
     handleDeleteTemplate: (templateId: string) => void;
     createNewBlankTemplate: (deviceType: DeviceType | 'custom') => CardTemplate;
