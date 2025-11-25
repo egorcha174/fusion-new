@@ -8,11 +8,16 @@ import { Icon } from '@iconify/react';
 interface VideoPlayerProps {
   src: string;
   poster?: string;
+  muted?: boolean;
   onStreamReady?: () => void;
   onError?: () => void;
 }
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, poster, onStreamReady, onError }) => {
+/**
+ * A robust video player that handles both HLS streams and direct video files (MP4/WebM).
+ * Prioritizes native HLS (Safari) and falls back to hls.js.
+ */
+const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, poster, muted = true, onStreamReady, onError }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
 
@@ -20,35 +25,84 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, poster, onStreamReady, o
     const video = videoRef.current;
     if (!video || !src) return;
 
-    if (Hls.isSupported()) {
-      const hls = new Hls({ 
-          capLevelToPlayerSize: true,
-          startLevel: -1, 
-      });
-      hlsRef.current = hls;
-      hls.loadSource(src);
-      hls.attachMedia(video);
-      
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.play().catch(() => {});
-        if (onStreamReady) onStreamReady();
-      });
+    const isHls = (url: string) => {
+        try {
+            return url.split('?')[0].toLowerCase().endsWith('.m3u8');
+        } catch {
+            return false;
+        }
+    };
 
-      hls.on(Hls.Events.ERROR, (event, data) => {
-        if (data.fatal) {
-            hls.destroy();
+    // Cleanup previous HLS instance if any
+    if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+    }
+
+    // Reset video state
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+
+    const attemptPlay = async () => {
+        try {
+            await video.play();
+            if (onStreamReady) onStreamReady();
+        } catch (e) {
+            // Autoplay might be blocked, but stream is ready
+            if (onStreamReady) onStreamReady();
+        }
+    };
+
+    const handleNativeHls = () => {
+        video.src = src;
+        video.addEventListener('loadedmetadata', attemptPlay);
+        video.addEventListener('error', () => {
+             if (onError) onError();
+        });
+    };
+
+    const handleDirectFile = () => {
+        video.src = src;
+        video.addEventListener('error', () => {
+             if (onError) onError();
+        });
+        attemptPlay();
+    };
+
+    if (isHls(src)) {
+        if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            // Native HLS support (Safari)
+            handleNativeHls();
+        } else if (Hls.isSupported()) {
+            // MSE HLS support (Chrome, Firefox, etc.)
+            const hls = new Hls({
+                capLevelToPlayerSize: true,
+                maxBufferLength: 30,
+                startLevel: -1, // Auto start level
+            });
+            hlsRef.current = hls;
+            hls.loadSource(src);
+            hls.attachMedia(video);
+
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                attemptPlay();
+            });
+
+            hls.on(Hls.Events.ERROR, (event, data) => {
+                if (data.fatal) {
+                    console.error('HLS Fatal Error:', data);
+                    hls.destroy();
+                    if (onError) onError();
+                }
+            });
+        } else {
+            console.error('HLS not supported in this browser');
             if (onError) onError();
         }
-      });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = src;
-      video.addEventListener('loadedmetadata', () => {
-        video.play().catch(() => {});
-        if (onStreamReady) onStreamReady();
-      });
-      video.addEventListener('error', () => {
-          if (onError) onError();
-      });
+    } else {
+        // Not an .m3u8 file, assume direct MP4/WebM
+        handleDirectFile();
     }
 
     return () => { 
@@ -69,8 +123,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, poster, onStreamReady, o
         ref={videoRef} 
         className="w-full h-full object-cover" 
         poster={poster}
-        muted 
-        autoPlay 
+        muted={muted}
         playsInline 
       />
     </div>
@@ -86,6 +139,12 @@ interface CameraStreamContentProps {
   refreshInterval?: number;
   autoPlay?: boolean;
   showPlayButton?: boolean;
+  // New props to allow direct usage without internal logic
+  streamUrlOverride?: string;
+  snapshotUrlOverride?: string | null;
+  onStreamReady?: () => void;
+  onError?: () => void;
+  muted?: boolean;
 }
 
 export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({ 
@@ -96,21 +155,37 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
     altText = 'Камера',
     refreshInterval = 10,
     autoPlay = false,
-    showPlayButton = true
+    showPlayButton = true,
+    streamUrlOverride,
+    snapshotUrlOverride,
+    onStreamReady,
+    onError,
+    muted = true
 }) => {
-  const [streamUrl, setStreamUrl] = useState<string | null>(null);
+  const [streamUrl, setStreamUrl] = useState<string | null>(streamUrlOverride || null);
   const [streamType, setStreamType] = useState<'hls' | 'mjpeg' | 'none'>('none');
-  const [snapshotUrl, setSnapshotUrl] = useState<string | null>(null);
+  const [snapshotUrl, setSnapshotUrl] = useState<string | null>(snapshotUrlOverride || null);
   
   const [error, setError] = useState<string | null>(null);
-  const [isStreamActive, setIsStreamActive] = useState(autoPlay);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isStreamActive, setIsStreamActive] = useState(autoPlay || !!streamUrlOverride);
+  const [isLoading, setIsLoading] = useState(!!streamUrlOverride);
   const isMountedRef = useRef(true);
+
+  // If overrides are provided (from UniversalCameraCard), rely on them
+  const isManagedMode = !!streamUrlOverride;
 
   useEffect(() => {
       isMountedRef.current = true;
       return () => { isMountedRef.current = false; };
   }, []);
+
+  useEffect(() => {
+      if (streamUrlOverride) {
+          setStreamUrl(streamUrlOverride);
+          setStreamType('hls'); // Uses the unified VideoPlayer
+          setIsLoading(true);
+      }
+  }, [streamUrlOverride]);
 
   // Safety timeout for loading
   useEffect(() => {
@@ -119,29 +194,26 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
           timeout = setTimeout(() => {
               if(isMountedRef.current && isLoading) {
                   setIsLoading(false);
-                  // Don't force error state, let it show what it can
               }
           }, 15000);
       }
       return () => clearTimeout(timeout);
   }, [isLoading]);
 
-  // Initial Snapshot Load
+  // Initial Snapshot Load (only if not managed)
   useEffect(() => {
-      if (entityId) fetchSnapshot();
-  }, [entityId]);
+      if (entityId && !isManagedMode) fetchSnapshot();
+  }, [entityId, isManagedMode]);
 
   const fetchSnapshot = useCallback(async () => {
-      if (!entityId) return;
+      if (!entityId || isManagedMode) return;
       try {
-        // Only works for standard HA cameras
         if (entityId.startsWith('internal::')) return;
 
         const result = await signPath(`/api/camera_proxy/${entityId}`);
         if (!isMountedRef.current) return;
         const url = constructHaUrl(haUrl, result.path, 'http');
         
-        // Preload
         const img = new Image();
         const finalUrl = `${url}&t=${Date.now()}`;
         img.onload = () => {
@@ -153,17 +225,17 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
       } catch (err) {
           // Silent fallback
       }
-  }, [entityId, haUrl, signPath, isStreamActive]);
+  }, [entityId, haUrl, signPath, isStreamActive, isManagedMode]);
 
   useEffect(() => {
-      if (!isStreamActive) {
+      if (!isStreamActive && !isManagedMode) {
           const interval = setInterval(fetchSnapshot, refreshInterval * 1000);
           return () => clearInterval(interval);
       }
-  }, [fetchSnapshot, refreshInterval, isStreamActive]);
+  }, [fetchSnapshot, refreshInterval, isStreamActive, isManagedMode]);
 
   const startStream = useCallback(async () => {
-      if (!entityId) return;
+      if (!entityId || isManagedMode) return;
       setIsLoading(true);
       setError(null);
 
@@ -173,7 +245,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
               const streamData = await getCameraStreamUrl(entityId);
               if (isMountedRef.current && streamData?.url) {
                   setStreamUrl(constructHaUrl(haUrl, streamData.url, 'http'));
-                  setStreamType('hls');
+                  setStreamType('hls'); // Uses unified VideoPlayer
                   return; 
               }
           } catch (e) {}
@@ -193,16 +265,42 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
               setIsStreamActive(false);
           }
       }
-  }, [entityId, haUrl, getCameraStreamUrl, signPath]);
+  }, [entityId, haUrl, getCameraStreamUrl, signPath, isManagedMode]);
 
   useEffect(() => {
-      if (isStreamActive && !streamUrl) startStream();
-      else if (!isStreamActive) {
-          setStreamUrl(null);
-          setStreamType('none');
-          setIsLoading(false);
+      if (!isManagedMode) {
+          if (isStreamActive && !streamUrl) startStream();
+          else if (!isStreamActive) {
+              setStreamUrl(null);
+              setStreamType('none');
+              setIsLoading(false);
+          }
       }
-  }, [isStreamActive, streamUrl, startStream]);
+  }, [isStreamActive, streamUrl, startStream, isManagedMode]);
+
+  const handleStreamReady = () => {
+      setIsLoading(false);
+      if (onStreamReady) onStreamReady();
+  };
+
+  const handleError = () => {
+      setError("Ошибка потока");
+      setIsLoading(false);
+      if (onError) onError();
+  };
+
+  // If used purely as a player component (isManagedMode), just render the player
+  if (isManagedMode) {
+      return (
+          <VideoPlayer 
+              src={streamUrlOverride!} 
+              poster={snapshotUrlOverride || undefined}
+              onStreamReady={handleStreamReady}
+              onError={handleError}
+              muted={muted}
+          />
+      );
+  }
 
   if (!entityId) {
       return (
@@ -214,7 +312,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
 
   return (
     <div className="relative w-full h-full bg-black overflow-hidden rounded-lg group">
-        {/* Snapshot Layer (Always visible underneath) */}
+        {/* Snapshot Layer */}
         <div className="absolute inset-0 z-0 flex items-center justify-center">
             {snapshotUrl ? (
                 <img src={snapshotUrl} className="w-full h-full object-cover opacity-70" alt={altText} />
@@ -232,8 +330,9 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
                     <VideoPlayer 
                         src={streamUrl} 
                         poster={snapshotUrl || undefined}
-                        onStreamReady={() => setIsLoading(false)}
-                        onError={() => { setError("Ошибка потока"); setIsLoading(false); }}
+                        onStreamReady={handleStreamReady}
+                        onError={handleError}
+                        muted={muted}
                     />
                 ) : (
                     <img src={streamUrl} className="w-full h-full object-cover" alt={altText} onError={() => setError("Ошибка MJPEG")} />

@@ -5,6 +5,7 @@ import { constructHaUrl } from '../utils/url';
 import LoadingSpinner from './LoadingSpinner';
 import { Icon } from '@iconify/react';
 import { Device } from '../types';
+import { CameraStreamContent } from './CameraStreamContent';
 
 interface UniversalCameraCardProps {
   device: Device;
@@ -52,8 +53,6 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
     muted = true
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const hlsRef = useRef<Hls | null>(null);
     const isMountedRef = useRef(true);
     
     const isInView = useInView(containerRef);
@@ -61,6 +60,7 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
     const shouldPlayStream = autoPlay && isInView && isPageVisible;
 
     const [streamUrl, setStreamUrl] = useState<string | null>(null);
+    // 'hls' here acts as a generic 'video player' type (HLS, MP4, WebM)
     const [streamType, setStreamType] = useState<'hls' | 'mjpeg' | 'iframe' | 'none'>('none');
     const [snapshotUrl, setSnapshotUrl] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -83,7 +83,6 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
             timeout = setTimeout(() => {
                 if (isMountedRef.current && isLoading) {
                     setIsLoading(false);
-                    // Don't set error text, just stop spinning so snapshot is shown
                     console.warn("Camera loading timed out");
                 }
             }, 15000); // 15s timeout
@@ -130,15 +129,8 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
     // --- Stream Logic ---
     useEffect(() => {
         if (!shouldPlayStream) {
-            // Cleanup
-            if (hlsRef.current) {
-                hlsRef.current.destroy();
-                hlsRef.current = null;
-            }
-            if (videoRef.current) {
-                videoRef.current.removeAttribute('src');
-                videoRef.current.load();
-            }
+            setStreamUrl(null);
+            setStreamType('none');
             setIsLoading(false);
             return;
         }
@@ -158,9 +150,14 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
                     finalUrl = customStreamUrl;
                     // Auto-detect type for custom cameras
                     if (type === 'auto') {
-                        if (finalUrl.includes('.m3u8')) type = 'hls';
-                        else if (finalUrl.match(/\.(jpg|jpeg|png)/i)) type = 'mjpeg';
-                        else type = 'iframe';
+                        const lowerUrl = finalUrl.toLowerCase();
+                        if (lowerUrl.includes('.m3u8') || lowerUrl.endsWith('.mp4') || lowerUrl.endsWith('.webm') || lowerUrl.endsWith('.kv')) {
+                            type = 'hls'; // Use the video player
+                        } else if (lowerUrl.match(/\.(jpg|jpeg|png)/i)) {
+                            type = 'mjpeg';
+                        } else {
+                            type = 'iframe'; // WebRTC/Go2RTC typical interface
+                        }
                     }
                 } else {
                     // HA Native Camera
@@ -200,7 +197,7 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
                 } else if (type === 'hls') {
                     setStreamUrl(finalUrl); 
                     setStreamType('hls');
-                    // HLS loading continues below
+                    // HLS loading continues in the child component
                 }
 
             } catch (e: any) {
@@ -215,62 +212,6 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
 
         resolveUrl();
     }, [shouldPlayStream, device.id, customStreamUrl, preferredStreamType, haUrl, signPath, getCameraStreamUrl, retryTrigger, isCustomCamera]);
-
-    // --- HLS Handler ---
-    useEffect(() => {
-        if (streamType === 'hls' && streamUrl && shouldPlayStream) {
-            if (Hls.isSupported()) {
-                if (hlsRef.current) hlsRef.current.destroy();
-                const hls = new Hls({
-                    capLevelToPlayerSize: true,
-                    maxBufferLength: 30,
-                    startLevel: -1, 
-                });
-                hlsRef.current = hls;
-                
-                if (videoRef.current) {
-                    hls.attachMedia(videoRef.current);
-                    hls.on(Hls.Events.MEDIA_ATTACHED, () => {
-                        hls.loadSource(streamUrl);
-                    });
-                    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                        videoRef.current?.play().catch(() => {});
-                        setIsLoading(false);
-                    });
-                    hls.on(Hls.Events.ERROR, (event, data) => {
-                        if (data.fatal) {
-                            hls.destroy();
-                            // Fallback to snapshot on fatal error
-                            // We set error to null to show snapshot, or handle it differently?
-                            // Current logic: if error is set, video is hidden. Perfect.
-                            setError("Ошибка потока"); 
-                            setIsLoading(false);
-                        }
-                    });
-                }
-            } else if (videoRef.current?.canPlayType('application/vnd.apple.mpegurl')) {
-                // Native HLS (Safari)
-                videoRef.current.src = streamUrl;
-                videoRef.current.addEventListener('loadedmetadata', () => {
-                    videoRef.current?.play().catch(() => {});
-                    setIsLoading(false);
-                });
-                videoRef.current.addEventListener('error', () => {
-                    setError("Ошибка потока");
-                    setIsLoading(false);
-                });
-            } else {
-                setError("HLS не поддерживается");
-                setIsLoading(false);
-            }
-        }
-        return () => {
-            if (hlsRef.current) {
-                hlsRef.current.destroy();
-                hlsRef.current = null;
-            }
-        };
-    }, [streamType, streamUrl, shouldPlayStream]);
 
 
     const handleRetry = (e: React.MouseEvent) => {
@@ -288,15 +229,19 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
         if (streamType === 'mjpeg' && streamUrl) {
             return <img src={streamUrl} className="w-full h-full object-cover" alt={device.name} onError={() => setError("Ошибка MJPEG")} />;
         }
-        if (streamType === 'hls') {
+        if (streamType === 'hls' && streamUrl) {
+            // This now uses the updated robust VideoPlayer inside CameraStreamContent
             return (
-                <video 
-                    ref={videoRef} 
-                    className="w-full h-full object-cover" 
-                    muted={muted} 
-                    playsInline 
-                    autoPlay 
-                    poster={snapshotUrl || undefined} // Critical: Show snapshot until first frame
+                <CameraStreamContent 
+                    entityId={null} // Not used for custom/resolved URLs
+                    haUrl={haUrl} // Not used here
+                    signPath={signPath} // Not used here
+                    getCameraStreamUrl={getCameraStreamUrl} // Not used here
+                    streamUrlOverride={streamUrl} // Pass the resolved URL directly
+                    snapshotUrlOverride={snapshotUrl}
+                    onStreamReady={() => setIsLoading(false)}
+                    onError={() => { setError("Ошибка потока"); setIsLoading(false); }}
+                    muted={muted}
                 />
             );
         }
