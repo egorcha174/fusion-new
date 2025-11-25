@@ -1,3 +1,5 @@
+
+
 import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
@@ -26,6 +28,7 @@ import {
     DEFAULT_SWITCH_TEMPLATE_ID,
     DEFAULT_CLIMATE_TEMPLATE_ID,
     DEFAULT_HUMIDIFIER_TEMPLATE_ID,
+    DEFAULT_CAMERA_TEMPLATE_ID,
     DEFAULT_THEMES,
     DEFAULT_AURORA_SETTINGS
 } from '../config/defaults';
@@ -143,7 +146,6 @@ interface AppActions {
     // Actions for Custom Cards
     setCustomCardWidgets: (widgets: CustomCardWidget[]) => void;
     addCustomCard: () => void;
-    addCustomCamera: () => void;
     updateCustomCard: (widgetId: string, updates: Partial<Omit<CustomCardWidget, 'id'>>) => void;
     deleteCustomCard: (widgetId: string) => void;
 
@@ -555,13 +557,24 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         };
 
         const deviceId = `internal::custom-card_${id}`;
+        const templateId = `custom-card-template-${id}`;
+        
+        // Create a new camera template instance
+        const newTemplate = get().createNewBlankTemplate(DeviceType.Camera);
+        newTemplate.id = templateId;
+        newTemplate.name = newWidget.name;
+        
+        const newTemplates = { ...get().templates, [newTemplate.id]: newTemplate };
+
         const newCustomization: DeviceCustomization = {
             ...get().customizations[deviceId],
             type: DeviceType.Camera,
             icon: 'mdi:cctv',
+            templateId: templateId, // Assign the template
         };
         const newCustomizations = { ...get().customizations, [deviceId]: newCustomization };
 
+        get().setTemplates(newTemplates);
         get().setCustomizations(newCustomizations);
         get().setCustomCardWidgets([...get().customCardWidgets, newWidget]);
     },
@@ -628,6 +641,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
                 [DeviceType.Switch]: DEFAULT_SWITCH_TEMPLATE_ID,
                 [DeviceType.Thermostat]: DEFAULT_CLIMATE_TEMPLATE_ID,
                 [DeviceType.Humidifier]: DEFAULT_HUMIDIFIER_TEMPLATE_ID,
+                [DeviceType.Camera]: DEFAULT_CAMERA_TEMPLATE_ID,
             };
             templateId = defaultMap[device.type];
         }
@@ -938,10 +952,12 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             [DeviceType.Switch]: get().templates[DEFAULT_SWITCH_TEMPLATE_ID],
             [DeviceType.Thermostat]: get().templates[DEFAULT_CLIMATE_TEMPLATE_ID],
             [DeviceType.Humidifier]: get().templates[DEFAULT_HUMIDIFIER_TEMPLATE_ID],
+            [DeviceType.Camera]: get().templates[DEFAULT_CAMERA_TEMPLATE_ID],
         };
         const typeNameMap = {
             [DeviceType.Sensor]: 'сенсор', [DeviceType.Light]: 'светильник', [DeviceType.DimmableLight]: 'светильник',
-            [DeviceType.Switch]: 'переключатель', [DeviceType.Thermostat]: 'климат', [DeviceType.Humidifier]: 'увлажнитель'
+            [DeviceType.Switch]: 'переключатель', [DeviceType.Thermostat]: 'климат', [DeviceType.Humidifier]: 'увлажнитель',
+            [DeviceType.Camera]: 'камера'
         };
         const baseTemplate = (baseMap as any)[deviceType] || get().templates[DEFAULT_SENSOR_TEMPLATE_ID];
         const newTemplate = JSON.parse(JSON.stringify(baseTemplate));

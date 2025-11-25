@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Device, DeviceType, CardTemplate, DeviceCustomizations, ColorScheme, CardElement } from '../types';
 import DeviceIcon, { getIconNameForDeviceType } from './DeviceIcon';
@@ -106,9 +108,9 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
           };
       }
       
-      // For Camera, if no template elements or default background is desired, use black. 
+      // For Camera or custom stream, if no template elements or default background is desired, use black. 
       // But we allow styling via theme too.
-      if (device.type === DeviceType.Camera) {
+      if (device.type === DeviceType.Camera || device.customStreamUrl) {
           return {
               backgroundColor: 'black',
               borderRadius: `${colorScheme.cardBorderRadius}px`,
@@ -286,6 +288,9 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
     }
   };
 
+  // We consider it a camera card if it's strictly a camera OR if it has a custom stream URL configured.
+  const isCameraCard = device.type === DeviceType.Camera || !!device.customStreamUrl;
+
   return (
     <div 
         className="select-none"
@@ -293,7 +298,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
         onClick={handleMainToggle}
     >
        {/* Layer 0: Camera Video (Background) */}
-       {device.type === DeviceType.Camera && (
+       {isCameraCard && (
            <div className="absolute inset-0 z-0">
               <UniversalCameraCard 
                   device={device}
