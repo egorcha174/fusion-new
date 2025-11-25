@@ -1,7 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
-import LoadingSpinner from './LoadingSpinner';
 import { Icon } from '@iconify/react';
 
 interface CameraStreamContentProps {
@@ -27,63 +26,60 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // FIX: Local state to force re-render on error, though parent handles main loading UI
+  const [, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  // Сброс состояния при смене URL
+  // Reset state on URL change
   useEffect(() => {
     setIsLoading(true);
     setHasError(false);
   }, [streamUrl, type]);
 
-  // --- Логика HLS и Native Video ---
+  // --- Logic for HLS and Native Video ---
   useEffect(() => {
     if (!streamUrl || (type !== 'hls' && type !== 'file')) return;
 
     const video = videoRef.current;
     if (!video) return;
 
-    // IMPROVED: Safe play handler that ensures state is updated even if playback is blocked
-    const handlePlay = async () => {
-      try {
-        if (video.paused && autoPlay) {
-          await video.play();
-        }
-      } catch (e) {
-        console.warn("Autoplay blocked or failed:", e);
-        // Even if autoplay fails, we consider it loaded (showing poster/frame)
-      } finally {
-        // FIX: Always clear loading state
-        setIsLoading(false);
-        if (onLoaded) onLoaded();
-      }
+    // IMPROVED: Use 'loadeddata' instead of 'play' promise for reliable loading state
+    const onVideoLoaded = () => {
+      setIsLoading(false);
+      if (onLoaded) onLoaded();
     };
 
-    // IMPROVED: Named function for error handling
-    const handleError = (e: Event) => {
-        console.error("Video Error:", e);
-        setHasError(true);
-        if(onError) onError("Ошибка воспроизведения");
-        setIsLoading(false);
+    // IMPROVED: Centralized error handler
+    const onVideoError = (e: Event | string) => {
+      console.error("Video Error:", e);
+      setHasError(true);
+      if (onError) onError(typeof e === 'string' ? e : "Ошибка воспроизведения");
+      setIsLoading(false);
     };
 
-    // Очистка предыдущего HLS
+    // FIX: Ensure previous HLS instance is destroyed before creating new one
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
     }
 
-    // Сценарий 1: Native HLS (Safari)
+    // FIX: Attach listeners safely
+    video.addEventListener('loadeddata', onVideoLoaded);
+    video.addEventListener('error', onVideoError);
+
+    // Scenario 1: Native HLS (Safari)
     if (type === 'hls' && video.canPlayType('application/vnd.apple.mpegurl')) {
-      // FIX: Ensure src is set before attaching listeners
+      // FIX: Set src directly for native support
       video.src = streamUrl;
-      video.addEventListener('loadedmetadata', handlePlay);
-      video.addEventListener('error', handleError);
+      if (autoPlay) {
+        // IMPROVED: Catch autoplay rejection to prevent unhandled promise errors
+        video.play().catch(() => { /* Autoplay blocked, waiting for interaction */ });
+      }
     } 
-    // Сценарий 2: HLS.js (Chrome, Firefox)
+    // Scenario 2: HLS.js (Chrome, Firefox)
     else if (type === 'hls' && Hls.isSupported()) {
       const hls = new Hls({
-        maxBufferLength: 30, // 30 секунд буфера
+        maxBufferLength: 30, 
         manifestLoadingTimeOut: 15000,
         levelLoadingTimeOut: 15000,
       });
@@ -94,59 +90,57 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
       try {
           hls.attachMedia(video);
       } catch (e) {
-          console.error("HLS Attach Error:", e);
-          setHasError(true);
+          onVideoError("HLS Attach Error");
       }
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        // Try to play immediately when manifest is parsed
-        handlePlay();
+        if (autoPlay) video.play().catch(() => {});
       });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              hls.startLoad(); // Try to recover network error
+              // IMPROVED: Try to recover network error
+              hls.startLoad(); 
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
-              hls.recoverMediaError(); // Try to recover media error
+              // IMPROVED: Try to recover media error
+              hls.recoverMediaError(); 
               break;
             default:
               hls.destroy();
-              setHasError(true);
-              if(onError) onError(`HLS Error: ${data.details}`);
+              onVideoError(`HLS Fatal: ${data.details}`);
               break;
           }
         }
       });
     } 
-    // Сценарий 3: Просто видео файл (mp4, webm)
+    // Scenario 3: Direct File (MP4, WebM)
     else if (type === 'file') {
       video.src = streamUrl;
-      video.addEventListener('loadedmetadata', handlePlay);
-      video.addEventListener('error', handleError);
+      if (autoPlay) video.play().catch(() => {});
     }
 
-    // FIX: Clean up event listeners on unmount
+    // FIX: Robust cleanup on unmount
     return () => {
       if (video) {
-        video.removeEventListener('loadedmetadata', handlePlay);
-        video.removeEventListener('error', handleError);
+        video.removeEventListener('loadeddata', onVideoLoaded);
+        video.removeEventListener('error', onVideoError);
         
-        // FIX: Stop downloading content properly
+        // IMPROVED: Stop downloading content
         video.pause();
         video.removeAttribute('src');
-        video.load();
+        video.load(); 
       }
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
     };
-  }, [streamUrl, type, autoPlay]);
+  }, [streamUrl, type, autoPlay, onLoaded, onError]);
 
-  // --- Рендеринг в зависимости от типа ---
+  // --- Rendering ---
 
   if (!streamUrl) return null;
 
@@ -185,7 +179,6 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
         poster={posterUrl || undefined}
         muted={muted}
         playsInline
-        autoPlay={autoPlay}
         controls={false}
         style={{ display: hasError ? 'none' : 'block' }}
       />
