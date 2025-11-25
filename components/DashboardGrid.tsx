@@ -105,8 +105,7 @@ const DraggableDevice: React.FC<{
         setOpenMenuDeviceId={cardProps.setOpenMenuDeviceId}
         colorScheme={colorScheme}
         isDark={isDark}
-        // Enable autoplay but rely on IntersectionObserver in the card to pause when off-screen
-        autoPlay={true}
+        autoPlay={true} // Explicitly enable autoPlay for grid cameras
       />
     </div>
   );
@@ -227,10 +226,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
     const [activeId, setActiveId] = useState<string | null>(null);
     const [activeDragItemRect, setActiveDragItemRect] = useState<{ width: number; height: number } | null>(null);
     const [openMenuDeviceId, setOpenMenuDeviceId] = useState<string | null>(null);
-    // Failsafe to ensure grid renders even if calculations are slightly off initially
     const [forceRender, setForceRender] = useState(false);
 
-    // Calculation Logic
     useLayoutEffect(() => {
         const calculateGrid = () => {
             if (!viewportRef.current) return;
@@ -238,16 +235,14 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
             const { cols, rows } = tab.gridSettings;
             const gap = 16;
             
-            // Use a minimal fallback height if the container is collapsed (avoids blank screen)
             const effectiveHeight = height > 0 ? height : Math.max(window.innerHeight - 200, 600);
-            const effectiveWidth = width > 0 ? width : window.innerWidth; // Fallback width
+            const effectiveWidth = width > 0 ? width : window.innerWidth;
             
             const cellWidth = (effectiveWidth - (cols + 1) * gap) / cols;
             const cellHeight = (effectiveHeight - (rows + 1) * gap) / rows;
             const cellSize = Math.floor(Math.min(cellWidth, cellHeight));
             
             if (cellSize <= 0) {
-                console.warn("[DashboardGrid] Calculated cell size is 0. Waiting for resize...");
                 return;
             }
             
@@ -264,11 +259,9 @@ const DashboardGrid: React.FC<DashboardGridProps> = (props) => {
         return () => resizeObserver.disconnect();
     }, [tab.gridSettings, forceRender]);
 
-    // Failsafe Effect: If metrics are 0 after mount, try to force update after a delay
     useEffect(() => {
         if (gridMetrics.cellSize === 0) {
             const timer = setTimeout(() => {
-                console.log("[DashboardGrid] Forcing render retry...");
                 setForceRender(prev => !prev);
             }, 500);
             return () => clearTimeout(timer);
