@@ -20,6 +20,15 @@ interface VideoPlayerProps {
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, poster, muted = true, onStreamReady, onError }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
+  
+  // Use refs for callbacks to avoid effect re-runs on render
+  const onStreamReadyRef = useRef(onStreamReady);
+  const onErrorRef = useRef(onError);
+
+  useEffect(() => {
+      onStreamReadyRef.current = onStreamReady;
+      onErrorRef.current = onError;
+  }, [onStreamReady, onError]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -33,41 +42,38 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, poster, muted = true, on
         }
     };
 
-    // Cleanup previous HLS instance if any
+    // Cleanup previous HLS instance if any (safety check)
     if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
     }
 
-    // Reset video state
-    video.pause();
-    video.removeAttribute('src');
-    video.load();
-
     const attemptPlay = async () => {
+        if (!video) return;
         try {
             await video.play();
-            if (onStreamReady) onStreamReady();
         } catch (e) {
             // Autoplay might be blocked, but stream is ready
-            if (onStreamReady) onStreamReady();
+        } finally {
+            if (onStreamReadyRef.current) onStreamReadyRef.current();
         }
+    };
+
+    const handleError = () => {
+         if (onErrorRef.current) onErrorRef.current();
     };
 
     const handleNativeHls = () => {
         video.src = src;
         video.addEventListener('loadedmetadata', attemptPlay);
-        video.addEventListener('error', () => {
-             if (onError) onError();
-        });
+        video.addEventListener('error', handleError);
     };
 
     const handleDirectFile = () => {
         video.src = src;
-        video.addEventListener('error', () => {
-             if (onError) onError();
-        });
-        attemptPlay();
+        video.addEventListener('loadedmetadata', attemptPlay);
+        video.addEventListener('error', handleError);
+        video.load();
     };
 
     if (isHls(src)) {
@@ -82,8 +88,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, poster, muted = true, on
                 startLevel: -1, // Auto start level
             });
             hlsRef.current = hls;
-            hls.loadSource(src);
-            hls.attachMedia(video);
+            
+            try {
+                hls.loadSource(src);
+                hls.attachMedia(video);
+            } catch (e) {
+                console.error('HLS Attach Error:', e);
+                handleError();
+            }
 
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
                 attemptPlay();
@@ -93,12 +105,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, poster, muted = true, on
                 if (data.fatal) {
                     console.error('HLS Fatal Error:', data);
                     hls.destroy();
-                    if (onError) onError();
+                    handleError();
                 }
             });
         } else {
             console.error('HLS not supported in this browser');
-            if (onError) onError();
+            handleError();
         }
     } else {
         // Not an .m3u8 file, assume direct MP4/WebM
@@ -111,11 +123,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, poster, muted = true, on
             hlsRef.current = null;
         }
         if (video) {
+            video.removeEventListener('loadedmetadata', attemptPlay);
+            video.removeEventListener('error', handleError);
+            video.pause();
             video.removeAttribute('src');
             video.load();
         }
     };
-  }, [src, onStreamReady, onError]);
+  }, [src]); // Dependencies reduced to src only
 
   return (
     <div className="w-full h-full bg-black flex items-center justify-center relative">
@@ -313,7 +328,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
   return (
     <div className="relative w-full h-full bg-black overflow-hidden rounded-lg group">
         {/* Snapshot Layer */}
-        <div className="absolute inset-0 z-0 flex items-center justify-center">
+        <div className="absolute inset-0 z-[1] flex items-center justify-center">
             {snapshotUrl ? (
                 <img src={snapshotUrl} className="w-full h-full object-cover opacity-70" alt={altText} />
             ) : (
@@ -325,7 +340,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
 
         {/* Stream Layer */}
         {isStreamActive && streamUrl && !error && (
-            <div className="absolute inset-0 z-10">
+            <div className="absolute inset-0 z-[2]">
                 {streamType === 'hls' ? (
                     <VideoPlayer 
                         src={streamUrl} 
@@ -342,14 +357,14 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
 
         {/* Loading Overlay */}
         {isLoading && (
-            <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="absolute inset-0 z-[3] flex items-center justify-center bg-black/50 backdrop-blur-sm">
                 <LoadingSpinner />
             </div>
         )}
 
         {/* Error Overlay */}
         {error && (
-            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/70 p-4 text-center">
+            <div className="absolute inset-0 z-[4] flex flex-col items-center justify-center bg-black/70 p-4 text-center">
                 <Icon icon="mdi:alert-circle" className="w-8 h-8 text-red-500 mb-2" />
                 <p className="text-xs text-white mb-2">{error}</p>
                 <button onClick={() => startStream()} className="px-3 py-1 bg-white/20 rounded text-xs text-white hover:bg-white/30 backdrop-blur-md">
@@ -361,7 +376,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
         {/* Play Button Overlay (Manual Mode) */}
         {!isStreamActive && showPlayButton && !error && (
             <div 
-                className="absolute inset-0 z-20 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute inset-0 z-[3] flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={(e) => { e.stopPropagation(); setIsStreamActive(true); }}
             >
                 <div className="p-3 rounded-full bg-white/20 backdrop-blur-md hover:bg-blue-600 hover:text-white transition-all shadow-lg">
@@ -372,7 +387,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
         
         {/* Live Badge */}
         {isStreamActive && !error && !isLoading && (
-             <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-red-600/80 backdrop-blur-sm rounded text-white text-[9px] font-bold uppercase tracking-wider pointer-events-none z-40 animate-pulse">
+             <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-red-600/80 backdrop-blur-sm rounded text-white text-[9px] font-bold uppercase tracking-wider pointer-events-none z-[5] animate-pulse">
                 LIVE
             </div>
         )}

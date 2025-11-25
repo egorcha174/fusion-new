@@ -60,8 +60,8 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
     const shouldPlayStream = autoPlay && isInView && isPageVisible;
 
     const [streamUrl, setStreamUrl] = useState<string | null>(null);
-    // 'hls' here acts as a generic 'video player' type (HLS, MP4, WebM)
-    const [streamType, setStreamType] = useState<'hls' | 'mjpeg' | 'iframe' | 'none'>('none');
+    // 'hls' or 'file' acts as a generic 'video player' type (HLS, MP4, WebM)
+    const [streamType, setStreamType] = useState<'hls' | 'file' | 'mjpeg' | 'iframe' | 'none'>('none');
     const [snapshotUrl, setSnapshotUrl] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -75,6 +75,13 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
         isMountedRef.current = true;
         return () => { isMountedRef.current = false; };
     }, []);
+
+    // --- Re-trigger load when visibility changes back to true ---
+    useEffect(() => {
+        if (shouldPlayStream) {
+            setRetryTrigger(prev => prev + 1);
+        }
+    }, [shouldPlayStream]);
 
     // --- Safety Timeout for Loading ---
     useEffect(() => {
@@ -141,7 +148,7 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
         const resolveUrl = async () => {
             try {
                 let finalUrl = '';
-                let type = preferredStreamType;
+                let type: 'auto' | 'hls' | 'mjpeg' | 'iframe' | 'file' = preferredStreamType;
 
                 if (isCustomCamera) {
                     if (!customStreamUrl) {
@@ -151,8 +158,10 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
                     // Auto-detect type for custom cameras
                     if (type === 'auto') {
                         const lowerUrl = finalUrl.toLowerCase();
-                        if (lowerUrl.includes('.m3u8') || lowerUrl.endsWith('.mp4') || lowerUrl.endsWith('.webm') || lowerUrl.endsWith('.kv')) {
-                            type = 'hls'; // Use the video player
+                        if (lowerUrl.includes('.m3u8')) {
+                            type = 'hls'; // Use the video player for HLS
+                        } else if (lowerUrl.match(/\.(mp4|webm|mov|kv)$/)) {
+                            type = 'file'; // Use the video player for direct files
                         } else if (lowerUrl.match(/\.(jpg|jpeg|png)/i)) {
                             type = 'mjpeg';
                         } else {
@@ -194,10 +203,10 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
                     setStreamUrl(urlToUse);
                     setStreamType('mjpeg');
                     setIsLoading(false);
-                } else if (type === 'hls') {
+                } else if (type === 'hls' || type === 'file') {
                     setStreamUrl(finalUrl); 
-                    setStreamType('hls');
-                    // HLS loading continues in the child component
+                    setStreamType(type as any);
+                    // HLS/File loading continues in the child component
                 }
 
             } catch (e: any) {
@@ -229,8 +238,8 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
         if (streamType === 'mjpeg' && streamUrl) {
             return <img src={streamUrl} className="w-full h-full object-cover" alt={device.name} onError={() => setError("Ошибка MJPEG")} />;
         }
-        if (streamType === 'hls' && streamUrl) {
-            // This now uses the updated robust VideoPlayer inside CameraStreamContent
+        if ((streamType === 'hls' || streamType === 'file') && streamUrl) {
+            // This uses the updated robust VideoPlayer inside CameraStreamContent
             return (
                 <CameraStreamContent 
                     entityId={null} // Not used for custom/resolved URLs
@@ -255,7 +264,7 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
             onClick={() => onCameraCardClick && onCameraCardClick(device)}
         >
             {/* 1. Background Layer: Snapshot or Placeholder */}
-            <div className="absolute inset-0 z-0 flex items-center justify-center">
+            <div className="absolute inset-0 z-[1] flex items-center justify-center">
                 {snapshotUrl ? (
                     <img 
                         src={snapshotUrl} 
@@ -275,21 +284,21 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
 
             {/* 2. Stream Layer */}
             {shouldPlayStream && !error && (
-                <div className={`absolute inset-0 z-10 transition-opacity duration-500 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+                <div className={`absolute inset-0 z-[2] transition-opacity duration-500 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
                     {renderStream()}
                 </div>
             )}
 
             {/* 3. Loading Overlay */}
             {isLoading && (
-                <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
+                <div className="absolute inset-0 z-[3] flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
                     <LoadingSpinner />
                 </div>
             )}
 
             {/* 4. Error Overlay */}
             {error && (
-                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 p-4 text-center">
+                <div className="absolute inset-0 z-[4] flex flex-col items-center justify-center bg-black/60 p-4 text-center">
                     <Icon icon="mdi:alert-circle-outline" className="w-8 h-8 text-red-500 mb-2" />
                     <button 
                         onClick={handleRetry}
@@ -302,7 +311,7 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
 
             {/* 5. Badges */}
             {shouldPlayStream && !error && !isLoading && (
-                <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-red-600/80 backdrop-blur-sm rounded text-white text-[9px] font-bold uppercase tracking-wider pointer-events-none z-40 animate-pulse">
+                <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-red-600/80 backdrop-blur-sm rounded text-white text-[9px] font-bold uppercase tracking-wider pointer-events-none z-[5] animate-pulse">
                     LIVE
                 </div>
             )}
