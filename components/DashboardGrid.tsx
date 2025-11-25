@@ -1,13 +1,12 @@
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent,
   useDraggable, useDroppable, DragOverlay, pointerWithin,
 } from '@dnd-kit/core';
-import { snapCenterToCursor } from '@dnd-kit/modifiers';
 import { motion } from 'framer-motion';
 import DeviceCard from './DeviceCard';
-import { Tab, Device, GridLayoutItem, CardTemplates, DeviceCustomizations, ThemeColors, CardTemplate } from '../types';
+import { Tab, Device, GridLayoutItem, CardTemplates, DeviceCustomizations, ThemeColors } from '../types';
 import { useAppStore } from '../store/appStore';
 import ErrorBoundary from './ErrorBoundary';
 
@@ -114,49 +113,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
   const { getTemplateForDevice, checkCollision } = useAppStore();
   const [activeId, setActiveId] = useState<string | null>(null);
   
-  // Dynamic Row Height Calculation
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [rowHeight, setRowHeight] = useState(100);
   const cols = tab.gridSettings.cols || 8;
   const rows = tab.gridSettings.rows || 5;
-
-  useEffect(() => {
-    const updateLayout = () => {
-        if (!containerRef.current) return;
-        
-        // Получаем доступную высоту контейнера (viewport)
-        const height = containerRef.current.clientHeight;
-        
-        // p-4 = 1rem сверху + 1rem снизу = 32px
-        const verticalPadding = 32;
-        // gap-4 = 1rem = 16px
-        const gap = 16;
-
-        // Рассчитываем доступное пространство для самих ячеек
-        const availableHeight = height - verticalPadding;
-        
-        // Вычитаем пространство, занимаемое отступами между строками
-        const totalGapHeight = Math.max(0, rows - 1) * gap;
-
-        // Делим оставшееся пространство на количество строк
-        const calculatedHeight = (availableHeight - totalGapHeight) / rows;
-        
-        // Устанавливаем минимальную высоту, чтобы интерфейс не "схлопывался" на очень маленьких экранах
-        // Но в целом стараемся уместить всё в экран.
-        setRowHeight(Math.max(50, calculatedHeight));
-    };
-
-    // Create observer to react to container resize (e.g. sidebar toggle or window resize)
-    const observer = new ResizeObserver(updateLayout);
-    if (containerRef.current) {
-        observer.observe(containerRef.current);
-    }
-    // Initial call
-    updateLayout();
-
-    return () => observer.disconnect();
-  }, [rows, cols]); // Пересчитываем, если меняются настройки сетки
-
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -219,15 +177,13 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
       onDragEnd={handleDragEnd}
     >
       <div 
-        ref={containerRef}
-        className="w-full h-full overflow-y-auto p-4 no-scrollbar"
+        className="w-full h-full overflow-hidden no-scrollbar"
       >
         <div
-          className="grid gap-4"
+          className="grid gap-3 h-full"
           style={{
             gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-            gridAutoRows: `${rowHeight}px`,
-            // minHeight: '100%', // Removed to allow precise fit
+            gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
           }}
         >
           {isEditMode && Array.from({ length: cols * rows }).map((_, index) => {
