@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Device } from '../types';
 import { constructHaUrl } from '../utils/url';
@@ -36,7 +37,7 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
   const [isVisible, setIsVisible] = useState(false);
   const [pageVisible, setPageVisible] = useState(!document.hidden);
 
-  // 1. Intersection Observer (Загружаем только когда видим)
+  // 1. Intersection Observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => setIsVisible(entry.isIntersecting),
@@ -46,26 +47,25 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
     return () => observer.disconnect();
   }, []);
 
-  // 2. Page Visibility API (Пауза если ушли с вкладки)
+  // 2. Page Visibility API
   useEffect(() => {
     const handleVisibilityChange = () => setPageVisible(!document.hidden);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
-  // FIX: Combine conditions to strictly control video playback
+  // FIX: Strictly control video playback based on visibility and page state
   const shouldPlay = autoPlay && isVisible && pageVisible;
 
-  // 3. Получение Snapshot (Картинка-заглушка)
+  // 3. Load Snapshot
   const loadSnapshot = useCallback(async () => {
     try {
-      // IMPROVED: Check for image extension in custom URL to use as snapshot
-      if (device.haDomain === 'internal' && device.customStreamUrl?.match(/\.(jpg|jpeg|png|webp)$/i)) {
+      // IMPROVED: Regex for detecting image extensions
+      if (device.haDomain === 'internal' && device.customStreamUrl?.match(/\.(jpg|jpeg|png|webp)($|\?)/i)) {
          setFinalSnapshotUrl(device.customStreamUrl);
          return;
       }
 
-      // Иначе идем в HA API (работает и для камер HA)
       if (!device.id.startsWith('internal::')) {
           const result = await signPath(`/api/camera_proxy/${device.id}`);
           const fullUrl = constructHaUrl(haUrl, result.path, 'http') + `&t=${Date.now()}`;
@@ -76,16 +76,12 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
     }
   }, [device, haUrl, signPath]);
 
-  // Грузим снапшот при монтировании или появлении
   useEffect(() => {
     if (isVisible) loadSnapshot();
   }, [isVisible, loadSnapshot]);
 
-  // 4. Логика определения потока
+  // 4. Stream Resolution Logic
   useEffect(() => {
-    // Cleanup function for HLS or previous stream attempts could be handled here if needed,
-    // but CameraStreamContent handles its own internal cleanup.
-    
     if (!shouldPlay) {
       setFinalStreamUrl(null);
       setStreamType('none');
@@ -101,19 +97,20 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
 
     const resolveStream = async () => {
       try {
-        // --- ВЕТКА 1: Кастомная камера (настроена вручную) ---
+        // --- BRANCH 1: Custom Camera ---
         if (device.haDomain === 'internal' || device.customStreamUrl) {
            const url = device.customStreamUrl;
            if (!url) throw new Error("URL не указан");
 
            let type: any = device.streamType || 'auto';
            
+           // IMPROVED: Robust stream type detection logic
            if (type === 'auto') {
              const cleanUrl = url.split('?')[0].toLowerCase();
              if (cleanUrl.endsWith('.m3u8')) type = 'hls';
-             else if (cleanUrl.match(/\.(mp4|webm|mov|mkv)$/)) type = 'file';
-             else if (cleanUrl.match(/\.(jpg|jpeg|png)$/)) type = 'mjpeg';
-             else type = 'iframe'; // Fallback to iframe for WebRTC/Unknown
+             else if (/\.(mp4|webm|mov|mkv)$/.test(cleanUrl)) type = 'file';
+             else if (/\.(jpg|jpeg|png|webp)$/.test(cleanUrl)) type = 'mjpeg';
+             else type = 'iframe'; // Fallback for WebRTC/Unknown
            }
            
            if (!isCancelled) {
@@ -123,8 +120,7 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
            return;
         }
 
-        // --- ВЕТКА 2: Native HA Camera ---
-        // Пытаемся получить HLS поток от HA
+        // --- BRANCH 2: Native HA Camera ---
         try {
           const streamData = await getCameraStreamUrl(device.id);
           if (streamData && streamData.url) {
@@ -136,10 +132,9 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
             return;
           }
         } catch (err) {
-          console.warn("HLS stream not available via API, falling back to MJPEG proxy");
+          console.warn("HLS stream not available, trying MJPEG");
         }
 
-        // Fallback: MJPEG Proxy Stream
         const result = await signPath(`/api/camera_proxy_stream/${device.id}`);
         const mjpegUrl = constructHaUrl(haUrl, result.path, 'http') + `&t=${Date.now()}`;
         
@@ -171,7 +166,9 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
       className="relative w-full h-full bg-black overflow-hidden rounded-lg select-none group"
       onClick={() => onCameraCardClick && onCameraCardClick(device)}
     >
-      {/* 1. Snapshot Layer (Z-Index 1) */}
+      {/* FIX: Z-Index Layering: Snapshot (1), Stream (2), UI (3+) */}
+      
+      {/* Layer 1: Snapshot */}
       {finalSnapshotUrl && (
         <img 
           src={finalSnapshotUrl} 
@@ -180,7 +177,7 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
         />
       )}
 
-      {/* 2. Video Layer (Z-Index 2) */}
+      {/* Layer 2: Live Stream */}
       {shouldPlay && finalStreamUrl && (
         <div className="absolute inset-0 z-[2]">
           <CameraStreamContent
@@ -201,18 +198,18 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
         </div>
       )}
 
-      {/* 3. UI Overlays (Z-Index 3+) */}
-      
-      {/* Loading Spinner */}
+      {/* Layer 3: Loading Spinner */}
       {isLoading && (
-        <div className="absolute inset-0 z-[3] flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
-          <LoadingSpinner />
+        <div className="absolute inset-0 z-[3] flex items-center justify-center pointer-events-none">
+          <div className="bg-black/30 backdrop-blur-sm p-2 rounded-full">
+             <LoadingSpinner />
+          </div>
         </div>
       )}
 
-      {/* Error Message */}
+      {/* Layer 4: Error Message */}
       {error && (
-        <div className="absolute inset-0 z-[4] flex flex-col items-center justify-center bg-black/60 p-4 text-center animate-in fade-in">
+        <div className="absolute inset-0 z-[4] flex flex-col items-center justify-center bg-black/70 p-4 text-center animate-in fade-in">
           <Icon icon="mdi:alert-circle-outline" className="w-8 h-8 text-red-500 mb-2" />
           <p className="text-xs text-white font-medium">{error}</p>
           <button 
@@ -224,8 +221,8 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
         </div>
       )}
 
-      {/* Status Badges */}
-      <div className="absolute top-2 right-2 z-[5] flex gap-1">
+      {/* Layer 5: Status Badges */}
+      <div className="absolute top-2 right-2 z-[5] flex gap-1 pointer-events-none">
         {isLive && (
           <div className="px-1.5 py-0.5 bg-red-600/90 backdrop-blur-sm rounded text-white text-[9px] font-bold uppercase tracking-wider animate-pulse shadow-sm">
             LIVE
@@ -238,9 +235,9 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
         )}
       </div>
       
-      {/* Play Overlay (Fallback) */}
-      {!shouldPlay && !finalSnapshotUrl && (
-         <div className="absolute inset-0 z-[3] flex items-center justify-center text-gray-500">
+      {/* Fallback */}
+      {!shouldPlay && !finalSnapshotUrl && !isLoading && (
+         <div className="absolute inset-0 z-[1] flex items-center justify-center text-gray-500 bg-gray-900">
             <Icon icon="mdi:cctv-off" className="w-12 h-12 opacity-50" />
          </div>
       )}

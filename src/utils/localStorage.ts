@@ -110,9 +110,9 @@ export function loadAndMigrate<T>(key: string, initialValue: T): T {
           
           // Шаг 2: Объединяем сохраненные элементы с элементами по умолчанию.
           const migratedElements = storedElements
-            .map((item: any) => {
-              // Use 'any' to safely handle legacy data which might not strictly match CardElement interface initially
-              const storedEl = item;
+            .map((item: unknown) => {
+              // Use casting to safely handle legacy data which might not strictly match CardElement interface initially
+              const storedEl = item as Record<string, any>;
               
               if (!storedEl || !storedEl.id) return null;
               const defaultEl = defaultElementsMap.get(storedEl.id);
