@@ -1,14 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet, GridLayoutItem, EventTimerWidget } from './types';
@@ -373,7 +363,8 @@ const App: React.FC = () => {
     const deviceId = deviceTarget?.dataset.deviceId;
     const tabId = deviceTarget?.dataset.tabId;
 
-    if (isEditMode && deviceTarget && typeof deviceId === 'string' && typeof tabId === 'string') {
+    // Allow context menu in both Edit and View mode
+    if (deviceTarget && typeof deviceId === 'string' && typeof tabId === 'string') {
         handleDeviceContextMenu(deviceId, tabId, event.clientX, event.clientY);
     } else {
         setContextMenu(null);
@@ -402,7 +393,7 @@ const App: React.FC = () => {
   const isTemplateable = contextMenuDevice ? [
     DeviceType.Sensor, DeviceType.DimmableLight, DeviceType.Light,
     DeviceType.Switch, DeviceType.Thermostat, DeviceType.Humidifier,
-    DeviceType.Custom
+    DeviceType.Custom, DeviceType.Camera
   ].includes(contextMenuDevice.type) : false;
   const currentTemplate = getTemplateForDevice(contextMenuDevice);
   const historyDevice = historyModalEntityId ? allKnownDevices.get(historyModalEntityId) : null;

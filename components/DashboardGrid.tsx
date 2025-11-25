@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent,
   useDraggable, useDroppable, DragOverlay, pointerWithin,
@@ -42,7 +42,8 @@ const DraggableDevice: React.FC<{
   device: Device;
   isEditMode: boolean;
   children: React.ReactNode;
-}> = ({ device, isEditMode, children }) => {
+  [key: string]: any;
+}> = ({ device, isEditMode, children, ...props }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: device.id,
     disabled: !isEditMode,
@@ -59,7 +60,7 @@ const DraggableDevice: React.FC<{
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} {...props}>
       {children}
     </div>
   );
@@ -112,6 +113,35 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
 }) => {
   const { getTemplateForDevice, checkCollision } = useAppStore();
   const [activeId, setActiveId] = useState<string | null>(null);
+  
+  // Dynamic Row Height Calculation
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [rowHeight, setRowHeight] = useState(100);
+  const cols = tab.gridSettings.cols || 8;
+
+  useEffect(() => {
+    const updateHeight = () => {
+        if (!gridRef.current) return;
+        const width = gridRef.current.clientWidth;
+        // gap-4 equals 1rem (16px)
+        const gap = 16; 
+        // Calculate width of 1 column
+        const calculatedHeight = (width - (cols - 1) * gap) / cols;
+        // Ensure sane minimum
+        setRowHeight(Math.max(50, calculatedHeight));
+    };
+
+    // Create observer to react to container resize (e.g. sidebar toggle)
+    const observer = new ResizeObserver(updateHeight);
+    if (gridRef.current) {
+        observer.observe(gridRef.current);
+    }
+    // Initial call
+    updateHeight();
+
+    return () => observer.disconnect();
+  }, [cols]);
+
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -158,7 +188,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
 
   const activeDevice = activeId ? allKnownDevices.get(activeId) : null;
   
-  const cols = tab.gridSettings.cols || 8;
   const layoutMaxRow = Math.max(...tab.layout.map(i => i.row + (i.height || 1)), 0);
   const rows = Math.max(tab.gridSettings.rows || 5, layoutMaxRow + 1);
 
@@ -179,9 +208,11 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
     >
       <div className="w-full h-full overflow-y-auto p-4 no-scrollbar">
         <div
-          className="grid gap-4 auto-rows-[100px]"
+          ref={gridRef}
+          className="grid gap-4"
           style={{
             gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+            gridAutoRows: `${rowHeight}px`,
             minHeight: '100%',
           }}
         >
@@ -220,7 +251,12 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
                   gridRow: `${item.row + 1} / span ${height}`,
                 }}
               >
-                <DraggableDevice device={device} isEditMode={isEditMode}>
+                <DraggableDevice 
+                    device={device} 
+                    isEditMode={isEditMode}
+                    data-device-id={device.id}
+                    data-tab-id={tab.id}
+                >
                   <ErrorBoundary isCard>
                     <DeviceCard
                       device={device}
