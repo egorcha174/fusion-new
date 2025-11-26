@@ -282,7 +282,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     auroraSettings: loadAndMigrate<AuroraSettings>(LOCAL_STORAGE_KEYS.AURORA_SETTINGS, DEFAULT_AURORA_SETTINGS),
     DEFAULT_COLOR_SCHEME: DEFAULT_COLOR_SCHEME,
     floatingCamera: null,
-    cameraSettings: { selectedEntityId: null },
+    cameraSettings: loadAndMigrate<CameraSettings>(LOCAL_STORAGE_KEYS.CAMERA_SETTINGS, { selectedEntityId: null }),
     
     // --- Actions ---
     setCurrentPage: (page) => set({ currentPage: page }),
@@ -574,7 +574,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     
     // --- Camera Actions ---
     setFloatingCamera: (device) => set({ floatingCamera: device }),
-    setCameraSettings: (settings) => set({ cameraSettings: settings }),
+    setCameraSettings: (settings) => {
+        set({ cameraSettings: settings });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.CAMERA_SETTINGS, JSON.stringify(settings));
+    },
     addCustomCamera: () => {
         const newWidget: CustomCardWidget = {
             id: `camera_${nanoid()}`,

@@ -12,22 +12,22 @@ import { useWeather } from './hooks/useWeather';
 import { Icon } from '@iconify/react';
 
 
-const Settings = lazy(() => import('./components/Settings.tsx'));
-const InfoPanel = lazy(() => import('./components/InfoPanel.tsx'));
-const DashboardHeader = lazy(() => import('./components/DashboardHeader.tsx'));
-const HelpersPage = lazy(() => import('./components/HelpersPage.tsx'));
-const AllDevicesPage = lazy(() => import('./components/AllDevicesPage.tsx'));
-const TabContent = lazy(() => import('./components/TabContent.tsx'));
-const DeviceSettingsModal = lazy(() => import('./components/DeviceSettingsModal.tsx'));
-const TabSettingsModal = lazy(() => import('./components/TabSettingsModal.tsx'));
-const ContextMenu = lazy(() => import('./components/ContextMenu.tsx'));
-const FloatingCameraWindow = lazy(() => import('./components/FloatingCameraWindow.tsx'));
-const TemplateEditorModal = lazy(() => import('./components/TemplateEditorModal.tsx'));
-const HistoryModal = lazy(() => import('./components/HistoryModal.tsx'));
-const EventTimerSettingsModal = lazy(() => import('./components/EventTimerSettingsModal.tsx'));
-const ConfirmDialog = lazy(() => import('./components/ConfirmDialog.tsx'));
-const BackgroundEffects = lazy(() => import('./components/BackgroundEffects.tsx'));
-const TemplateGallery = lazy(() => import('./components/templateGallery/TemplateGallery.tsx'));
+const Settings = lazy(() => import('./components/Settings'));
+const InfoPanel = lazy(() => import('./components/InfoPanel'));
+const DashboardHeader = lazy(() => import('./components/DashboardHeader'));
+const HelpersPage = lazy(() => import('./components/HelpersPage'));
+const AllDevicesPage = lazy(() => import('./components/AllDevicesPage'));
+const TabContent = lazy(() => import('./components/TabContent'));
+const DeviceSettingsModal = lazy(() => import('./components/DeviceSettingsModal'));
+const TabSettingsModal = lazy(() => import('./components/TabSettingsModal'));
+const ContextMenu = lazy(() => import('./components/ContextMenu'));
+const FloatingCameraWindow = lazy(() => import('./components/FloatingCameraWindow'));
+const TemplateEditorModal = lazy(() => import('./components/TemplateEditorModal'));
+const HistoryModal = lazy(() => import('./components/HistoryModal'));
+const EventTimerSettingsModal = lazy(() => import('./components/EventTimerSettingsModal'));
+const ConfirmDialog = lazy(() => import('./components/ConfirmDialog'));
+const BackgroundEffects = lazy(() => import('./components/BackgroundEffects'));
+const TemplateGallery = lazy(() => import('./components/templateGallery/TemplateGallery'));
 
 
 // Separate SubMenuItem component to avoid re-creation on every render

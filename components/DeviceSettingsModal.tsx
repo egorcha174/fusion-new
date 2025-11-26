@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Device, DeviceCustomization, DeviceType, CardTemplates, DeviceBinding, CardTemplate, ThresholdRule } from '../types';
 import DeviceIcon, { icons, getIconNameForDeviceType } from './DeviceIcon';

@@ -53,6 +53,7 @@ const iconMap: Record<DeviceType, { on: string; off: string; animation?: 'spin' 
   [DeviceType.InputText]: { on: 'mdi:form-textbox', off: 'mdi:form-textbox' },
   [DeviceType.InputSelect]: { on: 'mdi:form-dropdown', off: 'mdi:form-dropdown' },
   [DeviceType.Siren]: { on: 'mdi:bullhorn', off: 'mdi:bullhorn-outline', animation: 'pulse' },
+  [DeviceType.Camera]: { on: 'mdi:cctv', off: 'mdi:cctv-off' },
   [DeviceType.Unknown]: { on: 'mdi:help-rhombus-outline', off: 'mdi:help-rhombus-outline' },
 };
 

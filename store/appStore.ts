@@ -4,7 +4,7 @@ import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
   ColorScheme, CardTemplate, DeviceType, GridLayoutItem, DeviceCustomization,
   EventTimerWidget, CustomCardWidget, PhysicalDevice, WeatherSettings,
-  ServerConfig, ThemeDefinition, ThemePackage, AuroraSettings
+  ServerConfig, ThemeDefinition, ThemePackage, AuroraSettings, CameraSettings
 } from '../types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from '../components/DeviceIcon';
@@ -78,6 +78,10 @@ interface AppState {
     auroraSettings: AuroraSettings;
     DEFAULT_COLOR_SCHEME: ColorScheme;
     weatherData: any;
+    
+    // Camera
+    floatingCamera: Device | null;
+    cameraSettings: CameraSettings;
 }
 
 interface AppActions {
@@ -141,6 +145,11 @@ interface AppActions {
     addCustomCard: () => void;
     updateCustomCard: (widgetId: string, updates: Partial<Omit<CustomCardWidget, 'id'>>) => void;
     deleteCustomCard: (widgetId: string) => void;
+    
+    // Camera Actions
+    setFloatingCamera: (device: Device | null) => void;
+    setCameraSettings: (settings: CameraSettings) => void;
+    addCustomCamera: () => void;
 
 
     handleTabOrderChange: (newTabs: Tab[]) => void;
@@ -272,6 +281,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     backgroundEffect: initialBackgroundEffect,
     auroraSettings: loadAndMigrate<AuroraSettings>(LOCAL_STORAGE_KEYS.AURORA_SETTINGS, DEFAULT_AURORA_SETTINGS),
     DEFAULT_COLOR_SCHEME: DEFAULT_COLOR_SCHEME,
+    floatingCamera: null,
+    cameraSettings: loadAndMigrate<CameraSettings>(LOCAL_STORAGE_KEYS.CAMERA_SETTINGS, { selectedEntityId: null }),
     
     // --- Actions ---
     setCurrentPage: (page) => set({ currentPage: page }),
@@ -558,6 +569,29 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
         const newCustomizations = { ...get().customizations };
         delete newCustomizations[deviceIdToDelete];
+        get().setCustomizations(newCustomizations);
+    },
+    
+    // --- Camera Actions ---
+    setFloatingCamera: (device) => set({ floatingCamera: device }),
+    setCameraSettings: (settings) => {
+        set({ cameraSettings: settings });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.CAMERA_SETTINGS, JSON.stringify(settings));
+    },
+    addCustomCamera: () => {
+        const newWidget: CustomCardWidget = {
+            id: `camera_${nanoid()}`,
+            name: `Новая камера ${get().customCardWidgets.filter(w => w.id.startsWith('camera_')).length + 1}`,
+        };
+        get().setCustomCardWidgets([...get().customCardWidgets, newWidget]);
+        
+        const deviceId = `internal::custom-card_${newWidget.id}`;
+        const newCustomization: DeviceCustomization = {
+            ...get().customizations[deviceId],
+            type: DeviceType.Camera,
+            name: newWidget.name,
+        };
+        const newCustomizations = { ...get().customizations, [deviceId]: newCustomization };
         get().setCustomizations(newCustomizations);
     },
 

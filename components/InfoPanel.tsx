@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ClockSettings, Device, ClockSize, CameraSettings, ColorScheme, WeatherSettings } from '../types';
 import { UniversalCameraCard } from './UniversalCameraCard';
@@ -80,7 +81,11 @@ interface CameraWidgetProps {
 const CameraWidget: React.FC<CameraWidgetProps> = React.memo(({ cameras, haUrl, signPath, getCameraStreamUrl }) => {
     const { cameraSettings, setCameraSettings, setFloatingCamera } = useAppStore();
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number } | null>(null);
-    const selectedCamera = useMemo(() => cameras.find(c => c.id === cameraSettings.selectedEntityId), [cameras, cameraSettings.selectedEntityId]);
+    
+    // FIX: Safely access cameraSettings to prevent crashes if store is not fully initialized
+    const selectedCamera = useMemo(() => {
+        return cameras.find(c => c.id === cameraSettings?.selectedEntityId);
+    }, [cameras, cameraSettings]);
 
     const handleSelectCamera = (entityId: string | null) => {
         setCameraSettings({ ...cameraSettings, selectedEntityId: entityId });
@@ -112,7 +117,6 @@ const CameraWidget: React.FC<CameraWidgetProps> = React.memo(({ cameras, haUrl, 
             >
                 {selectedCamera ? (
                     <>
-                        {/* FIX: Use UniversalCameraCard for better stream handling */}
                         <UniversalCameraCard
                             device={selectedCamera}
                             haUrl={haUrl}

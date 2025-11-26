@@ -13,6 +13,7 @@ export const LOCAL_STORAGE_KEYS = {
   CLOCK_SETTINGS: 'ha-clock-settings',
   CARD_TEMPLATES: 'ha-card-templates',
   SIDEBAR_WIDTH: 'ha-sidebar-width',
+  CAMERA_SETTINGS: 'ha-camera-settings',
   THEME_MODE: 'ha-theme-mode',
   // LEGACY KEY: 'ha-themes' contains mixed built-in and custom themes. Used for migration.
   THEMES_LEGACY: 'ha-themes',

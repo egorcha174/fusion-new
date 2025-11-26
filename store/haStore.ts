@@ -37,6 +37,8 @@ interface HAState {
   allScenes: Device[];
   allAutomations: Device[];
   allScripts: Device[];
+  
+  allCameras: Device[]; // added
 }
 
 interface HAActions {
@@ -47,6 +49,7 @@ interface HAActions {
   getConfig: () => Promise<any>;
   getHistory: (entityIds: string[], startTime: string, endTime?: string) => Promise<any>;
   fetchWeatherForecasts: (entityIds: string[]) => Promise<void>;
+  getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>; // added
 
   handleDeviceToggle: (deviceId: string) => void;
   handleTemperatureChange: (deviceId: string, temperature: number, isDelta?: boolean) => void;
@@ -268,13 +271,14 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             }
           });
           
-          // Custom Cards
+          // Custom Cards (Cameras and Generic)
           customCardWidgets.forEach(widget => {
+              const isCamera = widget.id.startsWith('camera_');
               const cardDevice: Device = {
                   id: `internal::custom-card_${widget.id}`,
                   name: widget.name,
-                  status: 'Кастомная карточка',
-                  type: DeviceType.Custom,
+                  status: isCamera ? 'IP Камера' : 'Кастомная карточка',
+                  type: isCamera ? DeviceType.Camera : DeviceType.Custom,
                   haDomain: 'internal',
                   state: 'active',
                   widgetId: widget.id,
@@ -289,6 +293,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           const scenes = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Scene);
           const automations = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Automation);
           const scripts = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Script);
+          const cameras = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Camera);
           
           batteryDevicesList.sort((a, b) => a.batteryLevel - b.batteryLevel);
           
@@ -343,6 +348,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             allScenes: scenes.sort((a,b) => a.name.localeCompare(b.name)),
             allAutomations: automations.sort((a,b) => a.name.localeCompare(b.name)),
             allScripts: scripts.sort((a,b) => a.name.localeCompare(b.name)),
+            allCameras: cameras.sort((a,b) => a.name.localeCompare(b.name)),
         });
       } catch (e) {
           console.error("Error updating derived state:", e);
@@ -382,6 +388,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     allScenes: [],
     allAutomations: [],
     allScripts: [],
+    allCameras: [],
 
     connect: (url, token) => {
         // Cleanup existing connection
@@ -408,6 +415,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             devices: [],
             entityRegistry: [],
             allKnownDevices: new Map(),
+            allCameras: [],
         });
         
         // Safety timeout to prevent infinite spinner if socket hangs
@@ -641,7 +649,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             entityRegistry: [], 
             error: null, 
             isLoading: false,
-            isInitialLoadComplete: false 
+            isInitialLoadComplete: false,
+            allCameras: [],
         });
     },
     callService: (domain, service, service_data, returnResponse = false) => new Promise((resolve, reject) => {
@@ -674,6 +683,15 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         historyPeriodCallbacks.set(id, { resolve, reject });
         sendMessage({ id, type: 'history/history_during_period', entity_ids: entityIds, start_time: startTime, end_time: endTime, minimal_response: true });
     }),
+    getCameraStreamUrl: async (entityId) => {
+        try {
+            const response = await get().callService('camera', 'stream', { entity_id: entityId }, true);
+            return response;
+        } catch (e) {
+            console.error("Failed to get camera stream", e);
+            return { url: '' };
+        }
+    },
     fetchWeatherForecasts: async (entityIds) => {
         if (!entityIds.length) return;
         const forecastsMap: Record<string, WeatherForecast[]> = { ...get().forecasts };
