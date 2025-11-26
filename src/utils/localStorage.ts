@@ -1,3 +1,4 @@
+
 import { Tab, GridLayoutItem, CardTemplates, CardElement, CardTemplate, ColorScheme } from '../types';
 
 /**
@@ -110,9 +111,8 @@ export function loadAndMigrate<T>(key: string, initialValue: T): T {
           
           // Шаг 2: Объединяем сохраненные элементы с элементами по умолчанию.
           const migratedElements = storedElements
-            .map((item: unknown) => {
-              // Cast to any to handle potentially partial/legacy objects without TypeScript errors
-              const storedEl = item as any;
+            .map((item: any) => {
+              const storedEl = item;
               
               if (!storedEl || !storedEl.id) return null;
               const defaultEl = defaultElementsMap.get(storedEl.id);

@@ -41,14 +41,13 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
     const video = videoRef.current;
     if (!video) return;
 
-    // FIX: Cleanup previous HLS instance before creating a new one
+    // Cleanup previous HLS instance before creating a new one
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
     }
 
     const handleVideoLoaded = () => {
-      // FIX: Notify parent that stream is ready
       if (onLoaded) onLoaded();
     };
 
@@ -74,7 +73,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
 
         hls.loadSource(streamUrl);
 
-        // FIX: Wrap attachMedia in try/catch
+        // Wrap attachMedia in try/catch
         try {
           hls.attachMedia(video);
         } catch (e) {
@@ -84,7 +83,6 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           if (autoPlay) {
-            // FIX: Catch autoplay rejection
             video.play().catch(() => console.debug("Autoplay blocked"));
           }
         });
@@ -94,12 +92,10 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
             switch (data.type) {
               case Hls.ErrorTypes.NETWORK_ERROR:
                 console.warn("HLS Network Error, recovering...");
-                // IMPROVED: Try to recover network error
                 hls.startLoad();
                 break;
               case Hls.ErrorTypes.MEDIA_ERROR:
                 console.warn("HLS Media Error, recovering...");
-                // IMPROVED: Try to recover media error
                 hls.recoverMediaError();
                 break;
               default:
@@ -111,7 +107,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
           }
         });
       } 
-      // FIX: Native HLS fallback (Safari)
+      // Native HLS fallback (Safari)
       else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = streamUrl;
         if (autoPlay) {
@@ -129,13 +125,13 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
       }
     }
 
-    // FIX: Robust cleanup
+    // Robust cleanup
     return () => {
       if (video) {
         video.removeEventListener('loadeddata', handleVideoLoaded);
         video.removeEventListener('error', handleError);
         video.pause();
-        // IMPROVED: Stop buffering immediately
+        // Stop buffering immediately
         video.removeAttribute('src'); 
         video.load(); 
       }
@@ -182,8 +178,9 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
         className={className}
         poster={posterUrl || undefined}
         muted={muted}
-        playsInline // IMPROVED: Required for iOS autoplay
+        playsInline // Required for iOS autoplay
         controls={false} // Custom UI usually handles controls
+        crossOrigin="anonymous"
         style={{ display: hasError ? 'none' : 'block' }}
       />
     );

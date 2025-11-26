@@ -54,35 +54,58 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
-  // FIX: Strictly control video playback based on visibility and page state
+  // Strictly control video playback based on visibility and page state
   const shouldPlay = autoPlay && isVisible && pageVisible;
+
+  // Destructure device properties to prevent unnecessary effect re-runs
+  const { id: deviceId, haDomain, customStreamUrl, streamType: deviceStreamType } = device;
 
   // 3. Load Snapshot
   const loadSnapshot = useCallback(async () => {
     try {
-      // IMPROVED: Regex for detecting image extensions
-      if (device.haDomain === 'internal' && device.customStreamUrl?.match(/\.(jpg|jpeg|png|webp)($|\?)/i)) {
-         setFinalSnapshotUrl(device.customStreamUrl);
+      // Regex for detecting image extensions
+      if (haDomain === 'internal' && customStreamUrl?.match(/\.(jpg|jpeg|png|webp)($|\?)/i)) {
+         setFinalSnapshotUrl(customStreamUrl);
          return;
       }
 
-      if (!device.id.startsWith('internal::')) {
-          const result = await signPath(`/api/camera_proxy/${device.id}`);
+      if (!deviceId.startsWith('internal::')) {
+          const result = await signPath(`/api/camera_proxy/${deviceId}`);
           const fullUrl = constructHaUrl(haUrl, result.path, 'http') + `&t=${Date.now()}`;
           setFinalSnapshotUrl(fullUrl);
       }
     } catch (e) {
       console.warn("Failed to load snapshot", e);
     }
-  }, [device, haUrl, signPath]);
+  }, [deviceId, haDomain, customStreamUrl, haUrl, signPath]);
 
   useEffect(() => {
     if (isVisible) loadSnapshot();
   }, [isVisible, loadSnapshot]);
 
+  // Helper to fetch MJPEG stream
+  const fetchMjpegStream = useCallback(async () => {
+      try {
+          setIsLoading(true);
+          setError(null);
+          // Fallback: MJPEG Proxy Stream
+          const result = await signPath(`/api/camera_proxy_stream/${deviceId}`);
+          const mjpegUrl = constructHaUrl(haUrl, result.path, 'http') + `&t=${Date.now()}`;
+          setFinalStreamUrl(mjpegUrl);
+          setStreamType('mjpeg');
+          // MJPEG loads "instantly" in terms of connection, but we wait for onLoad in the image tag
+      } catch (e) {
+          console.error("MJPEG resolution failed:", e);
+          setError("Ошибка подключения (MJPEG)");
+          setIsLoading(false);
+      }
+  }, [deviceId, haUrl, signPath]);
+
   // 4. Stream Resolution Logic
   useEffect(() => {
     if (!shouldPlay) {
+      // Do not clear immediately to avoid black flash if visibility toggles quickly?
+      // Actually, for performance, we should clear.
       setFinalStreamUrl(null);
       setStreamType('none');
       setIsLive(false);
@@ -90,6 +113,8 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
       return;
     }
 
+    // Only set loading if we don't have a stream yet or if inputs changed substantially
+    // But since we fixed dependencies, this runs only when needed.
     setIsLoading(true);
     setError(null);
 
@@ -98,13 +123,13 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
     const resolveStream = async () => {
       try {
         // --- BRANCH 1: Custom Camera ---
-        if (device.haDomain === 'internal' || device.customStreamUrl) {
-           const url = device.customStreamUrl;
+        if (haDomain === 'internal' || customStreamUrl) {
+           const url = customStreamUrl;
            if (!url) throw new Error("URL не указан");
 
-           let type: any = device.streamType || 'auto';
+           let type: any = deviceStreamType || 'auto';
            
-           // IMPROVED: Robust stream type detection logic
+           // Robust stream type detection logic
            if (type === 'auto') {
              const cleanUrl = url.split('?')[0].toLowerCase();
              if (cleanUrl.endsWith('.m3u8')) type = 'hls';
@@ -122,7 +147,7 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
 
         // --- BRANCH 2: Native HA Camera ---
         try {
-          const streamData = await getCameraStreamUrl(device.id);
+          const streamData = await getCameraStreamUrl(deviceId);
           if (streamData && streamData.url) {
             const fullUrl = constructHaUrl(haUrl, streamData.url, 'http');
             if (!isCancelled) {
@@ -135,18 +160,15 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
           console.warn("HLS stream not available, trying MJPEG");
         }
 
-        const result = await signPath(`/api/camera_proxy_stream/${device.id}`);
-        const mjpegUrl = constructHaUrl(haUrl, result.path, 'http') + `&t=${Date.now()}`;
-        
+        // If HLS retrieval failed (or returned no URL), try MJPEG immediately
         if (!isCancelled) {
-            setFinalStreamUrl(mjpegUrl);
-            setStreamType('mjpeg');
+            await fetchMjpegStream();
         }
 
       } catch (e: any) {
         if (!isCancelled) {
             console.error("Stream resolution failed:", e);
-            setError("Ошибка подключения");
+            setError(e.message || "Ошибка подключения");
             setIsLoading(false);
         }
       }
@@ -158,7 +180,21 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
         isCancelled = true;
     };
 
-  }, [shouldPlay, device, haUrl, signPath, getCameraStreamUrl]);
+  }, [shouldPlay, deviceId, haDomain, customStreamUrl, deviceStreamType, haUrl, signPath, getCameraStreamUrl, fetchMjpegStream]);
+
+  // Handler for stream errors (e.g. HLS fails to play)
+  const handleStreamError = (msg: string) => {
+      console.warn(`Stream error (${streamType}): ${msg}`);
+      if (streamType === 'hls') {
+          console.log("Attempting fallback to MJPEG...");
+          // Switch to MJPEG
+          fetchMjpegStream();
+      } else {
+          setError(msg);
+          setIsLoading(false);
+          setIsLive(false);
+      }
+  };
 
   return (
     <div 
@@ -166,8 +202,6 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
       className="relative w-full h-full bg-black overflow-hidden rounded-lg select-none group"
       onClick={() => onCameraCardClick && onCameraCardClick(device)}
     >
-      {/* FIX: Z-Index Layering: Snapshot (1), Stream (2), UI (3+) */}
-      
       {/* Layer 1: Snapshot */}
       {finalSnapshotUrl && (
         <img 
@@ -190,9 +224,8 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
               setIsLoading(false);
             }}
             onError={(msg) => {
-              setError(msg);
-              setIsLoading(false);
-              setIsLive(false);
+                // Only handle if mounted
+                handleStreamError(msg);
             }}
           />
         </div>
@@ -212,6 +245,9 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
         <div className="absolute inset-0 z-[4] flex flex-col items-center justify-center bg-black/70 p-4 text-center animate-in fade-in">
           <Icon icon="mdi:alert-circle-outline" className="w-8 h-8 text-red-500 mb-2" />
           <p className="text-xs text-white font-medium">{error}</p>
+          {device.haDomain === 'internal' && !device.customStreamUrl && (
+              <p className="text-[10px] text-gray-400 mt-1">Настройте URL потока в редакторе.</p>
+          )}
           <button 
             onClick={(e) => { e.stopPropagation(); setIsLoading(true); setError(null); }} 
             className="mt-2 px-3 py-1 bg-white/10 hover:bg-white/20 rounded text-[10px] text-white transition-colors"
