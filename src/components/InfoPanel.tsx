@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ClockSettings, Device, ClockSize, CameraSettings, ColorScheme, WeatherSettings } from '../types';
 import { UniversalCameraCard } from './UniversalCameraCard';
@@ -112,6 +113,7 @@ const CameraWidget: React.FC<CameraWidgetProps> = React.memo(({ cameras, haUrl, 
             >
                 {selectedCamera ? (
                     <>
+                        {/* FIX: Use UniversalCameraCard for better stream handling */}
                         <UniversalCameraCard
                             device={selectedCamera}
                             haUrl={haUrl}
@@ -153,10 +155,16 @@ const CameraWidget: React.FC<CameraWidgetProps> = React.memo(({ cameras, haUrl, 
 interface InfoPanelProps {
     sidebarWidth: number;
     setSidebarWidth: (width: number) => void;
-    cameras: Device[];
+    // Add allCameras prop here to pass down
+    // Note: The App component passes `allCameras` prop but it was missing in interface in original `InfoPanel.tsx` code
+    // Wait, the original `InfoPanel.tsx` didn't have cameras prop in interface but used it in component?
+    // No, `App.tsx` passed it: `<InfoPanel ... cameras={allCameras} ... />`
+    // So I need to add `cameras: Device[]` to `InfoPanelProps` here.
+    // AND add `getCameraStreamUrl` to props.
+    cameras?: Device[]; // Make optional to avoid breaking existing usages if any (though App.tsx passes it)
     haUrl: string;
     signPath: (path: string) => Promise<{ path: string }>;
-    getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
+    getCameraStreamUrl?: (entityId: string) => Promise<{ url: string }>;
     getConfig: () => Promise<any>;
     colorScheme: ColorScheme['light'];
     isDark: boolean;
@@ -166,7 +174,7 @@ interface InfoPanelProps {
  * Боковая информационная панель, содержащая часы, виджет камеры и виджет погоды.
  * Поддерживает изменение ширины путем перетаскивания правого края.
  */
-const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, cameras, haUrl, signPath, getCameraStreamUrl, getConfig, colorScheme, isDark }) => {
+const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, cameras = [], haUrl, signPath, getCameraStreamUrl = async () => ({ url: '' }), getConfig, colorScheme, isDark }) => {
     const [isResizing, setIsResizing] = useState(false);
     const { clockSettings, weatherProvider, weatherEntityId, openWeatherMapKey, yandexWeatherKey, forecaApiKey, weatherSettings } = useAppStore();
 

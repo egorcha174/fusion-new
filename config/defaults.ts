@@ -5,7 +5,6 @@ import {
     CardTemplate,
     DeviceType,
     ClockSettings,
-    CameraSettings,
     WeatherSettings,
     ThemeDefinition,
     AuroraSettings
@@ -19,7 +18,6 @@ export const DEFAULT_LIGHT_TEMPLATE_ID = 'default-light';
 export const DEFAULT_SWITCH_TEMPLATE_ID = 'default-switch';
 export const DEFAULT_CLIMATE_TEMPLATE_ID = 'default-climate';
 export const DEFAULT_HUMIDIFIER_TEMPLATE_ID = 'humidifier-card';
-export const DEFAULT_CAMERA_TEMPLATE_ID = 'default-camera';
 
 // --- Default Font Family ---
 export const DEFAULT_FONT_FAMILY = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
@@ -88,17 +86,6 @@ const humidifierTemplate: CardTemplate = {
   ],
 };
 
-const defaultCameraTemplate: CardTemplate = {
-    id: DEFAULT_CAMERA_TEMPLATE_ID, name: 'Стандартная камера', deviceType: 'camera',
-    styles: { },
-    width: 2,
-    height: 2,
-    elements: [
-      { id: 'name', uniqueId: nanoid(), visible: true, position: { x: 5, y: 85 }, size: { width: 90, height: 10 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 14, textAlign: 'center', onColor: 'white', offColor: 'white' } },
-      { id: 'status', uniqueId: nanoid(), visible: true, position: { x: 5, y: 5 }, size: { width: 30, height: 8 }, zIndex: 2, styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 12, onColor: '#ef4444', offColor: 'rgba(255,255,255,0.7)' } },
-    ],
-};
-
 const customCardTemplate: CardTemplate = {
     id: 'custom-template', name: 'Стандартная кастомная', deviceType: 'custom',
     styles: { },
@@ -114,7 +101,6 @@ export const defaultTemplates: CardTemplates = {
     [DEFAULT_LIGHT_TEMPLATE_ID]: defaultLightTemplate,
     [DEFAULT_SWITCH_TEMPLATE_ID]: defaultSwitchTemplate,
     [DEFAULT_CLIMATE_TEMPLATE_ID]: defaultClimateTemplate,
-    [DEFAULT_CAMERA_TEMPLATE_ID]: defaultCameraTemplate,
     'humidifier-card': humidifierTemplate,
     'custom-template': customCardTemplate,
 };
@@ -124,7 +110,6 @@ export const DEFAULT_COLOR_SCHEME: ColorScheme = (appleTheme as { colorScheme: C
 
 // --- Other Default Settings ---
 export const defaultClockSettings: ClockSettings = { format: '24h', showSeconds: true, size: 'md' };
-export const defaultCameraSettings: CameraSettings = { selectedEntityId: null, refreshInterval: 10 };
 export const DEFAULT_SIDEBAR_WIDTH = 320;
 export const DEFAULT_SIDEBAR_VISIBLE = true;
 export const DEFAULT_THEME_MODE: 'day' | 'night' | 'auto' | 'schedule' = 'auto';

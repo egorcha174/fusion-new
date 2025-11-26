@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Device, DeviceCustomization, DeviceType, CardTemplates, DeviceBinding, CardTemplate, ThresholdRule } from '../types';
 import DeviceIcon, { icons, getIconNameForDeviceType } from './DeviceIcon';
@@ -42,8 +43,6 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
     setType(newType);
     // When the type changes, also update the icon to match, using the Iconify name.
     setIcon(getIconNameForDeviceType(newType, false));
-    // Reset template to avoid incompatible selections
-    setTemplateId('');
   };
 
   const handleSave = () => {
@@ -212,6 +211,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                       <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Тип потока</label>
                       <select 
                           value={streamType} 
+                          // FIX: Cast to any to resolve type mismatch with SetStateAction
                           onChange={e => setStreamType(e.target.value as any)} 
                           className="w-full bg-white dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm"
                       >

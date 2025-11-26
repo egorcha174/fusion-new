@@ -26,7 +26,6 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
 
   // --- Приоритет 1: Прямое сопоставление домена (однозначные случаи) ---
   switch (domain) {
-    case 'camera': return DeviceType.Camera;
     case 'weather': return DeviceType.Weather;
     case 'climate': return DeviceType.Thermostat;
     case 'fan': return DeviceType.Fan;
@@ -294,9 +293,6 @@ const entityToDevice = (
     haDeviceClass: attributes.device_class,
     state: entity.state,
     attributes: attributes, // Store raw attributes
-    // Пробрасываем настройки потока
-    customStreamUrl: customization.customStreamUrl,
-    streamType: customization.streamType,
   };
 
   // Добавляем специфичные для типов устройств атрибуты

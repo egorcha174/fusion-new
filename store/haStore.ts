@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device, Room, RoomWithPhysicalDevices, PhysicalDevice, DeviceType, WeatherForecast } from '../types';
 import { constructHaUrl } from '../utils/url';
@@ -32,7 +33,6 @@ interface HAState {
   allKnownDevices: Map<string, Device>;
   allRoomsForDevicePage: Room[];
   allRoomsWithPhysicalDevices: RoomWithPhysicalDevices[];
-  allCameras: Device[];
   batteryDevices: BatteryDevice[];
   allScenes: Device[];
   allAutomations: Device[];
@@ -44,7 +44,6 @@ interface HAActions {
   disconnect: () => void;
   callService: (domain: string, service: string, service_data: object, returnResponse?: boolean) => Promise<any>;
   signPath: (path: string) => Promise<{ path: string }>;
-  getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
   getConfig: () => Promise<any>;
   getHistory: (entityIds: string[], startTime: string, endTime?: string) => Promise<any>;
   fetchWeatherForecasts: (entityIds: string[]) => Promise<void>;
@@ -73,7 +72,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   
   // Callback maps to handle responses to specific command IDs
   const signPathCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
-  const cameraStreamCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
   const configCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
   const historyPeriodCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
   const serviceReturnCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
@@ -86,7 +84,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
 
   const clearCallbacks = () => {
       signPathCallbacks.clear();
-      cameraStreamCallbacks.clear();
       configCallbacks.clear();
       historyPeriodCallbacks.clear();
       serviceReturnCallbacks.clear();
@@ -289,7 +286,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           });
 
           // Specific Categories
-          const cameras = Array.from(deviceMap.values()).filter((d: Device) => d.haDomain === 'camera');
           const scenes = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Scene);
           const automations = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Automation);
           const scripts = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Script);
@@ -342,7 +338,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           set({ 
             allKnownDevices: deviceMap, 
             allRoomsForDevicePage: rooms, 
-            allCameras: cameras, 
             batteryDevices: batteryDevicesList, 
             allRoomsWithPhysicalDevices,
             allScenes: scenes.sort((a,b) => a.name.localeCompare(b.name)),
@@ -383,7 +378,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     allKnownDevices: new Map(),
     allRoomsForDevicePage: [],
     allRoomsWithPhysicalDevices: [],
-    allCameras: [],
     batteryDevices: [],
     allScenes: [],
     allAutomations: [],
@@ -498,7 +492,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
 
                     case 'result':
                         // 1. Check explicit promise callbacks first
-                        const callbacks = [signPathCallbacks, cameraStreamCallbacks, configCallbacks, historyPeriodCallbacks, serviceReturnCallbacks];
+                        const callbacks = [signPathCallbacks, configCallbacks, historyPeriodCallbacks, serviceReturnCallbacks];
                         let handledCallback = false;
                         for (const cbMap of callbacks) {
                             if (cbMap.has(data.id)) {
@@ -669,11 +663,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         const id = globalMessageId++;
         signPathCallbacks.set(id, { resolve, reject });
         sendMessage({ id, type: 'auth/sign_path', path });
-    }),
-    getCameraStreamUrl: (entityId) => new Promise((resolve, reject) => {
-        const id = globalMessageId++;
-        cameraStreamCallbacks.set(id, { resolve, reject });
-        sendMessage({ id, type: 'camera/stream', entity_id: entityId });
     }),
     getConfig: () => new Promise((resolve, reject) => {
         const id = globalMessageId++;

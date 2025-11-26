@@ -1,14 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet, GridLayoutItem, EventTimerWidget } from './types';
@@ -19,26 +9,28 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeInjector from './components/ThemeInjector';
 import { useWeather } from './hooks/useWeather';
+import { Icon } from '@iconify/react';
 
 
-const Settings = lazy(() => import('./components/Settings.tsx'));
-const InfoPanel = lazy(() => import('./components/InfoPanel.tsx'));
-const DashboardHeader = lazy(() => import('./components/DashboardHeader.tsx'));
-const HelpersPage = lazy(() => import('./components/HelpersPage.tsx'));
-const AllDevicesPage = lazy(() => import('./components/AllDevicesPage.tsx'));
-const TabContent = lazy(() => import('./components/TabContent.tsx'));
-const DeviceSettingsModal = lazy(() => import('./components/DeviceSettingsModal.tsx'));
-const TabSettingsModal = lazy(() => import('./components/TabSettingsModal.tsx'));
-const ContextMenu = lazy(() => import('./components/ContextMenu.tsx'));
-const FloatingCameraWindow = lazy(() => import('./components/FloatingCameraWindow.tsx'));
-const TemplateEditorModal = lazy(() => import('./components/TemplateEditorModal.tsx'));
-const HistoryModal = lazy(() => import('./components/HistoryModal.tsx'));
-const EventTimerSettingsModal = lazy(() => import('./components/EventTimerSettingsModal.tsx'));
-const ConfirmDialog = lazy(() => import('./components/ConfirmDialog.tsx'));
-const BackgroundEffects = lazy(() => import('./components/BackgroundEffects.tsx'));
-const TemplateGallery = lazy(() => import('./components/templateGallery/TemplateGallery.tsx'));
+const Settings = lazy(() => import('./components/Settings'));
+const InfoPanel = lazy(() => import('./components/InfoPanel'));
+const DashboardHeader = lazy(() => import('./components/DashboardHeader'));
+const HelpersPage = lazy(() => import('./components/HelpersPage'));
+const AllDevicesPage = lazy(() => import('./components/AllDevicesPage'));
+const TabContent = lazy(() => import('./components/TabContent'));
+const DeviceSettingsModal = lazy(() => import('./components/DeviceSettingsModal'));
+const TabSettingsModal = lazy(() => import('./components/TabSettingsModal'));
+const ContextMenu = lazy(() => import('./components/ContextMenu'));
+const FloatingCameraWindow = lazy(() => import('./components/FloatingCameraWindow'));
+const TemplateEditorModal = lazy(() => import('./components/TemplateEditorModal'));
+const HistoryModal = lazy(() => import('./components/HistoryModal'));
+const EventTimerSettingsModal = lazy(() => import('./components/EventTimerSettingsModal'));
+const ConfirmDialog = lazy(() => import('./components/ConfirmDialog'));
+const BackgroundEffects = lazy(() => import('./components/BackgroundEffects'));
+const TemplateGallery = lazy(() => import('./components/templateGallery/TemplateGallery'));
 
 
+// Separate SubMenuItem component to avoid re-creation on every render
 const SubMenuItem: React.FC<{
     children: React.ReactNode;
     title: string;
@@ -112,7 +104,7 @@ const App: React.FC = () => {
     } = useHAStore();
 
     const {
-        currentPage, isEditMode, setEditingDevice,
+        currentPage, setCurrentPage, isEditMode, setIsEditMode, setEditingDevice,
         editingTab, setEditingTab, editingTemplate, setEditingTemplate, searchTerm,
         contextMenu, setContextMenu, setFloatingCamera,
         historyModalEntityId, setHistoryModalEntityId,
@@ -124,11 +116,11 @@ const App: React.FC = () => {
         editingEventTimerId, setEditingEventTimerId, eventTimerWidgets,
         resetCustomWidgetTimer, deleteCustomWidget, backgroundEffect,
         isSettingsOpen, setSettingsOpen,
-        weatherData
+        weatherData,
+        addCustomCard, addCustomWidget, addCustomCamera, floatingCamera
     } = useAppStore();
 
     const editingDevice = useAppStore(state => state.editingDevice);
-    const floatingCamera = useAppStore(state => state.floatingCamera);
     const [confirmingDeleteWidget, setConfirmingDeleteWidget] = useState<EventTimerWidget | null>(null);
 
     const cardSizes = [
@@ -327,18 +319,13 @@ const App: React.FC = () => {
         if (!icon) return 'none';
 
         // Determine effect based on OWM icon code
-        // Thunderstorm (11)
         if (icon.startsWith('11')) return 'thunderstorm';
-        // Rain (09, 10)
         if (['09', '10'].some(c => icon.startsWith(c))) return 'rain-clouds';
-        // Snow (13)
         if (icon.startsWith('13')) return 'snow';
-        // Fog (50) or Clouds (02, 03, 04) - Cloudy
         if (['02', '03', '04', '50'].some(c => icon.startsWith(c))) return 'strong-cloudy';
-        // Clear Night (01n) - Aurora
         if (icon === '01n') return 'aurora';
+        if (icon === '01d') return 'sun-glare';
         
-        // Default for clear day
         return 'none';
     }, [backgroundEffect, weatherData]);
 
@@ -359,26 +346,34 @@ const App: React.FC = () => {
   }, [setContextMenu]);
   
   const handleGlobalContextMenu = useCallback((event: React.MouseEvent) => {
+    event.preventDefault();
     const target = event.target as HTMLElement;
-    const isDashboard = currentPage === 'dashboard';
-
-    if (isDashboard) {
-      const isInteractiveElement = target.closest('input, textarea, [contenteditable="true"], select');
-      if (!isInteractiveElement) {
-        event.preventDefault();
-      }
+    
+    // Check if right-clicked on interactive element
+    const isInteractiveElement = target.closest('input, textarea, [contenteditable="true"], select, button, a');
+    if (isInteractiveElement) {
+        return; // Let default browser menu appear for inputs
     }
 
     const deviceTarget = target.closest('[data-device-id]') as HTMLElement | null;
     const deviceId = deviceTarget?.dataset.deviceId;
     const tabId = deviceTarget?.dataset.tabId;
 
-    if (isEditMode && deviceTarget && typeof deviceId === 'string' && typeof tabId === 'string') {
+    if (deviceTarget && typeof deviceId === 'string' && typeof tabId === 'string') {
+        // Device Context Menu
         handleDeviceContextMenu(deviceId, tabId, event.clientX, event.clientY);
     } else {
-        setContextMenu(null);
+        // Global Dashboard Context Menu (Empty space click)
+        if (activeTabId) {
+            setContextMenu({ 
+                x: event.clientX, 
+                y: event.clientY, 
+                deviceId: 'dashboard-global', // Special ID for global menu
+                tabId: activeTabId 
+            });
+        }
     }
-  }, [isEditMode, handleDeviceContextMenu, setContextMenu, currentPage]);
+  }, [handleDeviceContextMenu, setContextMenu, activeTabId]);
 
   if (connectionStatus !== 'connected') {
     return (
@@ -398,13 +393,13 @@ const App: React.FC = () => {
     );
   }
   
-  const contextMenuDevice = contextMenu ? allKnownDevices.get(contextMenu.deviceId) : null;
+  const isGlobalMenu = contextMenu?.deviceId === 'dashboard-global';
+  const contextMenuDevice = contextMenu && !isGlobalMenu ? allKnownDevices.get(contextMenu.deviceId) : null;
   const isTemplateable = contextMenuDevice ? [
     DeviceType.Sensor, DeviceType.DimmableLight, DeviceType.Light,
     DeviceType.Switch, DeviceType.Thermostat, DeviceType.Humidifier,
     DeviceType.Custom, DeviceType.Camera
   ].includes(contextMenuDevice.type) : false;
-  const currentTemplate = getTemplateForDevice(contextMenuDevice);
   const historyDevice = historyModalEntityId ? allKnownDevices.get(historyModalEntityId) : null;
   const historyDeviceTemplate = getTemplateForDevice(historyDevice);
   const valueElement = historyDeviceTemplate?.elements.find(el => el.id === 'value' || el.id === 'temperature');
@@ -448,10 +443,8 @@ const App: React.FC = () => {
           <InfoPanel 
             sidebarWidth={sidebarWidth} 
             setSidebarWidth={setSidebarWidth}
-            cameras={allCameras}
             haUrl={haUrl}
             signPath={signPath}
-            getCameraStreamUrl={getCameraStreamUrl}
             getConfig={getConfig}
             colorScheme={currentColorScheme}
             isDark={isDark}
@@ -498,7 +491,28 @@ const App: React.FC = () => {
       {contextMenu && (
         <Suspense fallback={null}>
           <ContextMenu x={contextMenu.x} y={contextMenu.y} isOpen={!!contextMenu} onClose={handleCloseContextMenu}>
-            {contextMenuDevice && (
+            {/* GLOBAL DASHBOARD CONTEXT MENU */}
+            {isGlobalMenu ? (
+                <>
+                    <div onClick={() => { setIsEditMode(!isEditMode); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm flex items-center gap-2">
+                        <Icon icon={isEditMode ? "mdi:check" : "mdi:pencil"} className="w-4 h-4" />
+                        {isEditMode ? 'Завершить редактирование' : 'Режим редактирования'}
+                    </div>
+                    <div className="h-px bg-gray-300 dark:bg-gray-600 my-1 mx-1" />
+                    <SubMenuItem title="Добавить...">
+                        <div onClick={() => { addCustomCard(); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">Карточку</div>
+                        <div onClick={() => { addCustomCamera(); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">Камеру</div>
+                        <div onClick={() => { addCustomWidget(); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">Таймер</div>
+                    </SubMenuItem>
+                    <div onClick={() => { setSettingsOpen(true); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">
+                        Настройки
+                    </div>
+                    <div onClick={() => { window.location.reload(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm text-gray-500">
+                        Обновить страницу
+                    </div>
+                </>
+            ) : contextMenuDevice ? (
+              /* DEVICE CONTEXT MENU */
               <>
                 <div onClick={() => { setEditingDevice(contextMenuDevice); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">Настроить</div>
                 <div onClick={() => { setHistoryModalEntityId(contextMenuDevice.id); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">История</div>
@@ -544,8 +558,10 @@ const App: React.FC = () => {
                 )}
                 <div onClick={() => { useAppStore.getState().handleDeviceRemoveFromTab(contextMenu.deviceId, contextMenu.tabId); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm text-red-600 dark:text-red-400">Удалить с вкладки</div>
               </>
-            )}
-            {contextMenuDevice?.type === DeviceType.EventTimer && contextMenuDevice.widgetId && (
+            ) : null}
+            
+            {/* EVENT TIMER WIDGET MENU */}
+            {!isGlobalMenu && contextMenuDevice?.type === DeviceType.EventTimer && contextMenuDevice.widgetId && (
               <>
                 <div onClick={() => { setEditingEventTimerId(contextMenuDevice.widgetId!); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">Настроить виджет</div>
                 <SubMenuItem title="Размер">

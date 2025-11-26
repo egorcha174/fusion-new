@@ -7,7 +7,7 @@ export enum DeviceType {
   Switch = 2,
   Sensor = 3,
   BinarySensor = 4,
-  // Camera = 5, // Removed
+  Camera = 5, // Added Camera
   MediaPlayer = 6,
   Climate = 7,
   Thermostat = 7,
@@ -126,6 +126,10 @@ export interface Device {
   condition?: string;
   forecast?: WeatherForecast[];
 
+  // Camera specific
+  customStreamUrl?: string;
+  streamType?: 'auto' | 'hls' | 'mjpeg' | 'iframe';
+
   // Event Timer Widget specific
   widgetId?: string;
   fillPercentage?: number;
@@ -215,11 +219,13 @@ export interface DeviceCustomization {
   iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow';
   deviceBindings?: DeviceBinding[];
   thresholds?: ThresholdRule[];
+  customStreamUrl?: string;
+  streamType?: 'auto' | 'hls' | 'mjpeg' | 'iframe';
 }
 
 export type DeviceCustomizations = Record<string, DeviceCustomization>;
 
-export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status' | 'slider' | 'temperature' | 'target-temperature' | 'hvac-modes' | 'linked-entity' | 'battery' | 'fan-speed-control';
+export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status' | 'slider' | 'temperature' | 'target-temperature' | 'hvac-modes' | 'linked-entity' | 'battery' | 'fan-speed-control' | 'video';
 
 export interface ElementStyles {
   fontFamily?: string;
@@ -273,6 +279,10 @@ export interface ClockSettings {
   format: '12h' | '24h';
   showSeconds: boolean;
   size: ClockSize;
+}
+
+export interface CameraSettings {
+    selectedEntityId: string | null;
 }
 
 export interface ThemeColors {
