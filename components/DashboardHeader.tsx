@@ -1,10 +1,10 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Tab, ColorThemeSet, ThemeColors } from '../types';
+import { Tab, ThemeColors } from '../types';
 import { Icon } from '@iconify/react';
 import { useAppStore } from '../store/appStore';
 
@@ -75,8 +75,29 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ currentColorScheme, i
     
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
+
     // Используем PointerSensor для drag-and-drop, активирующийся после смещения на 5px.
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+    // Click outside handler for the menu
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                isMenuOpen &&
+                menuRef.current &&
+                !menuRef.current.contains(event.target as Node) &&
+                buttonRef.current &&
+                !buttonRef.current.contains(event.target as Node)
+            ) {
+                setIsMenuOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isMenuOpen]);
 
     // Обработчик завершения перетаскивания вкладки.
     const handleDragEnd = (event: DragEndEvent) => {
@@ -109,6 +130,11 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ currentColorScheme, i
             <button onClick={() => { setCurrentPage('helpers'); setIsMenuOpen(false); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full text-left px-4 py-2 text-sm rounded-md transition-colors ${currentPage === 'helpers' ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                  <Icon icon="mdi:toy-brick-outline" className="h-5 w-5" />
                 <span>Вспомогательные элементы</span>
+            </button>
+            <div className="h-px bg-gray-200 dark:bg-gray-700 my-1 mx-2"></div>
+            <button onClick={() => { setCurrentPage('template-gallery'); setIsMenuOpen(false); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full text-left px-4 py-2 text-sm rounded-md transition-colors ${currentPage === 'template-gallery' ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                 <Icon icon="mdi:view-grid-plus-outline" className="h-5 w-5" />
+                <span>Галерея шаблонов</span>
             </button>
             <button onClick={() => { setSettingsOpen(true); setIsMenuOpen(false); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full text-left px-4 py-2 text-sm rounded-md transition-colors text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700`}>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0 3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
@@ -161,11 +187,18 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ currentColorScheme, i
 
             {/* Меню "три точки" для десктопа */}
             <div className="relative flex-shrink-0 hidden lg:block">
-                <button onClick={() => setIsMenuOpen(!isMenuOpen)} onBlur={() => setTimeout(() => setIsMenuOpen(false), 200)} className="p-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-700">
+                <button 
+                    ref={buttonRef}
+                    onClick={() => setIsMenuOpen(!isMenuOpen)} 
+                    className={`p-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors ${isMenuOpen ? 'bg-gray-300 dark:bg-gray-700' : ''}`}
+                >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
                 </button>
                 {isMenuOpen && (
-                     <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg z-20 ring-1 ring-black/5 dark:ring-white/10">
+                     <div 
+                        ref={menuRef}
+                        className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg z-20 ring-1 ring-black/5 dark:ring-white/10 animate-in fade-in slide-in-from-top-2 duration-200"
+                     >
                         {renderMenuItems()}
                     </div>
                 )}

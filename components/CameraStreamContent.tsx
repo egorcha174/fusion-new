@@ -1,17 +1,16 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 
 interface CameraStreamContentProps {
   streamUrl: string | null;
-  type: 'hls' | 'mjpeg' | 'iframe' | 'file' | 'mp4' | 'none';
+  type: 'hls' | 'mjpeg' | 'iframe' | 'file' | 'none';
   posterUrl?: string | null;
   muted?: boolean;
   autoPlay?: boolean;
   onLoaded?: () => void;
   onError?: (msg: string) => void;
   className?: string;
-  retryAttempts?: number;
-  retryDelay?: number;
 }
 
 export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
@@ -22,181 +21,133 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
   autoPlay = true,
   onLoaded,
   onError,
-  className = "w-full h-full object-cover",
-  retryAttempts = 3,
-  retryDelay = 1000,
+  className = "w-full h-full object-cover"
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
-  const retryCountRef = useRef<number>(0);
+  // IMPROVED: State to track critical error vs loading
   const [hasError, setHasError] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
-  // Reset error and loading state when URL changes
+  // Reset error state when URL changes
   useEffect(() => {
     setHasError(false);
-    setIsLoading(true);
-    retryCountRef.current = 0;
   }, [streamUrl, type]);
 
-  // Helper function to detect stream type by URL
-  const detectStreamType = (url: string): 'hls' | 'mp4' | 'mjpeg' => {
-    if (!url) return 'mp4';
-    const urlLower = url.split('?')[0].toLowerCase();
-    if (urlLower.endsWith('.m3u8')) return 'hls';
-    if (urlLower.endsWith('.mp4')) return 'mp4';
-    if (urlLower.endsWith('.mjpeg') || urlLower.includes('mjpeg')) return 'mjpeg';
-    // Default to mp4 for unknown formats
-    return 'mp4';
-  };
-
-  // Retry logic with exponential backoff
-  const retryStream = (retryFn: () => void) => {
-    if (retryCountRef.current < retryAttempts) {
-      retryCountRef.current += 1;
-      const delay = retryDelay * retryCountRef.current;
-      console.warn(`Retrying stream (attempt ${retryCountRef.current}/${retryAttempts}) after ${delay}ms`);
-      setTimeout(() => {
-        retryFn();
-      }, delay);
-    } else {
-      setHasError(true);
-      if (onError) onError('Stream failed after multiple retries');
-    }
-  };
-
-  // Main video playback logic for HLS and MP4/File
+  // --- Main Video Logic (HLS & File) ---
   useEffect(() => {
-    if (!streamUrl || (type !== 'hls' && type !== 'file' && type !== 'mp4')) return;
+    if (!streamUrl || (type !== 'hls' && type !== 'file')) return;
 
     const video = videoRef.current;
     if (!video) return;
 
-    setIsLoading(true);
-
-    // Cleanup previous HLS instance
+    // FIX: Cleanup previous HLS instance before creating a new one
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
     }
 
     const handleVideoLoaded = () => {
-      setIsLoading(false);
-      setHasError(false);
+      // FIX: Notify parent that stream is ready
       if (onLoaded) onLoaded();
     };
 
     const handleError = (e: Event | string) => {
-      console.error('Video Error:', e);
-      setIsLoading(false);
-      const errorMsg = typeof e === 'string' ? e : 'Ошибка воспроизведения';
-      
-      // Try to retry before giving up
-      retryStream(() => {
-        if (type === 'hls' || type === 'mp4' || type === 'file') {
-          loadStream();
-        }
-      });
-
-      if (retryCountRef.current >= retryAttempts) {
-        if (onError) onError(errorMsg);
-      }
-    };
-
-    const loadStream = () => {
-      // HLS Logic
-      if (type === 'hls') {
-        if (Hls.isSupported()) {
-          const hls = new Hls({
-            maxBufferLength: 30,
-            maxMaxBufferLength: 60,
-            manifestLoadingTimeOut: 15000,
-            levelLoadingTimeOut: 15000,
-            fragLoadingTimeOut: 15000,
-            enableWorker: true,
-            lowLatencyMode: false,
-          });
-
-          hlsRef.current = hls;
-          hls.loadSource(streamUrl);
-
-          try {
-            hls.attachMedia(video);
-          } catch (e) {
-            console.error('HLS attach failed', e);
-            handleError('HLS Attach Error');
-            return;
-          }
-
-          hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            setIsLoading(false);
-            if (autoPlay) {
-              video.play().catch(() => console.debug('Autoplay blocked'));
-            }
-          });
-
-          hls.on(Hls.Events.ERROR, (_event, data) => {
-            if (data.fatal) {
-              switch (data.type) {
-                case Hls.ErrorTypes.NETWORK_ERROR:
-                  console.warn('HLS Network Error, recovering...');
-                  hls.startLoad();
-                  break;
-                case Hls.ErrorTypes.MEDIA_ERROR:
-                  console.warn('HLS Media Error, recovering...');
-                  hls.recoverMediaError();
-                  break;
-                default:
-                  console.error('HLS Fatal Error', data);
-                  hls.destroy();
-                  handleError(`HLS Fatal: ${data.details}`);
-                  break;
-              }
-            }
-          });
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-          // Native HLS fallback (Safari)
-          video.src = streamUrl;
-          if (autoPlay) {
-            video.play().catch(() => console.debug('Autoplay blocked'));
-          }
-        } else {
-          handleError('HLS not supported in this browser');
-        }
-      }
-      // MP4/File Logic (both direct and go2rtc)
-      else if (type === 'file' || type === 'mp4') {
-        video.src = streamUrl;
-        video.addEventListener('loadeddata', handleVideoLoaded, { once: true });
-        video.addEventListener('error', handleError, { once: true });
-        if (autoPlay) {
-          video.play().catch(() => console.debug('Autoplay blocked'));
-        }
-      }
+      console.error("Video Error:", e);
+      setHasError(true);
+      if (onError) onError(typeof e === 'string' ? e : "Ошибка воспроизведения");
     };
 
     video.addEventListener('loadeddata', handleVideoLoaded);
     video.addEventListener('error', handleError);
 
-    loadStream();
+    // --- HLS Logic ---
+    if (type === 'hls') {
+      if (Hls.isSupported()) {
+        const hls = new Hls({
+          maxBufferLength: 30,
+          manifestLoadingTimeOut: 15000,
+          levelLoadingTimeOut: 15000,
+          fragLoadingTimeOut: 15000,
+        });
+        hlsRef.current = hls;
 
-    // Cleanup function
+        hls.loadSource(streamUrl);
+
+        // FIX: Wrap attachMedia in try/catch
+        try {
+          hls.attachMedia(video);
+        } catch (e) {
+          console.error("HLS attach failed", e);
+          handleError("HLS Attach Error");
+        }
+
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (autoPlay) {
+            // FIX: Catch autoplay rejection
+            video.play().catch(() => console.debug("Autoplay blocked"));
+          }
+        });
+
+        hls.on(Hls.Events.ERROR, (_event, data) => {
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                console.warn("HLS Network Error, recovering...");
+                // IMPROVED: Try to recover network error
+                hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                console.warn("HLS Media Error, recovering...");
+                // IMPROVED: Try to recover media error
+                hls.recoverMediaError();
+                break;
+              default:
+                console.error("HLS Fatal Error", data);
+                hls.destroy();
+                // FIX: Pass specific details to error handler for debugging
+                handleError(`HLS Fatal: ${data.details}`);
+                break;
+            }
+          }
+        });
+      } 
+      // FIX: Native HLS fallback (Safari)
+      else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = streamUrl;
+        if (autoPlay) {
+          video.play().catch(() => console.debug("Autoplay blocked"));
+        }
+      } else {
+        handleError("HLS not supported");
+      }
+    }
+    // --- Direct File Logic (MP4/WebM) ---
+    else if (type === 'file') {
+      video.src = streamUrl;
+      if (autoPlay) {
+        video.play().catch(() => console.debug("Autoplay blocked"));
+      }
+    }
+
+    // FIX: Robust cleanup
     return () => {
       if (video) {
         video.removeEventListener('loadeddata', handleVideoLoaded);
         video.removeEventListener('error', handleError);
         video.pause();
-        video.removeAttribute('src');
-        video.load();
+        // IMPROVED: Stop buffering immediately
+        video.removeAttribute('src'); 
+        video.load(); 
       }
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
     };
-  }, [streamUrl, type, autoPlay, onLoaded, onError, retryAttempts, retryDelay]);
+  }, [streamUrl, type, autoPlay, onLoaded, onError]);
 
-  // Rendering
+  // --- Rendering ---
+
   if (!streamUrl) return null;
 
   if (type === 'iframe') {
@@ -206,7 +157,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
         className={className}
         allowFullScreen
         onLoad={() => onLoaded && onLoaded()}
-        onError={() => onError && onError('IFrame Error')}
+        onError={() => onError && onError("IFrame Error")}
         style={{ border: 'none', background: 'black' }}
       />
     );
@@ -218,30 +169,24 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
         src={streamUrl}
         className={className}
         onLoad={() => onLoaded && onLoaded()}
-        onError={() => {
-          setHasError(true);
-          if (onError) onError('MJPEG Error');
-        }}
+        onError={() => { setHasError(true); if(onError) onError("MJPEG Error"); }}
         alt="Camera Stream"
       />
     );
   }
 
-  if (type === 'hls' || type === 'file' || type === 'mp4') {
+  if (type === 'hls' || type === 'file') {
     return (
-      <>
-        <video
-          ref={videoRef}
-          className={className}
-          poster={posterUrl || undefined}
-          muted={muted}
-          playsInline
-          controls={false}
-          crossOrigin="anonymous"
-          style={{ display: hasError ? 'none' : 'block' }}
-        />
-        {isLoading && <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)' }} />}
-      </>
+      <video
+        ref={videoRef}
+        className={className}
+        poster={posterUrl || undefined}
+        muted={muted}
+        playsInline // IMPROVED: Required for iOS autoplay
+        controls={false} // Custom UI usually handles controls
+        crossOrigin="anonymous" // FIX: Add crossOrigin to allow fetching segments from different origins
+        style={{ display: hasError ? 'none' : 'block' }}
+      />
     );
   }
 

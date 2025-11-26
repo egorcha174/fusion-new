@@ -113,7 +113,7 @@ export function loadAndMigrate<T>(key: string, initialValue: T): T {
           // Шаг 2: Объединяем сохраненные элементы с элементами по умолчанию.
           const migratedElements = (storedElements as any[])
             .map((item: any) => {
-              const storedEl = item as Record<string, any>;
+              const storedEl = item as any; // Explicitly cast to any to avoid 'unknown' errors
               
               if (!storedEl || !storedEl.id) return null;
               const defaultEl = defaultElementsMap.get(storedEl.id);
