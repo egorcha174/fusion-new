@@ -247,18 +247,22 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
         </div>
       )}
 
-      {/* Layer 3: Loading Spinner */}
+      {/* Layer 3: Interaction Shield (Fix for Context Menu & Iframe stealing focus) */}
+      {/* This transparent div sits on top of the video/iframe but below the UI controls */}
+      <div className="absolute inset-0 z-[10] cursor-pointer" />
+
+      {/* Layer 4: Loading Spinner */}
       {isLoading && (
-        <div className="absolute inset-0 z-[3] flex items-center justify-center pointer-events-none">
+        <div className="absolute inset-0 z-[20] flex items-center justify-center pointer-events-none">
           <div className="bg-black/30 backdrop-blur-sm p-2 rounded-full">
              <LoadingSpinner />
           </div>
         </div>
       )}
 
-      {/* Layer 4: Error Message */}
+      {/* Layer 5: Error Message */}
       {error && (
-        <div className="absolute inset-0 z-[4] flex flex-col items-center justify-center bg-black/70 p-4 text-center animate-in fade-in">
+        <div className="absolute inset-0 z-[30] flex flex-col items-center justify-center bg-black/70 p-4 text-center animate-in fade-in">
           <Icon icon="mdi:alert-circle-outline" className="w-8 h-8 text-red-500 mb-2" />
           <p className="text-xs text-white font-medium">{error}</p>
           {haDomain === 'internal' && !customStreamUrl && (
@@ -266,18 +270,23 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
           )}
           <button 
             onClick={(e) => { e.stopPropagation(); setIsLoading(true); setError(null); }} 
-            className="mt-2 px-3 py-1 bg-white/10 hover:bg-white/20 rounded text-[10px] text-white transition-colors"
+            className="mt-2 px-3 py-1 bg-white/10 hover:bg-white/20 rounded text-[10px] text-white transition-colors cursor-pointer"
           >
             Повторить
           </button>
         </div>
       )}
 
-      {/* Layer 5: Status Badges */}
-      <div className="absolute top-2 right-2 z-[5] flex gap-1 pointer-events-none">
+      {/* Layer 6: Status Badges */}
+      <div className="absolute top-2 right-2 z-[40] flex gap-1 pointer-events-none">
         {isLive && (
           <div className="px-1.5 py-0.5 bg-red-600/90 backdrop-blur-sm rounded text-white text-[9px] font-bold uppercase tracking-wider animate-pulse shadow-sm">
             LIVE
+          </div>
+        )}
+        {!isLive && !isLoading && !error && (
+           <div className="px-1.5 py-0.5 bg-gray-800/60 backdrop-blur-sm rounded text-white text-[9px] font-medium uppercase tracking-wider">
+            SNAPSHOT
           </div>
         )}
       </div>
