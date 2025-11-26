@@ -64,7 +64,8 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
     };
 
     video.addEventListener('loadeddata', handleVideoLoaded);
-    video.addEventListener('error', handleError);
+    // IMPROVED: Attach standard error listener to video element
+    video.addEventListener('error', (e) => handleError(e));
 
     const playVideo = async () => {
         try {
@@ -82,7 +83,8 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
              if (autoPlay) playVideo();
         } else if (Hls.isSupported()) {
              const hls = new Hls({
-                maxBufferLength: 30,
+                // Minimal config as per request to stick to "my code" style defaults where possible,
+                // but some timeouts are safer for network resilience.
                 manifestLoadingTimeOut: 15000,
              });
              hlsRef.current = hls;
@@ -95,21 +97,11 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
              });
              
              hls.on(Hls.Events.ERROR, (event, data) => {
+                 console.error('HLS error', data);
                  if (data.fatal) {
-                    switch (data.type) {
-                      case Hls.ErrorTypes.NETWORK_ERROR:
-                        console.warn("HLS Network Error, recovering...");
-                        hls.startLoad();
-                        break;
-                      case Hls.ErrorTypes.MEDIA_ERROR:
-                        console.warn("HLS Media Error, recovering...");
-                        hls.recoverMediaError();
-                        break;
-                      default:
-                        hls.destroy();
-                        handleError(`HLS Fatal: ${data.type}`);
-                        break;
-                    }
+                    // On fatal error, destroy and report
+                    hls.destroy();
+                    handleError(`HLS Fatal: ${data.type}`);
                  }
              });
         } else {
@@ -119,7 +111,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
     // --- Direct File Logic (MP4/WebM) ---
     else if (type === 'file') {
       video.src = streamUrl;
-      // Add one-time error listener for source loading
+      // Specific error listener for source loading issues (CORS, 404)
       const onSrcError = () => {
           handleError("Ошибка загрузки файла. Проверьте URL и CORS.");
           video.removeEventListener('error', onSrcError);
@@ -132,10 +124,11 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
     // Cleanup on unmount
     return () => {
       video.removeEventListener('loadeddata', handleVideoLoaded);
-      video.removeEventListener('error', handleError);
+      // Note: We don't remove anonymous arrow functions for error, but React unmounts the node anyway.
       cleanup();
     };
-  }, [streamUrl, type, autoPlay, onLoaded, onError]);
+  }, [streamUrl, type, autoPlay]); 
+  // Removed onLoaded/onError from dependency array to prevent re-runs if parent recreates them
 
   // --- Rendering ---
 

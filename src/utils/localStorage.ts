@@ -111,10 +111,9 @@ export function loadAndMigrate<T>(key: string, initialValue: T): T {
           const defaultElementsMap = new Map(defaultTemplate.elements.map(el => [el.id, el]));
           
           // Шаг 2: Объединяем сохраненные элементы с элементами по умолчанию.
-          const migratedElements = storedElements
+          const migratedElements = (storedElements as any[])
             .map((item: any) => {
-              // FIX: Explicitly cast to any to avoid TS 'unknown' errors when accessing properties
-              const storedEl = item as any;
+              const storedEl = item as Record<string, any>;
               
               if (!storedEl || !storedEl.id) return null;
               const defaultEl = defaultElementsMap.get(storedEl.id);
@@ -130,7 +129,7 @@ export function loadAndMigrate<T>(key: string, initialValue: T): T {
               }
               return null; // Отбрасываем элементы, которых больше нет в шаблоне по умолчанию.
             })
-            .filter((el): el is CardElement => el !== null);
+            .filter((el: unknown): el is CardElement => el !== null);
 
           // Шаг 3: Добавляем новые элементы, которые есть в default, но отсутствуют в stored.
           defaultTemplate.elements.forEach(defaultEl => {
