@@ -252,7 +252,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
       targetTemperature: 24,
       hvacAction: 'heating',
       batteryLevel: 85,
-      // Add stream props for preview if video element is present
       customStreamUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
       streamType: 'iframe', 
   };
@@ -381,11 +380,9 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                         onHvacModeChange={() => {}}
                         onPresetChange={() => {}}
                         onFanSpeedChange={() => {}}
-                        onCameraCardClick={() => {}}
                         onEditDevice={() => {}}
                         haUrl=""
                         signPath={async (p) => ({ path: p })}
-                        getCameraStreamUrl={async () => ({ url: '' })}
                         colorScheme={colorScheme['light']}
                         isDark={false}
                     />

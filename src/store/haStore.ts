@@ -33,11 +33,12 @@ interface HAState {
   allKnownDevices: Map<string, Device>;
   allRoomsForDevicePage: Room[];
   allRoomsWithPhysicalDevices: RoomWithPhysicalDevices[];
-  allCameras: Device[];
   batteryDevices: BatteryDevice[];
   allScenes: Device[];
   allAutomations: Device[];
   allScripts: Device[];
+  
+  allCameras: Device[]; // added
 }
 
 interface HAActions {
@@ -45,10 +46,10 @@ interface HAActions {
   disconnect: () => void;
   callService: (domain: string, service: string, service_data: object, returnResponse?: boolean) => Promise<any>;
   signPath: (path: string) => Promise<{ path: string }>;
-  getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
   getConfig: () => Promise<any>;
   getHistory: (entityIds: string[], startTime: string, endTime?: string) => Promise<any>;
   fetchWeatherForecasts: (entityIds: string[]) => Promise<void>;
+  getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>; // added
 
   handleDeviceToggle: (deviceId: string) => void;
   handleTemperatureChange: (deviceId: string, temperature: number, isDelta?: boolean) => void;
@@ -66,8 +67,6 @@ interface HAActions {
 let globalMessageId = 1;
 
 // Batching globals to reduce render frequency
-// We use pendingUpdates to accumulate state changes and apply them in a batch.
-// This drastically reduces React render cycles during high-traffic events.
 let pendingUpdates: Record<string, any> = {};
 let updateThrottleTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -76,7 +75,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   
   // Callback maps to handle responses to specific command IDs
   const signPathCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
-  const cameraStreamCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
   const configCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
   const historyPeriodCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
   const serviceReturnCallbacks = new Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void }>();
@@ -89,7 +87,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
 
   const clearCallbacks = () => {
       signPathCallbacks.clear();
-      cameraStreamCallbacks.clear();
       configCallbacks.clear();
       historyPeriodCallbacks.clear();
       serviceReturnCallbacks.clear();
@@ -104,14 +101,13 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   };
 
   // Helper to flush batched updates to state
-  // This function applies all accumulated updates to the Zustand store at once.
   const flushUpdates = () => {
       const currentPending = pendingUpdates;
       pendingUpdates = {}; // Clear immediately to start collecting next batch
       updateThrottleTimeout = null;
 
       if (Object.keys(currentPending).length > 0) {
-          // 1. Update Entities State (Single Store Update)
+          // 1. Update Entities State
           set((state) => {
               const newEntities = { ...state.entities, ...currentPending };
               // Remove deleted entities (if new_state is null)
@@ -124,7 +120,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           });
 
           // 2. Update Derived State (Only once per batch)
-          // This is the heavy calculation part (mapping to rooms, etc.)
           if (get().isInitialLoadComplete) {
               get().updateDerivedState();
           }
@@ -276,13 +271,14 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             }
           });
           
-          // Custom Cards
+          // Custom Cards (Cameras and Generic)
           customCardWidgets.forEach(widget => {
+              const isCamera = widget.id.startsWith('camera_');
               const cardDevice: Device = {
                   id: `internal::custom-card_${widget.id}`,
                   name: widget.name,
-                  status: 'Кастомная карточка',
-                  type: DeviceType.Custom,
+                  status: isCamera ? 'IP Камера' : 'Кастомная карточка',
+                  type: isCamera ? DeviceType.Camera : DeviceType.Custom,
                   haDomain: 'internal',
                   state: 'active',
                   widgetId: widget.id,
@@ -294,10 +290,10 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           });
 
           // Specific Categories
-          const cameras = Array.from(deviceMap.values()).filter((d: Device) => d.haDomain === 'camera');
           const scenes = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Scene);
           const automations = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Automation);
           const scripts = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Script);
+          const cameras = Array.from(deviceMap.values()).filter((d: Device) => d.type === DeviceType.Camera);
           
           batteryDevicesList.sort((a, b) => a.batteryLevel - b.batteryLevel);
           
@@ -347,12 +343,12 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           set({ 
             allKnownDevices: deviceMap, 
             allRoomsForDevicePage: rooms, 
-            allCameras: cameras, 
             batteryDevices: batteryDevicesList, 
             allRoomsWithPhysicalDevices,
             allScenes: scenes.sort((a,b) => a.name.localeCompare(b.name)),
             allAutomations: automations.sort((a,b) => a.name.localeCompare(b.name)),
             allScripts: scripts.sort((a,b) => a.name.localeCompare(b.name)),
+            allCameras: cameras.sort((a,b) => a.name.localeCompare(b.name)),
         });
       } catch (e) {
           console.error("Error updating derived state:", e);
@@ -388,11 +384,11 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     allKnownDevices: new Map(),
     allRoomsForDevicePage: [],
     allRoomsWithPhysicalDevices: [],
-    allCameras: [],
     batteryDevices: [],
     allScenes: [],
     allAutomations: [],
     allScripts: [],
+    allCameras: [],
 
     connect: (url, token) => {
         // Cleanup existing connection
@@ -419,6 +415,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             devices: [],
             entityRegistry: [],
             allKnownDevices: new Map(),
+            allCameras: [],
         });
         
         // Safety timeout to prevent infinite spinner if socket hangs
@@ -503,7 +500,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
 
                     case 'result':
                         // 1. Check explicit promise callbacks first
-                        const callbacks = [signPathCallbacks, cameraStreamCallbacks, configCallbacks, historyPeriodCallbacks, serviceReturnCallbacks];
+                        const callbacks = [signPathCallbacks, configCallbacks, historyPeriodCallbacks, serviceReturnCallbacks];
                         let handledCallback = false;
                         for (const cbMap of callbacks) {
                             if (cbMap.has(data.id)) {
@@ -652,7 +649,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             entityRegistry: [], 
             error: null, 
             isLoading: false,
-            isInitialLoadComplete: false 
+            isInitialLoadComplete: false,
+            allCameras: [],
         });
     },
     callService: (domain, service, service_data, returnResponse = false) => new Promise((resolve, reject) => {
@@ -675,11 +673,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         signPathCallbacks.set(id, { resolve, reject });
         sendMessage({ id, type: 'auth/sign_path', path });
     }),
-    getCameraStreamUrl: (entityId) => new Promise((resolve, reject) => {
-        const id = globalMessageId++;
-        cameraStreamCallbacks.set(id, { resolve, reject });
-        sendMessage({ id, type: 'camera/stream', entity_id: entityId });
-    }),
     getConfig: () => new Promise((resolve, reject) => {
         const id = globalMessageId++;
         configCallbacks.set(id, { resolve, reject });
@@ -690,6 +683,15 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         historyPeriodCallbacks.set(id, { resolve, reject });
         sendMessage({ id, type: 'history/history_during_period', entity_ids: entityIds, start_time: startTime, end_time: endTime, minimal_response: true });
     }),
+    getCameraStreamUrl: async (entityId) => {
+        try {
+            const response = await get().callService('camera', 'stream', { entity_id: entityId }, true);
+            return response;
+        } catch (e) {
+            console.error("Failed to get camera stream", e);
+            return { url: '' };
+        }
+    },
     fetchWeatherForecasts: async (entityIds) => {
         if (!entityIds.length) return;
         const forecastsMap: Record<string, WeatherForecast[]> = { ...get().forecasts };

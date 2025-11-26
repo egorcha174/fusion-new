@@ -2,9 +2,9 @@
 import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
-  CameraSettings, ColorScheme, CardTemplate, DeviceType, GridLayoutItem, DeviceCustomization,
-  CardElementId, EventTimerWidget, CustomCardWidget, PhysicalDevice, CardElement, WeatherSettings,
-  ServerConfig, ThemeDefinition, ThemePackage, AuroraSettings
+  ColorScheme, CardTemplate, DeviceType, GridLayoutItem, DeviceCustomization,
+  EventTimerWidget, CustomCardWidget, PhysicalDevice, WeatherSettings,
+  ServerConfig, ThemeDefinition, ThemePackage, AuroraSettings, CameraSettings
 } from '../types';
 import { nanoid } from 'nanoid';
 import { getIconNameForDeviceType } from '../components/DeviceIcon';
@@ -14,7 +14,6 @@ import {
     defaultTemplates,
     DEFAULT_COLOR_SCHEME,
     defaultClockSettings,
-    defaultCameraSettings,
     DEFAULT_SIDEBAR_WIDTH,
     DEFAULT_SIDEBAR_VISIBLE,
     DEFAULT_THEME_MODE,
@@ -27,7 +26,6 @@ import {
     DEFAULT_SWITCH_TEMPLATE_ID,
     DEFAULT_CLIMATE_TEMPLATE_ID,
     DEFAULT_HUMIDIFIER_TEMPLATE_ID,
-    DEFAULT_CAMERA_TEMPLATE_ID,
     DEFAULT_THEMES,
     DEFAULT_AURORA_SETTINGS
 } from '../config/defaults';
@@ -44,7 +42,6 @@ interface AppState {
     editingTemplate: CardTemplate | 'new' | null;
     searchTerm: string;
     contextMenu: { x: number, y: number, deviceId: string, tabId: string } | null;
-    floatingCamera: Device | null;
     historyModalEntityId: string | null;
     editingEventTimerId: string | null;
     isSettingsOpen: boolean;
@@ -57,7 +54,6 @@ interface AppState {
     customizations: DeviceCustomizations;
     templates: CardTemplates;
     clockSettings: ClockSettings;
-    cameraSettings: CameraSettings;
     sidebarWidth: number;
     isSidebarVisible: boolean;
     themeMode: 'day' | 'night' | 'auto' | 'schedule';
@@ -82,6 +78,10 @@ interface AppState {
     auroraSettings: AuroraSettings;
     DEFAULT_COLOR_SCHEME: ColorScheme;
     weatherData: any;
+    
+    // Camera
+    floatingCamera: Device | null;
+    cameraSettings: CameraSettings;
 }
 
 interface AppActions {
@@ -92,7 +92,6 @@ interface AppActions {
     setEditingTemplate: (template: CardTemplate | 'new' | null) => void;
     setSearchTerm: (term: string) => void;
     setContextMenu: (menu: AppState['contextMenu']) => void;
-    setFloatingCamera: (device: Device | null) => void;
     setHistoryModalEntityId: (id: string | null) => void;
     setEditingEventTimerId: (id: string | null) => void;
     setSettingsOpen: (isOpen: boolean) => void;
@@ -110,7 +109,6 @@ interface AppActions {
     setCustomizations: (customizations: DeviceCustomizations) => void;
     setTemplates: (templates: CardTemplates) => void;
     setClockSettings: (settings: ClockSettings) => void;
-    setCameraSettings: (settings: CameraSettings) => void;
     setSidebarWidth: (width: number) => void;
     setIsSidebarVisible: (isVisible: boolean) => void;
     setThemeMode: (theme: AppState['themeMode']) => void;
@@ -145,9 +143,13 @@ interface AppActions {
     // Actions for Custom Cards
     setCustomCardWidgets: (widgets: CustomCardWidget[]) => void;
     addCustomCard: () => void;
-    addCustomCamera: () => void;
     updateCustomCard: (widgetId: string, updates: Partial<Omit<CustomCardWidget, 'id'>>) => void;
     deleteCustomCard: (widgetId: string) => void;
+    
+    // Camera Actions
+    setFloatingCamera: (device: Device | null) => void;
+    setCameraSettings: (settings: CameraSettings) => void;
+    addCustomCamera: () => void;
 
 
     handleTabOrderChange: (newTabs: Tab[]) => void;
@@ -244,7 +246,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     editingTemplate: null,
     searchTerm: '',
     contextMenu: null,
-    floatingCamera: null,
     historyModalEntityId: null,
     editingEventTimerId: null,
     isSettingsOpen: false,
@@ -257,7 +258,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     customizations: loadAndMigrate<DeviceCustomizations>(LOCAL_STORAGE_KEYS.CUSTOMIZATIONS, {}),
     templates: loadAndMigrate<CardTemplates>(LOCAL_STORAGE_KEYS.CARD_TEMPLATES, defaultTemplates),
     clockSettings: loadAndMigrate<ClockSettings>(LOCAL_STORAGE_KEYS.CLOCK_SETTINGS, defaultClockSettings),
-    cameraSettings: loadAndMigrate<CameraSettings>(LOCAL_STORAGE_KEYS.CAMERA_SETTINGS, defaultCameraSettings),
     sidebarWidth: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.SIDEBAR_WIDTH, DEFAULT_SIDEBAR_WIDTH),
     isSidebarVisible: loadAndMigrate<boolean>(LOCAL_STORAGE_KEYS.SIDEBAR_VISIBLE, DEFAULT_SIDEBAR_VISIBLE),
     themeMode: loadAndMigrate<'day' | 'night' | 'auto' | 'schedule'>(LOCAL_STORAGE_KEYS.THEME_MODE, DEFAULT_THEME_MODE),
@@ -281,6 +281,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     backgroundEffect: initialBackgroundEffect,
     auroraSettings: loadAndMigrate<AuroraSettings>(LOCAL_STORAGE_KEYS.AURORA_SETTINGS, DEFAULT_AURORA_SETTINGS),
     DEFAULT_COLOR_SCHEME: DEFAULT_COLOR_SCHEME,
+    floatingCamera: null,
+    cameraSettings: { selectedEntityId: null },
     
     // --- Actions ---
     setCurrentPage: (page) => set({ currentPage: page }),
@@ -293,7 +295,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     }),
     setSearchTerm: (term) => set({ searchTerm: term }),
     setContextMenu: (menu) => set({ contextMenu: menu }),
-    setFloatingCamera: (device) => set({ floatingCamera: device }),
     setHistoryModalEntityId: (id) => set({ historyModalEntityId: id }),
     setEditingEventTimerId: (id) => set({ editingEventTimerId: id }),
     setSettingsOpen: (isOpen) => set({ isSettingsOpen: isOpen }),
@@ -345,10 +346,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     setClockSettings: (settings) => {
         set({ clockSettings: settings });
         localStorage.setItem(LOCAL_STORAGE_KEYS.CLOCK_SETTINGS, JSON.stringify(settings));
-    },
-    setCameraSettings: (settings) => {
-        set({ cameraSettings: settings });
-        localStorage.setItem(LOCAL_STORAGE_KEYS.CAMERA_SETTINGS, JSON.stringify(settings));
     },
     setSidebarWidth: (width) => {
         set({ sidebarWidth: width });
@@ -549,35 +546,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         get().setCustomizations(newCustomizations);
         get().setCustomCardWidgets([...get().customCardWidgets, newWidget]);
     },
-    addCustomCamera: () => {
-        const id = `camera_${nanoid()}`;
-        const newWidget: CustomCardWidget = {
-            id,
-            name: 'Новая камера',
-        };
-
-        const deviceId = `internal::custom-card_${id}`;
-        const templateId = `custom-card-template-${id}`;
-        
-        // Create a new camera template instance
-        const newTemplate = get().createNewBlankTemplate(DeviceType.Camera);
-        newTemplate.id = templateId;
-        newTemplate.name = newWidget.name;
-        
-        const newTemplates = { ...get().templates, [newTemplate.id]: newTemplate };
-
-        const newCustomization: DeviceCustomization = {
-            ...get().customizations[deviceId],
-            type: DeviceType.Camera,
-            icon: 'mdi:cctv',
-            templateId: templateId, // Assign the template
-        };
-        const newCustomizations = { ...get().customizations, [deviceId]: newCustomization };
-
-        get().setTemplates(newTemplates);
-        get().setCustomizations(newCustomizations);
-        get().setCustomCardWidgets([...get().customCardWidgets, newWidget]);
-    },
     updateCustomCard: (widgetId, updates) => {
         const newWidgets = get().customCardWidgets.map(w => w.id === widgetId ? { ...w, ...updates } : w);
         get().setCustomCardWidgets(newWidgets);
@@ -601,6 +569,26 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
         const newCustomizations = { ...get().customizations };
         delete newCustomizations[deviceIdToDelete];
+        get().setCustomizations(newCustomizations);
+    },
+    
+    // --- Camera Actions ---
+    setFloatingCamera: (device) => set({ floatingCamera: device }),
+    setCameraSettings: (settings) => set({ cameraSettings: settings }),
+    addCustomCamera: () => {
+        const newWidget: CustomCardWidget = {
+            id: `camera_${nanoid()}`,
+            name: `Новая камера ${get().customCardWidgets.filter(w => w.id.startsWith('camera_')).length + 1}`,
+        };
+        get().setCustomCardWidgets([...get().customCardWidgets, newWidget]);
+        
+        const deviceId = `internal::custom-card_${newWidget.id}`;
+        const newCustomization: DeviceCustomization = {
+            ...get().customizations[deviceId],
+            type: DeviceType.Camera,
+            name: newWidget.name,
+        };
+        const newCustomizations = { ...get().customizations, [deviceId]: newCustomization };
         get().setCustomizations(newCustomizations);
     },
 
@@ -641,7 +629,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
                 [DeviceType.Switch]: DEFAULT_SWITCH_TEMPLATE_ID,
                 [DeviceType.Thermostat]: DEFAULT_CLIMATE_TEMPLATE_ID,
                 [DeviceType.Humidifier]: DEFAULT_HUMIDIFIER_TEMPLATE_ID,
-                [DeviceType.Camera]: DEFAULT_CAMERA_TEMPLATE_ID,
             };
             templateId = defaultMap[device.type];
         }
@@ -880,8 +867,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
                 iconAnimation: newValues.iconAnimation !== 'none' ? newValues.iconAnimation : undefined,
                 deviceBindings: newValues.deviceBindings?.length ? newValues.deviceBindings : undefined,
                 thresholds: newValues.thresholds?.length ? newValues.thresholds : undefined,
-                customStreamUrl: newValues.customStreamUrl,
-                streamType: newValues.streamType !== 'auto' ? newValues.streamType : undefined,
             }
         };
         get().setCustomizations(newCustoms);
@@ -952,12 +937,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             [DeviceType.Switch]: get().templates[DEFAULT_SWITCH_TEMPLATE_ID],
             [DeviceType.Thermostat]: get().templates[DEFAULT_CLIMATE_TEMPLATE_ID],
             [DeviceType.Humidifier]: get().templates[DEFAULT_HUMIDIFIER_TEMPLATE_ID],
-            [DeviceType.Camera]: get().templates[DEFAULT_CAMERA_TEMPLATE_ID],
         };
         const typeNameMap = {
             [DeviceType.Sensor]: 'сенсор', [DeviceType.Light]: 'светильник', [DeviceType.DimmableLight]: 'светильник',
             [DeviceType.Switch]: 'переключатель', [DeviceType.Thermostat]: 'климат', [DeviceType.Humidifier]: 'увлажнитель',
-            [DeviceType.Camera]: 'камера',
         };
         const baseTemplate = (baseMap as any)[deviceType] || get().templates[DEFAULT_SENSOR_TEMPLATE_ID];
         const newTemplate = JSON.parse(JSON.stringify(baseTemplate));

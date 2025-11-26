@@ -7,7 +7,7 @@ export enum DeviceType {
   Switch = 2,
   Sensor = 3,
   BinarySensor = 4,
-  Camera = 5, // Added Camera
+  Camera = 5,
   MediaPlayer = 6,
   Climate = 7,
   Thermostat = 7,
@@ -126,9 +126,9 @@ export interface Device {
   condition?: string;
   forecast?: WeatherForecast[];
 
-  // Camera specific
+  // Camera/Stream specific
   customStreamUrl?: string;
-  streamType?: 'auto' | 'hls' | 'mjpeg' | 'iframe';
+  streamType?: 'auto' | 'hls' | 'mjpeg' | 'iframe' | 'file';
 
   // Event Timer Widget specific
   widgetId?: string;
@@ -220,7 +220,7 @@ export interface DeviceCustomization {
   deviceBindings?: DeviceBinding[];
   thresholds?: ThresholdRule[];
   customStreamUrl?: string;
-  streamType?: 'auto' | 'hls' | 'mjpeg' | 'iframe';
+  streamType?: 'auto' | 'hls' | 'mjpeg' | 'iframe' | 'file';
 }
 
 export type DeviceCustomizations = Record<string, DeviceCustomization>;
@@ -279,10 +279,6 @@ export interface ClockSettings {
   format: '12h' | '24h';
   showSeconds: boolean;
   size: ClockSize;
-}
-
-export interface CameraSettings {
-    selectedEntityId: string | null;
 }
 
 export interface ThemeColors {
@@ -414,4 +410,8 @@ export interface WeatherData {
         tempMin: number;
         icon: string;
     }[];
+}
+
+export interface CameraSettings {
+    selectedEntityId: string | null;
 }
