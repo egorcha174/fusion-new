@@ -1,4 +1,3 @@
-
 import { Tab, GridLayoutItem, CardTemplates, CardElement, CardTemplate, ColorScheme } from '../types';
 
 /**
@@ -36,8 +35,10 @@ export function loadAndMigrate<T>(key: string, initialValue: T): T {
           const newLayout: GridLayoutItem[] = [];
           const uniqueDeviceIds = [...new Set(tab.orderedDeviceIds as string[])];
 
-          uniqueDeviceIds.forEach((deviceId, index) => {
-            newLayout.push({ deviceId, col: index % cols, row: Math.floor(index / cols) });
+          uniqueDeviceIds.forEach((deviceId: unknown, index: number) => {
+            if (typeof deviceId === 'string') {
+                newLayout.push({ deviceId, col: index % cols, row: Math.floor(index / cols) });
+            }
           });
           tab.layout = newLayout;
           delete tab.orderedDeviceIds;
@@ -48,7 +49,7 @@ export function loadAndMigrate<T>(key: string, initialValue: T): T {
         if (tab.gridSettings === undefined) tab.gridSettings = { cols: 8, rows: 5 };
         if (!tab.layout) tab.layout = [];
 
-        return tab;
+        return tab as Tab;
       });
     }
 
@@ -112,7 +113,8 @@ export function loadAndMigrate<T>(key: string, initialValue: T): T {
           // Шаг 2: Объединяем сохраненные элементы с элементами по умолчанию.
           const migratedElements = storedElements
             .map((item: any) => {
-              const storedEl = item;
+              // FIX: Explicitly cast to any to avoid TS 'unknown' errors when accessing properties
+              const storedEl = item as any;
               
               if (!storedEl || !storedEl.id) return null;
               const defaultEl = defaultElementsMap.get(storedEl.id);

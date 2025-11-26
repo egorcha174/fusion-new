@@ -1,7 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
-import { Icon } from '@iconify/react';
 
 interface CameraStreamContentProps {
   streamUrl: string | null;
@@ -26,7 +25,6 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
-  // IMPROVED: State to track critical error vs loading
   const [hasError, setHasError] = useState(false);
 
   // Reset error state when URL changes
@@ -41,104 +39,101 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
     const video = videoRef.current;
     if (!video) return;
 
-    // Cleanup previous HLS instance before creating a new one
-    if (hlsRef.current) {
-      hlsRef.current.destroy();
-      hlsRef.current = null;
-    }
+    // STRICT CLEANUP (From provided example)
+    const cleanup = () => {
+        if (hlsRef.current) {
+            hlsRef.current.destroy();
+            hlsRef.current = null;
+        }
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+    };
+
+    cleanup();
 
     const handleVideoLoaded = () => {
       if (onLoaded) onLoaded();
     };
 
     const handleError = (e: Event | string) => {
+      const msg = typeof e === 'string' ? e : (video.error?.message || "Ошибка воспроизведения");
       console.error("Video Error:", e);
       setHasError(true);
-      if (onError) onError(typeof e === 'string' ? e : "Ошибка воспроизведения");
+      if (onError) onError(msg);
     };
 
     video.addEventListener('loadeddata', handleVideoLoaded);
     video.addEventListener('error', handleError);
 
+    const playVideo = async () => {
+        try {
+            await video.play();
+        } catch (e) {
+            console.debug("Autoplay blocked", e);
+        }
+    };
+
     // --- HLS Logic ---
     if (type === 'hls') {
-      if (Hls.isSupported()) {
-        const hls = new Hls({
-          maxBufferLength: 30,
-          manifestLoadingTimeOut: 15000,
-          levelLoadingTimeOut: 15000,
-          fragLoadingTimeOut: 15000,
-        });
-        hlsRef.current = hls;
-
-        hls.loadSource(streamUrl);
-
-        // Wrap attachMedia in try/catch
-        try {
-          hls.attachMedia(video);
-        } catch (e) {
-          console.error("HLS attach failed", e);
-          handleError("HLS Attach Error");
+        // Priority: Native HLS (Safari) -> Hls.js -> Error
+        if (video.canPlayType('application/vnd.apple.mpegurl')) {
+             video.src = streamUrl;
+             if (autoPlay) playVideo();
+        } else if (Hls.isSupported()) {
+             const hls = new Hls({
+                maxBufferLength: 30,
+                manifestLoadingTimeOut: 15000,
+             });
+             hlsRef.current = hls;
+             
+             hls.loadSource(streamUrl);
+             hls.attachMedia(video);
+             
+             hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                 if (autoPlay) playVideo();
+             });
+             
+             hls.on(Hls.Events.ERROR, (event, data) => {
+                 if (data.fatal) {
+                    switch (data.type) {
+                      case Hls.ErrorTypes.NETWORK_ERROR:
+                        console.warn("HLS Network Error, recovering...");
+                        hls.startLoad();
+                        break;
+                      case Hls.ErrorTypes.MEDIA_ERROR:
+                        console.warn("HLS Media Error, recovering...");
+                        hls.recoverMediaError();
+                        break;
+                      default:
+                        hls.destroy();
+                        handleError(`HLS Fatal: ${data.type}`);
+                        break;
+                    }
+                 }
+             });
+        } else {
+            handleError("HLS not supported in this browser");
         }
-
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          if (autoPlay) {
-            video.play().catch(() => console.debug("Autoplay blocked"));
-          }
-        });
-
-        hls.on(Hls.Events.ERROR, (_event, data) => {
-          if (data.fatal) {
-            switch (data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                console.warn("HLS Network Error, recovering...");
-                hls.startLoad();
-                break;
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                console.warn("HLS Media Error, recovering...");
-                hls.recoverMediaError();
-                break;
-              default:
-                console.error("HLS Fatal Error", data);
-                hls.destroy();
-                handleError(`HLS Fatal: ${data.details}`);
-                break;
-            }
-          }
-        });
-      } 
-      // Native HLS fallback (Safari)
-      else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = streamUrl;
-        if (autoPlay) {
-          video.play().catch(() => console.debug("Autoplay blocked"));
-        }
-      } else {
-        handleError("HLS not supported");
-      }
     }
     // --- Direct File Logic (MP4/WebM) ---
     else if (type === 'file') {
       video.src = streamUrl;
-      if (autoPlay) {
-        video.play().catch(() => console.debug("Autoplay blocked"));
-      }
+      // Add one-time error listener for source loading
+      const onSrcError = () => {
+          handleError("Ошибка загрузки файла. Проверьте URL и CORS.");
+          video.removeEventListener('error', onSrcError);
+      };
+      video.addEventListener('error', onSrcError);
+      
+      if (autoPlay) playVideo();
     }
 
-    // Robust cleanup
+    // Cleanup on unmount
     return () => {
-      if (video) {
-        video.removeEventListener('loadeddata', handleVideoLoaded);
-        video.removeEventListener('error', handleError);
-        video.pause();
-        // Stop buffering immediately
-        video.removeAttribute('src'); 
-        video.load(); 
-      }
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
+      video.removeEventListener('loadeddata', handleVideoLoaded);
+      video.removeEventListener('error', handleError);
+      cleanup();
     };
   }, [streamUrl, type, autoPlay, onLoaded, onError]);
 
