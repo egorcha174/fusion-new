@@ -57,13 +57,11 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
   // Strictly control video playback based on visibility and page state
   const shouldPlay = autoPlay && isVisible && pageVisible;
 
-  // Destructure device properties to prevent unnecessary effect re-runs (FIX FOR BLINKING)
   const { id: deviceId, haDomain, customStreamUrl, streamType: deviceStreamType } = device;
 
   // 3. Load Snapshot
   const loadSnapshot = useCallback(async () => {
     try {
-      // Regex for detecting image extensions
       if (haDomain === 'internal' && customStreamUrl?.match(/\.(jpg|jpeg|png|webp)($|\?)/i)) {
          setFinalSnapshotUrl(customStreamUrl);
          return;
@@ -88,12 +86,10 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
       try {
           setIsLoading(true);
           setError(null);
-          // Fallback: MJPEG Proxy Stream
           const result = await signPath(`/api/camera_proxy_stream/${deviceId}`);
           const mjpegUrl = constructHaUrl(haUrl, result.path, 'http') + `&t=${Date.now()}`;
           setFinalStreamUrl(mjpegUrl);
           setStreamType('mjpeg');
-          // MJPEG loads "instantly" in terms of connection, but we wait for onLoad in the image tag
       } catch (e) {
           console.error("MJPEG resolution failed:", e);
           setError("Ошибка подключения (MJPEG)");
@@ -104,7 +100,7 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
   // 4. Stream Resolution Logic
   useEffect(() => {
     if (!shouldPlay) {
-      // When visibility is lost, we reset to stop playback resources
+      // Immediately clear stream to stop consumption when not visible
       if (finalStreamUrl) {
           setFinalStreamUrl(null);
           setStreamType('none');
@@ -114,11 +110,9 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
       return;
     }
 
-    // If we already have a URL for this exact configuration, don't re-resolve (Prevents blinking)
-    // We check if customStreamUrl is set and matches, or if it's a native camera (where we assume the fetched URL is good for the session)
     if (finalStreamUrl) {
         if (haDomain === 'internal' && customStreamUrl === finalStreamUrl) return;
-        if (haDomain !== 'internal' && streamType === 'hls') return; // Keep existing HLS session for native cams
+        if (haDomain !== 'internal' && streamType === 'hls') return;
     }
 
     setIsLoading(true);
@@ -132,20 +126,18 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
         if (haDomain === 'internal' || customStreamUrl) {
            const url = customStreamUrl;
            if (!url) {
-               // If no URL yet (e.g. new widget), stop here but don't error, let user configure it
                setIsLoading(false); 
                return; 
            }
 
            let type: any = deviceStreamType || 'auto';
            
-           // Robust stream type detection logic
            if (type === 'auto') {
              const cleanUrl = url.split('?')[0].toLowerCase();
              if (cleanUrl.endsWith('.m3u8')) type = 'hls';
              else if (/\.(mp4|webm|mov|mkv)$/.test(cleanUrl)) type = 'file';
              else if (/\.(jpg|jpeg|png|webp)$/.test(cleanUrl)) type = 'mjpeg';
-             else type = 'iframe'; // Fallback for WebRTC/Unknown
+             else type = 'iframe';
            }
            
            if (!isCancelled) {
@@ -170,7 +162,6 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
           console.warn("HLS stream not available, trying MJPEG");
         }
 
-        // If HLS retrieval failed (or returned no URL), try MJPEG immediately
         if (!isCancelled) {
             await fetchMjpegStream();
         }
@@ -192,16 +183,13 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
 
   }, [shouldPlay, deviceId, haDomain, customStreamUrl, deviceStreamType, haUrl, signPath, getCameraStreamUrl, fetchMjpegStream]);
 
-  // Handler for stream errors (e.g. HLS fails to play)
   const handleStreamError = (msg: string) => {
       console.warn(`Stream error (${streamType}): ${msg}`);
       if (streamType === 'hls') {
-          // If HLS fails, try to fallback to MJPEG only if it's a native camera
           if (haDomain !== 'internal') {
               console.log("Attempting fallback to MJPEG...");
               fetchMjpegStream();
           } else {
-              // For custom streams, just show error
               setError(msg);
               setIsLoading(false);
               setIsLive(false);
@@ -219,7 +207,7 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
       className="relative w-full h-full bg-black overflow-hidden rounded-lg select-none group"
       onClick={() => onCameraCardClick && onCameraCardClick(device)}
     >
-      {/* Layer 1: Snapshot (Background) */}
+      {/* Layer 1: Snapshot */}
       {finalSnapshotUrl && (
         <img 
           src={finalSnapshotUrl} 
@@ -240,15 +228,12 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
               setIsLive(true);
               setIsLoading(false);
             }}
-            onError={(msg) => {
-                handleStreamError(msg);
-            }}
+            onError={handleStreamError}
           />
         </div>
       )}
 
-      {/* Layer 3: Interaction Shield (Fix for Context Menu & Iframe stealing focus) */}
-      {/* This transparent div sits on top of the video/iframe but below the UI controls */}
+      {/* Layer 3: Interaction Shield */}
       <div className="absolute inset-0 z-[10] cursor-pointer" />
 
       {/* Layer 4: Loading Spinner */}
@@ -265,9 +250,6 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
         <div className="absolute inset-0 z-[30] flex flex-col items-center justify-center bg-black/70 p-4 text-center animate-in fade-in">
           <Icon icon="mdi:alert-circle-outline" className="w-8 h-8 text-red-500 mb-2" />
           <p className="text-xs text-white font-medium">{error}</p>
-          {haDomain === 'internal' && !customStreamUrl && (
-              <p className="text-[10px] text-gray-400 mt-1">URL потока не настроен</p>
-          )}
           <button 
             onClick={(e) => { e.stopPropagation(); setIsLoading(true); setError(null); }} 
             className="mt-2 px-3 py-1 bg-white/10 hover:bg-white/20 rounded text-[10px] text-white transition-colors cursor-pointer"
@@ -291,7 +273,6 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
         )}
       </div>
       
-      {/* Fallback Icon if nothing else shows */}
       {!shouldPlay && !finalSnapshotUrl && !isLoading && (
          <div className="absolute inset-0 z-[1] flex items-center justify-center text-gray-500 bg-gray-900">
             <Icon icon="mdi:cctv" className="w-12 h-12 opacity-30" />

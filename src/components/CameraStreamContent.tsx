@@ -39,17 +39,30 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
     const video = videoRef.current;
     if (!video) return;
 
-    // STRICT CLEANUP (From provided example)
-    const cleanup = () => {
+    // STRICT CLEANUP
+    const destroyHls = () => {
         if (hlsRef.current) {
-            hlsRef.current.destroy();
+            try {
+                hlsRef.current.stopLoad();
+                hlsRef.current.detachMedia();
+                hlsRef.current.destroy();
+            } catch (e) {
+                console.warn("Error destroying HLS instance", e);
+            }
             hlsRef.current = null;
         }
-        video.pause();
-        video.removeAttribute('src');
-        video.load();
     };
 
+    const cleanup = () => {
+        destroyHls();
+        if (video) {
+            video.pause();
+            video.removeAttribute('src');
+            video.load();
+        }
+    };
+
+    // Run cleanup before starting new stream
     cleanup();
 
     const handleVideoLoaded = () => {
@@ -60,32 +73,38 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
       const msg = typeof e === 'string' ? e : (video.error?.message || "Ошибка воспроизведения");
       console.error("Video Error:", e);
       setHasError(true);
+      // Clean up immediately on fatal error
+      destroyHls();
       if (onError) onError(msg);
     };
 
     video.addEventListener('loadeddata', handleVideoLoaded);
-    // IMPROVED: Attach standard error listener to video element
-    video.addEventListener('error', (e) => handleError(e));
+    // Use a named function for the event listener to ensure we can remove it if needed, 
+    // though React's useEffect cleanup usually handles the node removal.
+    const errorListener = (e: Event) => handleError(e);
+    video.addEventListener('error', errorListener);
 
     const playVideo = async () => {
+        if (!video.paused) return;
         try {
             await video.play();
         } catch (e) {
-            console.debug("Autoplay blocked", e);
+            console.debug("Autoplay blocked or interrupted", e);
         }
     };
 
     // --- HLS Logic ---
     if (type === 'hls') {
-        // Priority: Native HLS (Safari) -> Hls.js -> Error
+        // Check for Native HLS (Safari) first
         if (video.canPlayType('application/vnd.apple.mpegurl')) {
              video.src = streamUrl;
              if (autoPlay) playVideo();
         } else if (Hls.isSupported()) {
              const hls = new Hls({
-                // Minimal config as per request to stick to "my code" style defaults where possible,
-                // but some timeouts are safer for network resilience.
                 manifestLoadingTimeOut: 15000,
+                levelLoadingTimeOut: 15000,
+                fragLoadingTimeOut: 15000,
+                startLevel: -1,
              });
              hlsRef.current = hls;
              
@@ -97,11 +116,21 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
              });
              
              hls.on(Hls.Events.ERROR, (event, data) => {
-                 console.error('HLS error', data);
                  if (data.fatal) {
-                    // On fatal error, destroy and report
-                    hls.destroy();
-                    handleError(`HLS Fatal: ${data.type}`);
+                    switch (data.type) {
+                        case Hls.ErrorTypes.NETWORK_ERROR:
+                            console.warn("fatal network error encountered, try to recover");
+                            hls.startLoad();
+                            break;
+                        case Hls.ErrorTypes.MEDIA_ERROR:
+                            console.warn("fatal media error encountered, try to recover");
+                            hls.recoverMediaError();
+                            break;
+                        default:
+                            console.error('HLS Fatal Error', data);
+                            handleError(`HLS Fatal: ${data.type}`);
+                            break;
+                    }
                  }
              });
         } else {
@@ -111,24 +140,18 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
     // --- Direct File Logic (MP4/WebM) ---
     else if (type === 'file') {
       video.src = streamUrl;
-      // Specific error listener for source loading issues (CORS, 404)
-      const onSrcError = () => {
-          handleError("Ошибка загрузки файла. Проверьте URL и CORS.");
-          video.removeEventListener('error', onSrcError);
-      };
-      video.addEventListener('error', onSrcError);
-      
       if (autoPlay) playVideo();
     }
 
-    // Cleanup on unmount
+    // Cleanup on unmount or dependency change
     return () => {
-      video.removeEventListener('loadeddata', handleVideoLoaded);
-      // Note: We don't remove anonymous arrow functions for error, but React unmounts the node anyway.
+      if (video) {
+          video.removeEventListener('loadeddata', handleVideoLoaded);
+          video.removeEventListener('error', errorListener);
+      }
       cleanup();
     };
   }, [streamUrl, type, autoPlay]); 
-  // Removed onLoaded/onError from dependency array to prevent re-runs if parent recreates them
 
   // --- Rendering ---
 
@@ -167,7 +190,7 @@ export const CameraStreamContent: React.FC<CameraStreamContentProps> = ({
         poster={posterUrl || undefined}
         muted={muted}
         playsInline // Required for iOS autoplay
-        controls={false} // Custom UI usually handles controls
+        controls={false} 
         crossOrigin="anonymous"
         style={{ display: hasError ? 'none' : 'block' }}
       />
