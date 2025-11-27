@@ -548,6 +548,28 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                     </Section>
 
                     <Section title="Интерфейс и Часы" description="Настройка отображения боковой панели, часов и порогов.">
+                        <LabeledInput label="Режим темы">
+                            <select value={themeMode} onChange={e => setThemeMode(e.target.value as any)} className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm">
+                                <option value="auto">Системная</option>
+                                <option value="day">Светлая</option>
+                                <option value="night">Темная</option>
+                                <option value="schedule">По расписанию</option>
+                            </select>
+                        </LabeledInput>
+
+                        {themeMode === 'schedule' && (
+                            <div className="bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg space-y-3 mt-2 mb-2">
+                                <LabeledInput label="Начало ночи">
+                                    <input type="time" value={scheduleStartTime} onChange={e => setScheduleStartTime(e.target.value)} className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm" />
+                                </LabeledInput>
+                                <LabeledInput label="Конец ночи">
+                                    <input type="time" value={scheduleEndTime} onChange={e => setScheduleEndTime(e.target.value)} className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm" />
+                                </LabeledInput>
+                            </div>
+                        )}
+
+                        <div className="h-px bg-gray-200 dark:bg-gray-700 my-2"></div>
+
                         <LabeledInput label="Формат времени">
                             <select value={clockSettings.format} onChange={e => setClockSettings({...clockSettings, format: e.target.value as '12h'|'24h'})} className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm">
                                 <option value="24h">24 часа</option>
