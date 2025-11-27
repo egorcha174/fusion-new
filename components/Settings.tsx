@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device, AuroraSettings } from '../types';
@@ -581,6 +580,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                             <select value={backgroundEffect} onChange={e => setBackgroundEffect(e.target.value as BackgroundEffectType)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm">
                                 <option value="none">Нет</option>
                                 <option value="weather">По погоде</option>
+                                <option value="tron">Трон</option>
                                 <option value="snow">Снег</option>
                                 <option value="rain">Дождь</option>
                                 <option value="strong-cloudy">Сильная облачность</option>

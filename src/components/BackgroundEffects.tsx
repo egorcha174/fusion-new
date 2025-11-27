@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { useAppStore, BackgroundEffectType } from '../store/appStore';
 import { applyOpacity } from '../utils/themeUtils';
@@ -266,7 +265,8 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
     );
 });
 
-const StrongCloudyEffect = ({ dark = false }: { dark?: boolean }) => {
+// FIX: Provide a default empty object for props to prevent errors when component is called without arguments.
+const StrongCloudyEffect = ({ dark = false }: { dark?: boolean } = {}) => {
     const clouds = useMemo(() => {
         // Palette selection
         const defaultColors = ['#94a3b8', '#cbd5e1', '#64748b', '#e2e8f0', '#bfdbfe', '#dbeafe'];
