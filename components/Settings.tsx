@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device, AuroraSettings } from '../types';
@@ -672,94 +671,8 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                         )}
                     </Section>
 
-                    <Section title="Интерфейс и Часы" description="Настройка отображения боковой панели, часов и порогов.">
-                        <LabeledInput label="Формат времени">
-                            <select value={clockSettings.format} onChange={e => setClockSettings({...clockSettings, format: e.target.value as '12h'|'24h'})} className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm">
-                                <option value="24h">24 часа</option>
-                                <option value="12h">12 часов</option>
-                            </select>
-                        </LabeledInput>
-                        <LabeledInput label="Показывать секунды">
-                            <div className="flex items-center justify-end">
-                                <input type="checkbox" checked={clockSettings.showSeconds} onChange={e => setClockSettings({...clockSettings, showSeconds: e.target.checked})} className="w-5 h-5 accent-blue-600"/>
-                            </div>
-                        </LabeledInput>
-                        <LabeledInput label="Размер часов">
-                            <select value={clockSettings.size} onChange={e => setClockSettings({...clockSettings, size: e.target.value as any})} className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm">
-                                <option value="sm">Маленький</option>
-                                <option value="md">Средний</option>
-                                <option value="lg">Крупный</option>
-                            </select>
-                        </LabeledInput>
-                        <div className="h-px bg-gray-200 dark:bg-gray-700 my-2"></div>
-                        <LabeledInput label="Боковая панель">
-                            <div className="flex items-center justify-end">
-                                <label className="text-sm mr-2 text-gray-500">{isSidebarVisible ? 'Включена' : 'Выключена'}</label>
-                                <input type="checkbox" checked={isSidebarVisible} onChange={e => setIsSidebarVisible(e.target.checked)} className="w-5 h-5 accent-blue-600"/>
-                            </div>
-                        </LabeledInput>
-                        <LabeledInput label="Ширина панели" description={`${sidebarWidth}px`}>
-                            <input type="range" min={200} max={500} value={sidebarWidth} onChange={e => setSidebarWidth(parseInt(e.target.value))} className="w-full accent-blue-500"/>
-                        </LabeledInput>
-                        <div className="h-px bg-gray-200 dark:bg-gray-700 my-2"></div>
-                        <LabeledInput label="Порог низкого заряда" description={`Устройства с зарядом ниже ${lowBatteryThreshold}% будут отмечены как разряженные.`}>
-                            <input type="range" min={5} max={50} step={5} value={lowBatteryThreshold} onChange={e => setLowBatteryThreshold(parseInt(e.target.value))} className="w-full accent-red-500"/>
-                        </LabeledInput>
-                    </Section>
-
-                    <Section title="Погода" description="Настройка источника погоды и API ключей.">
-                        <LabeledInput label="Источник погоды">
-                            <select value={weatherProvider} onChange={e => setWeatherProvider(e.target.value as any)} className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm">
-                                <option value="openweathermap">OpenWeatherMap</option>
-                                <option value="yandex">Яндекс.Погода</option>
-                                <option value="foreca">Foreca</option>
-                                <option value="homeassistant">Home Assistant (weather.*)</option>
-                            </select>
-                        </LabeledInput>
-
-                        {weatherProvider === 'openweathermap' && (
-                            <LabeledInput label="API Ключ (OWM)">
-                                <input type="password" value={openWeatherMapKey} onChange={e => setOpenWeatherMapKey(e.target.value)} placeholder="Введите ключ..." className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm"/>
-                            </LabeledInput>
-                        )}
-                        {weatherProvider === 'yandex' && (
-                            <LabeledInput label="API Ключ (Яндекс)">
-                                <input type="password" value={yandexWeatherKey} onChange={e => setYandexWeatherKey(e.target.value)} placeholder="X-Yandex-Weather-Key" className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm"/>
-                            </LabeledInput>
-                        )}
-                        {weatherProvider === 'foreca' && (
-                            <LabeledInput label="API Токен (Foreca)">
-                                <input type="password" value={forecaApiKey} onChange={e => setForecaApiKey(e.target.value)} placeholder="Bearer токен" className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm"/>
-                            </LabeledInput>
-                        )}
-                        {weatherProvider === 'homeassistant' && (
-                            <LabeledInput label="Сущность погоды">
-                                <select value={weatherEntityId} onChange={e => setWeatherEntityId(e.target.value)} className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm">
-                                    <option value="">Выберите сущность...</option>
-                                    {weatherEntities.map(dev => (
-                                        <option key={dev.id} value={dev.id}>{dev.name} ({dev.id})</option>
-                                    ))}
-                                </select>
-                            </LabeledInput>
-                        )}
-
-                        <div className="h-px bg-gray-200 dark:bg-gray-700 my-2"></div>
-                        
-                        <LabeledInput label="Набор иконок">
-                            <select value={weatherSettings.iconPack} onChange={e => setWeatherSettings({...weatherSettings, iconPack: e.target.value as any})} className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm">
-                                <option value="default">По умолчанию (анимированные)</option>
-                                <option value="meteocons">Meteocons</option>
-                                <option value="weather-icons">Weather Icons</option>
-                                <option value="material-symbols-light">Material Symbols</option>
-                            </select>
-                        </LabeledInput>
-                        <LabeledInput label="Дней прогноза" description={`${weatherSettings.forecastDays} дней`}>
-                            <input type="range" min={1} max={7} value={weatherSettings.forecastDays} onChange={e => setWeatherSettings({...weatherSettings, forecastDays: parseInt(e.target.value)})} className="w-full accent-blue-500"/>
-                        </LabeledInput>
-                    </Section>
-
                     <Section title="Тема оформления" description="Выберите тему из списка. Используйте кнопку копирования для создания своей версии.">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 auto-rows-fr">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-fr">
                             {themes.map(theme => (
                                 <div key={theme.id} className="text-center group relative">
                                     <button
@@ -819,6 +732,17 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                                         <span className="text-xs font-medium">Создать тему</span>
                                     </div>
                                 </button>
+                            </div>
+                             <div className="text-center">
+                                <label
+                                    className="w-full aspect-video rounded-lg border-2 border-dashed border-gray-400 dark:border-gray-600 transition-all flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800/50 hover:border-gray-500 cursor-pointer"
+                                >
+                                    <div className="flex flex-col items-center text-gray-500 dark:text-gray-400">
+                                        <Icon icon="mdi:file-upload-outline" className="w-8 h-8 mb-1" />
+                                        <span className="text-xs font-medium">Импорт темы</span>
+                                    </div>
+                                    <input type="file" accept=".json" onChange={handleImport} className="hidden" />
+                                </label>
                             </div>
                         </div>
                     </Section>
