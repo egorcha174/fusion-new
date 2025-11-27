@@ -376,8 +376,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                         onEditDevice={() => {}}
                         haUrl=""
                         signPath={async (p) => ({ path: p })}
-                        getCameraStreamUrl={async () => ({ url: '' })}
-                        onCameraCardClick={() => {}}
                         colorScheme={colorScheme['light']}
                         isDark={false}
                     />

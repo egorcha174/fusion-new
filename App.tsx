@@ -102,6 +102,11 @@ const App: React.FC = () => {
         haUrl, allRoomsWithPhysicalDevices
     } = useHAStore();
 
+    // Inject appStore dependency into haStore to resolve circular dependency
+    useEffect(() => {
+        useHAStore.getState().initAppStore(useAppStore);
+    }, []);
+
     const {
         currentPage, setCurrentPage, isEditMode, setIsEditMode, setEditingDevice,
         editingTab, setEditingTab, editingTemplate, setEditingTemplate, searchTerm,
