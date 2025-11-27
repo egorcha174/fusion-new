@@ -7,7 +7,6 @@ export enum DeviceType {
   Switch = 2,
   Sensor = 3,
   BinarySensor = 4,
-  // Camera = 5, // Removed
   MediaPlayer = 6,
   Climate = 7,
   Thermostat = 7,

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ClockSettings, Device, ClockSize, CameraSettings, ColorScheme, WeatherSettings } from '../types';
+import { ClockSettings, Device, ClockSize, ColorScheme, WeatherSettings } from '../types';
 import ContextMenu from './ContextMenu';
 import WeatherWidget from './WeatherWidget';
 import { useAppStore } from '../store/appStore';

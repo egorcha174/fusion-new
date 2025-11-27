@@ -124,7 +124,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           if (!get().isInitialLoadComplete) return;
 
           const { entities, areas, devices, entityRegistry } = get();
-          const appStore = useAppStore.getState();
+          const appStore = require('./appStore').useAppStore.getState();
           
           if (!appStore) return;
 
@@ -346,18 +346,27 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
       }
   };
   
-  useAppStore.subscribe(
-    (state, prevState) => {
-        const shouldUpdate = state.customizations !== prevState.customizations ||
-                             state.lowBatteryThreshold !== prevState.lowBatteryThreshold ||
-                             state.eventTimerWidgets !== prevState.eventTimerWidgets ||
-                             state.customCardWidgets !== prevState.customCardWidgets;
-        
-        if (shouldUpdate && get().isInitialLoadComplete) {
-            updateDerivedState();
-        }
-    }
-  );
+  // Manual subscription to appStore changes to trigger derived state update
+  // We use require to avoid circular dependency issues at module level
+  setTimeout(() => {
+      try {
+        const appStore = require('./appStore').useAppStore;
+        appStore.subscribe(
+            (state: any, prevState: any) => {
+                const shouldUpdate = state.customizations !== prevState.customizations ||
+                                     state.lowBatteryThreshold !== prevState.lowBatteryThreshold ||
+                                     state.eventTimerWidgets !== prevState.eventTimerWidgets ||
+                                     state.customCardWidgets !== prevState.customCardWidgets;
+                
+                if (shouldUpdate && get().isInitialLoadComplete) {
+                    updateDerivedState();
+                }
+            }
+        );
+      } catch (e) {
+          console.warn("Could not subscribe to appStore", e);
+      }
+  }, 0);
 
   return {
     connectionStatus: 'idle',
@@ -377,7 +386,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     allScenes: [],
     allAutomations: [],
     allScripts: [],
-    allCameras: [],
 
     connect: (url, token) => {
         if (socketRef) {
@@ -402,7 +410,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             devices: [],
             entityRegistry: [],
             allKnownDevices: new Map(),
-            allCameras: [],
         });
         
         connectionTimeoutRef = setTimeout(() => {
@@ -615,7 +622,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             error: null, 
             isLoading: false,
             isInitialLoadComplete: false,
-            allCameras: [],
         });
     },
     callService: (domain, service, service_data, returnResponse = false) => new Promise((resolve, reject) => {
@@ -648,9 +654,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         historyPeriodCallbacks.set(id, { resolve, reject });
         sendMessage({ id, type: 'history/history_during_period', entity_ids: entityIds, start_time: startTime, end_time: endTime, minimal_response: true });
     }),
-    getCameraStreamUrl: async (entityId) => {
-       return { url: '' };
-    },
     fetchWeatherForecasts: async (entityIds) => {
         if (!entityIds.length) return;
         const forecastsMap: Record<string, WeatherForecast[]> = { ...get().forecasts };

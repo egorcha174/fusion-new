@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ClockSettings, Device, ClockSize, CameraSettings, ColorScheme, WeatherSettings } from '../types';
-import { UniversalCameraCard } from './UniversalCameraCard';
+import { ClockSettings, Device, ClockSize, ColorScheme, WeatherSettings } from '../types';
 import ContextMenu from './ContextMenu';
 import WeatherWidget from './WeatherWidget';
 import { useAppStore } from '../store/appStore';
@@ -67,93 +66,6 @@ const Clock: React.FC<ClockProps> = React.memo(({ settings, sidebarWidth, color 
     );
 });
 
-interface CameraWidgetProps {
-    cameras: Device[];
-    haUrl: string;
-    signPath: (path: string) => Promise<{ path: string }>;
-    getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
-}
-
-/**
- * Виджет для отображения видео с камеры.
- * Позволяет выбирать камеру для отображения через контекстное меню (правый клик).
- */
-const CameraWidget: React.FC<CameraWidgetProps> = React.memo(({ cameras, haUrl, signPath, getCameraStreamUrl }) => {
-    const { cameraSettings, setCameraSettings, setFloatingCamera } = useAppStore();
-    const [contextMenu, setContextMenu] = useState<{ x: number, y: number } | null>(null);
-    
-    // FIX: Safely access cameraSettings to prevent crashes if store is not fully initialized
-    const selectedCamera = useMemo(() => {
-        return cameras.find(c => c.id === cameraSettings?.selectedEntityId);
-    }, [cameras, cameraSettings]);
-
-    const handleSelectCamera = (entityId: string | null) => {
-        setCameraSettings({ ...cameraSettings, selectedEntityId: entityId });
-        setContextMenu(null);
-    };
-
-    const handleCameraClick = () => {
-        if (selectedCamera) {
-            setFloatingCamera(selectedCamera);
-        }
-    };
-    
-    const handleContextMenu = (event: React.MouseEvent) => {
-        event.preventDefault();
-        event.stopPropagation();
-        setContextMenu({ x: event.clientX, y: event.clientY });
-    };
-
-    const handleCloseContextMenu = () => {
-        setContextMenu(null);
-    };
-
-    return (
-        <div>
-            <div
-                className="relative aspect-video bg-gray-200 dark:bg-gray-800 rounded-lg text-white overflow-hidden flex items-center justify-center group"
-                onClick={handleCameraClick}
-                onContextMenu={handleContextMenu}
-            >
-                {selectedCamera ? (
-                    <>
-                        <UniversalCameraCard
-                            device={selectedCamera}
-                            haUrl={haUrl}
-                            signPath={signPath}
-                            getCameraStreamUrl={getCameraStreamUrl}
-                            autoPlay={true}
-                            muted={true}
-                        />
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); handleCameraClick(); }}
-                            className="absolute top-2 right-2 p-2 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100 transform hover:scale-105 z-10"
-                            title="Развернуть"
-                        >
-                            <Icon icon="mdi:arrow-expand-all" className="w-5 h-5 drop-shadow-md" />
-                        </button>
-                    </>
-                ) : (
-                    <div className="text-gray-500 dark:text-gray-500 text-center p-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.55a2 2 0 01.95 1.664V16a2 2 0 01-2 2H5a2 2 0 01-2 2v-2.336a2 2 0 01.95-1.664L8 10l3 3 4-3z" /></svg>
-                        <p className="mt-2 text-sm">{cameras.length > 0 ? 'Выберите камеру (ПКМ)' : 'Камеры не найдены'}</p>
-                    </div>
-                )}
-            </div>
-
-            {contextMenu && cameras.length > 0 && (
-                <ContextMenu x={contextMenu.x} y={contextMenu.y} isOpen={!!contextMenu} onClose={handleCloseContextMenu}>
-                    {cameras.map(camera => (
-                        <div key={camera.id} onClick={() => handleSelectCamera(camera.id)} className="px-3 py-1.5 rounded-md hover:bg-gray-700/80 cursor-pointer text-sm">
-                            {camera.name}
-                        </div>
-                    ))}
-                </ContextMenu>
-            )}
-        </div>
-    );
-});
-
 
 interface InfoPanelProps {
     sidebarWidth: number;
@@ -166,13 +78,12 @@ interface InfoPanelProps {
 }
 
 /**
- * Боковая информационная панель, содержащая часы, виджет камеры и виджет погоды.
+ * Боковая информационная панель, содержащая часы и виджет погоды.
  * Поддерживает изменение ширины путем перетаскивания правого края.
  */
 const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, haUrl, signPath, getConfig, colorScheme, isDark }) => {
     const [isResizing, setIsResizing] = useState(false);
     const { clockSettings, weatherProvider, weatherEntityId, openWeatherMapKey, yandexWeatherKey, forecaApiKey, weatherSettings } = useAppStore();
-    const { allCameras, getCameraStreamUrl } = useHAStore();
 
     // Обработчик начала перетаскивания для изменения размера
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -217,13 +128,6 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ sidebarWidth, setSidebarWidth, ha
             </div>
 
             <div className="flex-1 mt-4 space-y-4 overflow-y-auto no-scrollbar min-h-0">
-                 <CameraWidget
-                    cameras={allCameras}
-                    haUrl={haUrl}
-                    signPath={signPath}
-                    getCameraStreamUrl={getCameraStreamUrl}
-                />
-            
                 <WeatherWidget 
                     weatherProvider={weatherProvider}
                     weatherEntityId={weatherEntityId}

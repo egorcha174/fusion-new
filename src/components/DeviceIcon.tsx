@@ -29,6 +29,7 @@ const iconMap: Record<DeviceType, { on: string; off: string; animation?: 'spin' 
   [DeviceType.DoorSensor]: { on: 'mdi:door-open', off: 'mdi:door-closed' },
   [DeviceType.Switch]: { on: 'mdi:toggle-switch', off: 'mdi:toggle-switch-off-outline' },
   [DeviceType.Outlet]: { on: 'mdi:power-socket-eu', off: 'mdi:power-socket-eu' },
+  [DeviceType.Camera]: { on: 'mdi:cctv', off: 'mdi:cctv-off' },
   [DeviceType.Weather]: { on: 'mdi:weather-partly-cloudy', off: 'mdi:weather-partly-cloudy' },
   [DeviceType.BatteryWidget]: { on: 'mdi:battery-heart-variant-outline', off: 'mdi:battery-heart-variant-outline' },
   [DeviceType.Humidifier]: { on: 'mdi:air-humidifier', off: 'mdi:air-humidifier-off' },
@@ -49,7 +50,6 @@ const iconMap: Record<DeviceType, { on: string; off: string; animation?: 'spin' 
   [DeviceType.InputText]: { on: 'mdi:form-textbox', off: 'mdi:form-textbox' },
   [DeviceType.InputSelect]: { on: 'mdi:form-dropdown', off: 'mdi:form-dropdown' },
   [DeviceType.Siren]: { on: 'mdi:bullhorn', off: 'mdi:bullhorn-outline', animation: 'pulse' },
-  [DeviceType.Camera]: { on: 'mdi:cctv', off: 'mdi:cctv-off' },
   [DeviceType.Unknown]: { on: 'mdi:help-rhombus-outline', off: 'mdi:help-rhombus-outline' },
 };
 

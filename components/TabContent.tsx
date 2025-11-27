@@ -20,8 +20,8 @@ interface TabContentProps {
  */
 const TabContent: React.FC<TabContentProps> = (props) => {
   const { tab, currentColorScheme } = props;
-  const { allKnownDevices, haUrl, signPath, getCameraStreamUrl, handleDeviceToggle, handleTemperatureChange, handleBrightnessChange, handleHvacModeChange, handlePresetChange, handleFanSpeedChange } = useHAStore();
-  const { searchTerm, handleDeviceLayoutChange, setFloatingCamera, setHistoryModalEntityId, setEditingDevice, templates, customizations } = useAppStore();
+  const { allKnownDevices, haUrl, signPath, handleDeviceToggle, handleTemperatureChange, handleBrightnessChange, handleHvacModeChange, handlePresetChange, handleFanSpeedChange } = useHAStore();
+  const { searchTerm, handleDeviceLayoutChange, setHistoryModalEntityId, setEditingDevice, templates, customizations } = useAppStore();
 
   // Если на вкладке нет устройств, показываем заглушку.
   if (tab.layout.length === 0) {
@@ -45,12 +45,10 @@ const TabContent: React.FC<TabContentProps> = (props) => {
             onHvacModeChange={handleHvacModeChange}
             onPresetChange={handlePresetChange}
             onFanSpeedChange={handleFanSpeedChange}
-            onCameraCardClick={setFloatingCamera}
             onShowHistory={setHistoryModalEntityId}
             onEditDevice={setEditingDevice}
             haUrl={haUrl}
             signPath={signPath}
-            getCameraStreamUrl={getCameraStreamUrl}
             templates={templates}
             customizations={customizations}
             colorScheme={currentColorScheme}

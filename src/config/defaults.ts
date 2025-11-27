@@ -18,6 +18,7 @@ export const DEFAULT_LIGHT_TEMPLATE_ID = 'default-light';
 export const DEFAULT_SWITCH_TEMPLATE_ID = 'default-switch';
 export const DEFAULT_CLIMATE_TEMPLATE_ID = 'default-climate';
 export const DEFAULT_HUMIDIFIER_TEMPLATE_ID = 'humidifier-card';
+export const DEFAULT_CAMERA_TEMPLATE_ID = 'default-camera';
 
 // --- Default Font Family ---
 export const DEFAULT_FONT_FAMILY = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
@@ -96,6 +97,16 @@ const customCardTemplate: CardTemplate = {
     ],
 };
 
+const defaultCameraTemplate: CardTemplate = {
+    id: DEFAULT_CAMERA_TEMPLATE_ID, name: 'Камера (Стандарт)', deviceType: 'camera',
+    styles: {},
+    width: 2,
+    height: 2,
+    elements: [
+        { id: 'name', uniqueId: nanoid(), visible: true, position: { x: 5, y: 5 }, size: { width: 90, height: 10 }, zIndex: 2, styles: { color: '#ffffff', fontSize: 14, textAlign: 'left' } },
+    ]
+};
+
 export const defaultTemplates: CardTemplates = {
     [DEFAULT_SENSOR_TEMPLATE_ID]: defaultSensorTemplate,
     [DEFAULT_LIGHT_TEMPLATE_ID]: defaultLightTemplate,
@@ -103,6 +114,7 @@ export const defaultTemplates: CardTemplates = {
     [DEFAULT_CLIMATE_TEMPLATE_ID]: defaultClimateTemplate,
     'humidifier-card': humidifierTemplate,
     'custom-template': customCardTemplate,
+    [DEFAULT_CAMERA_TEMPLATE_ID]: defaultCameraTemplate,
 };
 
 // --- Default Color Scheme ---

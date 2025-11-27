@@ -26,6 +26,7 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
 
   // --- Приоритет 1: Прямое сопоставление домена (однозначные случаи) ---
   switch (domain) {
+    case 'camera': return DeviceType.Camera;
     case 'weather': return DeviceType.Weather;
     case 'climate': return DeviceType.Thermostat;
     case 'fan': return DeviceType.Fan;
@@ -45,7 +46,6 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
     case 'input_number': return DeviceType.InputNumber;
     case 'input_text': return DeviceType.InputText;
     case 'input_select': return DeviceType.InputSelect;
-    case 'camera': return DeviceType.Camera;
   }
 
   // --- Приоритет 2: Домен + Атрибуты/Класс устройства ---
@@ -90,7 +90,6 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
   if (combinedName.includes('monitor') || combinedName.includes('монитор')) return DeviceType.Monitor;
   if (combinedName.includes('speaker') || combinedName.includes('колонка')) return DeviceType.Speaker;
   if (combinedName.includes('fan') || combinedName.includes('вентилятор')) return DeviceType.Fan;
-  if (combinedName.includes('camera') || combinedName.includes('камера')) return DeviceType.Camera;
   
   // --- Финальный резервный вариант ---
   // Fallback for unknown domains to be treated as generic sensors or read-only text if state exists
@@ -112,6 +111,14 @@ const getStatusText = (entity: HassEntity): string => {
     const domain = entity.entity_id.split('.')[0];
     const attributes = entity.attributes || {};
     const deviceClass = attributes.device_class;
+
+    // Камеры
+    if (domain === 'camera') {
+        if (entity.state === 'recording') return 'Запись';
+        if (entity.state === 'streaming') return 'Трансляция';
+        if (entity.state === 'idle') return 'Ожидание';
+        return 'Онлайн';
+    }
 
     // Специальная логика для климата (термостатов)
     if (domain === 'climate') {
@@ -295,8 +302,6 @@ const entityToDevice = (
     haDeviceClass: attributes.device_class,
     state: entity.state,
     attributes: attributes, // Store raw attributes
-    customStreamUrl: customization.customStreamUrl,
-    streamType: customization.streamType,
   };
 
   // Добавляем специфичные для типов устройств атрибуты
@@ -341,6 +346,10 @@ const entityToDevice = (
         device.mediaTitle = attributes.media_title;
         device.mediaArtist = attributes.media_artist;
         device.appName = attributes.app_name;
+  }
+  
+  if (device.type === DeviceType.Camera) {
+      device.entityPictureUrl = attributes.entity_picture;
   }
   
   if (device.type === DeviceType.Person && attributes.entity_picture) {

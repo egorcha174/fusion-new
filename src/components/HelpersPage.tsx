@@ -59,33 +59,18 @@ const AddToTabButton: React.FC<{
 
 
 const HelpersPage: React.FC = () => {
-    const { eventTimerWidgets, customCardWidgets, addCustomCard, addCustomWidget, addCustomCamera, setEditingEventTimerId, setEditingTemplate, setEditingDevice, templates, deleteCustomCard, deleteCustomWidget } = useAppStore();
+    const { eventTimerWidgets, customCardWidgets, addCustomCard, addCustomWidget, setEditingEventTimerId, setEditingTemplate, templates, deleteCustomCard, deleteCustomWidget } = useAppStore();
     const { allScenes, allAutomations, allScripts, triggerScene, triggerAutomation, triggerScript, allKnownDevices } = useHAStore();
     const [deletingItem, setDeletingItem] = useState<EventTimerWidget | CustomCardWidget | null>(null);
 
     const handleEdit = (widget: CustomCardWidget) => {
-        if (widget.id.startsWith('camera_')) {
-            // It's a camera widget
-            const deviceId = `internal::custom-card_${widget.id}`;
-            // Construct a temporary device object to pass to the editor
-            const device = allKnownDevices.get(deviceId) || {
-                id: deviceId,
-                name: widget.name,
-                type: DeviceType.Camera,
-                status: 'Камера',
-                haDomain: 'internal',
-                state: 'active',
-            } as Device;
-            setEditingDevice(device);
+        // It's a standard custom card
+        const templateId = `custom-card-template-${widget.id}`;
+        const template = templates[templateId];
+        if (template) {
+            setEditingTemplate(template);
         } else {
-            // It's a standard custom card
-            const templateId = `custom-card-template-${widget.id}`;
-            const template = templates[templateId];
-            if (template) {
-                setEditingTemplate(template);
-            } else {
-                alert('Шаблон для этой карточки не найден.');
-            }
+            alert('Шаблон для этой карточки не найден.');
         }
     };
     
@@ -141,9 +126,6 @@ const HelpersPage: React.FC = () => {
                     <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
                         <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-300 dark:border-gray-700 pb-2 flex-grow">Виджеты</h2>
                         <div className="flex-shrink-0 flex items-center gap-2">
-                            <button onClick={addCustomCamera} className="bg-emerald-600 text-white hover:bg-emerald-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
-                                <Icon icon="mdi:cctv" className="w-5 h-5" /><span>Новая камера</span>
-                            </button>
                             <button onClick={addCustomCard} className="bg-indigo-600 text-white hover:bg-indigo-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
                                 <Icon icon="mdi:view-dashboard-plus-outline" className="w-5 h-5" /><span>Новая карточка</span>
                             </button>
@@ -155,12 +137,11 @@ const HelpersPage: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {[...eventTimerWidgets, ...customCardWidgets].map(widget => {
                             const isTimer = 'cycleDays' in widget;
-                            const isCamera = !isTimer && widget.id.startsWith('camera_');
                             const deviceId = isTimer ? `internal::event-timer_${widget.id}` : `internal::custom-card_${widget.id}`;
                             const device = allKnownDevices.get(deviceId);
                             
                             // Fallback display if device not yet in store (freshly added)
-                            const displayType = isTimer ? DeviceType.EventTimer : (isCamera ? DeviceType.Camera : DeviceType.Custom);
+                            const displayType = isTimer ? DeviceType.EventTimer : DeviceType.Custom;
                             const displayName = device?.name || widget.name;
                             
                             return (
@@ -172,7 +153,7 @@ const HelpersPage: React.FC = () => {
                                         <div className="flex-1 overflow-hidden">
                                             <p className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">{displayName}</p>
                                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                {isTimer ? 'Виджет-таймер' : (isCamera ? 'IP Камера / Поток' : 'Кастомная карточка')}
+                                                {isTimer ? 'Виджет-таймер' : 'Кастомная карточка'}
                                             </p>
                                         </div>
                                     </div>

@@ -24,7 +24,6 @@ interface DeviceCardProps {
   onEditDevice: (device: Device) => void;
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
-  getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
   openMenuDeviceId?: string | null;
   setOpenMenuDeviceId?: (id: string | null) => void;
   colorScheme: ColorScheme['light'];
@@ -48,7 +47,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
   onEditDevice,
   haUrl,
   signPath,
-  getCameraStreamUrl,
   colorScheme,
   autoPlay = true
 }) => {

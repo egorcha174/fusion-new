@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import {
   DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent,
@@ -24,12 +25,10 @@ interface DashboardGridProps {
   onHvacModeChange: (deviceId: string, mode: string) => void;
   onPresetChange: (deviceId: string, preset: string) => void;
   onFanSpeedChange: (deviceId: string, value: number | string) => void;
-  onCameraCardClick: (device: Device) => void;
   onShowHistory: (entityId: string) => void;
   onEditDevice: (device: Device) => void;
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
-  getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
   templates: CardTemplates;
   customizations: DeviceCustomizations;
   colorScheme: ThemeColors;
@@ -100,11 +99,9 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
   onHvacModeChange,
   onPresetChange,
   onFanSpeedChange,
-  onCameraCardClick,
   onEditDevice,
   haUrl,
   signPath,
-  getCameraStreamUrl,
   customizations,
   colorScheme,
   isDark,
@@ -246,11 +243,9 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
                       onHvacModeChange={onHvacModeChange}
                       onPresetChange={onPresetChange}
                       onFanSpeedChange={onFanSpeedChange}
-                      onCameraCardClick={onCameraCardClick}
                       onEditDevice={onEditDevice}
                       haUrl={haUrl}
                       signPath={signPath}
-                      getCameraStreamUrl={getCameraStreamUrl}
                       colorScheme={colorScheme}
                       isDark={isDark}
                     />
@@ -277,11 +272,9 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
                       onHvacModeChange={() => {}}
                       onPresetChange={() => {}}
                       onFanSpeedChange={() => {}}
-                      onCameraCardClick={() => {}}
                       onEditDevice={() => {}}
                       haUrl={haUrl}
                       signPath={signPath}
-                      getCameraStreamUrl={getCameraStreamUrl}
                       colorScheme={colorScheme}
                       isDark={isDark}
                       autoPlay={false}

@@ -293,8 +293,6 @@ const entityToDevice = (
     haDeviceClass: attributes.device_class,
     state: entity.state,
     attributes: attributes, // Store raw attributes
-    customStreamUrl: customization.customStreamUrl,
-    streamType: customization.streamType,
   };
 
   // Добавляем специфичные для типов устройств атрибуты
