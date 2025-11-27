@@ -71,6 +71,9 @@ export const generateThemeCss = (theme: ThemeColors): string => {
             --opacity-card: ${theme.cardOpacity ?? 1};
             --opacity-panel: ${theme.panelOpacity ?? 0.75};
             --radius-card: ${theme.cardBorderRadius ?? 16}px;
+            --border-width-card: ${theme.cardBorderWidth ?? 0}px;
+            --border-color-card: ${theme.cardBorderColor || 'transparent'};
+            --border-color-card-on: ${theme.cardBorderColorOn || 'transparent'};
 
             /* Text Colors (Off State) */
             --text-name: ${theme.nameTextColor};

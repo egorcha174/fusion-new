@@ -113,6 +113,10 @@ const EventTimerWidgetCard: React.FC<EventTimerWidgetCardProps> = ({ device, col
             className="w-full h-full relative overflow-hidden text-white select-none"
             style={{
                 borderRadius: `var(--radius-card)`,
+                borderWidth: 'var(--border-width-card)',
+                borderStyle: 'solid',
+                borderColor: 'var(--border-color-card)',
+                backgroundColor: 'var(--bg-card-raw)',
             }}
         >
             {/* Слой с "жидкой" заливкой, всегда спозиционированный снизу */}

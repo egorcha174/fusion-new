@@ -1,5 +1,4 @@
 
-
 {
   "ha-dashboard-theme-version": 2,
   "exported-at": "2024-07-26T12:00:00.000Z",
@@ -12,6 +11,10 @@
       "dashboardBackgroundImageBrightness": 100,
       "cardOpacity": 0.85,
       "panelOpacity": 0.75,
+      "cardBorderRadius": 16,
+      "cardBorderWidth": 0,
+      "cardBorderColor": "#E5E7EB",
+      "cardBorderColorOn": "#3B82F6",
       "cardBackground": "rgba(233, 239, 246, 0.8)",
       "cardBackgroundOn": "rgba(255, 255, 255, 0.85)",
       "tabTextColor": "#6B7280",
@@ -47,6 +50,10 @@
       "dashboardBackgroundImageBrightness": 100,
       "cardOpacity": 0.8,
       "panelOpacity": 0.75,
+      "cardBorderRadius": 16,
+      "cardBorderWidth": 0,
+      "cardBorderColor": "#374151",
+      "cardBorderColorOn": "#60A5FA",
       "cardBackground": "rgba(42, 53, 77, 0.8)",
       "cardBackgroundOn": "rgba(87, 102, 133, 0.8)",
       "tabTextColor": "#9CA3AF",

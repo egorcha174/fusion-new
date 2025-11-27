@@ -140,7 +140,11 @@ const ThemeEditor: React.FC<{
                 <RangeInput onUpdate={onUpdate} label="Скругление углов" path={`${pathPrefix}.cardBorderRadius`} value={scheme.cardBorderRadius ?? 16} min={0} max={24} step={1} unit="px" />
                 <ColorInput onUpdate={onUpdate} label="Фон (Выкл)" path={`${pathPrefix}.cardBackground`} value={scheme.cardBackground} />
                 <ColorInput onUpdate={onUpdate} label="Фон (Вкл)" path={`${pathPrefix}.cardBackgroundOn`} value={scheme.cardBackgroundOn} />
-                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 pt-2 border-b border-gray-200 dark:border-gray-700 pb-1 mb-2">Текст (Выкл)</h4>
+                <hr className="my-4 border-gray-200 dark:border-gray-700"/>
+                <RangeInput onUpdate={onUpdate} label="Ширина рамки" path={`${pathPrefix}.cardBorderWidth`} value={scheme.cardBorderWidth ?? 0} min={0} max={5} step={1} unit="px" />
+                <ColorInput onUpdate={onUpdate} label="Цвет рамки (Выкл)" path={`${pathPrefix}.cardBorderColor`} value={scheme.cardBorderColor || '#000000'} />
+                <ColorInput onUpdate={onUpdate} label="Цвет рамки (Вкл)" path={`${pathPrefix}.cardBorderColorOn`} value={scheme.cardBorderColorOn || '#ffffff'} />
+                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 pt-2 border-b border-gray-200 dark:border-gray-700 pb-1 mb-2 mt-4">Текст (Выкл)</h4>
                 <ColorInput onUpdate={onUpdate} label="Название" path={`${pathPrefix}.nameTextColor`} value={scheme.nameTextColor} />
                 <ColorInput onUpdate={onUpdate} label="Статус" path={`${pathPrefix}.statusTextColor`} value={scheme.statusTextColor} />
                 <ColorInput onUpdate={onUpdate} label="Значение" path={`${pathPrefix}.valueTextColor`} value={scheme.valueTextColor} />

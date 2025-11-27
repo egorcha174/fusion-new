@@ -285,6 +285,9 @@ export interface ThemeColors {
   cardOpacity?: number;
   panelOpacity?: number;
   cardBorderRadius?: number;
+  cardBorderWidth?: number;
+  cardBorderColor?: string;
+  cardBorderColorOn?: string;
   
   cardBackground: string;
   cardBackgroundOn: string;

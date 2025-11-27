@@ -85,24 +85,31 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
   const isOn = getIsOn();
 
   const getCardStyle = (): React.CSSProperties => {
+      const baseStyle: React.CSSProperties = {
+          borderRadius: `var(--radius-card)`,
+          borderWidth: `var(--border-width-card)`,
+          borderStyle: 'solid',
+          borderColor: isOn ? 'var(--border-color-card-on)' : 'var(--border-color-card)',
+          transition: 'background-color 0.3s ease, border-color 0.3s ease',
+          width: '100%',
+          height: '100%',
+          position: 'relative',
+          overflow: 'hidden',
+      };
+
       if (device.type === DeviceType.MediaPlayer && (device.state === 'playing' || device.state === 'paused') && device.entityPictureUrl) {
           return {
+              ...baseStyle,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundImage: `url(${device.entityPictureUrl})`,
-              borderRadius: `${colorScheme.cardBorderRadius}px`,
           };
       }
       
       return { 
-          backgroundColor: isOn ? colorScheme.cardBackgroundOn : colorScheme.cardBackground,
+          ...baseStyle,
+          backgroundColor: isOn ? 'var(--bg-card-on)' : 'var(--bg-card)',
           backdropFilter: 'blur(16px)',
-          borderRadius: `${colorScheme.cardBorderRadius}px`,
-          overflow: 'hidden',
-          position: 'relative',
-          transition: 'background-color 0.3s ease',
-          width: '100%',
-          height: '100%',
       };
   }
 
