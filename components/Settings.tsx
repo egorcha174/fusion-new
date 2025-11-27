@@ -257,8 +257,8 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
 
             // Собираем все настройки из localStorage
             const settingsToExport: { [key: string]: any } = {};
-            for (const key of Object.values(LOCAL_STORAGE_KEYS)) {
-                const value = localStorage.getItem(key as string);
+            for (const key of Object.values(LOCAL_STORAGE_KEYS) as string[]) {
+                const value = localStorage.getItem(key);
                 if (value !== null) {
                     try {
                         settingsToExport[key as string] = JSON.parse(value);
@@ -547,6 +547,127 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                         </div>
                     </Section>
 
+                    <Section title="Внешний вид" description="Настройка режима темы (светлая/темная) и фоновой анимации.">
+                        <LabeledInput label="Режим темы">
+                            <select value={themeMode} onChange={e => setThemeMode(e.target.value as any)} className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm">
+                                <option value="auto">Системная</option>
+                                <option value="day">Светлая</option>
+                                <option value="night">Темная</option>
+                                <option value="schedule">По расписанию</option>
+                            </select>
+                        </LabeledInput>
+
+                        {themeMode === 'schedule' && (
+                            <div className="bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg space-y-3 mt-2 mb-2 animate-in fade-in slide-in-from-top-1">
+                                <LabeledInput label="Начало ночи">
+                                    <input type="time" value={scheduleStartTime} onChange={e => setScheduleStartTime(e.target.value)} className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm" />
+                                </LabeledInput>
+                                <LabeledInput label="Конец ночи">
+                                    <input type="time" value={scheduleEndTime} onChange={e => setScheduleEndTime(e.target.value)} className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm" />
+                                </LabeledInput>
+                            </div>
+                        )}
+
+                        <div className="h-px bg-gray-200 dark:bg-gray-700 my-4"></div>
+
+                        <LabeledInput label="Анимация фона">
+                            <select value={backgroundEffect} onChange={e => setBackgroundEffect(e.target.value as BackgroundEffectType)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm">
+                                <option value="none">Нет</option>
+                                <option value="weather">По погоде</option>
+                                <option value="snow">Снег</option>
+                                <option value="rain">Дождь</option>
+                                <option value="strong-cloudy">Сильная облачность</option>
+                                <option value="rain-clouds">Облака и дождь</option>
+                                <option value="snow-rain">Снег с дождем</option>
+                                <option value="thunderstorm">Гроза</option>
+                                <option value="leaves">Листопад</option>
+                                <option value="river">Речные волны</option>
+                                <option value="aurora">Полярное сияние</option>
+                                <option value="sun-glare">Солнечные блики</option>
+                                <option value="sun-clouds">Солнечные блики с облаками</option>
+                            </select>
+                        </LabeledInput>
+                        
+                        {backgroundEffect === 'aurora' && (
+                            <div className="mt-4 space-y-4 p-4 bg-gray-100 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 animate-in fade-in slide-in-from-top-2">
+                                <div className="flex justify-between items-center">
+                                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Настройки сияния</h4>
+                                    <div className="flex gap-2">
+                                        {Object.entries(AURORA_PRESETS).map(([name, preset]) => (
+                                            <button 
+                                                key={name}
+                                                onClick={() => setAuroraSettings(preset)}
+                                                className="px-2 py-1 text-xs rounded bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-500 shadow-sm"
+                                            >
+                                                {name === 'classic' ? 'Классика' : name === 'green' ? 'Зеленый' : 'Фиолет'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                
+                                <div className="grid grid-cols-3 gap-2">
+                                    <div className="flex flex-col items-center">
+                                        <label className="text-xs mb-1 text-gray-500">Цвет 1</label>
+                                        <input type="color" value={auroraSettings.color1} onChange={e => handleAuroraChange('color1', e.target.value)} className="w-full h-8 p-0 border-none rounded cursor-pointer bg-transparent"/>
+                                    </div>
+                                    <div className="flex flex-col items-center">
+                                        <label className="text-xs mb-1 text-gray-500">Цвет 2</label>
+                                        <input type="color" value={auroraSettings.color2} onChange={e => handleAuroraChange('color2', e.target.value)} className="w-full h-8 p-0 border-none rounded cursor-pointer bg-transparent"/>
+                                    </div>
+                                    <div className="flex flex-col items-center">
+                                        <label className="text-xs mb-1 text-gray-500">Цвет 3</label>
+                                        <input type="color" value={auroraSettings.color3} onChange={e => handleAuroraChange('color3', e.target.value)} className="w-full h-8 p-0 border-none rounded cursor-pointer bg-transparent"/>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <LabeledInput label="Скорость">
+                                        <div className="flex items-center gap-2">
+                                            <input type="range" min="6" max="40" value={auroraSettings.speed} onChange={e => handleAuroraChange('speed', Number(e.target.value))} className="w-full accent-blue-500"/>
+                                            <span className="text-xs w-8 text-right font-mono">{auroraSettings.speed}s</span>
+                                        </div>
+                                    </LabeledInput>
+                                    <LabeledInput label="Интенсивность">
+                                        <div className="flex items-center gap-2">
+                                            <input type="range" min="30" max="120" value={auroraSettings.intensity} onChange={e => handleAuroraChange('intensity', Number(e.target.value))} className="w-full accent-blue-500"/>
+                                            <span className="text-xs w-8 text-right font-mono">{auroraSettings.intensity}%</span>
+                                        </div>
+                                    </LabeledInput>
+                                    <LabeledInput label="Размытие">
+                                        <div className="flex items-center gap-2">
+                                            <input type="range" min="4" max="40" value={auroraSettings.blur} onChange={e => handleAuroraChange('blur', Number(e.target.value))} className="w-full accent-blue-500"/>
+                                            <span className="text-xs w-8 text-right font-mono">{auroraSettings.blur}px</span>
+                                        </div>
+                                    </LabeledInput>
+                                    <LabeledInput label="Насыщенность">
+                                        <div className="flex items-center gap-2">
+                                            <input type="range" min="80" max="220" value={auroraSettings.saturate} onChange={e => handleAuroraChange('saturate', Number(e.target.value))} className="w-full accent-blue-500"/>
+                                            <span className="text-xs w-8 text-right font-mono">{auroraSettings.saturate}%</span>
+                                        </div>
+                                    </LabeledInput>
+                                </div>
+                                
+                                <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
+                                    <LabeledInput label="Звезды">
+                                        <div className="flex justify-end">
+                                            <input type="checkbox" checked={auroraSettings.starsEnabled} onChange={e => handleAuroraChange('starsEnabled', e.target.checked)} className="w-5 h-5 accent-blue-600"/>
+                                        </div>
+                                    </LabeledInput>
+                                    {auroraSettings.starsEnabled && (
+                                        <div className="mt-2">
+                                            <LabeledInput label="Скорость мерцания">
+                                                <div className="flex items-center gap-2">
+                                                    <input type="range" min="2" max="12" value={auroraSettings.starsSpeed} onChange={e => handleAuroraChange('starsSpeed', Number(e.target.value))} className="w-full accent-blue-500"/>
+                                                    <span className="text-xs w-8 text-right font-mono">{auroraSettings.starsSpeed}s</span>
+                                                </div>
+                                            </LabeledInput>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </Section>
+
                     <Section title="Интерфейс и Часы" description="Настройка отображения боковой панели, часов и порогов.">
                         <LabeledInput label="Формат времени">
                             <select value={clockSettings.format} onChange={e => setClockSettings({...clockSettings, format: e.target.value as '12h'|'24h'})} className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm">
@@ -726,104 +847,6 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                             </div>
                         </Section>
                     )}
-                    
-                    <Section title="Анимация фона" defaultOpen={false}>
-                        <LabeledInput label="Эффект">
-                            <select value={backgroundEffect} onChange={e => setBackgroundEffect(e.target.value as BackgroundEffectType)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm">
-                                <option value="none">Нет</option>
-                                <option value="weather">По погоде</option>
-                                <option value="snow">Снег</option>
-                                <option value="rain">Дождь</option>
-                                <option value="strong-cloudy">Сильная облачность</option>
-                                <option value="rain-clouds">Облака и дождь</option>
-                                <option value="snow-rain">Снег с дождем</option>
-                                <option value="thunderstorm">Гроза</option>
-                                <option value="leaves">Листопад</option>
-                                <option value="river">Речные волны</option>
-                                <option value="aurora">Полярное сияние</option>
-                                <option value="sun-glare">Солнечные блики</option>
-                            </select>
-                        </LabeledInput>
-                        
-                        {backgroundEffect === 'aurora' && (
-                            <div className="mt-4 space-y-4 p-4 bg-gray-100 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 animate-in fade-in slide-in-from-top-2">
-                                <div className="flex justify-between items-center">
-                                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Настройки сияния</h4>
-                                    <div className="flex gap-2">
-                                        {Object.entries(AURORA_PRESETS).map(([name, preset]) => (
-                                            <button 
-                                                key={name}
-                                                onClick={() => setAuroraSettings(preset)}
-                                                className="px-2 py-1 text-xs rounded bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-500 shadow-sm"
-                                            >
-                                                {name === 'classic' ? 'Классика' : name === 'green' ? 'Зеленый' : 'Фиолет'}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                                
-                                <div className="grid grid-cols-3 gap-2">
-                                    <div className="flex flex-col items-center">
-                                        <label className="text-xs mb-1 text-gray-500">Цвет 1</label>
-                                        <input type="color" value={auroraSettings.color1} onChange={e => handleAuroraChange('color1', e.target.value)} className="w-full h-8 p-0 border-none rounded cursor-pointer bg-transparent"/>
-                                    </div>
-                                    <div className="flex flex-col items-center">
-                                        <label className="text-xs mb-1 text-gray-500">Цвет 2</label>
-                                        <input type="color" value={auroraSettings.color2} onChange={e => handleAuroraChange('color2', e.target.value)} className="w-full h-8 p-0 border-none rounded cursor-pointer bg-transparent"/>
-                                    </div>
-                                    <div className="flex flex-col items-center">
-                                        <label className="text-xs mb-1 text-gray-500">Цвет 3</label>
-                                        <input type="color" value={auroraSettings.color3} onChange={e => handleAuroraChange('color3', e.target.value)} className="w-full h-8 p-0 border-none rounded cursor-pointer bg-transparent"/>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3">
-                                    <LabeledInput label="Скорость">
-                                        <div className="flex items-center gap-2">
-                                            <input type="range" min="6" max="40" value={auroraSettings.speed} onChange={e => handleAuroraChange('speed', Number(e.target.value))} className="w-full accent-blue-500"/>
-                                            <span className="text-xs w-8 text-right font-mono">{auroraSettings.speed}s</span>
-                                        </div>
-                                    </LabeledInput>
-                                    <LabeledInput label="Интенсивность">
-                                        <div className="flex items-center gap-2">
-                                            <input type="range" min="30" max="120" value={auroraSettings.intensity} onChange={e => handleAuroraChange('intensity', Number(e.target.value))} className="w-full accent-blue-500"/>
-                                            <span className="text-xs w-8 text-right font-mono">{auroraSettings.intensity}%</span>
-                                        </div>
-                                    </LabeledInput>
-                                    <LabeledInput label="Размытие">
-                                        <div className="flex items-center gap-2">
-                                            <input type="range" min="4" max="40" value={auroraSettings.blur} onChange={e => handleAuroraChange('blur', Number(e.target.value))} className="w-full accent-blue-500"/>
-                                            <span className="text-xs w-8 text-right font-mono">{auroraSettings.blur}px</span>
-                                        </div>
-                                    </LabeledInput>
-                                    <LabeledInput label="Насыщенность">
-                                        <div className="flex items-center gap-2">
-                                            <input type="range" min="80" max="220" value={auroraSettings.saturate} onChange={e => handleAuroraChange('saturate', Number(e.target.value))} className="w-full accent-blue-500"/>
-                                            <span className="text-xs w-8 text-right font-mono">{auroraSettings.saturate}%</span>
-                                        </div>
-                                    </LabeledInput>
-                                </div>
-                                
-                                <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
-                                    <LabeledInput label="Звезды">
-                                        <div className="flex justify-end">
-                                            <input type="checkbox" checked={auroraSettings.starsEnabled} onChange={e => handleAuroraChange('starsEnabled', e.target.checked)} className="w-5 h-5 accent-blue-600"/>
-                                        </div>
-                                    </LabeledInput>
-                                    {auroraSettings.starsEnabled && (
-                                        <div className="mt-2">
-                                            <LabeledInput label="Скорость мерцания">
-                                                <div className="flex items-center gap-2">
-                                                    <input type="range" min="2" max="12" value={auroraSettings.starsSpeed} onChange={e => handleAuroraChange('starsSpeed', Number(e.target.value))} className="w-full accent-blue-500"/>
-                                                    <span className="text-xs w-8 text-right font-mono">{auroraSettings.starsSpeed}s</span>
-                                                </div>
-                                            </LabeledInput>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </Section>
 
                     <Section title="Шаблоны карточек" description="Управление шаблонами для устройств." defaultOpen={false}>
                         <div className="space-y-2 max-h-60 overflow-y-auto pr-2 no-scrollbar">
