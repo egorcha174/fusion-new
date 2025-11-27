@@ -3,7 +3,6 @@ import { create } from 'zustand';
 import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device, Room, RoomWithPhysicalDevices, PhysicalDevice, DeviceType, WeatherForecast } from '../types';
 import { constructHaUrl } from '../utils/url';
 import { mapEntitiesToRooms } from '../utils/ha-data-mapper';
-import { useAppStore } from './appStore';
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'failed';
 
@@ -58,6 +57,7 @@ interface HAActions {
   triggerAutomation: (entityId: string) => void;
   triggerScript: (entityId: string) => void;
   updateDerivedState: () => void;
+  initAppStore: (store: any) => void;
 }
 
 // Global counter for message IDs to ensure uniqueness across the session
@@ -66,6 +66,9 @@ let globalMessageId = 1;
 // Batching globals to reduce render frequency
 let pendingUpdates: Record<string, any> = {};
 let updateThrottleTimeout: ReturnType<typeof setTimeout> | null = null;
+
+// Reference to appStore injected at runtime to avoid circular dependency
+let _appStore: any = null;
 
 export const useHAStore = create<HAState & HAActions>((set, get) => {
   let socketRef: WebSocket | null = null;
@@ -122,9 +125,10 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
   const updateDerivedState = () => {
       try {
           if (!get().isInitialLoadComplete) return;
+          if (!_appStore) return;
 
           const { entities, areas, devices, entityRegistry } = get();
-          const appStore = useAppStore.getState();
+          const appStore = _appStore.getState();
           
           if (!appStore) return;
 
@@ -345,27 +349,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           console.error("Error updating derived state:", e);
       }
   };
-  
-  // Manual subscription to appStore changes to trigger derived state update
-  // We use require to avoid circular dependency issues at module level
-  setTimeout(() => {
-      try {
-        useAppStore.subscribe(
-            (state: any, prevState: any) => {
-                const shouldUpdate = state.customizations !== prevState.customizations ||
-                                     state.lowBatteryThreshold !== prevState.lowBatteryThreshold ||
-                                     state.eventTimerWidgets !== prevState.eventTimerWidgets ||
-                                     state.customCardWidgets !== prevState.customCardWidgets;
-                
-                if (shouldUpdate && get().isInitialLoadComplete) {
-                    updateDerivedState();
-                }
-            }
-        );
-      } catch (e) {
-          console.warn("Could not subscribe to appStore", e);
-      }
-  }, 0);
 
   return {
     connectionStatus: 'idle',
@@ -783,6 +766,33 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     triggerScript: (entityId) => {
         get().callService('script', 'turn_on', { entity_id: entityId });
     },
-    updateDerivedState, 
+    updateDerivedState,
+    
+    // Action to inject appStore dependency at runtime
+    initAppStore: (store) => {
+        if (_appStore) return; // Prevent double initialization
+        _appStore = store;
+        
+        try {
+            _appStore.subscribe(
+                (state: any, prevState: any) => {
+                    const shouldUpdate = state.customizations !== prevState.customizations ||
+                                         state.lowBatteryThreshold !== prevState.lowBatteryThreshold ||
+                                         state.eventTimerWidgets !== prevState.eventTimerWidgets ||
+                                         state.customCardWidgets !== prevState.customCardWidgets;
+                    
+                    if (shouldUpdate && get().isInitialLoadComplete) {
+                        updateDerivedState();
+                    }
+                }
+            );
+            // If data is already loaded, update now that we have the appStore available
+            if (get().isInitialLoadComplete) {
+                updateDerivedState();
+            }
+        } catch (e) {
+            console.warn("Could not subscribe to appStore", e);
+        }
+    }
   };
 });
