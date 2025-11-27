@@ -28,8 +28,7 @@ const ELEMENT_LABELS: Record<CardElementId, string> = {
   'hvac-modes': 'Режимы климата',
   'linked-entity': 'Связанное устройство',
   battery: 'Уровень заряда',
-  'fan-speed-control': 'Скорость вентилятора',
-  video: 'Видео поток'
+  'fan-speed-control': 'Скорость вентилятора'
 };
 
 interface SortableLayerItemProps {
@@ -206,7 +205,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
     if (elementId === 'chart') newElement.size = { width: 100, height: 30 };
     if (elementId === 'icon') newElement.size = { width: 20, height: 20 };
     if (elementId === 'slider') newElement.size = { width: 90, height: 20 };
-    if (elementId === 'video') newElement.size = { width: 100, height: 100 };
     
     setTemplate(prev => ({ ...prev, elements: [...prev.elements, newElement] }));
     setSelectedElementId(newElement.uniqueId);
@@ -252,8 +250,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
       targetTemperature: 24,
       hvacAction: 'heating',
       batteryLevel: 85,
-      customStreamUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-      streamType: 'iframe', 
   };
   
   const mockAllDevices = new Map<string, Device>();
@@ -289,9 +285,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   }
   if (['humidifier', 'custom'].includes(template.deviceType)) {
       availableElements.push({ id: 'fan-speed-control', label: 'Управление вентилятором' });
-  }
-  if (['camera', 'custom'].includes(template.deviceType)) {
-      availableElements.push({ id: 'video', label: 'Видео поток' });
   }
 
   return (

@@ -21,7 +21,6 @@ const TabContent = lazy(() => import('./components/TabContent'));
 const DeviceSettingsModal = lazy(() => import('./components/DeviceSettingsModal'));
 const TabSettingsModal = lazy(() => import('./components/TabSettingsModal'));
 const ContextMenu = lazy(() => import('./components/ContextMenu'));
-const FloatingCameraWindow = lazy(() => import('./components/FloatingCameraWindow'));
 const TemplateEditorModal = lazy(() => import('./components/TemplateEditorModal'));
 const HistoryModal = lazy(() => import('./components/HistoryModal'));
 const EventTimerSettingsModal = lazy(() => import('./components/EventTimerSettingsModal'));
@@ -99,14 +98,14 @@ const App: React.FC = () => {
     const initializationDone = useRef(false);
     const {
         connectionStatus, isLoading, error, connect, allKnownDevices,
-        allCameras, getCameraStreamUrl, getConfig, getHistory, signPath,
+        getConfig, getHistory, signPath,
         haUrl, allRoomsWithPhysicalDevices
     } = useHAStore();
 
     const {
         currentPage, setCurrentPage, isEditMode, setIsEditMode, setEditingDevice,
         editingTab, setEditingTab, editingTemplate, setEditingTemplate, searchTerm,
-        contextMenu, setContextMenu, setFloatingCamera,
+        contextMenu, setContextMenu,
         historyModalEntityId, setHistoryModalEntityId,
         tabs, setTabs, activeTabId, setActiveTabId,
         templates,
@@ -117,11 +116,10 @@ const App: React.FC = () => {
         resetCustomWidgetTimer, deleteCustomWidget, backgroundEffect,
         isSettingsOpen, setSettingsOpen,
         weatherData,
-        addCustomCard, addCustomWidget, addCustomCamera
+        addCustomCard, addCustomWidget
     } = useAppStore();
 
     const editingDevice = useAppStore(state => state.editingDevice);
-    const floatingCamera = useAppStore(state => state.floatingCamera);
     const [confirmingDeleteWidget, setConfirmingDeleteWidget] = useState<EventTimerWidget | null>(null);
 
     const cardSizes = [
@@ -335,7 +333,6 @@ const App: React.FC = () => {
     const handleCloseTabSettings = useCallback(() => setEditingTab(null), [setEditingTab]);
     const handleCloseTemplateEditor = useCallback(() => setEditingTemplate(null), [setEditingTemplate]);
     const handleCloseHistoryModal = useCallback(() => setHistoryModalEntityId(null), [setHistoryModalEntityId]);
-    const handleCloseFloatingCamera = useCallback(() => setFloatingCamera(null), [setFloatingCamera]);
     const handleCloseEventTimerSettings = useCallback(() => setEditingEventTimerId(null), [setEditingEventTimerId]);
 
   const handleCloseContextMenu = useCallback(() => {
@@ -399,7 +396,7 @@ const App: React.FC = () => {
   const isTemplateable = contextMenuDevice ? [
     DeviceType.Sensor, DeviceType.DimmableLight, DeviceType.Light,
     DeviceType.Switch, DeviceType.Thermostat, DeviceType.Humidifier,
-    DeviceType.Custom, DeviceType.Camera
+    DeviceType.Custom
   ].includes(contextMenuDevice.type) : false;
   const historyDevice = historyModalEntityId ? allKnownDevices.get(historyModalEntityId) : null;
   const historyDeviceTemplate = getTemplateForDevice(historyDevice);
@@ -444,10 +441,8 @@ const App: React.FC = () => {
           <InfoPanel 
             sidebarWidth={sidebarWidth} 
             setSidebarWidth={setSidebarWidth}
-            cameras={allCameras}
             haUrl={haUrl}
             signPath={signPath}
-            getCameraStreamUrl={getCameraStreamUrl}
             getConfig={getConfig}
             colorScheme={currentColorScheme}
             isDark={isDark}
@@ -475,7 +470,6 @@ const App: React.FC = () => {
         {editingTab && <TabSettingsModal tab={editingTab} onClose={handleCloseTabSettings} />}
         {editingTemplate && <TemplateEditorModal templateToEdit={editingTemplate === 'new' ? createNewBlankTemplate(DeviceType.Sensor) : editingTemplate} onClose={handleCloseTemplateEditor} />}
         {historyModalEntityId && <HistoryModal entityId={historyModalEntityId} onClose={handleCloseHistoryModal} getHistory={getHistory} allKnownDevices={allKnownDevices} colorScheme={currentColorScheme} decimalPlaces={historyDecimalPlaces} />}
-        {floatingCamera && <FloatingCameraWindow device={floatingCamera} onClose={handleCloseFloatingCamera} haUrl={haUrl} signPath={signPath} getCameraStreamUrl={getCameraStreamUrl} />}
         {editingEventTimerId && <EventTimerSettingsModal widgetId={editingEventTimerId} onClose={handleCloseEventTimerSettings} currentColorScheme={currentColorScheme} />}
       </Suspense>
       
@@ -504,7 +498,6 @@ const App: React.FC = () => {
                     <div className="h-px bg-gray-300 dark:bg-gray-600 my-1 mx-1" />
                     <SubMenuItem title="Добавить...">
                         <div onClick={() => { addCustomCard(); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">Карточку</div>
-                        <div onClick={() => { addCustomCamera(); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">Камеру</div>
                         <div onClick={() => { addCustomWidget(); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">Таймер</div>
                     </SubMenuItem>
                     <div onClick={() => { setSettingsOpen(true); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">

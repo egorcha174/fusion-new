@@ -7,7 +7,6 @@ import SparklineChart from './SparklineChart';
 import ThermostatDial from './ThermostatDial';
 import EventTimerWidgetCard from './EventTimerWidgetCard';
 import BatteryWidgetCard from './BatteryWidgetCard';
-import { UniversalCameraCard } from './UniversalCameraCard';
 
 interface DeviceCardProps {
   device: Device;
@@ -22,7 +21,6 @@ interface DeviceCardProps {
   onHvacModeChange: (deviceId: string, mode: string) => void;
   onPresetChange: (deviceId: string, preset: string) => void;
   onFanSpeedChange: (deviceId: string, value: number | string) => void;
-  onCameraCardClick: (device: Device) => void;
   onEditDevice: (device: Device) => void;
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
@@ -47,7 +45,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
   onHvacModeChange,
   onPresetChange,
   onFanSpeedChange,
-  onCameraCardClick,
+  onEditDevice,
   haUrl,
   signPath,
   getCameraStreamUrl,
@@ -71,15 +69,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
   }, [isLoading]);
 
   const handleMainToggle = (e: React.MouseEvent) => {
-    // If in edit mode or preview, do nothing (or let parent handle selection)
     if (isEditMode || isPreview) return;
-    
-    // For Cameras, click handles expansion
-    if (device.type === DeviceType.Camera) {
-        e.stopPropagation();
-        onCameraCardClick(device);
-        return;
-    }
     
     e.stopPropagation();
     
@@ -96,13 +86,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
   };
   const isOn = getIsOn();
 
-  // We consider it a camera card if it's strictly a camera OR if it has a custom stream URL configured.
-  const isCameraCard = device.type === DeviceType.Camera || !!device.customStreamUrl;
-  
-  // Check if the template has a 'video' element explicitly defined.
-  // If so, we disable the default background video rendering to avoid duplicates.
-  const hasVideoElement = template?.elements.some(el => el.id === 'video' && el.visible);
-
   const getCardStyle = (): React.CSSProperties => {
       if (device.type === DeviceType.MediaPlayer && (device.state === 'playing' || device.state === 'paused') && device.entityPictureUrl) {
           return {
@@ -113,18 +96,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
           };
       }
       
-      // FIX: For Camera cards, default to black background to avoid "gray box" during loading
-      if (isCameraCard && !hasVideoElement) {
-          return {
-              backgroundColor: 'black',
-              borderRadius: `${colorScheme.cardBorderRadius}px`,
-              overflow: 'hidden',
-              position: 'relative',
-              width: '100%',
-              height: '100%',
-          };
-      }
-
       return { 
           backgroundColor: isOn ? colorScheme.cardBackgroundOn : colorScheme.cardBackground,
           backdropFilter: 'blur(16px)',
@@ -159,7 +130,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
       top: `${element.position.y}%`,
       width: `${element.size.width}%`,
       height: `${element.size.height}%`,
-      zIndex: element.zIndex + 10, // Ensure elements are above camera video (z-index 0)
+      zIndex: element.zIndex + 10, // Ensure elements are above background
       ...element.styles,
     };
 
@@ -287,28 +258,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
                  />
              </div>
          );
-      case 'video':
-          if (isEditMode) {
-              return (
-                  <div key={element.uniqueId} style={commonStyle} className="bg-gray-900 flex flex-col items-center justify-center rounded border border-gray-600 text-gray-400">
-                      <Icon icon="mdi:cctv" className="w-8 h-8" />
-                      <span className="text-[10px] mt-1">Видео поток</span>
-                  </div>
-              );
-          }
-          return (
-              <div key={element.uniqueId} style={{...commonStyle, overflow: 'hidden'}} className="rounded-md bg-black">
-                  <UniversalCameraCard 
-                      device={device}
-                      haUrl={haUrl}
-                      signPath={signPath}
-                      getCameraStreamUrl={getCameraStreamUrl}
-                      onCameraCardClick={onCameraCardClick}
-                      autoPlay={autoPlay}
-                      muted={true}
-                  />
-              </div>
-          );
       default:
         return null;
     }
@@ -320,21 +269,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
         style={getCardStyle()} 
         onClick={handleMainToggle}
     >
-       {/* Layer 0: Camera Video (Background) - Only if NO video element is present */}
-       {isCameraCard && !hasVideoElement && (
-           <div className="absolute inset-0 z-0 bg-black">
-              <UniversalCameraCard 
-                  device={device}
-                  haUrl={haUrl}
-                  signPath={signPath}
-                  getCameraStreamUrl={getCameraStreamUrl}
-                  onCameraCardClick={onCameraCardClick}
-                  autoPlay={autoPlay}
-                  muted={true}
-              />
-           </div>
-       )}
-
        {/* Layer 1+: Template Elements */}
        {template?.elements.sort((a, b) => a.zIndex - b.zIndex).map(renderElement)}
     </div>

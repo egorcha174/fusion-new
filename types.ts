@@ -7,7 +7,7 @@ export enum DeviceType {
   Switch = 2,
   Sensor = 3,
   BinarySensor = 4,
-  Camera = 5, // Restored
+  // Camera = 5, // Removed
   MediaPlayer = 6,
   Climate = 7,
   Thermostat = 7,
@@ -126,10 +126,6 @@ export interface Device {
   condition?: string;
   forecast?: WeatherForecast[];
 
-  // Camera/Stream specific
-  customStreamUrl?: string;
-  streamType?: 'auto' | 'hls' | 'mjpeg' | 'iframe' | 'file';
-
   // Event Timer Widget specific
   widgetId?: string;
   fillPercentage?: number;
@@ -219,13 +215,11 @@ export interface DeviceCustomization {
   iconAnimation?: 'none' | 'spin' | 'pulse' | 'glow';
   deviceBindings?: DeviceBinding[];
   thresholds?: ThresholdRule[];
-  customStreamUrl?: string;
-  streamType?: 'auto' | 'hls' | 'mjpeg' | 'iframe' | 'file';
 }
 
 export type DeviceCustomizations = Record<string, DeviceCustomization>;
 
-export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status' | 'slider' | 'temperature' | 'target-temperature' | 'hvac-modes' | 'linked-entity' | 'battery' | 'fan-speed-control' | 'video';
+export type CardElementId = 'name' | 'icon' | 'value' | 'unit' | 'chart' | 'status' | 'slider' | 'temperature' | 'target-temperature' | 'hvac-modes' | 'linked-entity' | 'battery' | 'fan-speed-control';
 
 export interface ElementStyles {
   fontFamily?: string;
@@ -410,8 +404,4 @@ export interface WeatherData {
         tempMin: number;
         icon: string;
     }[];
-}
-
-export interface CameraSettings {
-    selectedEntityId: string | null;
 }

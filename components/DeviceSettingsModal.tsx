@@ -5,7 +5,6 @@ import DeviceIcon, { icons, getIconNameForDeviceType } from './DeviceIcon';
 import { Icon } from '@iconify/react';
 import { useAppStore } from '../store/appStore';
 import { useHAStore } from '../store/haStore';
-import { UniversalCameraCard } from './UniversalCameraCard';
 
 interface DeviceSettingsModalProps {
   device: Device;
@@ -17,7 +16,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   onClose,
 }) => {
   const { customizations, templates, handleSaveCustomization } = useAppStore();
-  const { allKnownDevices, haUrl, signPath, getCameraStreamUrl } = useHAStore();
+  const { allKnownDevices } = useHAStore();
   
   const customization = customizations[device.id] || {};
 
@@ -35,9 +34,6 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   const [iconAnimation, setIconAnimation] = useState(customization.iconAnimation ?? 'none');
   const [bindings, setBindings] = useState<DeviceBinding[]>(customization.deviceBindings ?? []);
   const [thresholds, setThresholds] = useState<ThresholdRule[]>(customization.thresholds ?? []);
-  // Camera specific settings
-  const [customStreamUrl, setCustomStreamUrl] = useState(customization.customStreamUrl ?? '');
-  const [streamType, setStreamType] = useState(customization.streamType ?? 'auto');
 
 
   const handleTypeChange = (newType: DeviceType) => {
@@ -56,8 +52,6 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
       iconAnimation,
       deviceBindings: bindings,
       thresholds: thresholds,
-      customStreamUrl: customStreamUrl.trim() || undefined,
-      streamType: streamType as any,
     });
     onClose();
   };
@@ -130,14 +124,12 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   const isTemplateable = [
     DeviceType.Sensor, DeviceType.Light, DeviceType.DimmableLight,
     DeviceType.Switch, DeviceType.Thermostat, DeviceType.Humidifier,
-    DeviceType.Custom, DeviceType.Camera
+    DeviceType.Custom
   ].includes(type);
 
-  // Ensure strictly checking boolean true for Camera type or if customStreamUrl is active
-  const isCamera = type === DeviceType.Camera || !!customStreamUrl;
   const isSensor = type === DeviceType.Sensor;
   
-  const getTemplateTypeString = (deviceType: DeviceType): 'sensor' | 'light' | 'switch' | 'climate' | 'humidifier' | 'custom' | 'camera' => {
+  const getTemplateTypeString = (deviceType: DeviceType): 'sensor' | 'light' | 'switch' | 'climate' | 'humidifier' | 'custom' => {
     switch (deviceType) {
         case DeviceType.Light:
         case DeviceType.DimmableLight:
@@ -150,8 +142,6 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
             return 'humidifier';
         case DeviceType.Custom:
             return 'custom';
-        case DeviceType.Camera:
-            return 'camera';
         case DeviceType.Sensor:
         default:
             return 'sensor';
@@ -173,14 +163,6 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
 
   const sortedEntities = useMemo(() => Array.from(allKnownDevices.values()).sort((a: Device, b: Device) => a.name.localeCompare(b.name)), [allKnownDevices]);
 
-  // Create a preview device object that reflects current form state
-  const previewDevice = useMemo(() => ({
-      ...device,
-      // If the user cleared the input, we want undefined so UniversalCameraCard tries native stream (unless internal)
-      customStreamUrl: customStreamUrl.trim() === '' ? undefined : customStreamUrl, 
-      streamType: streamType as any,
-  }), [device, customStreamUrl, streamType]);
-
   return (
     <div
       className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
@@ -197,61 +179,6 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
         
         <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto no-scrollbar">
           
-          {/* Camera Settings Block - Moved to top for visibility */}
-          {isCamera && (
-              <div className="space-y-4 bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg border border-blue-200 dark:border-blue-900/50">
-                  <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                      <Icon icon="mdi:cctv" className="w-5 h-5" />
-                      <h3 className="text-sm font-bold">Настройки потока</h3>
-                  </div>
-                  
-                  {/* LIVE PREVIEW */}
-                  <div className="aspect-video bg-black rounded-md overflow-hidden relative">
-                      {/* Allow preview if it's a native camera OR if a custom URL is provided */}
-                      {(customStreamUrl || !device.id.startsWith('internal::')) ? (
-                          <UniversalCameraCard 
-                              device={previewDevice} 
-                              haUrl={haUrl} 
-                              signPath={signPath} 
-                              getCameraStreamUrl={getCameraStreamUrl} 
-                              autoPlay={true} 
-                              muted={true}
-                          />
-                      ) : (
-                          <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-xs flex-col">
-                              <Icon icon="mdi:cctv-off" className="w-8 h-8 mb-1 opacity-50" />
-                              <span>Нет URL для предпросмотра</span>
-                          </div>
-                      )}
-                  </div>
-
-                  <div>
-                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Кастомный URL потока (опционально)</label>
-                      <input 
-                          type="text" 
-                          value={customStreamUrl} 
-                          onChange={e => setCustomStreamUrl(e.target.value)} 
-                          placeholder="http://... или ws://... (для go2rtc)" 
-                          className="w-full bg-white dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm"
-                      />
-                      <p className="text-[10px] text-gray-500 mt-1">Прямая ссылка на MJPEG, HLS или Go2RTC WebRTC поток.</p>
-                  </div>
-                  <div>
-                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Тип потока</label>
-                      <select 
-                          value={streamType} 
-                          onChange={e => setStreamType(e.target.value as any)} 
-                          className="w-full bg-white dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm"
-                      >
-                          <option value="auto">Автоматически</option>
-                          <option value="iframe">IFrame (WebRTC / Go2RTC)</option>
-                          <option value="mjpeg">MJPEG (Canvas / Image)</option>
-                          <option value="hls">HLS (Video Tag)</option>
-                      </select>
-                  </div>
-              </div>
-          )}
-
           <div>
             <label htmlFor="deviceName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Название</label>
             <input
@@ -265,7 +192,6 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
 
           <div>
             <label htmlFor="deviceType" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Тип устройства</label>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Выберите "Camera", чтобы включить настройки видеопотока.</p>
             <select
                 id="deviceType"
                 value={type}
