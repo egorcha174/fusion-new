@@ -26,7 +26,6 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
 
   // --- Приоритет 1: Прямое сопоставление домена (однозначные случаи) ---
   switch (domain) {
-    case 'camera': return DeviceType.Camera;
     case 'weather': return DeviceType.Weather;
     case 'climate': return DeviceType.Thermostat;
     case 'fan': return DeviceType.Fan;
@@ -111,14 +110,6 @@ const getStatusText = (entity: HassEntity): string => {
     const domain = entity.entity_id.split('.')[0];
     const attributes = entity.attributes || {};
     const deviceClass = attributes.device_class;
-
-    // Камеры
-    if (domain === 'camera') {
-        if (entity.state === 'recording') return 'Запись';
-        if (entity.state === 'streaming') return 'Трансляция';
-        if (entity.state === 'idle') return 'Ожидание';
-        return 'Онлайн';
-    }
 
     // Специальная логика для климата (термостатов)
     if (domain === 'climate') {
@@ -346,10 +337,6 @@ const entityToDevice = (
         device.mediaTitle = attributes.media_title;
         device.mediaArtist = attributes.media_artist;
         device.appName = attributes.app_name;
-  }
-  
-  if (device.type === DeviceType.Camera) {
-      device.entityPictureUrl = attributes.entity_picture;
   }
   
   if (device.type === DeviceType.Person && attributes.entity_picture) {

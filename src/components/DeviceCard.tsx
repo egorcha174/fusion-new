@@ -7,7 +7,6 @@ import SparklineChart from './SparklineChart';
 import ThermostatDial from './ThermostatDial';
 import EventTimerWidgetCard from './EventTimerWidgetCard';
 import BatteryWidgetCard from './BatteryWidgetCard';
-import CameraCard from './CameraCard';
 
 interface DeviceCardProps {
   device: Device;
@@ -73,7 +72,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
     e.stopPropagation();
     
     // Sensors and some other types are not toggleable via main click
-    if ([DeviceType.Sensor, DeviceType.Weather, DeviceType.Camera].includes(device.type)) return;
+    if ([DeviceType.Sensor, DeviceType.Weather].includes(device.type)) return;
     
     setIsLoading(true);
     onDeviceToggle(device.id);
@@ -118,20 +117,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
               <BatteryWidgetCard colorScheme={colorScheme} />
           </div>
       );
-  }
-
-  // --- Camera Handling ---
-  if (device.type === DeviceType.Camera) {
-      // If preview, show simplified mock
-      if (isPreview) {
-          return (
-              <div style={{...getCardStyle(), backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white'}} className="select-none">
-                  <Icon icon="mdi:cctv" className="w-12 h-12 opacity-50" />
-                  <span className="absolute bottom-2 left-2 text-xs">{device.name}</span>
-              </div>
-          );
-      }
-      return <CameraCard device={device} colorScheme={colorScheme} />;
   }
 
   const renderElement = (element: CardElement) => {
