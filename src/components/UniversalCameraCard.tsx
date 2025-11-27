@@ -274,8 +274,9 @@ export const UniversalCameraCard: React.FC<UniversalCameraCardProps> = ({
       </div>
       
       {!shouldPlay && !finalSnapshotUrl && !isLoading && (
-         <div className="absolute inset-0 z-[1] flex items-center justify-center text-gray-500 bg-gray-900">
-            <Icon icon="mdi:cctv" className="w-12 h-12 opacity-30" />
+         <div className="absolute inset-0 z-[1] flex items-center justify-center text-gray-500 bg-gray-900 flex-col">
+            <Icon icon="mdi:cctv-off" className="w-12 h-12 opacity-30 mb-2" />
+            {!device.customStreamUrl && <span className="text-[10px] opacity-50">URL не задан</span>}
          </div>
       )}
     </div>

@@ -193,7 +193,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             }
           });
           
-          // --- WIDGETS HANDLING (Refactored for stability) ---
+          // --- WIDGETS HANDLING ---
           
           // Create fresh list of widgets for this cycle
           const widgetDevices: Device[] = [];
@@ -260,14 +260,24 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           // 3. Custom Cards (Cameras and Generic)
           customCardWidgets.forEach(widget => {
               const isCamera = widget.id.startsWith('camera_');
+              const deviceId = `internal::custom-card_${widget.id}`;
+              const customization = customizations[deviceId] || {};
+
               const cardDevice: Device = {
-                  id: `internal::custom-card_${widget.id}`,
-                  name: widget.name,
+                  id: deviceId,
+                  // Prefer customized name
+                  name: customization.name ?? widget.name,
                   status: isCamera ? 'IP Камера' : 'Кастомная карточка',
-                  type: isCamera ? DeviceType.Camera : DeviceType.Custom,
+                  // Prefer customized type
+                  type: customization.type ?? (isCamera ? DeviceType.Camera : DeviceType.Custom),
                   haDomain: 'internal',
                   state: 'active',
                   widgetId: widget.id,
+                  // Merge camera settings and other customizations
+                  icon: customization.icon,
+                  iconAnimation: customization.iconAnimation,
+                  customStreamUrl: customization.customStreamUrl,
+                  streamType: customization.streamType,
               };
               deviceMap.set(cardDevice.id, cardDevice);
               widgetDevices.push(cardDevice);
@@ -276,7 +286,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           // Update or Create 'widgets' room
           const existingWidgetRoomIndex = rooms.findIndex(r => r.id === 'internal::widgets');
           if (existingWidgetRoomIndex > -1) {
-              // Replace devices array completely to ensure React re-renders
               rooms[existingWidgetRoomIndex].devices = widgetDevices;
           } else if (widgetDevices.length > 0) {
               rooms.push({ id: 'internal::widgets', name: 'Виджеты', devices: widgetDevices });
