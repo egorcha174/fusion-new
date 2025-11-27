@@ -391,7 +391,7 @@ export interface ThemePackage {
     generatedAt: string;
   };
   theme: ThemeDefinition;
-  templates: CardTemplate[];
+  templates?: CardTemplate[];
 }
 
 export interface WeatherData {

@@ -8,13 +8,9 @@ export const PACKAGE_SCHEMA_VERSION = 1;
  */
 export const generatePackage = async (
   theme: ThemeDefinition,
-  templates: CardTemplates,
   author: string = 'User',
   description: string = ''
 ): Promise<ThemePackage> => {
-  // Convert templates map to array
-  const templateList = Object.values(templates);
-
   return {
     schemaVersion: PACKAGE_SCHEMA_VERSION,
     manifest: {
@@ -25,7 +21,6 @@ export const generatePackage = async (
       generatedAt: new Date().toISOString(),
     },
     theme,
-    templates: templateList
   };
 };
 
@@ -51,8 +46,8 @@ export const validatePackage = (data: any): data is ThemePackage => {
   if (!data.manifest || typeof data.manifest.name !== 'string') return false;
   if (!data.theme || !data.theme.scheme) return false;
   
-  // Basic check for templates array
-  if (!Array.isArray(data.templates)) return false;
+  // Templates are optional, but if they exist, they must be an array.
+  if (data.templates !== undefined && !Array.isArray(data.templates)) return false;
 
   return true;
 };

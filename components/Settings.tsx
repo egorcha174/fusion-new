@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device, AuroraSettings } from '../types';
@@ -338,7 +339,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
 
     const handleExportTheme = async (theme: ThemeDefinition) => {
         try {
-            const pkg = await generatePackage(theme, templates, 'User', 'Exported from dashboard');
+            const pkg = await generatePackage(theme, 'User', 'Exported from dashboard');
             const json = JSON.stringify(pkg, null, 2);
             const blob = new Blob([json], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -427,6 +428,9 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
             if (path.endsWith('cardBorderRadius')) {
                 newTheme.scheme.light.cardBorderRadius = value;
                 newTheme.scheme.dark.cardBorderRadius = value;
+            } else if (path.endsWith('cardBorderWidth')) {
+                newTheme.scheme.light.cardBorderWidth = value;
+                newTheme.scheme.dark.cardBorderWidth = value;
             } else {
                 setAtPath(newTheme.scheme, path, value);
             }
