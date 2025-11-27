@@ -27,8 +27,10 @@ interface DashboardGridProps {
   onFanSpeedChange: (deviceId: string, value: number | string) => void;
   onShowHistory: (entityId: string) => void;
   onEditDevice: (device: Device) => void;
+  onCameraCardClick: (device: Device) => void;
   haUrl: string;
   signPath: (path: string) => Promise<{ path: string }>;
+  getCameraStreamUrl: (entityId: string) => Promise<{ url: string }>;
   templates: CardTemplates;
   customizations: DeviceCustomizations;
   colorScheme: ThemeColors;
@@ -100,8 +102,10 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
   onPresetChange,
   onFanSpeedChange,
   onEditDevice,
+  onCameraCardClick,
   haUrl,
   signPath,
+  getCameraStreamUrl,
   customizations,
   colorScheme,
   isDark,
@@ -244,8 +248,10 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
                       onPresetChange={onPresetChange}
                       onFanSpeedChange={onFanSpeedChange}
                       onEditDevice={onEditDevice}
+                      onCameraCardClick={onCameraCardClick}
                       haUrl={haUrl}
                       signPath={signPath}
+                      getCameraStreamUrl={getCameraStreamUrl}
                       colorScheme={colorScheme}
                       isDark={isDark}
                     />
@@ -273,8 +279,10 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
                       onPresetChange={() => {}}
                       onFanSpeedChange={() => {}}
                       onEditDevice={() => {}}
+                      onCameraCardClick={() => {}}
                       haUrl={haUrl}
                       signPath={signPath}
+                      getCameraStreamUrl={getCameraStreamUrl}
                       colorScheme={colorScheme}
                       isDark={isDark}
                       autoPlay={false}

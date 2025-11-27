@@ -5,6 +5,7 @@ import DeviceIcon, { icons, getIconNameForDeviceType } from './DeviceIcon';
 import { Icon } from '@iconify/react';
 import { useAppStore } from '../store/appStore';
 import { useHAStore } from '../store/haStore';
+import { UniversalCameraCard } from './UniversalCameraCard';
 
 interface DeviceSettingsModalProps {
   device: Device;
@@ -16,7 +17,7 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   onClose,
 }) => {
   const { customizations, templates, handleSaveCustomization } = useAppStore();
-  const { allKnownDevices } = useHAStore();
+  const { allKnownDevices, haUrl, signPath, getCameraStreamUrl } = useHAStore();
   
   const customization = customizations[device.id] || {};
 
@@ -172,6 +173,13 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
 
   const sortedEntities = useMemo(() => Array.from(allKnownDevices.values()).sort((a: Device, b: Device) => a.name.localeCompare(b.name)), [allKnownDevices]);
 
+  // Create a preview device object that reflects current form state
+  const previewDevice = useMemo(() => ({
+      ...device,
+      // If the user cleared the input, we want undefined so UniversalCameraCard tries native stream (unless internal)
+      customStreamUrl: customStreamUrl.trim() === '' ? undefined : customStreamUrl, 
+      streamType: streamType as any,
+  }), [device, customStreamUrl, streamType]);
 
   return (
     <div
@@ -196,6 +204,27 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                       <Icon icon="mdi:cctv" className="w-5 h-5" />
                       <h3 className="text-sm font-bold">Настройки потока</h3>
                   </div>
+                  
+                  {/* LIVE PREVIEW */}
+                  <div className="aspect-video bg-black rounded-md overflow-hidden relative">
+                      {/* Allow preview if it's a native camera OR if a custom URL is provided */}
+                      {(customStreamUrl || !device.id.startsWith('internal::')) ? (
+                          <UniversalCameraCard 
+                              device={previewDevice} 
+                              haUrl={haUrl} 
+                              signPath={signPath} 
+                              getCameraStreamUrl={getCameraStreamUrl} 
+                              autoPlay={true} 
+                              muted={true}
+                          />
+                      ) : (
+                          <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-xs flex-col">
+                              <Icon icon="mdi:cctv-off" className="w-8 h-8 mb-1 opacity-50" />
+                              <span>Нет URL для предпросмотра</span>
+                          </div>
+                      )}
+                  </div>
+
                   <div>
                       <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Кастомный URL потока (опционально)</label>
                       <input 
@@ -211,7 +240,6 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                       <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Тип потока</label>
                       <select 
                           value={streamType} 
-                          // FIX: Cast to any to resolve type mismatch with SetStateAction
                           onChange={e => setStreamType(e.target.value as any)} 
                           className="w-full bg-white dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm"
                       >
