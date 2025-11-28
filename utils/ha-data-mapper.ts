@@ -1,4 +1,3 @@
-
 import { Device, Room, DeviceType, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization, WeatherForecast } from '../types';
 
 /**
@@ -332,7 +331,7 @@ const entityToDevice = (
       device.currentPosition = attributes.current_position;
   }
   
-  if (device.type === DeviceType.MediaPlayer) {
+  if (device.type === DeviceType.MediaPlayer && attributes.entity_picture) {
         device.entityPictureUrl = attributes.entity_picture;
         device.mediaTitle = attributes.media_title;
         device.mediaArtist = attributes.media_artist;

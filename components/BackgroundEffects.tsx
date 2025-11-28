@@ -1,4 +1,3 @@
-
 import React, { useMemo, useRef, useEffect } from 'react';
 import { useAppStore, BackgroundEffectType } from '../store/appStore';
 import { applyOpacity } from '../utils/themeUtils';
@@ -52,7 +51,6 @@ const SnowEffect = () => {
     );
 };
 
-// FIX: Corrected component signature to handle being called without props by providing a default empty object for destructuring.
 const RainEffect: React.FC<{ zIndexOverride?: number }> = ({ zIndexOverride } = {}) => {
     // 1. Падающие капли дождя (фон)
     const raindrops = useMemo(() => {
@@ -254,7 +252,6 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
     );
 });
 
-// FIX: Corrected component signature to handle being called without props by providing a default empty object for destructuring.
 const StrongCloudyEffect: React.FC<{ dark?: boolean }> = ({ dark = false } = {}) => {
     const clouds = useMemo(() => {
         const defaultColors = ['#94a3b8', '#cbd5e1', '#64748b', '#e2e8f0', '#bfdbfe', '#dbeafe'];

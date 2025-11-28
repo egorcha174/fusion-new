@@ -1,4 +1,3 @@
-
 export type Page = 'dashboard' | 'all-devices' | 'helpers' | 'settings' | 'template-gallery' | 'all-entities';
 
 export enum DeviceType {
