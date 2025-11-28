@@ -1,5 +1,6 @@
+
 import { create } from 'zustand';
-import { GALLERY_TEMPLATES, GalleryTemplate } from '../templates/gallery';
+import { GALLERY_TEMPLATES, GalleryTemplate } from '../config/galleryTemplates';
 
 interface TemplateGalleryState {
   templates: GalleryTemplate[];

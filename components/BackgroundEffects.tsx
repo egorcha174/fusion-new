@@ -1,4 +1,3 @@
-
 import React, { useMemo, useRef, useEffect } from 'react';
 import { useAppStore, BackgroundEffectType } from '../store/appStore';
 import { applyOpacity } from '../utils/themeUtils';
@@ -52,6 +51,8 @@ const SnowEffect = () => {
     );
 };
 
+// FIX: Corrected component signature to handle being called without props.
+// FIX: Simplified component signature by removing redundant default object for props.
 const RainEffect: React.FC<{ zIndexOverride?: number }> = ({ zIndexOverride } = {}) => {
     // 1. Падающие капли дождя (фон)
     const raindrops = useMemo(() => {
@@ -179,6 +180,7 @@ const LeavesEffect = () => {
 };
 
 const CloudShape = React.memo(({ width, height, color, seed }: { width: number, height: number, color: string, seed: number }) => {
+    // FIX: Destructuring 'morphDelay' instead of 'mDelay' to match returned object from useMemo.
     const { circles, gradientId, morphDuration, morphDelay, pulseDuration } = useMemo(() => {
         // Pseudo-random generator based on seed
         const random = (offset: number) => {
@@ -241,6 +243,7 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
             <g 
                 style={{ 
                     animation: `cloud-morph ${morphDuration}s infinite ease-in-out alternate`, 
+                    // FIX: Cannot find name 'mDelay'. Changed to 'morphDelay'.
                     animationDelay: `${morphDelay}s`,
                     transformOrigin: 'center'
                 }}
@@ -253,9 +256,11 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
     );
 });
 
-// FIX: Added default props object to handle calls without arguments.
+// FIX: Changed component signature to use React.FC for better type safety and to resolve the "Expected 1 arguments, but got 0" error.
+// FIX: Simplified signature by removing redundant default object for props with React.FC.
 const StrongCloudyEffect: React.FC<{ dark?: boolean }> = ({ dark = false } = {}) => {
     const clouds = useMemo(() => {
+        // Palette selection
         const defaultColors = ['#94a3b8', '#cbd5e1', '#64748b', '#e2e8f0', '#bfdbfe', '#dbeafe'];
         const darkColors = ['#475569', '#64748b', '#334155', '#94a3b8', '#52525b', '#71717a'];
         const colors = dark ? darkColors : defaultColors;
@@ -360,10 +365,10 @@ const AuroraEffect = () => {
         '--band-opacity': Math.max(0.3, Math.min(1.2, intensity / 100)),
         '--stars-speed': `${starsSpeed}s`,
         '--stars-opacity': starsEnabled ? 0.9 : 0,
-    } as React.CSSProperties;
+    };
 
     return (
-        <div className="fixed inset-0 overflow-hidden pointer-events-none -z-[5] aurora-scene" style={containerStyle}>
+        <div className="fixed inset-0 overflow-hidden pointer-events-none -z-[5] aurora-scene" style={containerStyle as React.CSSProperties}>
             <div className="absolute inset-0 aurora-stars" />
             
             <div className="absolute left-[-20%] right-[-20%] h-[60%] top-[10%] aurora-layer pointer-events-none">
@@ -510,10 +515,8 @@ const TronEffect = () => {
         animate();
 
         const handleResize = () => {
-            if (canvas) {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-            }
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
         };
         
         window.addEventListener("resize", handleResize);

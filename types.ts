@@ -1,3 +1,4 @@
+
 export type Page = 'dashboard' | 'all-devices' | 'helpers' | 'settings' | 'template-gallery' | 'all-entities';
 
 export enum DeviceType {
@@ -52,7 +53,6 @@ export interface HassEntity {
     friendly_name?: string;
     device_class?: string;
     unit_of_measurement?: string;
-    entity_picture?: string;
     [key: string]: any;
   };
   last_changed: string;
@@ -395,7 +395,7 @@ export interface ThemePackage {
     generatedAt: string;
   };
   theme: ThemeDefinition;
-  templates: CardTemplate[];
+  templates?: CardTemplate[];
 }
 
 export interface WeatherData {
