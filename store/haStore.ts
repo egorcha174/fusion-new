@@ -126,6 +126,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           if (!get().isInitialLoadComplete) return;
           if (!_appStore) return;
 
+          const oldAllKnownDevices = get().allKnownDevices;
+
           const { entities, areas, devices, entityRegistry } = get();
           const appStore = _appStore.getState();
           
@@ -139,6 +141,10 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           const deviceMap = new Map<string, Device>();
           rooms.forEach(room => {
               room.devices.forEach(device => {
+                  const oldDevice = oldAllKnownDevices.get(device.id);
+                  if (oldDevice && oldDevice.history) {
+                    device.history = oldDevice.history;
+                  }
                   deviceMap.set(device.id, device);
               });
           });
@@ -537,7 +543,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                             try {
                                                 const historyResult = await getHistory(entityIdsWithCharts, startTime, now.toISOString());
                                                 
-                                                // Create a new map to avoid direct state mutation
                                                 const newAllKnownDevices = new Map(get().allKnownDevices);
                                                 let updated = false;
 
@@ -546,11 +551,10 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                                     const historyPoints = historyResult[entityId];
 
                                                     if (device && historyPoints && historyPoints.length > 0) {
-                                                        // Create a new device object to ensure React detects the change
                                                         const newDevice = { ...device };
                                                         newDevice.history = historyPoints
                                                             .map((p: any) => parseFloat(p.s))
-                                                            .filter((n: any) => !isNaN(n)); // Ensure only numbers are passed
+                                                            .filter((n: any) => !isNaN(n));
                                                         
                                                         newAllKnownDevices.set(entityId, newDevice);
                                                         updated = true;
@@ -558,7 +562,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                                 });
 
                                                 if (updated) {
-                                                    // Trigger a state update with the new map containing history data
                                                     set({ allKnownDevices: newAllKnownDevices });
                                                 }
 

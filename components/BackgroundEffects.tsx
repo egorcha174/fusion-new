@@ -187,31 +187,19 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
 
         const c = [];
         
-        // 1. Main "Body" Blobs - Random Cluster approach
-        // Instead of a linear spine (which makes animals), we place large blobs randomly around the center
         const blobCount = 4 + Math.floor(random(0) * 3); // 4 to 6 main blobs
         
         for (let i = 0; i < blobCount; i++) {
-            // Scatter around the center (0.5, 0.5)
-            // Spread X: 0.2 to 0.8
-            // Spread Y: 0.3 to 0.7
             const cx = width * (0.2 + random(i + 1) * 0.6);
             const cy = height * (0.3 + random(i + 2) * 0.4);
-            
-            // Vary radii significantly to avoid uniform "sausages"
             const r = width * (0.15 + random(i + 3) * 0.25);
-            
             c.push({ cx, cy, r });
         }
 
-        // 2. "Fluff" Details - add smaller circles to the edges to create irregular shapes
         const fluffCount = 15 + Math.floor(random(4) * 15); // 15 to 30 fluff circles
         
         for (let i = 0; i < fluffCount; i++) {
-            // Fluff can be anywhere, but bias towards existing blobs
             const parentBlob = c[Math.floor(random(i + 10) * blobCount)];
-            
-            // Offset from a parent blob
             const angle = random(i + 20) * Math.PI * 2;
             const dist = parentBlob.r * (0.5 + random(i + 30) * 0.5);
             
@@ -224,7 +212,6 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
 
         const gId = `cloudGrad-${Math.floor(seed * 10000)}-${nanoid(4)}`;
         
-        // Animation parameters
         const mDuration = 20 + random(10) * 20; // 20-40s for morphing
         const mDelay = random(11) * -20;
         const pDuration = 30 + random(12) * 15; // 30-45s for pulsing
@@ -266,34 +253,29 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
 });
 
 // FIX: Changed component signature to use React.FC for better type safety and to resolve the "Expected 1 arguments, but got 0" error.
-const StrongCloudyEffect: React.FC<{ dark?: boolean }> = ({ dark = false }) => {
+const StrongCloudyEffect: React.FC<{ dark?: boolean }> = ({ dark = false } = {}) => {
     const clouds = useMemo(() => {
         // Palette selection
         const defaultColors = ['#94a3b8', '#cbd5e1', '#64748b', '#e2e8f0', '#bfdbfe', '#dbeafe'];
         const darkColors = ['#475569', '#64748b', '#334155', '#94a3b8', '#52525b', '#71717a'];
         const colors = dark ? darkColors : defaultColors;
 
-        // Generate more clouds with varied sizes for depth
         return Array.from({ length: 20 }).map((_, i) => {
             const scale = 0.6 + Math.random() * 1.6;
-            // Randomize aspect ratio to create variety (flat vs puffy)
-            const aspectRatio = 1.3 + Math.random() * 0.6; // 1.3 - 1.9
+            const aspectRatio = 1.3 + Math.random() * 0.6; 
             const width = 250 * scale * (0.9 + Math.random() * 0.2);
             const height = width / aspectRatio;
             
-            const top = Math.random() * 70 - 15; // Spread: -15vh to 55vh
-            const duration = 80 + Math.random() * 80; // 1.5-3 mins
+            const top = Math.random() * 70 - 15; 
+            const duration = 80 + Math.random() * 80; 
             const delay = Math.random() * -200;
             const baseOpacity = 0.5 + Math.random() * 0.4; 
             const color = colors[Math.floor(Math.random() * colors.length)];
             
-            // Scale zIndex to range 0-5 to ensure it stays behind other effects if needed
             const zIndex = Math.floor(scale * 2); 
 
-            // Higher scale = closer = faster (parallax effect)
             const parallaxDuration = duration / scale; 
             
-            // Use a purely random seed for the shape generation, independent of index
             const shapeSeed = Math.random() * 100000;
 
             return {
@@ -306,7 +288,7 @@ const StrongCloudyEffect: React.FC<{ dark?: boolean }> = ({ dark = false }) => {
                     zIndex: zIndex, 
                     animationDuration: `${parallaxDuration}s`,
                     animationDelay: `${delay}s`,
-                    filter: scale < 1.0 ? 'blur(3px)' : 'blur(1px)', // distant clouds are blurrier
+                    filter: scale < 1.0 ? 'blur(3px)' : 'blur(1px)',
                 } as React.CSSProperties,
                 width,
                 height,
@@ -545,7 +527,6 @@ const TronEffect = () => {
     return <canvas ref={canvasRef} style={{ display: 'block', background: 'black' }} />;
 };
 
-// New Flash Component
 const LightningFlash = () => (
     <>
         <style>{`
@@ -578,11 +559,8 @@ const SunGlareEffect = () => (
             }
         `}</style>
         <div className="fixed inset-0 pointer-events-none overflow-hidden -z-[5]">
-            {/* Main Sun Source (Top Right Corner) */}
             <div className="absolute -top-[10vw] -right-[10vw] w-[60vw] h-[60vw] bg-yellow-100/20 rounded-full blur-[80px]" />
             <div className="absolute -top-[5vw] -right-[5vw] w-[30vw] h-[30vw] bg-orange-200/30 rounded-full blur-[50px]" />
-            
-            {/* Rotating Rays */}
             <div 
                 className="absolute -top-[50vw] -right-[50vw] w-[200vw] h-[200vw] opacity-20 mix-blend-overlay"
                 style={{ 
@@ -590,8 +568,6 @@ const SunGlareEffect = () => (
                     background: 'conic-gradient(from 0deg, transparent 0deg, rgba(255, 223, 150, 0.3) 10deg, transparent 20deg, transparent 40deg, rgba(255, 255, 255, 0.2) 50deg, transparent 60deg, transparent 90deg, rgba(255, 200, 100, 0.1) 100deg, transparent 120deg)' 
                 }} 
             />
-
-            {/* Lens Flares */}
             <div 
                 className="absolute top-[30%] right-[30%] w-12 h-12 bg-white/10 rounded-full blur-md mix-blend-screen"
                 style={{ animation: 'flare-float 8s ease-in-out infinite' }} 
@@ -621,6 +597,12 @@ const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect }) => {
             {effect === 'aurora' && <AuroraEffect />}
             {effect === 'tron' && <TronEffect />}
             {effect === 'sun-glare' && <SunGlareEffect />}
+            {effect === 'sun-clouds' && (
+                <>
+                    <SunGlareEffect />
+                    <StrongCloudyEffect />
+                </>
+            )}
             {effect === 'rain-clouds' && (
                 <>
                     <StrongCloudyEffect dark />
