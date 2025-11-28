@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
@@ -70,7 +68,7 @@ const SortableLayerItem: React.FC<SortableLayerItemProps> = ({ element, isSelect
 
 interface ElementPropertiesEditorProps {
     element: CardElement;
-    onChange: (updates: Partial<CardElement> | { styles: Partial<ElementStyles> }) => void;
+    onChange: (updates: Partial<CardElement>) => void;
 }
 
 const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ element, onChange }) => {

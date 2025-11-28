@@ -52,7 +52,8 @@ const SnowEffect = () => {
 };
 
 // FIX: Corrected component signature to handle being called without props.
-const RainEffect: React.FC<{ zIndexOverride?: number }> = ({ zIndexOverride } = {}) => {
+// FIX: Simplified component signature by removing redundant default object for props.
+const RainEffect: React.FC<{ zIndexOverride?: number }> = ({ zIndexOverride }) => {
     // 1. Падающие капли дождя (фон)
     const raindrops = useMemo(() => {
         return Array.from({ length: 100 }).map((_, i) => {
@@ -179,6 +180,7 @@ const LeavesEffect = () => {
 };
 
 const CloudShape = React.memo(({ width, height, color, seed }: { width: number, height: number, color: string, seed: number }) => {
+    // FIX: Destructuring 'morphDelay' instead of 'mDelay' to match returned object from useMemo.
     const { circles, gradientId, morphDuration, morphDelay, pulseDuration } = useMemo(() => {
         // Pseudo-random generator based on seed
         const random = (offset: number) => {
@@ -255,8 +257,8 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
 });
 
 // FIX: Changed component signature to use React.FC for better type safety and to resolve the "Expected 1 arguments, but got 0" error.
-// Simplified signature by removing redundant default object for props with React.FC.
-const StrongCloudyEffect: React.FC<{ dark?: boolean }> = ({ dark = false } = {}) => {
+// FIX: Simplified signature by removing redundant default object for props with React.FC.
+const StrongCloudyEffect: React.FC<{ dark?: boolean }> = ({ dark = false }) => {
     const clouds = useMemo(() => {
         // Palette selection
         const defaultColors = ['#94a3b8', '#cbd5e1', '#64748b', '#e2e8f0', '#bfdbfe', '#dbeafe'];
