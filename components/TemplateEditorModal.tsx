@@ -71,11 +71,10 @@ const SortableLayerItem: React.FC<SortableLayerItemProps> = ({ element, isSelect
 interface ElementPropertiesEditorProps {
     element: CardElement;
     onChange: (updates: Partial<CardElement> | Partial<ElementStyles>) => void;
-    snapToGrid: boolean;
 }
 
-const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ element, onChange, snapToGrid }) => {
-    const GRID_STEP = 1;
+const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ element, onChange }) => {
+    const GRID_STEP = 10;
 
     const updateStyle = (key: keyof ElementStyles, value: any) => {
         onChange({ styles: { ...element.styles, [key]: value } });
@@ -89,7 +88,7 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
         const numValue = parseFloat(value);
         if (isNaN(numValue)) return;
         
-        const finalValue = snapToGrid && shouldSnap ? Math.round(numValue / GRID_STEP) * GRID_STEP : numValue;
+        const finalValue = shouldSnap ? Math.round(numValue / GRID_STEP) * GRID_STEP : numValue;
         updateFunc(finalValue);
     };
 
@@ -215,7 +214,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   const { colorScheme } = useAppStore();
   const [template, setTemplate] = useState<CardTemplate>(JSON.parse(JSON.stringify(templateToEdit)));
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
-  const [snapToGrid, setSnapToGrid] = useState(true);
   
   // Dnd Sensors
   const sensors = useSensors(useSensor(PointerSensor));
@@ -335,16 +333,9 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">Редактор шаблона</h2>
                 <p className="text-xs text-gray-500 dark:text-gray-400">{template.deviceType}</p>
             </div>
-            <div className="flex items-center gap-4">
-                 <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                    <Icon icon="mdi:grid" className="w-5 h-5"/>
-                    <label htmlFor="snap-toggle" className="cursor-pointer select-none">Привязка</label>
-                    <input type="checkbox" id="snap-toggle" checked={snapToGrid} onChange={e => setSnapToGrid(e.target.checked)} className="h-4 w-4 rounded accent-blue-500 cursor-pointer" />
-                </div>
-                <div className="flex gap-3">
-                    <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">Отмена</button>
-                    <button onClick={handleSave} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Сохранить</button>
-                </div>
+            <div className="flex gap-3">
+                <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">Отмена</button>
+                <button onClick={handleSave} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Сохранить</button>
             </div>
         </div>
 
@@ -357,11 +348,11 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                     <div className="flex gap-2 mt-2">
                         <div className="flex-1">
                             <label className="block text-xs text-gray-500 mb-1">Ширина (ячейки)</label>
-                            <input type="number" min="1" max="4" step="1" value={template.width || 1} onChange={e => setTemplate(prev => ({...prev, width: parseFloat(e.target.value) || 1}))} className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm" />
+                            <input type="number" min="1" max="4" step="1" value={template.width || 1} onChange={e => setTemplate(prev => ({...prev, width: parseInt(e.target.value, 10) || 1}))} className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm" />
                         </div>
                         <div className="flex-1">
                             <label className="block text-xs text-gray-500 mb-1">Высота (ячейки)</label>
-                            <input type="number" min="0.5" max="4" step="0.5" value={template.height || 1} onChange={e => setTemplate(prev => ({...prev, height: parseFloat(e.target.value) || 1}))} className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm" />
+                            <input type="number" min="1" max="4" step="1" value={template.height || 1} onChange={e => setTemplate(prev => ({...prev, height: parseInt(e.target.value, 10) || 1}))} className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm" />
                         </div>
                     </div>
                 </div>
@@ -398,11 +389,11 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
             </div>
 
             {/* Center: Preview Area */}
-            <div className={`flex-1 bg-gray-100 dark:bg-gray-900 p-8 flex items-center justify-center relative overflow-hidden grid-background`}>
+            <div className="flex-1 bg-gray-100 dark:bg-gray-900 p-8 flex items-center justify-center relative overflow-hidden grid-background">
                 <div 
                     className="relative bg-transparent transition-all duration-300"
                     style={{
-                        width: (template.width || 1) * 160,
+                        width: (template.width || 1) * 160, // approximate visualization width
                         height: (template.height || 1) * 160,
                     }}
                 >
@@ -431,11 +422,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                         <div
                             key={el.uniqueId}
                             onClick={(e) => { e.stopPropagation(); setSelectedElementId(el.uniqueId); }}
-                            className={`absolute transition-all duration-200 cursor-pointer 
-                                ${selectedElementId === el.uniqueId 
-                                ? 'border-2 border-blue-500 z-50 bg-blue-500/10' 
-                                : 'border border-dashed border-gray-400/50 dark:border-gray-500/50 hover:border-blue-400'
-                                }`}
+                            className={`absolute border-2 transition-all duration-200 cursor-pointer ${selectedElementId === el.uniqueId ? 'border-blue-500 z-50 bg-blue-500/10' : 'border-transparent hover:border-blue-300/50'}`}
                             style={{
                                 left: `${el.position.x}%`,
                                 top: `${el.position.y}%`,
@@ -457,11 +444,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                         <h3 className="font-bold text-gray-900 dark:text-white">Свойства: {ELEMENT_LABELS[selectedElement.id]}</h3>
                     </div>
                     <div className="p-4 overflow-y-auto">
-                        <ElementPropertiesEditor 
-                            element={selectedElement} 
-                            onChange={(updates) => handleElementUpdate(selectedElement.uniqueId, updates)}
-                            snapToGrid={snapToGrid}
-                        />
+                        <ElementPropertiesEditor element={selectedElement} onChange={(updates) => handleElementUpdate(selectedElement.uniqueId, updates)} />
                     </div>
                 </div>
             )}

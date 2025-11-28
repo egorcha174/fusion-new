@@ -129,10 +129,8 @@ const App: React.FC = () => {
     const [confirmingDeleteWidget, setConfirmingDeleteWidget] = useState<EventTimerWidget | null>(null);
 
     const cardSizes = [
-        { w: 1, h: 0.5 },
         { w: 1, h: 1 },
         { w: 1, h: 2 },
-        { w: 2, h: 0.5 },
         { w: 2, h: 1 },
         { w: 2, h: 2 },
         { w: 3, h: 1 },
@@ -526,7 +524,7 @@ const App: React.FC = () => {
                   }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">Редактор шаблона</div>
                 )}
                 <SubMenuItem title="Размер">
-                    {cardSizes.map(size => (
+                    {cardSizes.filter(size => Number.isInteger(size.h)).map(size => (
                         <div
                             key={`${size.w}x${size.h}`}
                             onClick={() => {
@@ -567,7 +565,7 @@ const App: React.FC = () => {
               <>
                 <div onClick={() => { setEditingEventTimerId(contextMenuDevice.widgetId!); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">Настроить виджет</div>
                 <SubMenuItem title="Размер">
-                    {cardSizes.map(size => (
+                    {cardSizes.filter(size => Number.isInteger(size.h)).map(size => (
                         <div
                             key={`${size.w}x${size.h}`}
                             onClick={() => {
