@@ -241,7 +241,7 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
             <g 
                 style={{ 
                     animation: `cloud-morph ${morphDuration}s infinite ease-in-out alternate`, 
-                    animationDelay: `${morphDelay}s`,
+                    animationDelay: `${mDelay}s`,
                     transformOrigin: 'center'
                 }}
             >
@@ -255,8 +255,7 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
 
 // FIX: Changed component signature to use React.FC for better type safety and to resolve the "Expected 1 arguments, but got 0" error.
 // Simplified signature by removing redundant default object for props with React.FC.
-const StrongCloudyEffect: React.FC<{ dark?: boolean }> = (props) => {
-    const { dark = false } = props;
+const StrongCloudyEffect: React.FC<{ dark?: boolean }> = ({ dark = false }) => {
     const clouds = useMemo(() => {
         // Palette selection
         const defaultColors = ['#94a3b8', '#cbd5e1', '#64748b', '#e2e8f0', '#bfdbfe', '#dbeafe'];

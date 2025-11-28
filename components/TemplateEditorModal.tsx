@@ -75,7 +75,7 @@ interface ElementPropertiesEditorProps {
 }
 
 const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ element, onChange, snapToGrid }) => {
-    const GRID_STEP = 5;
+    const GRID_STEP = 1;
 
     const updateStyle = (key: keyof ElementStyles, value: any) => {
         onChange({ styles: { ...element.styles, [key]: value } });
@@ -398,11 +398,11 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
             </div>
 
             {/* Center: Preview Area */}
-            <div className={`flex-1 bg-gray-100 dark:bg-gray-900 p-8 flex items-center justify-center relative overflow-hidden ${snapToGrid ? 'grid-background' : ''}`}>
+            <div className={`flex-1 bg-gray-100 dark:bg-gray-900 p-8 flex items-center justify-center relative overflow-hidden grid-background`}>
                 <div 
                     className="relative bg-transparent transition-all duration-300"
                     style={{
-                        width: (template.width || 1) * 160, // approximate visualization width
+                        width: (template.width || 1) * 160,
                         height: (template.height || 1) * 160,
                     }}
                 >
