@@ -265,8 +265,7 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
     );
 });
 
-// FIX: Provide a default empty object for props to prevent errors when component is called without arguments.
-// Fix: Changed component signature to use React.FC for better type safety and to resolve the "Expected 1 arguments, but got 0" error.
+// FIX: Changed component signature to use React.FC for better type safety and to resolve the "Expected 1 arguments, but got 0" error.
 const StrongCloudyEffect: React.FC<{ dark?: boolean }> = ({ dark = false }) => {
     const clouds = useMemo(() => {
         // Palette selection

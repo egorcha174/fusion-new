@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device, Room, RoomWithPhysicalDevices, PhysicalDevice, DeviceType, WeatherForecast } from '../types';
 import { constructHaUrl } from '../utils/url';
@@ -510,8 +509,67 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                 
                                 try {
                                     set({ isInitialLoadComplete: true });
-                                    updateDerivedState();
+                                    updateDerivedState(); // First update to get allKnownDevices populated
                                     
+                                    // Fetch sparkline histories
+                                    const _fetchAndApplySparklineHistories = async () => {
+                                        if (!_appStore) {
+                                            console.warn("appStore not initialized, skipping sparkline history fetch.");
+                                            return;
+                                        }
+                                        const { getTemplateForDevice } = _appStore.getState();
+                                        const { allKnownDevices, getHistory } = get();
+
+                                        const entityIdsWithCharts: string[] = [];
+                                        allKnownDevices.forEach(device => {
+                                            const template = getTemplateForDevice(device);
+                                            // Check if any element in the template is a visible chart
+                                            if (template?.elements.some(el => el.id === 'chart' && el.visible)) {
+                                                entityIdsWithCharts.push(device.id);
+                                            }
+                                        });
+
+                                        if (entityIdsWithCharts.length > 0) {
+                                            const now = new Date();
+                                            // Fetch for the last 24 hours
+                                            const startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+                                            
+                                            try {
+                                                const historyResult = await getHistory(entityIdsWithCharts, startTime, now.toISOString());
+                                                
+                                                // Create a new map to avoid direct state mutation
+                                                const newAllKnownDevices = new Map(get().allKnownDevices);
+                                                let updated = false;
+
+                                                Object.keys(historyResult).forEach(entityId => {
+                                                    const device = newAllKnownDevices.get(entityId);
+                                                    const historyPoints = historyResult[entityId];
+
+                                                    if (device && historyPoints && historyPoints.length > 0) {
+                                                        // Create a new device object to ensure React detects the change
+                                                        const newDevice = { ...device };
+                                                        newDevice.history = historyPoints
+                                                            .map((p: any) => parseFloat(p.s))
+                                                            .filter((n: any) => !isNaN(n)); // Ensure only numbers are passed
+                                                        
+                                                        newAllKnownDevices.set(entityId, newDevice);
+                                                        updated = true;
+                                                    }
+                                                });
+
+                                                if (updated) {
+                                                    // Trigger a state update with the new map containing history data
+                                                    set({ allKnownDevices: newAllKnownDevices });
+                                                }
+
+                                            } catch (error) {
+                                                console.error("Failed to fetch sparkline histories:", error);
+                                            }
+                                        }
+                                    };
+                                    
+                                    _fetchAndApplySparklineHistories();
+
                                     const weatherEntities = (Object.values(get().entities) as HassEntity[])
                                         .filter(e => e.entity_id.startsWith('weather.'))
                                         .map(e => e.entity_id);
