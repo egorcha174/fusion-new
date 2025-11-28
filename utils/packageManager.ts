@@ -1,16 +1,22 @@
-
 import { ThemePackage, ThemeDefinition, CardTemplate, CardTemplates } from '../types';
 
 export const PACKAGE_SCHEMA_VERSION = 1;
 
 /**
  * Generates a standardized theme package JSON structure.
+ * Optionally includes all custom and modified default templates.
  */
 export const generatePackage = async (
   theme: ThemeDefinition,
+  allTemplates: CardTemplates,
   author: string = 'User',
   description: string = ''
 ): Promise<ThemePackage> => {
+  // We'll include any template that is not a pristine default.
+  // This logic can be refined, e.g., to only include templates used by the theme,
+  // but for now, we'll export all user-modified templates for completeness.
+  const templatesToExport = Object.values(allTemplates);
+
   return {
     schemaVersion: PACKAGE_SCHEMA_VERSION,
     manifest: {
@@ -21,6 +27,7 @@ export const generatePackage = async (
       generatedAt: new Date().toISOString(),
     },
     theme,
+    templates: templatesToExport,
   };
 };
 
