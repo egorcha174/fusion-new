@@ -52,7 +52,7 @@ const SnowEffect = () => {
     );
 };
 
-// FIX: Corrected component signature to handle being called without props by adding a default empty object for the destructured props.
+// FIX: Corrected component signature to handle being called without props.
 const RainEffect: React.FC<{ zIndexOverride?: number }> = ({ zIndexOverride } = {}) => {
     // 1. Падающие капли дождя (фон)
     const raindrops = useMemo(() => {
@@ -180,8 +180,7 @@ const LeavesEffect = () => {
 };
 
 const CloudShape = React.memo(({ width, height, color, seed }: { width: number, height: number, color: string, seed: number }) => {
-    // FIX: Destructuring 'morphDelay' from useMemo and using it consistently.
-    const { circles, gradientId, morphDuration, morphDelay, pulseDuration } = useMemo(() => {
+    const { circles, gradientId, mDuration, mDelay, pDuration } = useMemo(() => {
         // Pseudo-random generator based on seed
         const random = (offset: number) => {
             const x = Math.sin(seed * 43758.5453 + offset * 12.9898) * 10000;
@@ -219,7 +218,7 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
         const mDelay = random(11) * -20;
         const pDuration = 30 + random(12) * 15; // 30-45s for pulsing
 
-        return { circles: c, gradientId: gId, morphDuration: mDuration, morphDelay: mDelay, pulseDuration: pDuration };
+        return { circles: c, gradientId: gId, mDuration: mDuration, mDelay: mDelay, pDuration: pDuration };
     }, [width, height, seed, color]);
 
     return (
@@ -229,7 +228,7 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
                 width: '100%', 
                 height: '100%', 
                 overflow: 'visible',
-                animation: `cloud-pulse ${pulseDuration}s ease-in-out infinite`
+                animation: `cloud-pulse ${pDuration}s ease-in-out infinite`
             }}
         >
             <defs>
@@ -242,9 +241,8 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
             </defs>
             <g 
                 style={{ 
-                    animation: `cloud-morph ${morphDuration}s infinite ease-in-out alternate`, 
-                    // FIX: Using the consistently named `morphDelay` variable.
-                    animationDelay: `${morphDelay}s`,
+                    animation: `cloud-morph ${mDuration}s infinite ease-in-out alternate`, 
+                    animationDelay: `${mDelay}s`,
                     transformOrigin: 'center'
                 }}
             >
@@ -256,7 +254,6 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
     );
 });
 
-// FIX: Corrected component signature to handle being called without props by adding a default empty object for the destructured props.
 const StrongCloudyEffect: React.FC<{ dark?: boolean }> = ({ dark = false } = {}) => {
     const clouds = useMemo(() => {
         // Palette selection
