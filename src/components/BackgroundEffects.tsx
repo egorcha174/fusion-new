@@ -1,3 +1,4 @@
+
 import React, { useMemo, useRef, useEffect } from 'react';
 import { useAppStore, BackgroundEffectType } from '../store/appStore';
 import { applyOpacity } from '../utils/themeUtils';
@@ -52,7 +53,8 @@ const SnowEffect = () => {
 };
 
 // FIX: Corrected component signature to handle being called without props.
-const RainEffect: React.FC<{ zIndexOverride?: number }> = ({ zIndexOverride }) => {
+const RainEffect: React.FC<{ zIndexOverride?: number }> = (props) => {
+    const { zIndexOverride } = props ?? {};
     // 1. Падающие капли дождя (фон)
     const raindrops = useMemo(() => {
         return Array.from({ length: 100 }).map((_, i) => {
@@ -254,7 +256,7 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
             <g 
                 style={{ 
                     animation: `cloud-morph ${morphDuration}s infinite ease-in-out alternate`, 
-                    animationDelay: `${mDelay}s`,
+                    animationDelay: `${morphDelay}s`,
                     transformOrigin: 'center'
                 }}
             >
@@ -268,7 +270,8 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
 
 // @Expected 1 arguments, but got 0.
 // FIX: Changed component signature to handle props explicitly to resolve the "Expected 1 arguments, but got 0" error.
-const StrongCloudyEffect: React.FC<{ dark?: boolean }> = ({ dark = false }) => {
+const StrongCloudyEffect: React.FC<{ dark?: boolean }> = (props) => {
+    const { dark = false } = props ?? {};
     const clouds = useMemo(() => {
         // Palette selection
         const defaultColors = ['#94a3b8', '#cbd5e1', '#64748b', '#e2e8f0', '#bfdbfe', '#dbeafe'];
