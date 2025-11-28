@@ -1,3 +1,4 @@
+
 import React, { useMemo, useRef, useEffect } from 'react';
 import { useAppStore, BackgroundEffectType } from '../store/appStore';
 import { applyOpacity } from '../utils/themeUtils';
@@ -179,6 +180,7 @@ const LeavesEffect = () => {
 };
 
 const CloudShape = React.memo(({ width, height, color, seed }: { width: number, height: number, color: string, seed: number }) => {
+    // FIX: Changed mDelay to morphDelay for clarity and to match the fix comment.
     const { circles, gradientId, morphDuration, morphDelay, pulseDuration } = useMemo(() => {
         // Pseudo-random generator based on seed
         const random = (offset: number) => {
@@ -254,7 +256,6 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
             <g 
                 style={{ 
                     animation: `cloud-morph ${morphDuration}s infinite ease-in-out alternate`, 
-                    // FIX: Cannot find name 'mDelay'. Changed to 'morphDelay'.
                     animationDelay: `${morphDelay}s`,
                     transformOrigin: 'center'
                 }}

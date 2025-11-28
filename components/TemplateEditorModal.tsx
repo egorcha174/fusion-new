@@ -70,37 +70,74 @@ const SortableLayerItem: React.FC<SortableLayerItemProps> = ({ element, isSelect
 
 interface ElementPropertiesEditorProps {
     element: CardElement;
-    onChange: (updates: Partial<CardElement> | Partial<ElementStyles>) => void;
+    onChange: (updates: Partial<CardElement> | { styles: Partial<ElementStyles> }) => void;
 }
 
 const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ element, onChange }) => {
-    const GRID_STEP = 10;
+    const GRID_STEP = 5;
 
     const updateStyle = (key: keyof ElementStyles, value: any) => {
         onChange({ styles: { ...element.styles, [key]: value } });
     };
     
-    const handleNumericChange = (updateFunc: (val: number | undefined) => void, value: string, shouldSnap: boolean, allowUndefined: boolean = false) => {
+    const handleNumericChange = (updateFunc: (val: number | undefined) => void, value: string, shouldSnap: boolean, allowUndefined: boolean = false, min: number | null = null) => {
         if (value === '' && allowUndefined) {
             updateFunc(undefined);
             return;
         }
-        const numValue = parseFloat(value);
-        if (isNaN(numValue)) return;
+        let numValue = parseFloat(value);
+        if (isNaN(numValue)) {
+            if (value.trim() === '' && !allowUndefined) {
+                numValue = 0;
+            } else {
+                return; // Invalid string like "abc", do nothing
+            }
+        }
+        
+        if(min !== null) numValue = Math.max(min, numValue);
         
         const finalValue = shouldSnap ? Math.round(numValue / GRID_STEP) * GRID_STEP : numValue;
         updateFunc(finalValue);
     };
 
+    const handleAlign = (type: 'left' | 'h-center' | 'right' | 'top' | 'v-center' | 'bottom') => {
+        const { width, height } = element.size;
+        let newPos = { ...element.position };
+        switch(type) {
+            case 'left': newPos.x = 0; break;
+            case 'h-center': newPos.x = (100 - width) / 2; break;
+            case 'right': newPos.x = 100 - width; break;
+            case 'top': newPos.y = 0; break;
+            case 'v-center': newPos.y = (100 - height) / 2; break;
+            case 'bottom': newPos.y = 100 - height; break;
+        }
+        // Snap to grid
+        newPos.x = Math.round(newPos.x / GRID_STEP) * GRID_STEP;
+        newPos.y = Math.round(newPos.y / GRID_STEP) * GRID_STEP;
+
+        onChange({ position: newPos });
+    };
+
     return (
         <div className="space-y-4 p-1">
-            <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Позиция и Размер (%)</label>
+            <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md">
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Расположение</label>
                 <div className="grid grid-cols-2 gap-2">
-                    <div><span className="text-[10px] text-gray-400">X</span><input type="number" value={element.position.x} onChange={e => handleNumericChange((val) => onChange({ position: { ...element.position, x: val as number } }), e.target.value, true)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
-                    <div><span className="text-[10px] text-gray-400">Y</span><input type="number" value={element.position.y} onChange={e => handleNumericChange((val) => onChange({ position: { ...element.position, y: val as number } }), e.target.value, true)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
-                    <div><span className="text-[10px] text-gray-400">W</span><input type="number" value={element.size.width} onChange={e => handleNumericChange((val) => onChange({ size: { ...element.size, width: val as number } }), e.target.value, true)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
-                    <div><span className="text-[10px] text-gray-400">H</span><input type="number" value={element.size.height} onChange={e => handleNumericChange((val) => onChange({ size: { ...element.size, height: val as number } }), e.target.value, true)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
+                    <div><span className="text-[10px] text-gray-400">X%</span><input type="number" value={element.position.x} onChange={e => handleNumericChange((val) => onChange({ position: { ...element.position, x: val as number } }), e.target.value, true)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
+                    <div><span className="text-[10px] text-gray-400">Y%</span><input type="number" value={element.position.y} onChange={e => handleNumericChange((val) => onChange({ position: { ...element.position, y: val as number } }), e.target.value, true)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
+                    <div><span className="text-[10px] text-gray-400">W%</span><input type="number" min="0" value={element.size.width} onChange={e => handleNumericChange((val) => onChange({ size: { ...element.size, width: val as number } }), e.target.value, true, false, 0)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
+                    <div><span className="text-[10px] text-gray-400">H%</span><input type="number" min="0" value={element.size.height} onChange={e => handleNumericChange((val) => onChange({ size: { ...element.size, height: val as number } }), e.target.value, true, false, 0)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
+                </div>
+                 <div className="mt-2">
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Выравнивание</label>
+                    <div className="grid grid-cols-3 gap-1">
+                        <button onClick={() => handleAlign('left')} className="p-1.5 bg-white dark:bg-gray-800 rounded hover:bg-gray-200 dark:hover:bg-gray-600"><Icon icon="mdi:format-align-left" className="w-4 h-4 mx-auto" /></button>
+                        <button onClick={() => handleAlign('h-center')} className="p-1.5 bg-white dark:bg-gray-800 rounded hover:bg-gray-200 dark:hover:bg-gray-600"><Icon icon="mdi:format-align-center" className="w-4 h-4 mx-auto" /></button>
+                        <button onClick={() => handleAlign('right')} className="p-1.5 bg-white dark:bg-gray-800 rounded hover:bg-gray-200 dark:hover:bg-gray-600"><Icon icon="mdi:format-align-right" className="w-4 h-4 mx-auto" /></button>
+                        <button onClick={() => handleAlign('top')} className="p-1.5 bg-white dark:bg-gray-800 rounded hover:bg-gray-200 dark:hover:bg-gray-600"><Icon icon="mdi:format-align-top" className="w-4 h-4 mx-auto" /></button>
+                        <button onClick={() => handleAlign('v-center')} className="p-1.5 bg-white dark:bg-gray-800 rounded hover:bg-gray-200 dark:hover:bg-gray-600"><Icon icon="mdi:format-align-middle" className="w-4 h-4 mx-auto" /></button>
+                        <button onClick={() => handleAlign('bottom')} className="p-1.5 bg-white dark:bg-gray-800 rounded hover:bg-gray-200 dark:hover:bg-gray-600"><Icon icon="mdi:format-align-bottom" className="w-4 h-4 mx-auto" /></button>
+                    </div>
                 </div>
             </div>
             
@@ -110,14 +147,15 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
             </div>
 
             {(element.id === 'name' || element.id === 'value' || element.id === 'status' || element.id === 'unit' || element.id === 'temperature') && (
-                <>
+                <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md space-y-2">
+                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Типографика</label>
                     <div>
                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Размер шрифта (px)</label>
-                        <input type="number" value={element.styles.fontSize || 14} onChange={e => handleNumericChange((val) => updateStyle('fontSize', val), e.target.value, false)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" />
+                        <input type="number" min="0" value={element.styles.fontSize || 14} onChange={e => handleNumericChange((val) => updateStyle('fontSize', val), e.target.value, false, false, 0)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" />
                     </div>
                     <div>
-                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Выравнивание</label>
-                        <select value={element.styles.textAlign || 'left'} onChange={e => updateStyle('textAlign', e.target.value)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm">
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Выравнивание текста</label>
+                        <select value={element.styles.textAlign || 'left'} onChange={e => updateStyle('textAlign', e.target.value)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm">
                             <option value="left">Слева</option>
                             <option value="center">По центру</option>
                             <option value="right">Справа</option>
@@ -130,26 +168,19 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
                             <button onClick={() => { const s = {...element.styles}; delete s.color; onChange({styles: s}); }} className="text-xs text-red-500 hover:underline">Сброс</button>
                         </div>
                     </div>
-                </>
+                </div>
             )}
 
             {(element.id === 'value' || element.id === 'temperature') && (
                 <div>
                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Знаков после запятой</label>
-                    <input 
-                        type="number" 
-                        min="0" 
-                        max="5"
-                        placeholder="Авто"
-                        value={element.styles.decimalPlaces ?? ''} 
-                        onChange={e => handleNumericChange((val) => updateStyle('decimalPlaces', val), e.target.value, false, true)} 
-                        className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" 
-                    />
+                    <input type="number" min="0" max="5" placeholder="Авто" value={element.styles.decimalPlaces ?? ''} onChange={e => handleNumericChange((val) => updateStyle('decimalPlaces', val), e.target.value, false, true, 0)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" />
                 </div>
             )}
             
             {element.id === 'icon' && (
-                 <>
+                 <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md space-y-2">
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Стили иконки</label>
                     <div>
                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Цвет (ВКЛ)</label>
                         <div className="flex items-center gap-2">
@@ -165,45 +196,44 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
                         </div>
                     </div>
                     <div>
-                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Фон иконки (ВКЛ)</label>
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Фон (ВКЛ)</label>
                         <div className="flex items-center gap-2">
                             <input type="color" value={element.styles.iconBackgroundColorOn || '#FFFFFF'} onChange={e => updateStyle('iconBackgroundColorOn', e.target.value)} className="w-8 h-8 border-none bg-transparent p-0" />
                             <button onClick={() => { const s = {...element.styles}; delete s.iconBackgroundColorOn; onChange({styles: s}); }} className="text-xs text-red-500 hover:underline">Сброс</button>
                         </div>
                     </div>
                     <div>
-                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Фон иконки (ВЫКЛ)</label>
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Фон (ВЫКЛ)</label>
                         <div className="flex items-center gap-2">
                             <input type="color" value={element.styles.iconBackgroundColorOff || '#FFFFFF'} onChange={e => updateStyle('iconBackgroundColorOff', e.target.value)} className="w-8 h-8 border-none bg-transparent p-0" />
                             <button onClick={() => { const s = {...element.styles}; delete s.iconBackgroundColorOff; onChange({styles: s}); }} className="text-xs text-red-500 hover:underline">Сброс</button>
                         </div>
                     </div>
-                 </>
+                 </div>
             )}
 
             {element.id === 'chart' && (
-                <>
+                <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md space-y-2">
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Настройки графика</label>
                     <div>
                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Тип графика</label>
-                        <select value={element.styles.chartType || 'gradient'} onChange={e => updateStyle('chartType', e.target.value)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm">
+                        <select value={element.styles.chartType || 'gradient'} onChange={e => updateStyle('chartType', e.target.value)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm">
                             <option value="line">Линия</option>
                             <option value="gradient">Градиент</option>
                         </select>
                     </div>
                     <div>
                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Период (часов)</label>
-                        <input type="number" value={element.styles.chartTimeRange || 24} onChange={e => handleNumericChange((val) => updateStyle('chartTimeRange', val), e.target.value, false)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" />
+                        <input type="number" min="1" value={element.styles.chartTimeRange || 24} onChange={e => handleNumericChange((val) => updateStyle('chartTimeRange', val), e.target.value, false, false, 1)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" />
                     </div>
-                </>
+                </div>
             )}
             
             {element.id === 'linked-entity' && (
-                <>
-                    <div>
-                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Показывать значение</label>
-                        <input type="checkbox" checked={element.styles.showValue ?? true} onChange={e => updateStyle('showValue', e.target.checked)} className="accent-blue-600" />
-                    </div>
-                </>
+                <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md">
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Показывать значение</label>
+                    <input type="checkbox" checked={element.styles.showValue ?? true} onChange={e => updateStyle('showValue', e.target.checked)} className="accent-blue-600" />
+                </div>
             )}
         </div>
     );
@@ -274,7 +304,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   const selectedElement = template.elements.find(e => e.uniqueId === selectedElementId);
 
   // Fake device for preview
-  const previewDevice: Device = {
+  const previewDevice: Device = useMemo(() => ({
       id: 'preview_device',
       name: 'Устройство (Пример)',
       status: 'Активно',
@@ -287,7 +317,8 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
       targetTemperature: 24,
       hvacAction: 'heating',
       batteryLevel: 85,
-  };
+      unit: '°C'
+  }), [template.deviceType]);
   
   const mockAllDevices = new Map<string, Device>();
   mockAllDevices.set(previewDevice.id, previewDevice);
@@ -324,6 +355,9 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
       availableElements.push({ id: 'fan-speed-control', label: 'Управление вентилятором' });
   }
 
+  const previewWidth = (template.width || 1) * 160;
+  const previewHeight = (template.height || 1) * 160;
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={onClose}>
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden ring-1 ring-white/10" onClick={e => e.stopPropagation()}>
@@ -348,11 +382,11 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                     <div className="flex gap-2 mt-2">
                         <div className="flex-1">
                             <label className="block text-xs text-gray-500 mb-1">Ширина (ячейки)</label>
-                            <input type="number" min="1" max="4" step="1" value={template.width || 1} onChange={e => setTemplate(prev => ({...prev, width: parseInt(e.target.value, 10) || 1}))} className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm" />
+                            <input type="number" min="0.5" max="4" step="0.5" value={template.width || 1} onChange={e => setTemplate(prev => ({...prev, width: parseFloat(e.target.value) || 1}))} className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm" />
                         </div>
                         <div className="flex-1">
                             <label className="block text-xs text-gray-500 mb-1">Высота (ячейки)</label>
-                            <input type="number" min="1" max="4" step="1" value={template.height || 1} onChange={e => setTemplate(prev => ({...prev, height: parseInt(e.target.value, 10) || 1}))} className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm" />
+                            <input type="number" min="0.5" max="4" step="0.5" value={template.height || 1} onChange={e => setTemplate(prev => ({...prev, height: parseFloat(e.target.value) || 1}))} className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm" />
                         </div>
                     </div>
                 </div>
@@ -393,8 +427,8 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                 <div 
                     className="relative bg-transparent transition-all duration-300"
                     style={{
-                        width: (template.width || 1) * 160, // approximate visualization width
-                        height: (template.height || 1) * 160,
+                        width: previewWidth,
+                        height: previewHeight,
                     }}
                 >
                     <DeviceCard
@@ -443,7 +477,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                     <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
                         <h3 className="font-bold text-gray-900 dark:text-white">Свойства: {ELEMENT_LABELS[selectedElement.id]}</h3>
                     </div>
-                    <div className="p-4 overflow-y-auto">
+                    <div className="p-4 overflow-y-auto no-scrollbar">
                         <ElementPropertiesEditor element={selectedElement} onChange={(updates) => handleElementUpdate(selectedElement.uniqueId, updates)} />
                     </div>
                 </div>
