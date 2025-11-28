@@ -80,18 +80,24 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
     };
     
     const handleNumericChange = (updateFunc: (val: number | undefined) => void, value: string, shouldSnap: boolean, allowUndefined: boolean = false, min: number | null = null) => {
-        if (value === '' && allowUndefined) {
-            updateFunc(undefined);
-            return;
-        }
-        let numValue = parseFloat(value);
-        if (isNaN(numValue)) return;
-        
-        if(min !== null) numValue = Math.max(min, numValue);
-        
-        const finalValue = shouldSnap ? Math.round(numValue / GRID_STEP) * GRID_STEP : numValue;
-        updateFunc(finalValue);
-    };
+    // Handle empty string
+    if (value === '') {
+      if (allowUndefined) {
+        updateFunc(undefined);
+      }
+      return;
+    }
+    
+    let numValue = parseFloat(value);
+    if (isNaN(numValue)) return;
+    
+    // Apply minimum constraint
+    if (min !== null) numValue = Math.max(min, numValue);
+    
+    // Apply grid snapping
+    const finalValue = shouldSnap ? Math.round(numValue / GRID_STEP) * GRID_STEP : numValue;
+    updateFunc(finalValue);
+  }
 
     const handleAlign = (type: 'left' | 'h-center' | 'right' | 'top' | 'v-center' | 'bottom') => {
         const { width, height } = element.size;
