@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
@@ -116,6 +115,21 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
                         </div>
                     </div>
                 </>
+            )}
+
+            {(element.id === 'value' || element.id === 'temperature') && (
+                <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Знаков после запятой</label>
+                    <input 
+                        type="number" 
+                        min="0" 
+                        max="5"
+                        placeholder="Авто"
+                        value={element.styles.decimalPlaces ?? ''} 
+                        onChange={e => updateStyle('decimalPlaces', e.target.value === '' ? undefined : parseInt(e.target.value))} 
+                        className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" 
+                    />
+                </div>
             )}
             
             {element.id === 'icon' && (

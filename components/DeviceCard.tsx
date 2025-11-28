@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Device, DeviceType, CardTemplate, DeviceCustomizations, ColorScheme, CardElement } from '../types';
 import DeviceIcon, { getIconNameForDeviceType } from './DeviceIcon';
@@ -203,14 +202,20 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
              </div>
           </div>
         );
-      case 'value':
+      case 'value': {
+        let valueToDisplay = device.state;
+        const numValue = parseFloat(device.state);
+        if (typeof element.styles.decimalPlaces === 'number' && !isNaN(numValue)) {
+            valueToDisplay = numValue.toFixed(element.styles.decimalPlaces);
+        }
         return (
           <div key={element.uniqueId} style={commonStyle} className="truncate pointer-events-none flex items-center">
              <span style={{ color: isOn ? (colorScheme.valueTextColorOn || 'var(--text-value-on)') : (colorScheme.valueTextColor || 'var(--text-value)') }}>
-                {device.state}
+                {valueToDisplay}
              </span>
           </div>
         );
+      }
       case 'unit':
         return (
           <div key={element.uniqueId} style={commonStyle} className="truncate pointer-events-none flex items-end">
@@ -245,6 +250,22 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
                 />
             </div>
         );
+       case 'temperature': {
+            if (typeof device.temperature !== 'number') return null;
+
+            let valueToDisplay: string | number = device.temperature;
+            if (typeof element.styles.decimalPlaces === 'number') {
+                valueToDisplay = device.temperature.toFixed(element.styles.decimalPlaces);
+            }
+
+            return (
+                <div key={element.uniqueId} style={commonStyle} className="truncate pointer-events-none flex items-center">
+                    <span style={{ color: isOn ? (colorScheme.valueTextColorOn || 'var(--text-value-on)') : (colorScheme.valueTextColor || 'var(--text-value)') }}>
+                        {valueToDisplay}
+                    </span>
+                </div>
+            );
+        }
       case 'target-temperature':
          if (device.type !== DeviceType.Thermostat) return null;
          return (
