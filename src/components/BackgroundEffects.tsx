@@ -267,8 +267,9 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
 });
 
 // @Expected 1 arguments, but got 0.
-// FIX: Changed component signature to use React.FC for better type safety and to resolve the "Expected 1 arguments, but got 0" error.
-const StrongCloudyEffect: React.FC<{ dark?: boolean }> = ({ dark = false }) => {
+// FIX: Changed component signature to handle props explicitly to resolve the "Expected 1 arguments, but got 0" error.
+const StrongCloudyEffect: React.FC<{ dark?: boolean }> = (props) => {
+    const { dark = false } = props;
     const clouds = useMemo(() => {
         // Palette selection
         const defaultColors = ['#94a3b8', '#cbd5e1', '#64748b', '#e2e8f0', '#bfdbfe', '#dbeafe'];

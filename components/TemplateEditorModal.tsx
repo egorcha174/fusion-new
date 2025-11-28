@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
@@ -356,11 +357,11 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                     <div className="flex gap-2 mt-2">
                         <div className="flex-1">
                             <label className="block text-xs text-gray-500 mb-1">Ширина (ячейки)</label>
-                            <input type="number" min="1" max="4" value={template.width || 1} onChange={e => setTemplate(prev => ({...prev, width: parseInt(e.target.value)}))} className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm" />
+                            <input type="number" min="1" max="4" step="1" value={template.width || 1} onChange={e => setTemplate(prev => ({...prev, width: parseFloat(e.target.value) || 1}))} className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm" />
                         </div>
                         <div className="flex-1">
                             <label className="block text-xs text-gray-500 mb-1">Высота (ячейки)</label>
-                            <input type="number" min="1" max="4" value={template.height || 1} onChange={e => setTemplate(prev => ({...prev, height: parseInt(e.target.value)}))} className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm" />
+                            <input type="number" min="0.5" max="4" step="0.5" value={template.height || 1} onChange={e => setTemplate(prev => ({...prev, height: parseFloat(e.target.value) || 1}))} className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm" />
                         </div>
                     </div>
                 </div>
