@@ -233,17 +233,15 @@ const ThermostatDial: React.FC<ThermostatDialProps> = ({ min, max, value, curren
     e.preventDefault();
     e.stopPropagation();
     
-    // Fix for "Unexpected identifier 'as'" error: remove explicit cast
     const target = e.target;
-    
-    if (target instanceof Element) {
-        target.setPointerCapture(e.pointerId);
+    if (!(target instanceof Element)) {
+      return;
     }
+    
+    target.setPointerCapture(e.pointerId);
 
     const handlePointerUp = () => {
-      if (target instanceof Element) {
-          target.releasePointerCapture(e.pointerId);
-      }
+      target.releasePointerCapture(e.pointerId);
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
     };
