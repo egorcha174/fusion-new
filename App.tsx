@@ -1,3 +1,4 @@
+
 import React, { useMemo, useEffect, useRef, useCallback, lazy, Suspense, useState } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import { Device, Tab, RoomWithPhysicalDevices, GridLayoutItem, EventTimerWidget } from './types';
@@ -280,7 +281,10 @@ const App: React.FC = () => {
   
   const handleGlobalContextMenu = useCallback((event: React.MouseEvent) => {
     event.preventDefault();
-    const target = event.target as HTMLElement;
+    if (!(event.target instanceof Element)) {
+        return;
+    }
+    const target = event.target;
     
     // Check if right-clicked on interactive element
     const isInteractiveElement = target.closest('input, textarea, [contenteditable="true"], select, button, a');
@@ -288,23 +292,26 @@ const App: React.FC = () => {
         return; // Let default browser menu appear for inputs
     }
 
-    const deviceTarget = target.closest('[data-device-id]') as HTMLElement | null;
-    const deviceId = deviceTarget?.dataset.deviceId;
-    const tabId = deviceTarget?.dataset.tabId;
+    const deviceTarget = target.closest<HTMLElement>('[data-device-id]');
 
-    if (deviceTarget && typeof deviceId === 'string' && typeof tabId === 'string') {
-        // Device Context Menu
-        handleDeviceContextMenu(deviceId, tabId, event.clientX, event.clientY);
-    } else {
-        // Global Dashboard Context Menu (Empty space click)
-        if (activeTabId) {
-            setContextMenu({ 
-                x: event.clientX, 
-                y: event.clientY, 
-                deviceId: 'dashboard-global', // Special ID for global menu
-                tabId: activeTabId 
-            });
+    if (deviceTarget) {
+        const deviceId = deviceTarget.dataset.deviceId;
+        const tabId = deviceTarget.dataset.tabId;
+        if (typeof deviceId === 'string' && typeof tabId === 'string') {
+            // Device Context Menu
+            handleDeviceContextMenu(deviceId, tabId, event.clientX, event.clientY);
+            return;
         }
+    }
+    
+    // Global Dashboard Context Menu (Empty space click)
+    if (activeTabId) {
+        setContextMenu({ 
+            x: event.clientX, 
+            y: event.clientY, 
+            deviceId: 'dashboard-global', // Special ID for global menu
+            tabId: activeTabId 
+        });
     }
   }, [handleDeviceContextMenu, setContextMenu, activeTabId]);
 
