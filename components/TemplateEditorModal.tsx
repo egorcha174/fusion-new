@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
@@ -69,11 +70,26 @@ const SortableLayerItem: React.FC<SortableLayerItemProps> = ({ element, isSelect
 interface ElementPropertiesEditorProps {
     element: CardElement;
     onChange: (updates: Partial<CardElement> | Partial<ElementStyles>) => void;
+    snapToGrid: boolean;
 }
 
-const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ element, onChange }) => {
+const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ element, onChange, snapToGrid }) => {
+    const GRID_STEP = 5;
+
     const updateStyle = (key: keyof ElementStyles, value: any) => {
         onChange({ styles: { ...element.styles, [key]: value } });
+    };
+    
+    const handleNumericChange = (updateFunc: (val: number | undefined) => void, value: string, shouldSnap: boolean, allowUndefined: boolean = false) => {
+        if (value === '' && allowUndefined) {
+            updateFunc(undefined);
+            return;
+        }
+        const numValue = parseFloat(value);
+        if (isNaN(numValue)) return;
+        
+        const finalValue = snapToGrid && shouldSnap ? Math.round(numValue / GRID_STEP) * GRID_STEP : numValue;
+        updateFunc(finalValue);
     };
 
     return (
@@ -81,23 +97,23 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
             <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Позиция и Размер (%)</label>
                 <div className="grid grid-cols-2 gap-2">
-                    <div><span className="text-[10px] text-gray-400">X</span><input type="number" value={element.position.x} onChange={e => onChange({ position: { ...element.position, x: parseFloat(e.target.value) } })} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
-                    <div><span className="text-[10px] text-gray-400">Y</span><input type="number" value={element.position.y} onChange={e => onChange({ position: { ...element.position, y: parseFloat(e.target.value) } })} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
-                    <div><span className="text-[10px] text-gray-400">W</span><input type="number" value={element.size.width} onChange={e => onChange({ size: { ...element.size, width: parseFloat(e.target.value) } })} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
-                    <div><span className="text-[10px] text-gray-400">H</span><input type="number" value={element.size.height} onChange={e => onChange({ size: { ...element.size, height: parseFloat(e.target.value) } })} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
+                    <div><span className="text-[10px] text-gray-400">X</span><input type="number" value={element.position.x} onChange={e => handleNumericChange((val) => onChange({ position: { ...element.position, x: val as number } }), e.target.value, true)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
+                    <div><span className="text-[10px] text-gray-400">Y</span><input type="number" value={element.position.y} onChange={e => handleNumericChange((val) => onChange({ position: { ...element.position, y: val as number } }), e.target.value, true)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
+                    <div><span className="text-[10px] text-gray-400">W</span><input type="number" value={element.size.width} onChange={e => handleNumericChange((val) => onChange({ size: { ...element.size, width: val as number } }), e.target.value, true)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
+                    <div><span className="text-[10px] text-gray-400">H</span><input type="number" value={element.size.height} onChange={e => handleNumericChange((val) => onChange({ size: { ...element.size, height: val as number } }), e.target.value, true)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
                 </div>
             </div>
             
             <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Z-Index (Слой)</label>
-                <input type="number" value={element.zIndex} onChange={e => onChange({ zIndex: parseInt(e.target.value) })} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" />
+                <input type="number" value={element.zIndex} onChange={e => handleNumericChange((val) => onChange({ zIndex: val as number }), e.target.value, false)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" />
             </div>
 
             {(element.id === 'name' || element.id === 'value' || element.id === 'status' || element.id === 'unit' || element.id === 'temperature') && (
                 <>
                     <div>
                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Размер шрифта (px)</label>
-                        <input type="number" value={element.styles.fontSize || 14} onChange={e => updateStyle('fontSize', parseInt(e.target.value))} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" />
+                        <input type="number" value={element.styles.fontSize || 14} onChange={e => handleNumericChange((val) => updateStyle('fontSize', val), e.target.value, false)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" />
                     </div>
                     <div>
                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Выравнивание</label>
@@ -126,7 +142,7 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
                         max="5"
                         placeholder="Авто"
                         value={element.styles.decimalPlaces ?? ''} 
-                        onChange={e => updateStyle('decimalPlaces', e.target.value === '' ? undefined : parseInt(e.target.value))} 
+                        onChange={e => handleNumericChange((val) => updateStyle('decimalPlaces', val), e.target.value, false, true)} 
                         className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" 
                     />
                 </div>
@@ -169,7 +185,7 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
                     </div>
                     <div>
                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Период (часов)</label>
-                        <input type="number" value={element.styles.chartTimeRange || 24} onChange={e => updateStyle('chartTimeRange', parseInt(e.target.value))} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" />
+                        <input type="number" value={element.styles.chartTimeRange || 24} onChange={e => handleNumericChange((val) => updateStyle('chartTimeRange', val), e.target.value, false)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" />
                     </div>
                 </>
             )}
@@ -191,6 +207,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   const { colorScheme } = useAppStore();
   const [template, setTemplate] = useState<CardTemplate>(JSON.parse(JSON.stringify(templateToEdit)));
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [snapToGrid, setSnapToGrid] = useState(true);
   
   // Dnd Sensors
   const sensors = useSensors(useSensor(PointerSensor));
@@ -310,9 +327,16 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">Редактор шаблона</h2>
                 <p className="text-xs text-gray-500 dark:text-gray-400">{template.deviceType}</p>
             </div>
-            <div className="flex gap-3">
-                <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">Отмена</button>
-                <button onClick={handleSave} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Сохранить</button>
+            <div className="flex items-center gap-4">
+                 <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                    <Icon icon="mdi:grid" className="w-5 h-5"/>
+                    <label htmlFor="snap-toggle" className="cursor-pointer select-none">Привязка</label>
+                    <input type="checkbox" id="snap-toggle" checked={snapToGrid} onChange={e => setSnapToGrid(e.target.checked)} className="h-4 w-4 rounded accent-blue-500 cursor-pointer" />
+                </div>
+                <div className="flex gap-3">
+                    <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">Отмена</button>
+                    <button onClick={handleSave} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Сохранить</button>
+                </div>
             </div>
         </div>
 
@@ -366,7 +390,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
             </div>
 
             {/* Center: Preview Area */}
-            <div className="flex-1 bg-gray-100 dark:bg-gray-900 p-8 flex items-center justify-center relative overflow-hidden">
+            <div className={`flex-1 bg-gray-100 dark:bg-gray-900 p-8 flex items-center justify-center relative overflow-hidden ${snapToGrid ? 'grid-background' : ''}`}>
                 <div 
                     className="relative bg-transparent transition-all duration-300"
                     style={{
@@ -399,7 +423,11 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                         <div
                             key={el.uniqueId}
                             onClick={(e) => { e.stopPropagation(); setSelectedElementId(el.uniqueId); }}
-                            className={`absolute border-2 transition-all duration-200 cursor-pointer ${selectedElementId === el.uniqueId ? 'border-blue-500 z-50 bg-blue-500/10' : 'border-transparent hover:border-blue-300/50'}`}
+                            className={`absolute transition-all duration-200 cursor-pointer 
+                                ${selectedElementId === el.uniqueId 
+                                ? 'border-2 border-blue-500 z-50 bg-blue-500/10' 
+                                : 'border border-dashed border-gray-400/50 dark:border-gray-500/50 hover:border-blue-400'
+                                }`}
                             style={{
                                 left: `${el.position.x}%`,
                                 top: `${el.position.y}%`,
@@ -421,7 +449,11 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                         <h3 className="font-bold text-gray-900 dark:text-white">Свойства: {ELEMENT_LABELS[selectedElement.id]}</h3>
                     </div>
                     <div className="p-4 overflow-y-auto">
-                        <ElementPropertiesEditor element={selectedElement} onChange={(updates) => handleElementUpdate(selectedElement.uniqueId, updates)} />
+                        <ElementPropertiesEditor 
+                            element={selectedElement} 
+                            onChange={(updates) => handleElementUpdate(selectedElement.uniqueId, updates)}
+                            snapToGrid={snapToGrid}
+                        />
                     </div>
                 </div>
             )}

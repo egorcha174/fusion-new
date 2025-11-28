@@ -340,6 +340,19 @@
     animation-iteration-count: infinite;
   }
 
+  /* Template Editor Grid Background */
+  .grid-background {
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(0,0,0,0.2) 1px, transparent 0);
+    background-size: 5% 5%;
+    background-position: -1px -1px;
+  }
+  .dark .grid-background {
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,0.1) 1px, transparent 0);
+  }
+
+
   .animate-sunny { animation: sunny 4s ease-in-out infinite; }
   .animate-night { animation: night-twinkle 3s ease-in-out infinite; }
   .animate-cloudy { animation: cloudy-move 6s ease-in-out infinite; }
