@@ -53,6 +53,7 @@ export interface HassEntity {
     friendly_name?: string;
     device_class?: string;
     unit_of_measurement?: string;
+    entity_picture?: string;
     [key: string]: any;
   };
   last_changed: string;
@@ -395,7 +396,7 @@ export interface ThemePackage {
     generatedAt: string;
   };
   theme: ThemeDefinition;
-  templates?: CardTemplate[];
+  templates: CardTemplate[];
 }
 
 export interface WeatherData {

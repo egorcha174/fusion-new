@@ -52,8 +52,8 @@ const SnowEffect = () => {
     );
 };
 
-// FIX: Corrected component signature to handle being called without props.
-const RainEffect: React.FC<{ zIndexOverride?: number }> = ({ zIndexOverride }) => {
+// FIX: Corrected component signature to handle being called without props by providing a default empty object for destructuring.
+const RainEffect: React.FC<{ zIndexOverride?: number }> = ({ zIndexOverride } = {}) => {
     // 1. Падающие капли дождя (фон)
     const raindrops = useMemo(() => {
         return Array.from({ length: 100 }).map((_, i) => {
@@ -180,7 +180,7 @@ const LeavesEffect = () => {
 };
 
 const CloudShape = React.memo(({ width, height, color, seed }: { width: number, height: number, color: string, seed: number }) => {
-    const { circles, gradientId, mDuration, mDelay, pDuration } = useMemo(() => {
+    const { circles, gradientId, morphDuration, morphDelay, pulseDuration } = useMemo(() => {
         // Pseudo-random generator based on seed
         const random = (offset: number) => {
             const x = Math.sin(seed * 43758.5453 + offset * 12.9898) * 10000;
@@ -218,7 +218,7 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
         const mDelay = random(11) * -20;
         const pDuration = 30 + random(12) * 15; // 30-45s for pulsing
 
-        return { circles: c, gradientId: gId, mDuration: mDuration, mDelay: mDelay, pDuration: pDuration };
+        return { circles: c, gradientId: gId, morphDuration: mDuration, morphDelay: mDelay, pulseDuration: pDuration };
     }, [width, height, seed, color]);
 
     return (
@@ -228,7 +228,7 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
                 width: '100%', 
                 height: '100%', 
                 overflow: 'visible',
-                animation: `cloud-pulse ${pDuration}s ease-in-out infinite`
+                animation: `cloud-pulse ${pulseDuration}s ease-in-out infinite`
             }}
         >
             <defs>
@@ -241,8 +241,8 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
             </defs>
             <g 
                 style={{ 
-                    animation: `cloud-morph ${mDuration}s infinite ease-in-out alternate`, 
-                    animationDelay: `${mDelay}s`,
+                    animation: `cloud-morph ${morphDuration}s infinite ease-in-out alternate`, 
+                    animationDelay: `${morphDelay}s`,
                     transformOrigin: 'center'
                 }}
             >
@@ -254,9 +254,9 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
     );
 });
 
-const StrongCloudyEffect: React.FC<{ dark?: boolean }> = ({ dark = false }) => {
+// FIX: Corrected component signature to handle being called without props by providing a default empty object for destructuring.
+const StrongCloudyEffect: React.FC<{ dark?: boolean }> = ({ dark = false } = {}) => {
     const clouds = useMemo(() => {
-        // Palette selection
         const defaultColors = ['#94a3b8', '#cbd5e1', '#64748b', '#e2e8f0', '#bfdbfe', '#dbeafe'];
         const darkColors = ['#475569', '#64748b', '#334155', '#94a3b8', '#52525b', '#71717a'];
         const colors = dark ? darkColors : defaultColors;
@@ -361,10 +361,10 @@ const AuroraEffect = () => {
         '--band-opacity': Math.max(0.3, Math.min(1.2, intensity / 100)),
         '--stars-speed': `${starsSpeed}s`,
         '--stars-opacity': starsEnabled ? 0.9 : 0,
-    };
+    } as React.CSSProperties;
 
     return (
-        <div className="fixed inset-0 overflow-hidden pointer-events-none -z-[5] aurora-scene" style={containerStyle as React.CSSProperties}>
+        <div className="fixed inset-0 overflow-hidden pointer-events-none -z-[5] aurora-scene" style={containerStyle}>
             <div className="absolute inset-0 aurora-stars" />
             
             <div className="absolute left-[-20%] right-[-20%] h-[60%] top-[10%] aurora-layer pointer-events-none">
@@ -511,8 +511,10 @@ const TronEffect = () => {
         animate();
 
         const handleResize = () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            if (canvas) {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
         };
         
         window.addEventListener("resize", handleResize);

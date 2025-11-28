@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device, Room, RoomWithPhysicalDevices, PhysicalDevice, DeviceType, WeatherForecast } from '../types';
 import { constructHaUrl } from '../utils/url';

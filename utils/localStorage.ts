@@ -1,8 +1,4 @@
 
-
-
-
-
 import { Tab, GridLayoutItem, CardTemplates, CardElement, CardTemplate, ColorScheme } from '../types';
 
 /**
@@ -40,8 +36,10 @@ export function loadAndMigrate<T>(key: string, initialValue: T): T {
           const newLayout: GridLayoutItem[] = [];
           const uniqueDeviceIds = [...new Set(tab.orderedDeviceIds as string[])];
 
-          uniqueDeviceIds.forEach((deviceId, index) => {
-            newLayout.push({ deviceId, col: index % cols, row: Math.floor(index / cols) });
+          uniqueDeviceIds.forEach((deviceId: unknown, index: number) => {
+            if (typeof deviceId === 'string') {
+                newLayout.push({ deviceId, col: index % cols, row: Math.floor(index / cols) });
+            }
           });
           tab.layout = newLayout;
           delete tab.orderedDeviceIds;
@@ -52,7 +50,7 @@ export function loadAndMigrate<T>(key: string, initialValue: T): T {
         if (tab.gridSettings === undefined) tab.gridSettings = { cols: 8, rows: 5 };
         if (!tab.layout) tab.layout = [];
 
-        return tab;
+        return tab as Tab;
       });
     }
 
@@ -90,12 +88,12 @@ export function loadAndMigrate<T>(key: string, initialValue: T): T {
           parsedItem = { [newId]: { ...oldSensorTemplate, id: newId, name: 'Стандартный сенсор' } };
       }
       
-      // МИГРАЦИЯ 3: Гарантируем, что все элементы из шаблона по умолчанию присутствуют
-      // в сохраненном шаблоне, чтобы избежать ошибок при добавлении новых элементов в обновлениях.
       const defaultTemplates = initialValue as CardTemplates;
       const migratedTemplates: CardTemplates = { ...parsedItem };
 
-      Object.keys(defaultTemplates).forEach((templateKey: keyof CardTemplates) => {
+      // 1. Обновляем существующие шаблоны (мерджим новые элементы)
+      Object.keys(defaultTemplates).forEach((k) => {
+        const templateKey = k as keyof CardTemplates;
         const defaultTemplate = defaultTemplates[templateKey];
         const storedTemplate = parsedItem[templateKey];
 
@@ -104,25 +102,31 @@ export function loadAndMigrate<T>(key: string, initialValue: T): T {
         // Шаг 1: Миграция элементов из объекта в массив (очень старый формат).
         let storedElements = storedTemplate.elements;
         if (storedElements && !Array.isArray(storedElements)) {
-          console.warn(`Migrating template elements for "${templateKey}" from object to array.`);
+          console.warn(`Migrating template elements for "${String(templateKey)}" from object to array.`);
           storedElements = Object.values(storedElements);
         }
 
         if (Array.isArray(storedElements) && Array.isArray(defaultTemplate.elements)) {
           const defaultElementsMap = new Map(defaultTemplate.elements.map(el => [el.id, el]));
           
-          // Шаг 2: Объединяем сохраненные элементы с элементами по умолчанию.
-          const migratedElements = storedElements
-            .map(storedEl => {
-              if (!storedEl || !storedEl.id) return null;
+          const migratedElements = (storedElements as any[])
+            .map((item: unknown) => {
+              const storedEl = item as Record<string, any>;
+              
+              if (!storedEl || typeof storedEl !== 'object' || !storedEl.id) return null;
               const defaultEl = defaultElementsMap.get(storedEl.id);
               if (defaultEl) {
-                // Глубокое слияние: структура от default, значения от stored.
-                return { ...defaultEl, ...storedEl, position: { ...defaultEl.position, ...(storedEl.position || {}) }, size: { ...defaultEl.size, ...(storedEl.size || {}) }, styles: { ...defaultEl.styles, ...(storedEl.styles || {}) }, };
+                return { 
+                  ...defaultEl, 
+                  ...storedEl, 
+                  position: { ...defaultEl.position, ...(storedEl.position || {}) }, 
+                  size: { ...defaultEl.size, ...(storedEl.size || {}) }, 
+                  styles: { ...defaultEl.styles, ...(storedEl.styles || {}) }, 
+                };
               }
-              return null; // Отбрасываем элементы, которых больше нет в шаблоне по умолчанию.
+              return null;
             })
-            .filter((el): el is CardElement => el !== null);
+            .filter((el: unknown): el is CardElement => el !== null);
 
           // Шаг 3: Добавляем новые элементы, которые есть в default, но отсутствуют в stored.
           defaultTemplate.elements.forEach(defaultEl => {
@@ -134,6 +138,15 @@ export function loadAndMigrate<T>(key: string, initialValue: T): T {
           migratedTemplates[templateKey] = { ...defaultTemplate, ...storedTemplate, elements: migratedElements };
         }
       });
+
+      // 2. Добавляем отсутствующие стандартные шаблоны (например, default-camera)
+      Object.keys(defaultTemplates).forEach((templateKey) => {
+        const key = templateKey as keyof CardTemplates;
+          if (!migratedTemplates[key]) {
+              migratedTemplates[key] = defaultTemplates[key];
+          }
+      });
+
       parsedItem = migratedTemplates;
     }
     
