@@ -242,7 +242,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
       name: 'Устройство (Пример)',
       status: 'Активно',
       state: 'on',
-      type: (template.deviceType as unknown as DeviceType) || DeviceType.Sensor,
+      type: (template.deviceType ) || DeviceType.Sensor,
       haDomain: 'sensor',
       attributes: {},
       brightness: 80,
