@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet, GridLayoutItem, EventTimerWidget } from './types';
@@ -129,12 +128,10 @@ const App: React.FC = () => {
     const [confirmingDeleteWidget, setConfirmingDeleteWidget] = useState<EventTimerWidget | null>(null);
 
     const cardSizes = [
-        { w: 1, h: 1 },
-        { w: 1, h: 2 },
-        { w: 2, h: 1 },
-        { w: 2, h: 2 },
-        { w: 3, h: 1 },
-        { w: 3, h: 2 },
+        { w: 1, h: 0.5 }, { w: 1, h: 1 }, { w: 1, h: 2 },
+        { w: 2, h: 0.5 }, { w: 2, h: 1 }, { w: 2, h: 2 }, { w: 2, h: 3 }, { w: 2, h: 4 },
+        { w: 3, h: 0.5 }, { w: 3, h: 1 }, { w: 3, h: 2 }, { w: 3, h: 3 }, { w: 3, h: 4 },
+        { w: 4, h: 0.5 }, { w: 4, h: 1 }, { w: 4, h: 2 }, { w: 4, h: 3 }, { w: 4, h: 4 }
     ];
 
   // Invoke custom hook to manage weather data fetching and store updates
@@ -524,7 +521,7 @@ const App: React.FC = () => {
                   }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">Редактор шаблона</div>
                 )}
                 <SubMenuItem title="Размер">
-                    {cardSizes.filter(size => Number.isInteger(size.h)).map(size => (
+                    {cardSizes.map(size => (
                         <div
                             key={`${size.w}x${size.h}`}
                             onClick={() => {
@@ -565,7 +562,7 @@ const App: React.FC = () => {
               <>
                 <div onClick={() => { setEditingEventTimerId(contextMenuDevice.widgetId!); handleCloseContextMenu(); }} className="px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/80 cursor-pointer text-sm">Настроить виджет</div>
                 <SubMenuItem title="Размер">
-                    {cardSizes.filter(size => Number.isInteger(size.h)).map(size => (
+                    {cardSizes.map(size => (
                         <div
                             key={`${size.w}x${size.h}`}
                             onClick={() => {
