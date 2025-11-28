@@ -289,6 +289,10 @@ export interface ThemeColors {
   cardBorderColor?: string;
   cardBorderColorOn?: string;
   
+  iconBackgroundShape?: 'circle' | 'rounded-square';
+  iconBackgroundColorOn?: string;
+  iconBackgroundColorOff?: string;
+
   cardBackground: string;
   cardBackgroundOn: string;
   

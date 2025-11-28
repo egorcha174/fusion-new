@@ -171,6 +171,13 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
                             <button onClick={() => { const s = {...element.styles}; delete s.iconBackgroundColorOn; onChange({styles: s}); }} className="text-xs text-red-500 hover:underline">Сброс</button>
                         </div>
                     </div>
+                    <div>
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Фон иконки (ВЫКЛ)</label>
+                        <div className="flex items-center gap-2">
+                            <input type="color" value={element.styles.iconBackgroundColorOff || '#FFFFFF'} onChange={e => updateStyle('iconBackgroundColorOff', e.target.value)} className="w-8 h-8 border-none bg-transparent p-0" />
+                            <button onClick={() => { const s = {...element.styles}; delete s.iconBackgroundColorOff; onChange({styles: s}); }} className="text-xs text-red-500 hover:underline">Сброс</button>
+                        </div>
+                    </div>
                  </>
             )}
 

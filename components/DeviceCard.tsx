@@ -169,9 +169,16 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
             </span>
           </div>
         );
-      case 'icon':
+      case 'icon': {
         const elementIcon = device.icon || getIconNameForDeviceType(device.type, isOn);
-        const iconBg = isOn ? element.styles.iconBackgroundColorOn : element.styles.iconBackgroundColorOff;
+        
+        const iconBg = isOn 
+            ? (element.styles.iconBackgroundColorOn ?? colorScheme.iconBackgroundColorOn) 
+            : (element.styles.iconBackgroundColorOff ?? colorScheme.iconBackgroundColorOff);
+            
+        const iconShape = colorScheme.iconBackgroundShape || 'circle';
+        const borderRadius = iconBg ? (iconShape === 'circle' ? '50%' : `calc(var(--radius-card) * 0.5)`) : '0';
+
         const iconColor = isOn ? element.styles.onColor : element.styles.offColor;
         
         return (
@@ -179,13 +186,13 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
              <div 
                 style={{
                     backgroundColor: iconBg || 'transparent',
-                    borderRadius: iconBg ? '50%' : '0',
+                    borderRadius: borderRadius,
                     width: '100%',
                     height: '100%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    transition: 'background-color 0.3s ease'
+                    transition: 'background-color 0.3s ease, border-radius 0.3s ease'
                 }}
              >
                 {isLoading ? (
@@ -211,6 +218,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
              </div>
           </div>
         );
+      }
       case 'value': {
         let valueToDisplay = device.state;
         const numValue = parseFloat(device.state);

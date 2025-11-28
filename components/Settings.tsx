@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device, AuroraSettings } from '../types';
@@ -143,7 +144,18 @@ const ThemeEditor: React.FC<{
                 <RangeInput onUpdate={onUpdate} label="Ширина рамки" path={`${pathPrefix}.cardBorderWidth`} value={scheme.cardBorderWidth ?? 0} min={0} max={5} step={1} unit="px" />
                 <ColorInput onUpdate={onUpdate} label="Цвет рамки (Выкл)" path={`${pathPrefix}.cardBorderColor`} value={scheme.cardBorderColor || '#000000'} />
                 <ColorInput onUpdate={onUpdate} label="Цвет рамки (Вкл)" path={`${pathPrefix}.cardBorderColorOn`} value={scheme.cardBorderColorOn || '#ffffff'} />
-                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 pt-2 border-b border-gray-200 dark:border-gray-700 pb-1 mb-2 mt-4">Текст (Выкл)</h4>
+                 <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+                    <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Иконки</h4>
+                    <LabeledInput label="Форма фона">
+                        <select value={scheme.iconBackgroundShape || 'circle'} onChange={e => onUpdate(`${pathPrefix}.iconBackgroundShape`, e.target.value)} className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm">
+                            <option value="circle">Круг</option>
+                            <option value="rounded-square">Скругленный квадрат</option>
+                        </select>
+                    </LabeledInput>
+                     <ColorInput onUpdate={onUpdate} label="Фон иконки (Вкл)" path={`${pathPrefix}.iconBackgroundColorOn`} value={scheme.iconBackgroundColorOn || ''} />
+                     <ColorInput onUpdate={onUpdate} label="Фон иконки (Выкл)" path={`${pathPrefix}.iconBackgroundColorOff`} value={scheme.iconBackgroundColorOff || ''} />
+                </div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 pt-4 border-t border-gray-200 dark:border-gray-700 pb-1 mb-2 mt-4">Текст (Выкл)</h4>
                 <ColorInput onUpdate={onUpdate} label="Название" path={`${pathPrefix}.nameTextColor`} value={scheme.nameTextColor} />
                 <ColorInput onUpdate={onUpdate} label="Статус" path={`${pathPrefix}.statusTextColor`} value={scheme.statusTextColor} />
                 <ColorInput onUpdate={onUpdate} label="Значение" path={`${pathPrefix}.valueTextColor`} value={scheme.valueTextColor} />
@@ -430,6 +442,9 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
             } else if (path.endsWith('cardBorderWidth')) {
                 newTheme.scheme.light.cardBorderWidth = value;
                 newTheme.scheme.dark.cardBorderWidth = value;
+            } else if (path.endsWith('iconBackgroundShape')) {
+                newTheme.scheme.light.iconBackgroundShape = value;
+                newTheme.scheme.dark.iconBackgroundShape = value;
             } else {
                 setAtPath(newTheme.scheme, path, value);
             }
