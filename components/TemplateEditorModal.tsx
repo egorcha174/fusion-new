@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
@@ -70,9 +69,10 @@ const SortableLayerItem: React.FC<SortableLayerItemProps> = ({ element, isSelect
 interface ElementPropertiesEditorProps {
     element: CardElement;
     onChange: (updates: Partial<CardElement> | { styles: Partial<ElementStyles> }) => void;
+    snapToGrid: boolean;
 }
 
-const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ element, onChange }) => {
+const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ element, onChange, snapToGrid }) => {
     const GRID_STEP = 5;
 
     const updateStyle = (key: keyof ElementStyles, value: any) => {
@@ -101,7 +101,7 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
         
         if(min !== null) numValue = Math.max(min, numValue);
         
-        const finalValue = shouldSnap ? Math.round(numValue / GRID_STEP) * GRID_STEP : numValue;
+        const finalValue = (shouldSnap && snapToGrid) ? Math.round(numValue / GRID_STEP) * GRID_STEP : numValue;
         updateFunc(finalValue);
     };
 
@@ -116,9 +116,11 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
             case 'v-center': newPos.y = (100 - height) / 2; break;
             case 'bottom': newPos.y = 100 - height; break;
         }
-        // Snap to grid
-        newPos.x = Math.round(newPos.x / GRID_STEP) * GRID_STEP;
-        newPos.y = Math.round(newPos.y / GRID_STEP) * GRID_STEP;
+        
+        if (snapToGrid) {
+            newPos.x = Math.round(newPos.x / GRID_STEP) * GRID_STEP;
+            newPos.y = Math.round(newPos.y / GRID_STEP) * GRID_STEP;
+        }
 
         onChange({ position: newPos });
     };
@@ -249,6 +251,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   const { colorScheme } = useAppStore();
   const [template, setTemplate] = useState<CardTemplate>(JSON.parse(JSON.stringify(templateToEdit)));
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [snapToGrid, setSnapToGrid] = useState(true);
   
   // Dnd Sensors
   const sensors = useSensors(useSensor(PointerSensor));
@@ -404,6 +407,16 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                             <input type="number" min="0.5" max="4" step="0.5" value={template.height || 1} onChange={e => setTemplate(prev => ({...prev, height: parseFloat(e.target.value) || 1}))} className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm" />
                         </div>
                     </div>
+                    <div className="flex items-center justify-between mt-3">
+                        <label htmlFor="snap-toggle" className="text-sm font-medium text-gray-700 dark:text-gray-300">Привязка к сетке</label>
+                        <button
+                            id="snap-toggle"
+                            onClick={() => setSnapToGrid(!snapToGrid)}
+                            className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${snapToGrid ? 'bg-blue-600' : 'bg-gray-400 dark:bg-gray-600'}`}
+                        >
+                            <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${snapToGrid ? 'translate-x-6' : 'translate-x-1'}`} />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4">
@@ -495,7 +508,11 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                         <h3 className="font-bold text-gray-900 dark:text-white">Свойства: {ELEMENT_LABELS[selectedElement.id]}</h3>
                     </div>
                     <div className="p-4 overflow-y-auto no-scrollbar">
-                        <ElementPropertiesEditor element={selectedElement} onChange={(updates) => handleElementUpdate(selectedElement.uniqueId, updates)} />
+                        <ElementPropertiesEditor 
+                            element={selectedElement} 
+                            onChange={(updates) => handleElementUpdate(selectedElement.uniqueId, updates)} 
+                            snapToGrid={snapToGrid}
+                        />
                     </div>
                 </div>
             )}

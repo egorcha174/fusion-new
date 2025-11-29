@@ -396,7 +396,8 @@ const TronEffect = () => {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        class Line {
+        // FIX: Renamed 'Line' to 'TronLine' to avoid potential name collisions.
+        class TronLine {
             x: number;
             y: number;
             speed: number;
@@ -471,14 +472,14 @@ const TronEffect = () => {
                 ctx.globalAlpha = 1;
             }
             
-            intersects(other: Line) {
+            intersects(other: TronLine) {
                 if (!this.alive || !other.alive) return false;
                 return Math.abs(this.x - other.x) < 3 && Math.abs(this.y - other.y) < 3;
             }
         }
         
-        const lines: Line[] = [];
-        for (let i = 0; i < 25; i++) lines.push(new Line());
+        const lines: TronLine[] = [];
+        for (let i = 0; i < 25; i++) lines.push(new TronLine());
         
         const animate = () => {
             if (!ctx || !canvas) return;
