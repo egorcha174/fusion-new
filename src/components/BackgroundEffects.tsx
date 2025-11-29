@@ -54,7 +54,7 @@ const SnowEffect = () => {
 
 // FIX: Corrected component signature to handle being called without props.
 // FIX: Provide a default empty object for props to prevent "Expected 1 arguments, but got 0" error during destructuring.
-const RainEffect: React.FC<{ zIndexOverride?: number }> = ({ zIndexOverride } = {}) => {
+const RainEffect: React.FC<{ zIndexOverride?: number }> = ({ zIndexOverride }) => {
     // 1. Падающие капли дождя (фон)
     const raindrops = useMemo(() => {
         return Array.from({ length: 100 }).map((_, i) => {
@@ -272,7 +272,7 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
 // @Expected 1 arguments, but got 0.
 // FIX: Changed component signature to handle props explicitly to resolve the "Expected 1 arguments, but got 0" error.
 // FIX: Provide a default empty object for props to prevent "Expected 1 arguments, but got 0" error during destructuring.
-const StrongCloudyEffect: React.FC<{ dark?: boolean }> = ({ dark = false } = {}) => {
+const StrongCloudyEffect: React.FC<{ dark?: boolean }> = ({ dark = false }) => {
     const clouds = useMemo(() => {
         // Palette selection
         const defaultColors = ['#94a3b8', '#cbd5e1', '#64748b', '#e2e8f0', '#bfdbfe', '#dbeafe'];
@@ -402,6 +402,154 @@ const AuroraEffect = () => {
             <div className="absolute left-0 right-0 bottom-0 h-[22%] bg-gradient-to-b from-transparent via-black/60 to-black pointer-events-none" />
         </div>
     );
+};
+
+// FIX: Add missing TronEffect component.
+const TronEffect = () => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const animationFrameId = useRef<number>();
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        class Line {
+            x: number;
+            y: number;
+            speed: number;
+            color: string;
+            dir: "h" | "v";
+            vx: number;
+            vy: number;
+            trail: { x: number; y: number }[];
+            turnCooldown: number;
+            alive: boolean;
+
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.speed = 2 + Math.random() * 2;
+                this.color = `hsl(${Math.random() * 360}, 100%, 60%)`;
+                this.dir = Math.random() < 0.5 ? "h" : "v";
+                this.vx = this.dir === "h" ? (Math.random() < 0.5 ? this.speed : -this.speed) : 0;
+                this.vy = this.dir === "v" ? (Math.random() < 0.5 ? this.speed : -this.speed) : 0;
+                this.trail = [];
+                this.turnCooldown = 50 + Math.random() * 150;
+                this.alive = true;
+            }
+
+            update() {
+                if (!this.alive) return;
+                this.trail.push({ x: this.x, y: this.y });
+                if (this.trail.length > 100) this.trail.shift();
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (Math.random() < 0.01 && this.turnCooldown <= 0) {
+                    this.turnCooldown = 50 + Math.random() * 150;
+                    if (this.vx !== 0) {
+                        this.vy = (Math.random() < 0.5 ? 1 : -1) * Math.abs(this.vx);
+                        this.vx = 0;
+                    } else {
+                        this.vx = (Math.random() < 0.5 ? 1 : -1) * Math.abs(this.vy);
+                        this.vy = 0;
+                    }
+                } else {
+                    this.turnCooldown--;
+                }
+
+                if (this.x < 0) this.x = canvas.width;
+                if (this.x > canvas.width) this.x = 0;
+                if (this.y < 0) this.y = canvas.height;
+                if (this.y > canvas.height) this.y = 0;
+            }
+
+            draw(ctx: CanvasRenderingContext2D) {
+                if (!this.alive) return;
+                ctx.beginPath();
+                for (let i = 0; i < this.trail.length - 1; i++) {
+                    const p1 = this.trail[i];
+                    const p2 = this.trail[i + 1];
+                    const alpha = i / this.trail.length;
+                    ctx.strokeStyle = this.color;
+                    ctx.globalAlpha = alpha;
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                }
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = this.color;
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+            }
+            
+            intersects(other: Line) {
+                if (!this.alive || !other.alive) return false;
+                return Math.abs(this.x - other.x) < 3 && Math.abs(this.y - other.y) < 3;
+            }
+        }
+        
+        const lines: Line[] = [];
+        for (let i = 0; i < 25; i++) lines.push(new Line());
+        
+        const animate = () => {
+            if (!ctx || !canvas) return;
+            ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            for (let line of lines) line.update();
+            
+            const deadPairs = new Set<number>();
+            for (let i = 0; i < lines.length; i++) {
+                for (let j = i + 1; j < lines.length; j++) {
+                    if (lines[i].intersects(lines[j])) {
+                        deadPairs.add(i);
+                        deadPairs.add(j);
+                    }
+                }
+            }
+            
+            for (let i of deadPairs) {
+                const line = lines[i];
+                if (line && line.alive) {
+                    line.alive = false;
+                    setTimeout(() => line.reset(), 800);
+                }
+            }
+            
+            for (let line of lines) line.draw(ctx);
+            
+            animationFrameId.current = requestAnimationFrame(animate);
+        };
+        
+        animate();
+
+        const handleResize = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        };
+        
+        window.addEventListener("resize", handleResize);
+
+        return () => {
+            window.removeEventListener("resize", handleResize);
+            if (animationFrameId.current) {
+                cancelAnimationFrame(animationFrameId.current);
+            }
+        };
+    }, []);
+
+    return <canvas ref={canvasRef} style={{ display: 'block', background: 'black' }} />;
 };
 
 // New Flash Component
