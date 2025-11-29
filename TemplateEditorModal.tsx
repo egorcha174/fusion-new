@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
@@ -76,16 +75,28 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
     const GRID_STEP = 5;
 
     const updateStyle = (key: keyof ElementStyles, value: any) => {
-        onChange({ styles: { ...element.styles, [key]: value } });
+        onChange({ styles: { [key]: value } });
+    };
+
+    const handleClearStyle = (key: keyof ElementStyles) => {
+      const newStyles = { ...element.styles };
+      delete newStyles[key];
+      onChange({ styles: newStyles });
     };
     
     const handleNumericChange = (updateFunc: (val: number | undefined) => void, value: string, shouldSnap: boolean, allowUndefined: boolean = false, min: number | null = null) => {
-        if (value === '' && allowUndefined) {
+        if (value.trim() === '' && allowUndefined) {
             updateFunc(undefined);
             return;
         }
         let numValue = parseFloat(value);
-        if (isNaN(numValue)) return;
+        if (isNaN(numValue)) {
+            if (value.trim() === '' && !allowUndefined) {
+                numValue = 0;
+            } else {
+                return;
+            }
+        }
         
         if(min !== null) numValue = Math.max(min, numValue);
         
@@ -134,6 +145,11 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
                 </div>
             </div>
             
+            <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Z-Index (Слой)</label>
+                <input type="number" value={element.zIndex} onChange={e => handleNumericChange((val) => onChange({ zIndex: val as number }), e.target.value, false)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" />
+            </div>
+
             {(element.id === 'name' || element.id === 'value' || element.id === 'status' || element.id === 'unit' || element.id === 'temperature') && (
                 <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md space-y-2">
                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Типографика</label>
@@ -153,7 +169,7 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Цвет текста (опционально)</label>
                         <div className="flex items-center gap-2">
                             <input type="color" value={element.styles.color || '#000000'} onChange={e => updateStyle('color', e.target.value)} className="w-8 h-8 border-none bg-transparent p-0" />
-                            <button onClick={() => { const s = {...element.styles}; delete s.color; onChange({styles: s}); }} className="text-xs text-red-500 hover:underline">Сброс</button>
+                            <button onClick={() => handleClearStyle('color')} className="text-xs text-red-500 hover:underline">Сброс</button>
                         </div>
                     </div>
                 </div>
@@ -173,28 +189,28 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Цвет (ВКЛ)</label>
                         <div className="flex items-center gap-2">
                             <input type="color" value={element.styles.onColor || '#FCD34D'} onChange={e => updateStyle('onColor', e.target.value)} className="w-8 h-8 border-none bg-transparent p-0" />
-                            <button onClick={() => { const s = {...element.styles}; delete s.onColor; onChange({styles: s}); }} className="text-xs text-red-500 hover:underline">Сброс</button>
+                            <button onClick={() => handleClearStyle('onColor')} className="text-xs text-red-500 hover:underline">Сброс</button>
                         </div>
                     </div>
                     <div>
                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Цвет (ВЫКЛ)</label>
                         <div className="flex items-center gap-2">
                             <input type="color" value={element.styles.offColor || '#9CA3AF'} onChange={e => updateStyle('offColor', e.target.value)} className="w-8 h-8 border-none bg-transparent p-0" />
-                            <button onClick={() => { const s = {...element.styles}; delete s.offColor; onChange({styles: s}); }} className="text-xs text-red-500 hover:underline">Сброс</button>
+                            <button onClick={() => handleClearStyle('offColor')} className="text-xs text-red-500 hover:underline">Сброс</button>
                         </div>
                     </div>
                     <div>
                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Фон (ВКЛ)</label>
                         <div className="flex items-center gap-2">
                             <input type="color" value={element.styles.iconBackgroundColorOn || '#FFFFFF'} onChange={e => updateStyle('iconBackgroundColorOn', e.target.value)} className="w-8 h-8 border-none bg-transparent p-0" />
-                            <button onClick={() => { const s = {...element.styles}; delete s.iconBackgroundColorOn; onChange({styles: s}); }} className="text-xs text-red-500 hover:underline">Сброс</button>
+                            <button onClick={() => handleClearStyle('iconBackgroundColorOn')} className="text-xs text-red-500 hover:underline">Сброс</button>
                         </div>
                     </div>
                     <div>
                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Фон (ВЫКЛ)</label>
                         <div className="flex items-center gap-2">
                             <input type="color" value={element.styles.iconBackgroundColorOff || '#FFFFFF'} onChange={e => updateStyle('iconBackgroundColorOff', e.target.value)} className="w-8 h-8 border-none bg-transparent p-0" />
-                            <button onClick={() => { const s = {...element.styles}; delete s.iconBackgroundColorOff; onChange({styles: s}); }} className="text-xs text-red-500 hover:underline">Сброс</button>
+                            <button onClick={() => handleClearStyle('iconBackgroundColorOff')} className="text-xs text-red-500 hover:underline">Сброс</button>
                         </div>
                     </div>
                  </div>
@@ -270,11 +286,21 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
     if (selectedElementId === uniqueId) setSelectedElementId(null);
   };
 
-  const handleElementUpdate = (uniqueId: string, updates: any) => {
-    setTemplate(prev => ({
-      ...prev,
-      elements: prev.elements.map(e => e.uniqueId === uniqueId ? { ...e, ...updates, styles: { ...e.styles, ...(updates.styles || {}) }, position: { ...e.position, ...(updates.position || {}) }, size: { ...e.size, ...(updates.size || {}) } } : e)
-    }));
+  const handleElementUpdate = (uniqueId: string, updates: Partial<CardElement> | { styles: Partial<ElementStyles> }) => {
+      setTemplate(prev => ({
+          ...prev,
+          elements: prev.elements.map(e => {
+              if (e.uniqueId !== uniqueId) return e;
+  
+              const { styles, position, size, ...otherUpdates } = updates as any;
+  
+              const mergedStyles = styles ? { ...e.styles, ...styles } : e.styles;
+              const mergedPosition = position ? { ...e.position, ...position } : e.position;
+              const mergedSize = size ? { ...e.size, ...size } : e.size;
+              
+              return { ...e, ...otherUpdates, styles: mergedStyles, position: mergedPosition, size: mergedSize };
+          })
+      }));
   };
 
   const handleToggleVisibility = (uniqueId: string) => {
@@ -422,6 +448,8 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                     <DeviceCard
                         device={previewDevice}
                         template={template}
+                        cardWidth={template.width || 1}
+                        cardHeight={template.height || 1}
                         allKnownDevices={mockAllDevices}
                         customizations={{}}
                         isEditMode={false}

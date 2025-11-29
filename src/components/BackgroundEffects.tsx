@@ -51,8 +51,7 @@ const SnowEffect = () => {
     );
 };
 
-// FIX: Corrected component signature to handle being called without props.
-{/* FIX: Provide a default empty object for props to prevent "Expected 1 arguments, but got 0" error during destructuring. */}
+// FIX: Corrected component signature to handle being called without props by providing a default empty object for props destructuring.
 const RainEffect = ({ zIndexOverride }: { zIndexOverride?: number } = {}) => {
     // 1. Падающие капли дождя (фон)
     const raindrops = useMemo(() => {
@@ -180,7 +179,7 @@ const LeavesEffect = () => {
 };
 
 const CloudShape = React.memo(({ width, height, color, seed }: { width: number, height: number, color: string, seed: number }) => {
-    // FIX: Changed mDelay to morphDelay for clarity and to match the fix comment.
+    // FIX: Destructuring 'morphDelay' instead of 'mDelay' which was a typo in the returned object from useMemo.
     const { circles, gradientId, morphDuration, morphDelay, pulseDuration } = useMemo(() => {
         // Pseudo-random generator based on seed
         const random = (offset: number) => {
@@ -268,9 +267,7 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
     );
 });
 
-// @Expected 1 arguments, but got 0.
-// FIX: Changed component signature to handle props explicitly to resolve the "Expected 1 arguments, but got 0" error.
-{/* FIX: Provide a default empty object for props to prevent "Expected 1 arguments, but got 0" error during destructuring. */}
+// FIX: Corrected component signature to handle being called without props by providing a default empty object for props destructuring.
 const StrongCloudyEffect = ({ dark = false }: { dark?: boolean } = {}) => {
     const clouds = useMemo(() => {
         // Palette selection

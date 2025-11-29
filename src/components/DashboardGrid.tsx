@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import {
   DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent,
@@ -145,7 +144,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
     
     const newLayoutItem = { ...currentItem, col: destCol, row: destRow };
     
-    // FIX: checkCollision expects width and height to be numbers
+    // FIX: checkCollision expects width and height to be numbers, ensure they are provided.
     const itemToCheck = {
         ...newLayoutItem,
         width: newLayoutItem.width || 1,

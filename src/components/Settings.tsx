@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CardTemplate, ServerConfig, ThemeDefinition, Device, AuroraSettings, DeviceType } from '../types';
