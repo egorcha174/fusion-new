@@ -410,11 +410,11 @@ const TronEffect = () => {
             alive: boolean;
 
             constructor() {
-                // FIX: Renamed 'reset' to 'initialize' to avoid potential naming conflicts that could cause "Expected 1 arguments, but got 0" error.
-                this.initialize();
+                // FIX: Renamed 'reset' to 'initTronLine' to avoid potential naming conflicts that could cause "Expected 1 arguments, but got 0" error.
+                this.initTronLine();
             }
 
-            initialize() {
+            initTronLine() {
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
                 this.speed = 2 + Math.random() * 2;
@@ -503,7 +503,7 @@ const TronEffect = () => {
                 const line = lines[i];
                 if (line && line.alive) {
                     line.alive = false;
-                    setTimeout(() => line.initialize(), 800);
+                    setTimeout(() => line.initTronLine(), 800);
                 }
             }
             

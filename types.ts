@@ -249,6 +249,7 @@ export interface CardElement {
   size: { width: number; height: number };
   zIndex: number;
   styles: ElementStyles;
+  scaleMode?: 'card' | 'cell';
 }
 
 export interface CardTemplate {
