@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
@@ -126,7 +125,8 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
         onChange({ position: newPos });
     };
 
-    const currentScaleMode = element.scaleMode || 'card';
+    // FIX: Changed property from `scaleMode` to `sizeMode` to match type definition.
+    const currentSizeMode = element.sizeMode || 'card';
 
     return (
         <div className="space-y-4 p-1">
@@ -134,8 +134,10 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
                 <div className="flex items-center justify-between mb-2">
                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Расположение</label>
                     <div className="flex items-center gap-1 p-0.5 bg-gray-200 dark:bg-gray-900/50 rounded-md">
-                        <button onClick={() => onChange({ scaleMode: 'card' })} className={`px-2 py-0.5 text-[10px] rounded transition-all ${currentScaleMode === 'card' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500'}`}>Карточки</button>
-                        <button onClick={() => onChange({ scaleMode: 'cell' })} className={`px-2 py-0.5 text-[10px] rounded transition-all ${currentScaleMode === 'cell' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500'}`}>Ячейки</button>
+                        {/* FIX: Changed property from `scaleMode` to `sizeMode` to match type definition. */}
+                        <button onClick={() => onChange({ sizeMode: 'card' })} className={`px-2 py-0.5 text-[10px] rounded transition-all ${currentSizeMode === 'card' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500'}`}>Карточки</button>
+                        {/* FIX: Changed property from `scaleMode` to `sizeMode` to match type definition. */}
+                        <button onClick={() => onChange({ sizeMode: 'cell' })} className={`px-2 py-0.5 text-[10px] rounded transition-all ${currentSizeMode === 'cell' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500'}`}>Ячейки</button>
                     </div>
                 </div>
 
@@ -284,7 +286,9 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
       position: { x: 10, y: 10 },
       size: { width: 30, height: 20 },
       zIndex: template.elements.length + 1,
-      styles: { fontSize: 14 }
+      styles: { fontSize: 14 },
+      // FIX: Added missing required property 'sizeMode'.
+      sizeMode: 'card'
     };
     if (elementId === 'chart') newElement.size = { width: 100, height: 30 };
     if (elementId === 'icon') newElement.size = { width: 20, height: 20 };
@@ -494,8 +498,8 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                             style={{
                                 left: `${el.position.x}%`,
                                 top: `${el.position.y}%`,
-                                width: `${el.scaleMode === 'cell' ? el.size.width / (template.width || 1) : el.size.width}%`,
-                                height: `${el.scaleMode === 'cell' ? el.size.height / (template.height || 1) : el.size.height}%`,
+                                width: `${el.sizeMode === 'cell' ? el.size.width / (template.width || 1) : el.size.width}%`,
+                                height: `${el.sizeMode === 'cell' ? el.size.height / (template.height || 1) : el.size.height}%`,
                             }}
                         />
                     ))}

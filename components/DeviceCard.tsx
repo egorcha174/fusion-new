@@ -135,8 +135,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
     if (!element.visible) return null;
 
     let finalSize = { ...element.size };
-    // FIX: Changed property from `scaleMode` to `scaleMode` to match type definition.
-    if (element.scaleMode === 'cell' && cardWidth > 0 && cardHeight > 0) {
+    // FIX: Changed property from `scaleMode` to `sizeMode` to match type definition.
+    if (element.sizeMode === 'cell' && cardWidth > 0 && cardHeight > 0) {
         finalSize.width = element.size.width / cardWidth;
         finalSize.height = element.size.height / cardHeight;
     }
