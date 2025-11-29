@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import { Device, Room, ClockSettings, DeviceType, Tab, RoomWithPhysicalDevices, ColorThemeSet, GridLayoutItem, EventTimerWidget } from './types';
@@ -439,7 +440,8 @@ const App: React.FC = () => {
     <>
       <ThemeInjector theme={currentColorScheme} />
       <div className="fixed inset-0 -z-10 transition-all duration-500" style={backgroundStyle} />
-      {effectiveBackgroundEffect !== 'none' && <Suspense fallback={null}><BackgroundEffects effect={effectiveBackgroundEffect} /></Suspense>}
+      {/* FIX: Pass isDark prop to BackgroundEffects */}
+      {effectiveBackgroundEffect !== 'none' && <Suspense fallback={null}><BackgroundEffects effect={effectiveBackgroundEffect} isDark={isDark} /></Suspense>}
       <div className="flex min-h-screen relative flex-col lg:flex-row" onContextMenu={handleGlobalContextMenu}>
         {isSidebarVisible && (
         <Suspense fallback={<div className="bg-gray-900 hidden lg:block" style={{ width: `${sidebarWidth}px` }} />}>

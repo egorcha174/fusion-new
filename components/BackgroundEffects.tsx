@@ -1,3 +1,5 @@
+
+
 import React, { useMemo, useRef, useEffect } from 'react';
 import { useAppStore, BackgroundEffectType } from '../store/appStore';
 import { applyOpacity } from '../utils/themeUtils';
@@ -5,6 +7,7 @@ import { nanoid } from 'nanoid';
 
 interface BackgroundEffectsProps {
     effect: BackgroundEffectType;
+    isDark?: boolean;
 }
 
 // Helper for generating colors
@@ -51,7 +54,6 @@ const SnowEffect = () => {
     );
 };
 
-// FIX: Corrected component signature to handle being called without props by providing a default empty object for props destructuring.
 const RainEffect = ({ zIndexOverride }: { zIndexOverride?: number } = {}) => {
     // 1. Падающие капли дождя (фон)
     const raindrops = useMemo(() => {
@@ -179,7 +181,6 @@ const LeavesEffect = () => {
 };
 
 const CloudShape = React.memo(({ width, height, color, seed }: { width: number, height: number, color: string, seed: number }) => {
-    // FIX: Destructuring 'morphDelay' instead of 'mDelay' which was a typo in the returned object from useMemo.
     const { circles, gradientId, morphDuration, morphDelay, pulseDuration } = useMemo(() => {
         // Pseudo-random generator based on seed
         const random = (offset: number) => {
@@ -242,7 +243,6 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
             <g 
                 style={{ 
                     animation: `cloud-morph ${morphDuration}s infinite ease-in-out alternate`, 
-                    // FIX: Using correct variable 'morphDelay' for animation delay.
                     animationDelay: `${morphDelay}s`,
                     transformOrigin: 'center'
                 }}
@@ -255,7 +255,6 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
     );
 });
 
-// FIX: Corrected component signature to handle being called without props by providing a default empty object for props destructuring.
 const StrongCloudyEffect = ({ dark = false }: { dark?: boolean } = {}) => {
     const clouds = useMemo(() => {
         // Palette selection
@@ -396,7 +395,6 @@ const TronEffect = () => {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        // FIX: Renamed 'Line' to 'TronLine' to avoid potential name collisions.
         class TronLine {
             x: number;
             y: number;
@@ -410,8 +408,6 @@ const TronEffect = () => {
             alive: boolean;
 
             constructor() {
-                // FIX: Renamed 'reset' to 'initTronLine' to avoid potential naming conflicts that could cause "Expected 1 arguments, but got 0" error.
-                // FIX: Further renaming `initTronLine` to `initialize` to resolve persistent static analysis error.
                 this.initialize();
             }
 
@@ -590,7 +586,7 @@ const SunGlareEffect = () => (
     </>
 );
 
-const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect }) => {
+const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect, isDark = false }) => {
     if (effect === 'none') return null;
 
     return (
@@ -598,7 +594,7 @@ const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect }) => {
             {effect === 'snow' && <SnowEffect />}
             {effect === 'rain' && <RainEffect />}
             {effect === 'leaves' && <LeavesEffect />}
-            {effect === 'strong-cloudy' && <StrongCloudyEffect />}
+            {effect === 'strong-cloudy' && <StrongCloudyEffect dark={isDark} />}
             {effect === 'river' && <RiverEffect />}
             {effect === 'aurora' && <AuroraEffect />}
             {effect === 'tron' && <TronEffect />}
@@ -606,7 +602,7 @@ const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect }) => {
             {effect === 'sun-clouds' && (
                 <>
                     <SunGlareEffect />
-                    <StrongCloudyEffect />
+                    <StrongCloudyEffect dark={isDark} />
                 </>
             )}
             {effect === 'rain-clouds' && (
