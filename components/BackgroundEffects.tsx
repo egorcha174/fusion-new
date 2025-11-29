@@ -1,5 +1,3 @@
-
-
 import React, { useMemo, useRef, useEffect } from 'react';
 import { useAppStore, BackgroundEffectType } from '../store/appStore';
 import { applyOpacity } from '../utils/themeUtils';
@@ -344,7 +342,8 @@ const RiverEffect = () => {
 };
 
 const AuroraEffect = () => {
-    const { auroraSettings } = useAppStore();
+    // FIX: Changed from destructuring to a selector to avoid potential hook errors.
+    const auroraSettings = useAppStore(state => state.auroraSettings);
     const { color1, color2, color3, speed, intensity, blur, saturate, starsEnabled, starsSpeed } = auroraSettings;
 
     const containerStyle = {

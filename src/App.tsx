@@ -1,5 +1,3 @@
-
-
 import React, { useMemo, useEffect, useRef, useCallback, lazy, Suspense, useState } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import { Device, Tab, RoomWithPhysicalDevices, GridLayoutItem, EventTimerWidget } from './types';

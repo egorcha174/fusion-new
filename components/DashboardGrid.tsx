@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent,
@@ -305,6 +304,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
                         signPath={signPath}
                         colorScheme={colorScheme}
                         isDark={isDark}
+                        gridCellSize={gridCellSize}
                       />
                     </ErrorBoundary>
                   </DraggableDevice>
@@ -338,6 +338,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
                       colorScheme={colorScheme}
                       isDark={isDark}
                       autoPlay={false}
+                      gridCellSize={gridCellSize}
                     />
             </div>
         ) : null}

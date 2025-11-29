@@ -769,7 +769,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
             const nameElementHeight = 15;
             template.elements = [
-                { id: 'name', uniqueId: nanoid(), visible: true, position: { x: 5, y: 5 }, size: { width: 90, height: nameElementHeight - 5 }, zIndex: 1, styles: { fontSize: 16 } },
+                { id: 'name', uniqueId: nanoid(), visible: true, position: { x: 5, y: 5 }, size: { width: 90, height: nameElementHeight - 5 }, zIndex: 1, styles: { fontSize: 16 }, scaleMode: 'card' },
             ];
 
             const entitiesPerRow = 2;
@@ -800,7 +800,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
                     styles: {
                         linkedEntityId: entity.id,
                         showValue: true,
-                    }
+                    },
+                    scaleMode: 'card',
                 });
             });
 
@@ -884,6 +885,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         });
         get().setCustomizations(newCustomizations);
     },
+    handleResetTemplates: () => {
+        get().setTemplates(defaultTemplates);
+    },
     createNewBlankTemplate: (deviceType: DeviceType | 'custom') => {
         if (deviceType === 'custom') {
             return {
@@ -894,10 +898,11 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
                     id: 'name',
                     uniqueId: nanoid(),
                     visible: true,
-                    position: { x: 8, y: 8 },
+                    position: { x: 50, y: 15 },
                     size: { width: 84, height: 15 },
                     zIndex: 1,
-                    styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 16 },
+                    styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 16, textAlign: 'center' },
+                    scaleMode: 'card',
                 }],
                 styles: {},
                 width: 2,
@@ -920,6 +925,12 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         const newTemplate = JSON.parse(JSON.stringify(baseTemplate));
         newTemplate.id = nanoid();
         newTemplate.name = `Новый ${typeNameMap[deviceType] || 'шаблон'}`;
+        // Ensure all elements in newly created templates have a sizeMode
+        newTemplate.elements.forEach((el: any) => {
+            if (!el.scaleMode) {
+                el.scaleMode = 'card';
+            }
+        });
         return newTemplate;
     },
 }));

@@ -1,4 +1,3 @@
-
 export type Page = 'dashboard' | 'all-devices' | 'helpers' | 'settings' | 'template-gallery' | 'all-entities';
 
 export enum DeviceType {
@@ -251,6 +250,8 @@ export interface CardElement {
   size: { width: number; height: number };
   zIndex: number;
   styles: ElementStyles;
+  // FIX: Added `scaleMode` property to support different scaling behaviors in templates.
+  scaleMode?: 'card' | 'cell';
 }
 
 export interface CardTemplate {
@@ -287,7 +288,15 @@ export interface ThemeColors {
   cardOpacity?: number;
   panelOpacity?: number;
   cardBorderRadius?: number;
+  // FIX: Added missing properties for card borders and icon backgrounds.
+  cardBorderWidth?: number;
+  cardBorderColor?: string;
+  cardBorderColorOn?: string;
   
+  iconBackgroundShape?: 'circle' | 'rounded-square';
+  iconBackgroundColorOn?: string;
+  iconBackgroundColorOff?: string;
+
   cardBackground: string;
   cardBackgroundOn: string;
   

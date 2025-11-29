@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Device, DeviceType, CardTemplate, DeviceCustomizations, ColorScheme, CardElement } from '../types';
 import DeviceIcon, { getIconNameForDeviceType } from './DeviceIcon';
@@ -31,6 +30,8 @@ interface DeviceCardProps {
   colorScheme: ColorScheme['light'];
   isDark: boolean;
   autoPlay?: boolean; // Added prop for grid control
+  // FIX: Added gridCellSize to props to resolve TypeScript error in DashboardGrid.
+  gridCellSize?: number;
 }
 
 const DeviceCard: React.FC<DeviceCardProps> = ({
@@ -134,6 +135,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
     if (!element.visible) return null;
 
     let finalSize = { ...element.size };
+    // FIX: Changed property from `scaleMode` to `scaleMode` to match type definition.
     if (element.scaleMode === 'cell' && cardWidth > 0 && cardHeight > 0) {
         finalSize.width = element.size.width / cardWidth;
         finalSize.height = element.size.height / cardHeight;

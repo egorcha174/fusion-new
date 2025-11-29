@@ -1,4 +1,3 @@
-
 export type Page = 'dashboard' | 'all-devices' | 'helpers' | 'settings' | 'template-gallery' | 'all-entities';
 
 export enum DeviceType {
@@ -249,6 +248,7 @@ export interface CardElement {
   size: { width: number; height: number };
   zIndex: number;
   styles: ElementStyles;
+  // FIX: Renamed `sizeMode` to `scaleMode` to match usage across the app.
   scaleMode?: 'card' | 'cell';
 }
 

@@ -30,6 +30,7 @@ import {
 } from '../config/defaults';
 import { set as setAtPath } from '../utils/obj-path';
 
+// FIX: Added 'tron' to the type to match the new effect added in settings and effects components.
 export type BackgroundEffectType = 'none' | 'snow' | 'rain' | 'leaves' | 'river' | 'aurora' | 'strong-cloudy' | 'rain-clouds' | 'snow-rain' | 'weather' | 'thunderstorm' | 'sun-glare' | 'sun-clouds' | 'tron';
 
 // --- State and Actions Interfaces ---
@@ -769,7 +770,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
             const nameElementHeight = 15;
             template.elements = [
-                { id: 'name', uniqueId: nanoid(), visible: true, position: { x: 5, y: 5 }, size: { width: 90, height: nameElementHeight - 5 }, zIndex: 1, styles: { fontSize: 16 } },
+                { id: 'name', uniqueId: nanoid(), visible: true, position: { x: 5, y: 5 }, size: { width: 90, height: nameElementHeight - 5 }, zIndex: 1, styles: { fontSize: 16 }, sizeMode: 'card' },
             ];
 
             const entitiesPerRow = 2;
@@ -800,7 +801,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
                     styles: {
                         linkedEntityId: entity.id,
                         showValue: true,
-                    }
+                    },
+                    sizeMode: 'card',
                 });
             });
 
@@ -897,10 +899,11 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
                     id: 'name',
                     uniqueId: nanoid(),
                     visible: true,
-                    position: { x: 8, y: 8 },
+                    position: { x: 50, y: 15 },
                     size: { width: 84, height: 15 },
                     zIndex: 1,
-                    styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 16 },
+                    styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 16, textAlign: 'center' },
+                    sizeMode: 'card',
                 }],
                 styles: {},
                 width: 2,
@@ -923,6 +926,12 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         const newTemplate = JSON.parse(JSON.stringify(baseTemplate));
         newTemplate.id = nanoid();
         newTemplate.name = `Новый ${typeNameMap[deviceType] || 'шаблон'}`;
+        // Ensure all elements in newly created templates have a sizeMode
+        newTemplate.elements.forEach((el: any) => {
+            if (!el.sizeMode) {
+                el.sizeMode = 'card';
+            }
+        });
         return newTemplate;
     },
 }));
