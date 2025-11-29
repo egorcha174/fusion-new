@@ -133,15 +133,12 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
   const renderElement = (element: CardElement) => {
     if (!element.visible) return null;
 
-    const finalWidth = element.size.width / cardWidth;
-    const finalHeight = element.size.height / cardHeight;
-
     const commonStyle: React.CSSProperties = {
       position: 'absolute',
       left: `${element.position.x}%`,
       top: `${element.position.y}%`,
-      width: `${finalWidth}%`,
-      height: `${finalHeight}%`,
+      width: `${element.size.width}%`,
+      height: `${element.size.height}%`,
       zIndex: element.zIndex + 10, // Ensure elements are above background
     };
 
