@@ -69,10 +69,13 @@ const SortableLayerItem: React.FC<SortableLayerItemProps> = ({ element, isSelect
 interface ElementPropertiesEditorProps {
     element: CardElement;
     onChange: (updates: Partial<CardElement> | { styles: Partial<ElementStyles> }) => void;
+    snapToGrid: boolean;
+    unitMode: 'percent' | 'grid';
 }
 
-const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ element, onChange }) => {
-    const GRID_STEP = 5;
+const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ element, onChange, snapToGrid, unitMode }) => {
+    const GRID_BASE = 20;
+    const PERCENT_STEP = 100 / GRID_BASE;
 
     const updateStyle = (key: keyof ElementStyles, value: any) => {
         onChange({ styles: { [key]: value } });
@@ -84,24 +87,31 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
       onChange({ styles: newStyles });
     };
     
-    const handleNumericChange = (updateFunc: (val: number | undefined) => void, value: string, shouldSnap: boolean, allowUndefined: boolean = false, min: number | null = null) => {
-        if (value.trim() === '' && allowUndefined) {
-            updateFunc(undefined);
-            return;
-        }
-        let numValue = parseFloat(value);
-        if (isNaN(numValue)) {
-            if (value.trim() === '' && !allowUndefined) {
-                numValue = 0;
-            } else {
-                return;
+    const handleNumericChange = (
+        prop: 'x' | 'y' | 'width' | 'height',
+        valueStr: string
+    ) => {
+        let num = parseFloat(valueStr);
+        if (isNaN(num)) return;
+
+        const isPosition = prop === 'x' || prop === 'y';
+        let newPercent;
+
+        if (unitMode === 'grid') {
+            newPercent = num * PERCENT_STEP;
+        } else {
+            newPercent = num;
+            if (snapToGrid) {
+                newPercent = Math.round(newPercent / PERCENT_STEP) * PERCENT_STEP;
             }
         }
         
-        if(min !== null) numValue = Math.max(min, numValue);
-        
-        const finalValue = shouldSnap ? Math.round(numValue / GRID_STEP) * GRID_STEP : numValue;
-        updateFunc(finalValue);
+        newPercent = Math.max(0, Math.min(100, newPercent));
+
+        const updates = isPosition
+            ? { position: { ...element.position, [prop]: newPercent } }
+            : { size: { ...element.size, [prop]: newPercent } };
+        onChange(updates);
     };
 
     const handleAlign = (type: 'left' | 'h-center' | 'right' | 'top' | 'v-center' | 'bottom') => {
@@ -115,22 +125,32 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
             case 'v-center': newPos.y = (100 - height) / 2; break;
             case 'bottom': newPos.y = 100 - height; break;
         }
-        // Snap to grid
-        newPos.x = Math.round(newPos.x / GRID_STEP) * GRID_STEP;
-        newPos.y = Math.round(newPos.y / GRID_STEP) * GRID_STEP;
+        
+        // Always snap alignment actions
+        newPos.x = Math.round(newPos.x / PERCENT_STEP) * PERCENT_STEP;
+        newPos.y = Math.round(newPos.y / PERCENT_STEP) * PERCENT_STEP;
 
         onChange({ position: newPos });
     };
+
+    const xVal = unitMode === 'grid' ? Math.round(element.position.x / PERCENT_STEP) : element.position.x;
+    const yVal = unitMode === 'grid' ? Math.round(element.position.y / PERCENT_STEP) : element.position.y;
+    const wVal = unitMode === 'grid' ? Math.round(element.size.width / PERCENT_STEP) : element.size.width;
+    const hVal = unitMode === 'grid' ? Math.round(element.size.height / PERCENT_STEP) : element.size.height;
+    
+    const unitLabel = unitMode === 'grid' ? 'gu' : '%';
+    const inputStep = unitMode === 'grid' ? 1 : (snapToGrid ? PERCENT_STEP : 1);
+
 
     return (
         <div className="space-y-4 p-1">
             <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md">
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Расположение</label>
                 <div className="grid grid-cols-2 gap-2">
-                    <div><span className="text-[10px] text-gray-400">X%</span><input type="number" value={element.position.x} onChange={e => handleNumericChange((val) => onChange({ position: { ...element.position, x: val as number } }), e.target.value, true)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
-                    <div><span className="text-[10px] text-gray-400">Y%</span><input type="number" value={element.position.y} onChange={e => handleNumericChange((val) => onChange({ position: { ...element.position, y: val as number } }), e.target.value, true)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
-                    <div><span className="text-[10px] text-gray-400">W%</span><input type="number" min="0" value={element.size.width} onChange={e => handleNumericChange((val) => onChange({ size: { ...element.size, width: val as number } }), e.target.value, true, false, 0)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
-                    <div><span className="text-[10px] text-gray-400">H%</span><input type="number" min="0" value={element.size.height} onChange={e => handleNumericChange((val) => onChange({ size: { ...element.size, height: val as number } }), e.target.value, true, false, 0)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
+                    <div><span className="text-[10px] text-gray-400">X ({unitLabel})</span><input type="number" value={xVal} onChange={e => handleNumericChange('x', e.target.value)} step={inputStep} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
+                    <div><span className="text-[10px] text-gray-400">Y ({unitLabel})</span><input type="number" value={yVal} onChange={e => handleNumericChange('y', e.target.value)} step={inputStep} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
+                    <div><span className="text-[10px] text-gray-400">W ({unitLabel})</span><input type="number" min="0" value={wVal} onChange={e => handleNumericChange('width', e.target.value)} step={inputStep} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
+                    <div><span className="text-[10px] text-gray-400">H ({unitLabel})</span><input type="number" min="0" value={hVal} onChange={e => handleNumericChange('height', e.target.value)} step={inputStep} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
                 </div>
                  <div className="mt-2">
                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Выравнивание</label>
@@ -147,7 +167,7 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
             
             <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Z-Index (Слой)</label>
-                <input type="number" value={element.zIndex} onChange={e => handleNumericChange((val) => onChange({ zIndex: val as number }), e.target.value, false)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" />
+                <input type="number" value={element.zIndex} onChange={e => onChange({ zIndex: parseInt(e.target.value) || 0 })} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" />
             </div>
 
             {(element.id === 'name' || element.id === 'value' || element.id === 'status' || element.id === 'unit' || element.id === 'temperature') && (
@@ -155,7 +175,7 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Типографика</label>
                     <div>
                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Размер шрифта (px)</label>
-                        <input type="number" min="0" value={element.styles.fontSize || 14} onChange={e => handleNumericChange((val) => updateStyle('fontSize', val), e.target.value, false, false, 0)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" />
+                        <input type="number" min="0" value={element.styles.fontSize || 14} onChange={e => updateStyle('fontSize', parseInt(e.target.value) || undefined)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" />
                     </div>
                     <div>
                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Выравнивание текста</label>
@@ -178,7 +198,7 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
             {(element.id === 'value' || element.id === 'temperature') && (
                 <div>
                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Знаков после запятой</label>
-                    <input type="number" min="0" max="5" placeholder="Авто" value={element.styles.decimalPlaces ?? ''} onChange={e => handleNumericChange((val) => updateStyle('decimalPlaces', val), e.target.value, false, true, 0)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" />
+                    <input type="number" min="0" max="5" placeholder="Авто" value={element.styles.decimalPlaces ?? ''} onChange={e => updateStyle('decimalPlaces', e.target.value === '' ? undefined : parseInt(e.target.value))} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" />
                 </div>
             )}
             
@@ -228,7 +248,7 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
                     </div>
                     <div>
                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Период (часов)</label>
-                        <input type="number" min="1" value={element.styles.chartTimeRange || 24} onChange={e => handleNumericChange((val) => updateStyle('chartTimeRange', val), e.target.value, false, false, 1)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" />
+                        <input type="number" min="1" value={element.styles.chartTimeRange || 24} onChange={e => updateStyle('chartTimeRange', parseInt(e.target.value) || 24)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" />
                     </div>
                 </div>
             )}
@@ -248,8 +268,9 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   const { colorScheme } = useAppStore();
   const [template, setTemplate] = useState<CardTemplate>(JSON.parse(JSON.stringify(templateToEdit)));
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [snapToGrid, setSnapToGrid] = useState(true);
+  const [unitMode, setUnitMode] = useState<'percent' | 'grid'>('percent');
   
-  // Dnd Sensors
   const sensors = useSensors(useSensor(PointerSensor));
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -317,7 +338,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
 
   const selectedElement = template.elements.find(e => e.uniqueId === selectedElementId);
 
-  // Fake device for preview
   const previewDevice: Device = useMemo(() => ({
       id: 'preview_device',
       name: 'Устройство (Пример)',
@@ -345,7 +365,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
     { id: 'unit', label: 'Единица измерения' },
   ];
 
-  // Conditional elements based on device type
   if (['sensor', 'climate', 'custom', 'humidifier'].includes(template.deviceType)) {
       availableElements.push({ id: 'chart', label: 'График' });
   }
@@ -388,7 +407,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
         </div>
 
         <div className="flex flex-1 overflow-hidden">
-            {/* Left Sidebar: Elements List & Settings */}
             <div className="w-80 bg-gray-50 dark:bg-gray-800/50 border-r border-gray-200 dark:border-gray-700 flex flex-col">
                 <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Имя шаблона</label>
@@ -401,6 +419,23 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                         <div className="flex-1">
                             <label className="block text-xs text-gray-500 mb-1">Высота (ячейки)</label>
                             <input type="number" min="0.5" max="4" step="0.5" value={template.height || 1} onChange={e => setTemplate(prev => ({...prev, height: parseFloat(e.target.value) || 1}))} className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm" />
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-between mt-3">
+                        <label htmlFor="snap-toggle" className="text-sm font-medium text-gray-700 dark:text-gray-300">Привязка к сетке</label>
+                        <button
+                            id="snap-toggle"
+                            onClick={() => setSnapToGrid(!snapToGrid)}
+                            className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${snapToGrid ? 'bg-blue-600' : 'bg-gray-400 dark:bg-gray-600'}`}
+                        >
+                            <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${snapToGrid ? 'translate-x-6' : 'translate-x-1'}`} />
+                        </button>
+                    </div>
+                    <div className="flex items-center justify-between mt-3">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Единицы</label>
+                        <div className="flex items-center gap-1 p-0.5 bg-gray-200 dark:bg-gray-700 rounded-lg">
+                            <button onClick={() => setUnitMode('percent')} className={`px-3 py-1 text-xs rounded-md transition-all ${unitMode === 'percent' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'text-gray-500'}`}>%</button>
+                            <button onClick={() => setUnitMode('grid')} className={`px-3 py-1 text-xs rounded-md transition-all ${unitMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'text-gray-500'}`}>Grid</button>
                         </div>
                     </div>
                 </div>
@@ -436,7 +471,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                 </div>
             </div>
 
-            {/* Center: Preview Area */}
             <div className="flex-1 bg-gray-100 dark:bg-gray-900 p-8 flex items-center justify-center relative overflow-hidden grid-background">
                 <div 
                     className="relative bg-transparent transition-all duration-300"
@@ -467,7 +501,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                         isDark={false}
                     />
                     
-                    {/* Overlay for selection and movement visualization in preview */}
                     {template.elements.map(el => el.visible && (
                         <div
                             key={el.uniqueId}
@@ -487,14 +520,18 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                 </div>
             </div>
 
-            {/* Right Sidebar: Element Properties */}
             {selectedElement && (
                 <div className="w-72 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col">
                     <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
                         <h3 className="font-bold text-gray-900 dark:text-white">Свойства: {ELEMENT_LABELS[selectedElement.id]}</h3>
                     </div>
                     <div className="p-4 overflow-y-auto no-scrollbar">
-                        <ElementPropertiesEditor element={selectedElement} onChange={(updates) => handleElementUpdate(selectedElement.uniqueId, updates)} />
+                        <ElementPropertiesEditor 
+                            element={selectedElement} 
+                            onChange={(updates) => handleElementUpdate(selectedElement.uniqueId, updates)} 
+                            snapToGrid={snapToGrid}
+                            unitMode={unitMode}
+                        />
                     </div>
                 </div>
             )}
