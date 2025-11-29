@@ -288,6 +288,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
                     <ErrorBoundary isCard>
                       <DeviceCard
                         device={device}
+                        cardWidth={width}
+                        cardHeight={height}
                         template={template || undefined}
                         allKnownDevices={allKnownDevices}
                         customizations={customizations}
@@ -319,6 +321,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
                  <DeviceCard
                       device={activeDevice}
                       template={getTemplateForDevice(activeDevice) || undefined}
+                      cardWidth={tab.layout.find(item => item.deviceId === activeDevice.id)?.width || 1}
+                      cardHeight={tab.layout.find(item => item.deviceId === activeDevice.id)?.height || 1}
                       allKnownDevices={allKnownDevices}
                       customizations={customizations}
                       isEditMode={false}

@@ -449,6 +449,8 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                     <DeviceCard
                         device={previewDevice}
                         template={template}
+                        cardWidth={template.width || 1}
+                        cardHeight={template.height || 1}
                         allKnownDevices={mockAllDevices}
                         customizations={{}}
                         isEditMode={false}

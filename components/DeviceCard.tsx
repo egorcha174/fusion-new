@@ -13,6 +13,8 @@ interface DeviceCardProps {
   template?: CardTemplate;
   allKnownDevices: Map<string, Device>;
   customizations: DeviceCustomizations;
+  cardWidth?: number;
+  cardHeight?: number;
   isEditMode: boolean;
   isPreview?: boolean;
   onDeviceToggle: (deviceId: string) => void;
@@ -36,6 +38,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
   template,
   allKnownDevices,
   customizations,
+  cardWidth = 1,
+  cardHeight = 1,
   isEditMode,
   isPreview = false,
   onDeviceToggle,
@@ -129,12 +133,15 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
   const renderElement = (element: CardElement) => {
     if (!element.visible) return null;
 
+    const finalWidth = element.size.width / cardWidth;
+    const finalHeight = element.size.height / cardHeight;
+
     const commonStyle: React.CSSProperties = {
       position: 'absolute',
       left: `${element.position.x}%`,
       top: `${element.position.y}%`,
-      width: `${element.size.width}%`,
-      height: `${element.size.height}%`,
+      width: `${finalWidth}%`,
+      height: `${finalHeight}%`,
       zIndex: element.zIndex + 10, // Ensure elements are above background
     };
 

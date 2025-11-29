@@ -172,7 +172,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
 
     const handleExportTheme = async (theme: ThemeDefinition) => {
         try {
-            const pkg = await generatePackage(theme, templates, 'User', 'Exported from dashboard');
+            const pkg = await generatePackage(theme, 'User', 'Exported from dashboard');
             const json = JSON.stringify(pkg, null, 2);
             const blob = new Blob([json], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
