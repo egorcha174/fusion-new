@@ -54,7 +54,8 @@ const SnowEffect = () => {
 
 // FIX: Corrected component signature to handle being called without props.
 // FIX: Simplified component signature by removing redundant default object for props.
-const RainEffect: React.FC<{ zIndexOverride?: number }> = ({ zIndexOverride }) => {
+// FIX: Provide a default empty object for props to prevent "Expected 1 arguments, but got 0" error during destructuring.
+const RainEffect: React.FC<{ zIndexOverride?: number }> = ({ zIndexOverride } = {}) => {
     // 1. Падающие капли дождя (фон)
     const raindrops = useMemo(() => {
         return Array.from({ length: 100 }).map((_, i) => {
@@ -259,7 +260,8 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
 
 // FIX: Changed component signature to use React.FC for better type safety and to resolve the "Expected 1 arguments, but got 0" error.
 // FIX: Simplified signature by removing redundant default object for props with React.FC.
-const StrongCloudyEffect: React.FC<{ dark?: boolean }> = ({ dark = false }) => {
+// FIX: Provide a default empty object for props to prevent "Expected 1 arguments, but got 0" error during destructuring.
+const StrongCloudyEffect: React.FC<{ dark?: boolean }> = ({ dark = false } = {}) => {
     const clouds = useMemo(() => {
         // Palette selection
         const defaultColors = ['#94a3b8', '#cbd5e1', '#64748b', '#e2e8f0', '#bfdbfe', '#dbeafe'];

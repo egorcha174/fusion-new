@@ -31,7 +31,8 @@ import {
 } from '../config/defaults';
 import { set as setAtPath } from '../utils/obj-path';
 
-export type BackgroundEffectType = 'none' | 'snow' | 'rain' | 'leaves' | 'river' | 'aurora' | 'strong-cloudy' | 'rain-clouds' | 'snow-rain' | 'weather' | 'thunderstorm' | 'sun-glare' | 'sun-clouds';
+// FIX: Added 'tron' to the type to match the new effect added in settings and effects components.
+export type BackgroundEffectType = 'none' | 'snow' | 'rain' | 'leaves' | 'river' | 'aurora' | 'strong-cloudy' | 'rain-clouds' | 'snow-rain' | 'weather' | 'thunderstorm' | 'sun-glare' | 'sun-clouds' | 'tron';
 
 // --- State and Actions Interfaces ---
 interface AppState {
@@ -406,7 +407,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         }
     },
     
-    // --- NEW: Import Package Action ---
     importThemePackage: (pkg: ThemePackage) => {
         const { theme, templates: newTemplatesList } = pkg;
         const { themes, setThemes, templates, setTemplates, selectTheme } = get();
@@ -421,12 +421,16 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         const newThemes = [...themes, themeToImport];
         setThemes(newThemes);
 
-        // 2. Handle Templates
-        const updatedTemplates = { ...templates };
-        newTemplatesList.forEach(tpl => {
-            updatedTemplates[tpl.id] = tpl;
-        });
-        setTemplates(updatedTemplates);
+        // 2. Handle Templates (if they exist in the package)
+        if (newTemplatesList && Array.isArray(newTemplatesList)) {
+            const updatedTemplates = { ...templates };
+            newTemplatesList.forEach(tpl => {
+                if (tpl && tpl.id) {
+                    updatedTemplates[tpl.id] = tpl;
+                }
+            });
+            setTemplates(updatedTemplates);
+        }
 
         // 3. Select the imported theme
         selectTheme(themeToImport.id);

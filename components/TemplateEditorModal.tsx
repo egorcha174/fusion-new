@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
@@ -79,11 +80,13 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
     };
 
     const handleClearStyle = (key: keyof ElementStyles) => {
-        onChange({ styles: { [key]: undefined } });
+      const newStyles = { ...element.styles };
+      delete newStyles[key];
+      onChange({ styles: newStyles });
     };
     
     const handleNumericChange = (updateFunc: (val: number | undefined) => void, value: string, shouldSnap: boolean, allowUndefined: boolean = false, min: number | null = null) => {
-        if (value === '' && allowUndefined) {
+        if (value.trim() === '' && allowUndefined) {
             updateFunc(undefined);
             return;
         }
@@ -92,7 +95,7 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
             if (value.trim() === '' && !allowUndefined) {
                 numValue = 0;
             } else {
-                return; // Invalid string like "abc", do nothing
+                return;
             }
         }
         
@@ -285,32 +288,20 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   };
 
   const handleElementUpdate = (uniqueId: string, updates: Partial<CardElement> | { styles: Partial<ElementStyles> }) => {
-    setTemplate(prev => ({
-        ...prev,
-        elements: prev.elements.map(e => {
-            if (e.uniqueId !== uniqueId) return e;
-
-            const newElement = { ...e };
-            
-            if ('position' in updates && updates.position) {
-                newElement.position = { ...e.position, ...updates.position };
-            }
-            if ('size' in updates && updates.size) {
-                newElement.size = { ...e.size, ...updates.size };
-            }
-            if ('styles' in updates && updates.styles) {
-                newElement.styles = { ...e.styles, ...updates.styles };
-            }
-            
-            const otherUpdates: Partial<CardElement> = { ...updates };
-            delete otherUpdates.position;
-            delete otherUpdates.size;
-            delete otherUpdates.styles;
-            Object.assign(newElement, otherUpdates);
-
-            return newElement;
-        })
-    }));
+      setTemplate(prev => ({
+          ...prev,
+          elements: prev.elements.map(e => {
+              if (e.uniqueId !== uniqueId) return e;
+  
+              const { styles, position, size, ...otherUpdates } = updates as any;
+  
+              const mergedStyles = styles ? { ...e.styles, ...styles } : e.styles;
+              const mergedPosition = position ? { ...e.position, ...position } : e.position;
+              const mergedSize = size ? { ...e.size, ...size } : e.size;
+              
+              return { ...e, ...otherUpdates, styles: mergedStyles, position: mergedPosition, size: mergedSize };
+          })
+      }));
   };
 
   const handleToggleVisibility = (uniqueId: string) => {

@@ -127,6 +127,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           if (!get().isInitialLoadComplete) return;
           if (!_appStore) return;
 
+          const oldAllKnownDevices = get().allKnownDevices;
+
           const { entities, areas, devices, entityRegistry } = get();
           const appStore = _appStore.getState();
           
@@ -140,6 +142,10 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
           const deviceMap = new Map<string, Device>();
           rooms.forEach(room => {
               room.devices.forEach(device => {
+                  const oldDevice = oldAllKnownDevices.get(device.id);
+                  if (oldDevice && oldDevice.history) {
+                    device.history = oldDevice.history;
+                  }
                   deviceMap.set(device.id, device);
               });
           });
@@ -512,6 +518,58 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                     set({ isInitialLoadComplete: true });
                                     updateDerivedState();
                                     
+                                    const _fetchAndApplySparklineHistories = async () => {
+                                        if (!_appStore) {
+                                            console.warn("appStore not initialized, skipping sparkline history fetch.");
+                                            return;
+                                        }
+                                        const { getTemplateForDevice } = _appStore.getState();
+                                        const { allKnownDevices, getHistory } = get();
+
+                                        const entityIdsWithCharts: string[] = [];
+                                        allKnownDevices.forEach(device => {
+                                            const template = getTemplateForDevice(device);
+                                            if (template?.elements.some(el => el.id === 'chart' && el.visible)) {
+                                                entityIdsWithCharts.push(device.id);
+                                            }
+                                        });
+
+                                        if (entityIdsWithCharts.length > 0) {
+                                            const now = new Date();
+                                            const startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+                                            
+                                            try {
+                                                const historyResult = await getHistory(entityIdsWithCharts, startTime, now.toISOString());
+                                                const newAllKnownDevices = new Map(get().allKnownDevices);
+                                                let updated = false;
+
+                                                Object.keys(historyResult).forEach(entityId => {
+                                                    const device = newAllKnownDevices.get(entityId);
+                                                    const historyPoints = historyResult[entityId];
+
+                                                    if (device && historyPoints && historyPoints.length > 0) {
+                                                        const newDevice = { ...device };
+                                                        newDevice.history = historyPoints
+                                                            .map((p: any) => parseFloat(p.s))
+                                                            .filter((n: any) => !isNaN(n));
+                                                        
+                                                        newAllKnownDevices.set(entityId, newDevice);
+                                                        updated = true;
+                                                    }
+                                                });
+
+                                                if (updated) {
+                                                    set({ allKnownDevices: newAllKnownDevices });
+                                                }
+
+                                            } catch (error) {
+                                                console.error("Failed to fetch sparkline histories:", error);
+                                            }
+                                        }
+                                    };
+                                    
+                                    _fetchAndApplySparklineHistories();
+
                                     const weatherEntities = (Object.values(get().entities) as HassEntity[])
                                         .filter(e => e.entity_id.startsWith('weather.'))
                                         .map(e => e.entity_id);
@@ -638,7 +696,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     }),
     fetchWeatherForecasts: async (entityIds) => {
         if (!entityIds.length) return;
-        // FIX: Spreading a potentially undefined object. Added a fallback to an empty object.
         const forecastsMap: Record<string, WeatherForecast[]> = { ...(get().forecasts || {}) };
         
         const fetchForEntity = async (entityId: string) => {
@@ -769,9 +826,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     },
     updateDerivedState,
     
-    // Action to inject appStore dependency at runtime
     initAppStore: (store) => {
-        if (_appStore) return; // Prevent double initialization
+        if (_appStore) return; 
         _appStore = store;
         
         try {
@@ -787,7 +843,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                     }
                 }
             );
-            // If data is already loaded, update now that we have the appStore available
             if (get().isInitialLoadComplete) {
                 updateDerivedState();
             }
