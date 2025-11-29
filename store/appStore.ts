@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import {
   Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
@@ -162,6 +161,7 @@ interface AppActions {
     handleToggleVisibility: (device: Device, isHidden: boolean) => void;
     handleSaveTemplate: (template: CardTemplate) => void;
     handleDeleteTemplate: (templateId: string) => void;
+    handleResetTemplates: () => void;
     createNewBlankTemplate: (deviceType: DeviceType | 'custom') => CardTemplate;
 }
 
@@ -883,6 +883,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             }
         });
         get().setCustomizations(newCustomizations);
+    },
+    handleResetTemplates: () => {
+        get().setTemplates(defaultTemplates);
     },
     createNewBlankTemplate: (deviceType: DeviceType | 'custom') => {
         if (deviceType === 'custom') {

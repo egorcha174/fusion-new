@@ -1,4 +1,3 @@
-
 import React, { useMemo, useRef, useEffect } from 'react';
 import { useAppStore, BackgroundEffectType } from '../store/appStore';
 import { applyOpacity } from '../utils/themeUtils';
@@ -54,7 +53,7 @@ const SnowEffect = () => {
 
 // FIX: Corrected component signature to handle being called without props.
 // FIX: Simplified component signature by removing redundant default object for props.
-// FIX: Provide a default empty object for props to prevent "Expected 1 arguments, but got 0" error during destructuring.
+{/* FIX: Provide a default empty object for props to prevent "Expected 1 arguments, but got 0" error during destructuring. */}
 const RainEffect = ({ zIndexOverride }: { zIndexOverride?: number } = {}) => {
     // 1. Падающие капли дождя (фон)
     const raindrops = useMemo(() => {
@@ -260,7 +259,7 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
 
 // FIX: Changed component signature to use React.FC for better type safety and to resolve the "Expected 1 arguments, but got 0" error.
 // FIX: Simplified signature by removing redundant default object for props with React.FC.
-// FIX: Provide a default empty object for props to prevent "Expected 1 arguments, but got 0" error during destructuring.
+{/* FIX: Provide a default empty object for props to prevent "Expected 1 arguments, but got 0" error during destructuring. */}
 const StrongCloudyEffect = ({ dark = false }: { dark?: boolean } = {}) => {
     const clouds = useMemo(() => {
         // Palette selection
