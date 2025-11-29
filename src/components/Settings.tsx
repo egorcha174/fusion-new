@@ -49,7 +49,8 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
         lowBatteryThreshold, setLowBatteryThreshold,
         backgroundEffect, setBackgroundEffect,
         servers, activeServerId, addServer, updateServer, deleteServer, setActiveServerId,
-        auroraSettings, setAuroraSettings
+        auroraSettings, setAuroraSettings,
+        handleResetTemplates
     } = useAppStore();
 
     const { allKnownDevices, disconnect } = useHAStore();
@@ -57,6 +58,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
     const [editingTheme, setEditingTheme] = useState<ThemeDefinition | null>(null);
     const [confirmingDeleteTheme, setConfirmingDeleteTheme] = useState<ThemeDefinition | null>(null);
     const [activeEditorTab, setActiveEditorTab] = useState<'light' | 'dark'>('light');
+    const [confirmingResetTemplates, setConfirmingResetTemplates] = useState(false);
 
     useEffect(() => {
         // При первой загрузке выбрать активный сервер
@@ -260,6 +262,12 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
             if (path.endsWith('cardBorderRadius')) {
                 newTheme.scheme.light.cardBorderRadius = value;
                 newTheme.scheme.dark.cardBorderRadius = value;
+            } else if (path.endsWith('cardBorderWidth')) {
+                newTheme.scheme.light.cardBorderWidth = value;
+                newTheme.scheme.dark.cardBorderWidth = value;
+            } else if (path.endsWith('iconBackgroundShape')) {
+                newTheme.scheme.light.iconBackgroundShape = value;
+                newTheme.scheme.dark.iconBackgroundShape = value;
             } else {
                 setAtPath(newTheme.scheme, path, value);
             }
@@ -643,6 +651,12 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                                 <Icon icon="mdi:information-outline" className="w-4 h-4 inline mr-1" />
                                 Чтобы создать новый шаблон, используйте контекстное меню на карточке устройства в режиме редактирования.
                             </p>
+                            <button
+                                onClick={() => setConfirmingResetTemplates(true)}
+                                className="w-full text-sm text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 py-2.5 rounded-lg transition-colors border border-red-200 dark:border-red-900/30 mt-2"
+                            >
+                                Сбросить все шаблоны к стандартным
+                            </button>
                         </div>
                     </Section>
 
@@ -694,6 +708,24 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                 }}
                 onCancel={() => setConfirmingDeleteTheme(null)}
                 confirmText="Удалить"
+            />
+
+            <ConfirmDialog
+                isOpen={confirmingResetTemplates}
+                title="Сбросить шаблоны?"
+                message={
+                    <>
+                        Вы уверены, что хотите сбросить все шаблоны карточек к стандартным?
+                        <br />
+                        Все ваши пользовательские шаблоны и изменения будут утеряны.
+                    </>
+                }
+                onConfirm={() => {
+                    handleResetTemplates();
+                    setConfirmingResetTemplates(false);
+                }}
+                onCancel={() => setConfirmingResetTemplates(false)}
+                confirmText="Сбросить"
             />
             
             {/* Confirm Delete Server Dialog */}

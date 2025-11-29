@@ -162,6 +162,7 @@ interface AppActions {
     handleToggleVisibility: (device: Device, isHidden: boolean) => void;
     handleSaveTemplate: (template: CardTemplate) => void;
     handleDeleteTemplate: (templateId: string) => void;
+    handleResetTemplates: () => void;
     createNewBlankTemplate: (deviceType: DeviceType | 'custom') => CardTemplate;
 }
 
@@ -769,7 +770,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
             const nameElementHeight = 15;
             template.elements = [
-                { id: 'name', uniqueId: nanoid(), visible: true, position: { x: 5, y: 5 }, size: { width: 90, height: nameElementHeight - 5 }, zIndex: 1, styles: { fontSize: 16 }, scaleMode: 'card' },
+                // FIX: Renamed `scaleMode` to `sizeMode`.
+                { id: 'name', uniqueId: nanoid(), visible: true, position: { x: 5, y: 5 }, size: { width: 90, height: nameElementHeight - 5 }, zIndex: 1, styles: { fontSize: 16 }, sizeMode: 'card' },
             ];
 
             const entitiesPerRow = 2;
@@ -801,7 +803,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
                         linkedEntityId: entity.id,
                         showValue: true,
                     },
-                    scaleMode: 'card',
+                    // FIX: Renamed `scaleMode` to `sizeMode`.
+                    sizeMode: 'card',
                 });
             });
 
@@ -902,7 +905,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
                     size: { width: 84, height: 15 },
                     zIndex: 1,
                     styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 16, textAlign: 'center' },
-                    scaleMode: 'card',
+                    // FIX: Renamed `scaleMode` to `sizeMode`.
+                    sizeMode: 'card',
                 }],
                 styles: {},
                 width: 2,
@@ -927,8 +931,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         newTemplate.name = `Новый ${typeNameMap[deviceType] || 'шаблон'}`;
         // Ensure all elements in newly created templates have a sizeMode
         newTemplate.elements.forEach((el: any) => {
-            if (!el.scaleMode) {
-                el.scaleMode = 'card';
+            if (!el.sizeMode) {
+                el.sizeMode = 'card';
             }
         });
         return newTemplate;

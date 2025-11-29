@@ -68,11 +68,12 @@ const SortableLayerItem: React.FC<SortableLayerItemProps> = ({ element, isSelect
 
 interface ElementPropertiesEditorProps {
     element: CardElement;
+    template: CardTemplate;
     onChange: (updates: Partial<CardElement> | { styles: Partial<ElementStyles> }) => void;
     snapToGrid: boolean;
 }
 
-const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ element, onChange, snapToGrid }) => {
+const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ element, template, onChange, snapToGrid }) => {
     const GRID_STEP = 5;
 
     const updateStyle = (key: keyof ElementStyles, value: any) => {
@@ -106,15 +107,19 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
     };
 
     const handleAlign = (type: 'left' | 'h-center' | 'right' | 'top' | 'v-center' | 'bottom') => {
-        const { width, height } = element.size;
+        const finalSize = {
+            width: element.sizeMode === 'cell' && template.width ? element.size.width / template.width : element.size.width,
+            height: element.sizeMode === 'cell' && template.height ? element.size.height / template.height : element.size.height
+        };
+
         let newPos = { ...element.position };
         switch(type) {
-            case 'left': newPos.x = 0; break;
-            case 'h-center': newPos.x = (100 - width) / 2; break;
-            case 'right': newPos.x = 100 - width; break;
-            case 'top': newPos.y = 0; break;
-            case 'v-center': newPos.y = (100 - height) / 2; break;
-            case 'bottom': newPos.y = 100 - height; break;
+            case 'left': newPos.x = finalSize.width / 2; break;
+            case 'h-center': newPos.x = 50; break;
+            case 'right': newPos.x = 100 - (finalSize.width / 2); break;
+            case 'top': newPos.y = finalSize.height / 2; break;
+            case 'v-center': newPos.y = 50; break;
+            case 'bottom': newPos.y = 100 - (finalSize.height / 2); break;
         }
         
         if (snapToGrid) {
@@ -125,7 +130,6 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
         onChange({ position: newPos });
     };
 
-    // FIX: Changed property from `scaleMode` to `sizeMode` to match type definition.
     const currentSizeMode = element.sizeMode || 'card';
 
     return (
@@ -134,16 +138,14 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
                 <div className="flex items-center justify-between mb-2">
                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Расположение</label>
                     <div className="flex items-center gap-1 p-0.5 bg-gray-200 dark:bg-gray-900/50 rounded-md">
-                        {/* FIX: Changed property from `scaleMode` to `sizeMode` to match type definition. */}
                         <button onClick={() => onChange({ sizeMode: 'card' })} className={`px-2 py-0.5 text-[10px] rounded transition-all ${currentSizeMode === 'card' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500'}`}>Карточки</button>
-                        {/* FIX: Changed property from `scaleMode` to `sizeMode` to match type definition. */}
                         <button onClick={() => onChange({ sizeMode: 'cell' })} className={`px-2 py-0.5 text-[10px] rounded transition-all ${currentSizeMode === 'cell' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500'}`}>Ячейки</button>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
-                    <div><span className="text-[10px] text-gray-400">X (%)</span><input type="number" value={element.position.x} onChange={e => handleNumericChange((val) => onChange({ position: { ...element.position, x: val as number } }), e.target.value, true)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
-                    <div><span className="text-[10px] text-gray-400">Y (%)</span><input type="number" value={element.position.y} onChange={e => handleNumericChange((val) => onChange({ position: { ...element.position, y: val as number } }), e.target.value, true)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
+                    <div><span className="text-[10px] text-gray-400">Центр X (%)</span><input type="number" value={element.position.x} onChange={e => handleNumericChange((val) => onChange({ position: { ...element.position, x: val as number } }), e.target.value, true)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
+                    <div><span className="text-[10px] text-gray-400">Центр Y (%)</span><input type="number" value={element.position.y} onChange={e => handleNumericChange((val) => onChange({ position: { ...element.position, y: val as number } }), e.target.value, true)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
                     <div><span className="text-[10px] text-gray-400">Ширина (%)</span><input type="number" min="0" value={element.size.width} onChange={e => handleNumericChange((val) => onChange({ size: { ...element.size, width: val as number } }), e.target.value, true, false, 0)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
                     <div><span className="text-[10px] text-gray-400">Высота (%)</span><input type="number" min="0" value={element.size.height} onChange={e => handleNumericChange((val) => onChange({ size: { ...element.size, height: val as number } }), e.target.value, true, false, 0)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
                 </div>
@@ -283,11 +285,10 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
       id: elementId,
       uniqueId: nanoid(),
       visible: true,
-      position: { x: 10, y: 10 },
+      position: { x: 50, y: 50 },
       size: { width: 30, height: 20 },
       zIndex: template.elements.length + 1,
       styles: { fontSize: 14 },
-      // FIX: Added missing required property 'sizeMode'.
       sizeMode: 'card'
     };
     if (elementId === 'chart') newElement.size = { width: 100, height: 30 };
@@ -498,8 +499,9 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                             style={{
                                 left: `${el.position.x}%`,
                                 top: `${el.position.y}%`,
-                                width: `${el.sizeMode === 'cell' ? el.size.width / (template.width || 1) : el.size.width}%`,
-                                height: `${el.sizeMode === 'cell' ? el.size.height / (template.height || 1) : el.size.height}%`,
+                                transform: 'translate(-50%, -50%)',
+                                width: `${el.sizeMode === 'cell' && template.width ? el.size.width / template.width : el.size.width}%`,
+                                height: `${el.sizeMode === 'cell' && template.height ? el.size.height / template.height : el.size.height}%`,
                             }}
                         />
                     ))}
@@ -517,6 +519,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                     <div className="p-4 overflow-y-auto no-scrollbar">
                         <ElementPropertiesEditor 
                             element={selectedElement} 
+                            template={template}
                             onChange={(updates) => handleElementUpdate(selectedElement.uniqueId, updates)} 
                             snapToGrid={snapToGrid}
                         />

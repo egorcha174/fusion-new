@@ -135,7 +135,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
     if (!element.visible) return null;
 
     let finalSize = { ...element.size };
-    // FIX: Changed property from `scaleMode` to `sizeMode` to match type definition.
+    // FIX: Use cardWidth and cardHeight to calculate element size when sizeMode is 'cell'.
     if (element.sizeMode === 'cell' && cardWidth > 0 && cardHeight > 0) {
         finalSize.width = element.size.width / cardWidth;
         finalSize.height = element.size.height / cardHeight;
@@ -147,27 +147,30 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
       top: `${element.position.y}%`,
       width: `${finalSize.width}%`,
       height: `${finalSize.height}%`,
+      transform: 'translate(-50%, -50%)',
       zIndex: element.zIndex + 10, // Ensure elements are above background
     };
 
-    const isFlex = ['value', 'unit', 'temperature'].includes(element.id);
+    const isFlex = ['name', 'status', 'value', 'unit', 'temperature'].includes(element.id);
     const customStyles = { ...element.styles };
-
-    if (customStyles.textAlign && isFlex) {
+    
+    // FIX: Apply flexbox classes for alignment based on textAlign style.
+    let flexClasses = "flex items-center"; // Default vertical alignment
+    if (isFlex) {
         switch (customStyles.textAlign) {
-            case 'center': commonStyle.justifyContent = 'center'; break;
-            case 'right': commonStyle.justifyContent = 'flex-end'; break;
-            default: commonStyle.justifyContent = 'flex-start'; break;
+            case 'center': flexClasses += ' justify-center'; break;
+            case 'right': flexClasses += ' justify-end'; break;
+            default: flexClasses += ' justify-start'; break;
         }
-        delete customStyles.textAlign;
     }
     
     Object.assign(commonStyle, customStyles);
+    delete commonStyle.textAlign;
 
     switch (element.id) {
       case 'name':
         return (
-          <div key={element.uniqueId} style={commonStyle} className="truncate pointer-events-none" title={device.name}>
+          <div key={element.uniqueId} style={commonStyle} className={`truncate pointer-events-none ${flexClasses}`}>
             <span style={{ color: isOn ? (colorScheme.nameTextColorOn || 'var(--text-name-on)') : (colorScheme.nameTextColor || 'var(--text-name)') }}>
                 {device.name}
             </span>
@@ -175,7 +178,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
         );
       case 'status':
         return (
-          <div key={element.uniqueId} style={commonStyle} className="truncate pointer-events-none">
+          <div key={element.uniqueId} style={commonStyle} className={`truncate pointer-events-none ${flexClasses}`}>
              <span style={{ color: isOn ? (colorScheme.statusTextColorOn || 'var(--text-status-on)') : (colorScheme.statusTextColor || 'var(--text-status)') }}>
                 {device.status}
             </span>
@@ -238,7 +241,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
             valueToDisplay = numValue.toFixed(element.styles.decimalPlaces);
         }
         return (
-          <div key={element.uniqueId} style={commonStyle} className="truncate pointer-events-none flex items-center w-full">
+          <div key={element.uniqueId} style={commonStyle} className={`truncate pointer-events-none w-full ${flexClasses}`}>
              <span style={{ color: isOn ? (colorScheme.valueTextColorOn || 'var(--text-value-on)') : (colorScheme.valueTextColor || 'var(--text-value)') }}>
                 {valueToDisplay}
              </span>
@@ -247,7 +250,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
       }
       case 'unit':
         return (
-          <div key={element.uniqueId} style={commonStyle} className="truncate pointer-events-none flex items-end w-full">
+          <div key={element.uniqueId} style={commonStyle} className={`truncate pointer-events-none w-full ${flexClasses}`}>
              <span style={{ color: isOn ? (colorScheme.unitTextColorOn || 'var(--text-unit-on)') : (colorScheme.unitTextColor || 'var(--text-unit)') }}>
                 {device.unit}
              </span>
@@ -288,7 +291,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
             }
 
             return (
-                <div key={element.uniqueId} style={commonStyle} className="truncate pointer-events-none flex items-center w-full">
+                <div key={element.uniqueId} style={commonStyle} className={`truncate pointer-events-none w-full ${flexClasses}`}>
                     <span style={{ color: isOn ? (colorScheme.valueTextColorOn || 'var(--text-value-on)') : (colorScheme.valueTextColor || 'var(--text-value)') }}>
                         {valueToDisplay}
                     </span>

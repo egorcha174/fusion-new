@@ -250,8 +250,8 @@ export interface CardElement {
   size: { width: number; height: number };
   zIndex: number;
   styles: ElementStyles;
-  // FIX: Added `scaleMode` property to support different scaling behaviors in templates.
-  scaleMode?: 'card' | 'cell';
+  // FIX: Added `sizeMode` property to support different scaling behaviors in templates.
+  sizeMode?: 'card' | 'cell';
 }
 
 export interface CardTemplate {
@@ -399,7 +399,7 @@ export interface ThemePackage {
     generatedAt: string;
   };
   theme: ThemeDefinition;
-  templates: CardTemplate[];
+  templates?: CardTemplate[];
 }
 
 export interface WeatherData {
