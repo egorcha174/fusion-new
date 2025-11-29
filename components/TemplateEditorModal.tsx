@@ -125,13 +125,9 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
             <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md">
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Расположение</label>
                 <div className="grid grid-cols-2 gap-2">
-                    {/* FIX: Spread existing position to avoid losing 'y' property */}
                     <div><span className="text-[10px] text-gray-400">X%</span><input type="number" value={element.position.x} onChange={e => handleNumericChange((val) => onChange({ position: { ...element.position, x: val as number } }), e.target.value, true)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
-                    {/* FIX: Spread existing position to avoid losing 'x' property */}
                     <div><span className="text-[10px] text-gray-400">Y%</span><input type="number" value={element.position.y} onChange={e => handleNumericChange((val) => onChange({ position: { ...element.position, y: val as number } }), e.target.value, true)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
-                    {/* FIX: Spread existing size to avoid losing 'height' property */}
                     <div><span className="text-[10px] text-gray-400">W%</span><input type="number" min="0" value={element.size.width} onChange={e => handleNumericChange((val) => onChange({ size: { ...element.size, width: val as number } }), e.target.value, true, false, 0)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
-                    {/* FIX: Spread existing size to avoid losing 'width' property */}
                     <div><span className="text-[10px] text-gray-400">H%</span><input type="number" min="0" value={element.size.height} onChange={e => handleNumericChange((val) => onChange({ size: { ...element.size, height: val as number } }), e.target.value, true, false, 0)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
                 </div>
                  <div className="mt-2">
@@ -288,7 +284,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
     if (selectedElementId === uniqueId) setSelectedElementId(null);
   };
 
-  const handleElementUpdate = (uniqueId: string, updates: Partial<CardElement>) => {
+  const handleElementUpdate = (uniqueId: string, updates: Partial<CardElement> | { styles: Partial<ElementStyles> }) => {
     setTemplate(prev => ({
         ...prev,
         elements: prev.elements.map(e => {
@@ -296,20 +292,17 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
 
             const newElement = { ...e };
             
-            // This is a simplified deep merge for the properties we expect to be nested.
-            // It avoids complex libraries for this specific use case.
-            if (updates.position) {
+            if ('position' in updates && updates.position) {
                 newElement.position = { ...e.position, ...updates.position };
             }
-            if (updates.size) {
+            if ('size' in updates && updates.size) {
                 newElement.size = { ...e.size, ...updates.size };
             }
-            if (updates.styles) {
+            if ('styles' in updates && updates.styles) {
                 newElement.styles = { ...e.styles, ...updates.styles };
             }
             
-            // Apply other top-level updates, excluding the ones we just merged
-            const otherUpdates = { ...updates };
+            const otherUpdates: Partial<CardElement> = { ...updates };
             delete otherUpdates.position;
             delete otherUpdates.size;
             delete otherUpdates.styles;

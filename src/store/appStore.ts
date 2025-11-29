@@ -525,8 +525,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         const newTemplates = { ...get().templates, [newTemplate.id]: newTemplate };
         
         const deviceId = `internal::custom-card_${newWidget.id}`;
+        // FIX: Spreading a potentially undefined object. Added a fallback to an empty object.
         const newCustomization: DeviceCustomization = {
-            ...get().customizations[deviceId],
+            ...(get().customizations[deviceId] || {}),
             templateId: newTemplate.id,
         };
         const newCustomizations = { ...get().customizations, [deviceId]: newCustomization };
@@ -827,7 +828,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         const newCustoms = {
             ...get().customizations,
             [deviceId]: {
-                ...get().customizations[deviceId],
+                // FIX: Spreading a potentially undefined object. Replaced with a variable that has a fallback.
+                ...oldCustomization,
                 name: newValues.name !== originalDevice.name ? newValues.name : undefined,
                 type: newValues.type !== originalDevice.type ? newValues.type : undefined,
                 icon: newValues.icon !== getIconNameForDeviceType(newValues.type, false) ? newValues.icon : undefined,
