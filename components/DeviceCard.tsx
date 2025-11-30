@@ -147,6 +147,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
       top: `${element.position.y}%`,
       width: `${finalSize.width}%`,
       height: `${finalSize.height}%`,
+      aspectRatio: '1',
       transform: 'translate(-50%, -50%)',
       zIndex: element.zIndex + 10, // Ensure elements are above background
     };

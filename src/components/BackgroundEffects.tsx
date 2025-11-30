@@ -1,3 +1,4 @@
+
 import React, { useMemo, useRef, useEffect } from 'react';
 import { useAppStore, BackgroundEffectType } from '../store/appStore';
 import { applyOpacity } from '../utils/themeUtils';
@@ -619,6 +620,7 @@ const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect, isDark = 
             )}
             {effect === 'thunderstorm' && (
                 <>
+                    {/* FIX: The `dark` prop for StrongCloudyEffect was missing a value. For a thunderstorm, clouds should always be dark. */}
                     <StrongCloudyEffect dark={true} />
                     <RainEffect zIndexOverride={15} />
                     <LightningFlash />
