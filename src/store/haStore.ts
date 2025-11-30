@@ -769,7 +769,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     },
     handleTemperatureChange: (deviceId, value, isDelta = false) => {
       const entity = get().entities[deviceId];
-      if (!entity) return;
+      // FIX: Add a guard to ensure entity.attributes exists before accessing it.
+      if (!entity || !entity.attributes) return;
       const [domain] = entity.entity_id.split('.');
       
       if (domain === 'climate') {
