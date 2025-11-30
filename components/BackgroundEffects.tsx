@@ -607,13 +607,15 @@ const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect, isDark = 
             )}
             {effect === 'rain-clouds' && (
                 <>
-                    <StrongCloudyEffect dark />
+                    {/* FIX: Use explicit boolean prop `dark={true}` for dark clouds during rain. */}
+                    <StrongCloudyEffect dark={true} />
                     <RainEffect zIndexOverride={15} />
                 </>
             )}
             {effect === 'snow-rain' && (
                 <>
-                    <StrongCloudyEffect dark />
+                    {/* FIX: Use explicit boolean prop `dark={true}` for dark clouds during snow/rain. */}
+                    <StrongCloudyEffect dark={true} />
                     <RainEffect zIndexOverride={15} />
                     <SnowEffect />
                 </>

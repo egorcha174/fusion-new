@@ -147,10 +147,17 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
       top: `${element.position.y}%`,
       width: `${finalSize.width}%`,
       height: `${finalSize.height}%`,
-      aspectRatio: '1',
       transform: 'translate(-50%, -50%)',
       zIndex: element.zIndex + 10, // Ensure elements are above background
     };
+    
+    // For elements that must be square, enforce aspect ratio.
+    // This will use the width and automatically adjust the height, preventing distortion.
+    if (element.id === 'icon' || element.id === 'target-temperature') {
+        (commonStyle as any).aspectRatio = '1';
+        commonStyle.height = 'auto';
+    }
+
 
     const isFlex = ['name', 'status', 'value', 'unit', 'temperature'].includes(element.id);
     const customStyles = { ...element.styles };
