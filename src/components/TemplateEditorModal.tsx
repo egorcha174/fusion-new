@@ -49,7 +49,14 @@ const SortableLayerItem: React.FC<SortableLayerItemProps> = ({ element, isSelect
   return (
     <div ref={setNodeRef} style={style} {...attributes} className={`flex items-center justify-between p-2 mb-2 rounded-md border transition-colors ${isSelected ? 'bg-blue-50 border-blue-500 dark:bg-blue-900/30 dark:border-blue-500' : 'bg-white dark:bg-gray-700/50 border-gray-200 dark:border-gray-600'}`} onClick={onSelect}>
         <div className="flex items-center gap-2 overflow-hidden">
-            <div {...listeners} className="cursor-grab text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex-shrink-0">
+            <input
+                type="checkbox"
+                checked={isSelected}
+                readOnly
+                onClick={e => e.stopPropagation()}
+                className="h-4 w-4 rounded border-gray-300 dark:border-gray-500 text-blue-600 focus:ring-blue-500 bg-gray-100 dark:bg-gray-800 cursor-pointer"
+            />
+            <div {...listeners} className="cursor-grab text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex-shrink-0 p-1">
                 <Icon icon="mdi:drag" className="w-5 h-5" />
             </div>
             {element.locked && <Icon icon="mdi:pin" className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />}
@@ -259,7 +266,8 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
       size: { width: 30, height: 20 },
       zIndex: template.elements.length + 1,
       styles: { fontSize: 14 },
-      sizeMode: 'card'
+      sizeMode: 'card',
+      locked: false,
     };
     if (elementId === 'chart') newElement.size = { width: 100, height: 30 };
     if (elementId === 'icon') newElement.size = { width: 20, height: 20 };
@@ -306,15 +314,20 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   const handleSelectElement = (e: React.MouseEvent, uniqueId: string) => {
     e.stopPropagation();
     const element = template.elements.find(el => el.uniqueId === uniqueId);
-    if (element?.locked) return;
+    if (element?.locked) {
+        setSelectedElementIds([]); // Deselect if locked element is clicked
+        return;
+    }
 
     if (e.shiftKey) {
-        setSelectedElementIds(prev => 
-            prev.includes(uniqueId) 
-            ? prev.filter(id => id !== uniqueId) 
-            : [...prev, uniqueId]
+        // Toggle selection for shift-click
+        setSelectedElementIds(prev =>
+            prev.includes(uniqueId)
+                ? prev.filter(id => id !== uniqueId)
+                : [...prev, uniqueId]
         );
     } else {
+        // Exclusive select for normal click
         setSelectedElementIds([uniqueId]);
     }
   };
@@ -457,11 +470,16 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleLayerDragEnd}>
                             <SortableContext items={template.elements.map(e => e.uniqueId)} strategy={verticalListSortingStrategy}>
                                 {template.elements.map(element => (
-                                    <SortableLayerItem key={element.uniqueId} element={element} isSelected={selectedElementIds.includes(element.uniqueId)}
-                                        onSelect={(e) => handleSelectElement(e, element.uniqueId)}
+                                    <SortableLayerItem 
+                                        key={element.uniqueId} 
+                                        element={element} 
+                                        isSelected={selectedElementIds.includes(element.uniqueId)}
+                                        onExclusiveSelect={() => handleSelectElement({ stopPropagation: () => {} } as React.MouseEvent, element.uniqueId)}
+                                        onToggleSelection={() => handleSelectElement({ stopPropagation: () => {}, shiftKey: true } as React.MouseEvent, element.uniqueId)}
                                         onToggleVisibility={() => handleToggleVisibility(element.uniqueId)}
                                         onToggleLock={() => handleToggleLock(element.uniqueId)}
-                                        onDelete={() => handleRemoveElement(element.uniqueId)} />
+                                        onDelete={() => handleRemoveElement(element.uniqueId)} 
+                                    />
                                 ))}
                             </SortableContext>
                         </DndContext>
@@ -486,12 +504,12 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                     )}
                     <div className="relative bg-transparent transition-all duration-300" style={{ width: previewWidth, height: previewHeight, }}>
                         <DeviceCard device={previewDevice} template={template} cardWidth={template.width || 1} cardHeight={template.height || 1} allKnownDevices={mockAllDevices} customizations={{}} isEditMode={false} isPreview={true} onDeviceToggle={() => {}} onTemperatureChange={() => {}} onBrightnessChange={() => {}} onHvacModeChange={() => {}} onPresetChange={() => {}} onFanSpeedChange={() => {}} onEditDevice={() => {}} haUrl="" signPath={async (p) => ({ path: p })} colorScheme={colorScheme['light']} isDark={false} />
-                        {template.elements.map(el => el.visible && <DraggableElement key={el.uniqueId} element={el} template={template} selectedIds={selectedElementIds} onSelect={handleSelectElement} activeDragId={activeDragId} />)}
+                        {template.elements.map(el => el.visible && <DraggableElement key={el.uniqueId} element={el} template={template} selectedIds={selectedElementIds} onSelect={handleSelectElement} activeDragId={activeDragId || ''} />)}
                     </div>
                     <div className="absolute bottom-4 right-4 text-xs text-gray-400 bg-black/50 px-2 py-1 rounded">Превью (Light Mode)</div>
                 </div>
             </DndContext>
-            {selectedElement && <div className="w-72 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col">
+            {(selectedElement && selectedElementIds.length === 1) && <div className="w-72 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col">
                 <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
                     <h3 className="font-bold text-gray-900 dark:text-white">Свойства: {ELEMENT_LABELS[selectedElement.id]}</h3>
                 </div>
@@ -505,7 +523,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   );
 };
 
-const DraggableElement = ({ element, template, selectedIds, onSelect, activeDragId }: { element: CardElement; template: CardTemplate; selectedIds: string[]; onSelect: (e: React.MouseEvent, id: string) => void; activeDragId: string | null }) => {
+const DraggableElement = ({ element, template, selectedIds, onSelect, activeDragId }: { element: CardElement; template: CardTemplate; selectedIds: string[]; onSelect: (e: React.MouseEvent, id: string) => void; activeDragId: string; }) => {
     const isSelected = selectedIds.includes(element.uniqueId);
     const isPartOfDragGroup = isSelected && selectedIds.includes(activeDragId || '');
     
@@ -515,15 +533,15 @@ const DraggableElement = ({ element, template, selectedIds, onSelect, activeDrag
     });
 
     const finalSize = {
-        // FIX: Renamed `scaleMode` to `sizeMode` to align with type definitions.
         width: `${element.sizeMode === 'cell' && template.width ? element.size.width / template.width : element.size.width}%`,
-        // FIX: Renamed `scaleMode` to `sizeMode` to align with type definitions.
         height: `${element.sizeMode === 'cell' && template.height ? element.size.height / template.height : element.size.height}%`,
     };
 
     return (
         <div ref={setNodeRef} {...attributes} {...listeners}
-            onClick={(e) => onSelect(e, element.uniqueId)}
+            onClick={(e) => {
+                onSelect(e, element.uniqueId);
+            }}
             className={`absolute transition-all duration-200 cursor-move ${isDragging ? 'z-50' : ''} ${isSelected ? 'border-2 border-blue-500 bg-blue-500/10' : 'border-2 border-transparent hover:border-blue-300/50'}`}
             style={{ left: `${element.position.x}%`, top: `${element.position.y}%`, width: finalSize.width, height: finalSize.height, transform: 'translate(-50%, -50%)', }}
         >

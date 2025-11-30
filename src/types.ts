@@ -250,8 +250,9 @@ export interface CardElement {
   size: { width: number; height: number };
   zIndex: number;
   styles: ElementStyles;
-  // FIX: Added `sizeMode` property to support different scaling behaviors in templates.
   sizeMode?: 'card' | 'cell';
+  // FIX: Added missing 'locked' property.
+  locked?: boolean;
 }
 
 export interface CardTemplate {
@@ -288,7 +289,6 @@ export interface ThemeColors {
   cardOpacity?: number;
   panelOpacity?: number;
   cardBorderRadius?: number;
-  // FIX: Added missing properties for card borders and icon backgrounds.
   cardBorderWidth?: number;
   cardBorderColor?: string;
   cardBorderColorOn?: string;

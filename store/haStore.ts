@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device, Room, RoomWithPhysicalDevices, PhysicalDevice, DeviceType, WeatherForecast } from '../types';
 import { constructHaUrl } from '../utils/url';
@@ -696,7 +695,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     }),
     fetchWeatherForecasts: async (entityIds) => {
         if (!entityIds.length) return;
-        const forecastsMap: Record<string, WeatherForecast[]> = { ...(get().forecasts || {}) };
+        // FIX: Removed redundant `|| {}` as `forecasts` is always an object.
+        const forecastsMap: Record<string, WeatherForecast[]> = { ...get().forecasts };
         
         const fetchForEntity = async (entityId: string) => {
              try {
