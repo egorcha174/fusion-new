@@ -249,7 +249,6 @@ export interface CardElement {
   zIndex: number;
   styles: ElementStyles;
   sizeMode: 'card' | 'cell';
-  locked?: boolean;
 }
 
 export interface CardTemplate {
@@ -363,7 +362,7 @@ export interface CustomCardWidget {
 }
 
 export interface WeatherSettings {
-  iconPack: 'default' | 'meteocons' | 'material-symbols-light';
+  iconPack: 'default' | 'meteocons' | 'weather-icons' | 'material-symbols-light';
   forecastDays: number;
 }
 
