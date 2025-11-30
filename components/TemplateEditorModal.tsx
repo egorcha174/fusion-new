@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent, useDraggable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import DeviceCard from './DeviceCard';
@@ -7,7 +7,6 @@ import { CardTemplate, CardElement, DeviceType, CardElementId, ElementStyles, De
 import { nanoid } from 'nanoid';
 import { Icon } from '@iconify/react';
 import { useAppStore } from '../store/appStore';
-import { useHAStore } from '../store/haStore';
 
 interface TemplateEditorModalProps {
   templateToEdit: CardTemplate;
@@ -33,12 +32,13 @@ const ELEMENT_LABELS: Record<CardElementId, string> = {
 interface SortableLayerItemProps {
   element: CardElement;
   isSelected: boolean;
-  onSelect: () => void;
+  onSelect: (e: React.MouseEvent) => void;
   onToggleVisibility: () => void;
+  onToggleLock: () => void;
   onDelete: () => void;
 }
 
-const SortableLayerItem: React.FC<SortableLayerItemProps> = ({ element, isSelected, onSelect, onToggleVisibility, onDelete }) => {
+const SortableLayerItem: React.FC<SortableLayerItemProps> = ({ element, isSelected, onSelect, onToggleVisibility, onToggleLock, onDelete }) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: element.uniqueId });
   
   const style = {
@@ -47,18 +47,22 @@ const SortableLayerItem: React.FC<SortableLayerItemProps> = ({ element, isSelect
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} className={`flex items-center justify-between p-2 mb-2 rounded-md border cursor-move ${isSelected ? 'bg-blue-50 border-blue-500 dark:bg-blue-900/20 dark:border-blue-500' : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600'}`} onClick={onSelect}>
-        <div className="flex items-center gap-2">
-            <div {...listeners} className="cursor-grab text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+    <div ref={setNodeRef} style={style} {...attributes} className={`flex items-center justify-between p-2 mb-2 rounded-md border transition-colors ${isSelected ? 'bg-blue-50 border-blue-500 dark:bg-blue-900/30 dark:border-blue-500' : 'bg-white dark:bg-gray-700/50 border-gray-200 dark:border-gray-600'}`} onClick={onSelect}>
+        <div className="flex items-center gap-2 overflow-hidden">
+            <div {...listeners} className="cursor-grab text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex-shrink-0">
                 <Icon icon="mdi:drag" className="w-5 h-5" />
             </div>
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{ELEMENT_LABELS[element.id]}</span>
+            {element.locked && <Icon icon="mdi:pin" className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />}
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-200 truncate">{ELEMENT_LABELS[element.id]}</span>
         </div>
-        <div className="flex items-center gap-1">
-            <button onClick={(e) => { e.stopPropagation(); onToggleVisibility(); }} className={`p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 ${element.visible ? 'text-gray-600 dark:text-gray-300' : 'text-gray-400'}`}>
+        <div className="flex items-center gap-1 flex-shrink-0">
+            <button onClick={(e) => { e.stopPropagation(); onToggleVisibility(); }} className={`p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 ${element.visible ? 'text-gray-600 dark:text-gray-300' : 'text-gray-400'}`} title={element.visible ? "Скрыть" : "Показать"}>
                 <Icon icon={element.visible ? "mdi:eye" : "mdi:eye-off"} className="w-4 h-4" />
             </button>
-            <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500">
+            <button onClick={(e) => { e.stopPropagation(); onToggleLock(); }} className={`p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 ${element.locked ? 'text-blue-500' : 'text-gray-400'}`} title={element.locked ? "Открепить" : "Закрепить"}>
+                <Icon icon={element.locked ? "mdi:pin" : "mdi:pin-outline"} className="w-4 h-4" />
+            </button>
+            <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500" title="Удалить">
                 <Icon icon="mdi:trash-can-outline" className="w-4 h-4" />
             </button>
         </div>
@@ -106,39 +110,18 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
         updateFunc(finalValue);
     };
 
-    const handleAlign = (type: 'left' | 'h-center' | 'right' | 'top' | 'v-center' | 'bottom') => {
-        const finalSize = {
-            width: element.sizeMode === 'cell' && template.width ? element.size.width / template.width : element.size.width,
-            height: element.sizeMode === 'cell' && template.height ? element.size.height / template.height : element.size.height
-        };
-
-        let newPos = { ...element.position };
-        switch(type) {
-            case 'left': newPos.x = finalSize.width / 2; break;
-            case 'h-center': newPos.x = 50; break;
-            case 'right': newPos.x = 100 - (finalSize.width / 2); break;
-            case 'top': newPos.y = finalSize.height / 2; break;
-            case 'v-center': newPos.y = 50; break;
-            case 'bottom': newPos.y = 100 - (finalSize.height / 2); break;
-        }
-        
-        if (snapToGrid) {
-            newPos.x = Math.round(newPos.x / GRID_STEP) * GRID_STEP;
-            newPos.y = Math.round(newPos.y / GRID_STEP) * GRID_STEP;
-        }
-
-        onChange({ position: newPos });
-    };
-
+    // FIX: Renamed `scaleMode` to `sizeMode` to align with type definitions.
     const currentSizeMode = element.sizeMode || 'card';
 
     return (
         <div className="space-y-4 p-1">
             <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md">
                 <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Расположение</label>
+                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Координаты</label>
                     <div className="flex items-center gap-1 p-0.5 bg-gray-200 dark:bg-gray-900/50 rounded-md">
+                        {/* FIX: Renamed `scaleMode` to `sizeMode` to align with type definitions. */}
                         <button onClick={() => onChange({ sizeMode: 'card' })} className={`px-2 py-0.5 text-[10px] rounded transition-all ${currentSizeMode === 'card' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500'}`}>Карточки</button>
+                        {/* FIX: Renamed `scaleMode` to `sizeMode` to align with type definitions. */}
                         <button onClick={() => onChange({ sizeMode: 'cell' })} className={`px-2 py-0.5 text-[10px] rounded transition-all ${currentSizeMode === 'cell' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500'}`}>Ячейки</button>
                     </div>
                 </div>
@@ -148,17 +131,6 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
                     <div><span className="text-[10px] text-gray-400">Центр Y (%)</span><input type="number" value={element.position.y} onChange={e => handleNumericChange((val) => onChange({ position: { ...element.position, y: val as number } }), e.target.value, true)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
                     <div><span className="text-[10px] text-gray-400">Ширина (%)</span><input type="number" min="0" value={element.size.width} onChange={e => handleNumericChange((val) => onChange({ size: { ...element.size, width: val as number } }), e.target.value, true, false, 0)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
                     <div><span className="text-[10px] text-gray-400">Высота (%)</span><input type="number" min="0" value={element.size.height} onChange={e => handleNumericChange((val) => onChange({ size: { ...element.size, height: val as number } }), e.target.value, true, false, 0)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" /></div>
-                </div>
-                 <div className="mt-2">
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Выравнивание</label>
-                    <div className="grid grid-cols-3 gap-1">
-                        <button onClick={() => handleAlign('left')} className="p-1.5 bg-white dark:bg-gray-800 rounded hover:bg-gray-200 dark:hover:bg-gray-600"><Icon icon="mdi:format-align-left" className="w-4 h-4 mx-auto" /></button>
-                        <button onClick={() => handleAlign('h-center')} className="p-1.5 bg-white dark:bg-gray-800 rounded hover:bg-gray-200 dark:hover:bg-gray-600"><Icon icon="mdi:format-align-center" className="w-4 h-4 mx-auto" /></button>
-                        <button onClick={() => handleAlign('right')} className="p-1.5 bg-white dark:bg-gray-800 rounded hover:bg-gray-200 dark:hover:bg-gray-600"><Icon icon="mdi:format-align-right" className="w-4 h-4 mx-auto" /></button>
-                        <button onClick={() => handleAlign('top')} className="p-1.5 bg-white dark:bg-gray-800 rounded hover:bg-gray-200 dark:hover:bg-gray-600"><Icon icon="mdi:format-align-top" className="w-4 h-4 mx-auto" /></button>
-                        <button onClick={() => handleAlign('v-center')} className="p-1.5 bg-white dark:bg-gray-800 rounded hover:bg-gray-200 dark:hover:bg-gray-600"><Icon icon="mdi:format-align-middle" className="w-4 h-4 mx-auto" /></button>
-                        <button onClick={() => handleAlign('bottom')} className="p-1.5 bg-white dark:bg-gray-800 rounded hover:bg-gray-200 dark:hover:bg-gray-600"><Icon icon="mdi:format-align-bottom" className="w-4 h-4 mx-auto" /></button>
-                    </div>
                 </div>
             </div>
             
@@ -261,21 +233,22 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
 };
 
 const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdit, onClose }) => {
-  const { handleSaveTemplate } = useAppStore();
-  const { colorScheme } = useAppStore();
+  const { handleSaveTemplate, colorScheme } = useAppStore();
   const [template, setTemplate] = useState<CardTemplate>(JSON.parse(JSON.stringify(templateToEdit)));
-  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
   const [snapToGrid, setSnapToGrid] = useState(true);
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
   
   const sensors = useSensors(useSensor(PointerSensor));
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleLayerDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (active.id !== over?.id) {
+    if (over && active.id !== over.id) {
       setTemplate((prev) => {
         const oldIndex = prev.elements.findIndex((e) => e.uniqueId === active.id);
-        const newIndex = prev.elements.findIndex((e) => e.uniqueId === over?.id);
-        return { ...prev, elements: arrayMove(prev.elements, oldIndex, newIndex) };
+        const newIndex = prev.elements.findIndex((e) => e.uniqueId === over.id);
+        const newElements = arrayMove(prev.elements, oldIndex, newIndex);
+        return { ...prev, elements: newElements.map((el, index) => ({...el, zIndex: index + 1})) };
       });
     }
   };
@@ -296,27 +269,25 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
     if (elementId === 'slider') newElement.size = { width: 90, height: 20 };
     
     setTemplate(prev => ({ ...prev, elements: [...prev.elements, newElement] }));
-    setSelectedElementId(newElement.uniqueId);
+    setSelectedElementIds([newElement.uniqueId]);
   };
 
   const handleRemoveElement = (uniqueId: string) => {
     setTemplate(prev => ({ ...prev, elements: prev.elements.filter(e => e.uniqueId !== uniqueId) }));
-    if (selectedElementId === uniqueId) setSelectedElementId(null);
+    setSelectedElementIds(prev => prev.filter(id => id !== uniqueId));
   };
-
+  
   const handleElementUpdate = (uniqueId: string, updates: Partial<CardElement> | { styles: Partial<ElementStyles> }) => {
       setTemplate(prev => ({
           ...prev,
           elements: prev.elements.map(e => {
               if (e.uniqueId !== uniqueId) return e;
-  
               const { styles, position, size, ...otherUpdates } = updates as any;
-  
-              const mergedStyles = styles ? { ...e.styles, ...styles } : e.styles;
-              const mergedPosition = position ? { ...e.position, ...position } : e.position;
-              const mergedSize = size ? { ...e.size, ...size } : e.size;
-              
-              return { ...e, ...otherUpdates, styles: mergedStyles, position: mergedPosition, size: mergedSize };
+              return { ...e, ...otherUpdates, 
+                styles: styles ? { ...e.styles, ...styles } : e.styles, 
+                position: position ? { ...e.position, ...position } : e.position, 
+                size: size ? { ...e.size, ...size } : e.size 
+              };
           })
       }));
   };
@@ -328,70 +299,129 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
       }));
   };
 
-  const handleSave = () => {
-    handleSaveTemplate(template);
-    onClose();
+  const handleToggleLock = (uniqueId: string) => {
+    setTemplate(prev => ({
+        ...prev,
+        elements: prev.elements.map(e => e.uniqueId === uniqueId ? { ...e, locked: !e.locked } : e)
+    }));
+  };
+  
+  const handleSelectElement = (e: React.MouseEvent, uniqueId: string) => {
+    e.stopPropagation();
+    const element = template.elements.find(el => el.uniqueId === uniqueId);
+    if (element?.locked) return;
+
+    if (e.shiftKey) {
+        setSelectedElementIds(prev => 
+            prev.includes(uniqueId) 
+            ? prev.filter(id => id !== uniqueId) 
+            : [...prev, uniqueId]
+        );
+    } else {
+        setSelectedElementIds([uniqueId]);
+    }
   };
 
-  const selectedElement = template.elements.find(e => e.uniqueId === selectedElementId);
+  const handleCanvasDragEnd = (event: DragEndEvent) => {
+    const { delta } = event;
+    setActiveDragId(null);
+    if (delta.x === 0 && delta.y === 0) return;
 
-  const previewDevice: Device = useMemo(() => ({
-      id: 'preview_device',
-      name: 'Устройство (Пример)',
-      status: 'Активно',
-      state: 'on',
-      type: (template.deviceType as unknown as DeviceType) || DeviceType.Sensor,
-      haDomain: 'sensor',
-      attributes: {},
-      brightness: 80,
-      temperature: 22.5,
-      targetTemperature: 24,
-      hvacAction: 'heating',
-      batteryLevel: 85,
-      unit: '°C'
-  }), [template.deviceType]);
+    const previewWidth = (template.width || 1) * 160;
+    const previewHeight = (template.height || 1) * 160;
+
+    const dxPercent = (delta.x / previewWidth) * 100;
+    const dyPercent = (delta.y / previewHeight) * 100;
+
+    setTemplate(prev => ({
+        ...prev,
+        elements: prev.elements.map(el => {
+            if (!selectedElementIds.includes(el.uniqueId)) return el;
+
+            let newX = el.position.x + dxPercent;
+            let newY = el.position.y + dyPercent;
+
+            if (snapToGrid) {
+                newX = Math.round(newX / 5) * 5;
+                newY = Math.round(newY / 5) * 5;
+            }
+
+            return { ...el, position: { x: newX, y: newY } };
+        })
+    }));
+  };
   
-  const mockAllDevices = new Map<string, Device>();
-  mockAllDevices.set(previewDevice.id, previewDevice);
+  const handleAlign = (type: 'left' | 'h-center' | 'right' | 'top' | 'v-center' | 'bottom') => {
+      const selected = template.elements.filter(el => selectedElementIds.includes(el.uniqueId));
+      if (selected.length < 2) return;
 
-  const availableElements: { id: CardElementId; label: string }[] = [
-    { id: 'name', label: 'Название' },
-    { id: 'icon', label: 'Иконка' },
-    { id: 'status', label: 'Статус' },
-    { id: 'value', label: 'Значение (State)' },
-    { id: 'unit', label: 'Единица измерения' },
-  ];
+      const boundingBox = selected.reduce((acc, el) => {
+          return {
+              minX: Math.min(acc.minX, el.position.x - el.size.width / 2),
+              maxX: Math.max(acc.maxX, el.position.x + el.size.width / 2),
+              minY: Math.min(acc.minY, el.position.y - el.size.height / 2),
+              maxY: Math.max(acc.maxY, el.position.y + el.size.height / 2),
+          }
+      }, { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity });
 
-  if (['sensor', 'climate', 'custom', 'humidifier'].includes(template.deviceType)) {
-      availableElements.push({ id: 'chart', label: 'График' });
-  }
-  if (['light', 'custom'].includes(template.deviceType)) {
-      availableElements.push({ id: 'slider', label: 'Слайдер яркости' });
-  }
-  if (['climate', 'humidifier', 'custom', 'sensor'].includes(template.deviceType)) {
-      availableElements.push({ id: 'temperature', label: 'Текущая температура/значение' });
-  }
-  if (['climate', 'humidifier', 'custom'].includes(template.deviceType)) {
-      availableElements.push({ id: 'target-temperature', label: 'Кольцо управления (Target)' });
-  }
-  if (['climate', 'humidifier', 'custom'].includes(template.deviceType)) {
-      availableElements.push({ id: 'hvac-modes', label: 'Кнопки режимов' });
-  }
-  if (['custom'].includes(template.deviceType)) {
-      availableElements.push({ id: 'linked-entity', label: 'Связанное устройство' });
-      availableElements.push({ id: 'battery', label: 'Уровень заряда' });
-  }
-  if (['humidifier', 'custom'].includes(template.deviceType)) {
-      availableElements.push({ id: 'fan-speed-control', label: 'Управление вентилятором' });
-  }
+      const newElements = template.elements.map(el => {
+          if (!selectedElementIds.includes(el.uniqueId)) return el;
+          let { x, y } = el.position;
+          switch (type) {
+              case 'left': x = boundingBox.minX + el.size.width / 2; break;
+              case 'h-center': x = (boundingBox.minX + boundingBox.maxX) / 2; break;
+              case 'right': x = boundingBox.maxX - el.size.width / 2; break;
+              case 'top': y = boundingBox.minY + el.size.height / 2; break;
+              case 'v-center': y = (boundingBox.minY + boundingBox.maxY) / 2; break;
+              case 'bottom': y = boundingBox.maxY - el.size.height / 2; break;
+          }
+           if (snapToGrid) {
+               x = Math.round(x / 5) * 5;
+               y = Math.round(y / 5) * 5;
+           }
+          return { ...el, position: { x, y } };
+      });
+      setTemplate(prev => ({ ...prev, elements: newElements }));
+  };
+
+  const handleSave = () => { handleSaveTemplate(template); onClose(); };
+
+  const lastSelectedId = selectedElementIds.length > 0 ? selectedElementIds[selectedElementIds.length - 1] : null;
+  const selectedElement = lastSelectedId ? template.elements.find(e => e.uniqueId === lastSelectedId) : null;
+  
+  const previewDevice: Device = useMemo(() => ({
+      id: 'preview_device', name: 'Устройство (Пример)', status: 'Активно', state: 'on',
+      type: (template.deviceType as unknown as DeviceType) || DeviceType.Sensor,
+      haDomain: 'sensor', attributes: {}, brightness: 80, temperature: 22.5,
+      targetTemperature: 24, hvacAction: 'heating', batteryLevel: 85, unit: '°C'
+  }), [template.deviceType]);
+  const mockAllDevices = new Map<string, Device>([[previewDevice.id, previewDevice]]);
+
+  const availableElements = useMemo(() => {
+    const base = [
+        { id: 'name', label: 'Название' }, { id: 'icon', label: 'Иконка' },
+        { id: 'status', label: 'Статус' }, { id: 'value', label: 'Значение (State)' },
+        { id: 'unit', label: 'Единица измерения' },
+    ];
+    if (['sensor', 'climate', 'custom', 'humidifier'].includes(template.deviceType)) base.push({ id: 'chart', label: 'График' });
+    if (['light', 'custom'].includes(template.deviceType)) base.push({ id: 'slider', label: 'Слайдер яркости' });
+    if (['climate', 'humidifier', 'custom', 'sensor'].includes(template.deviceType)) base.push({ id: 'temperature', label: 'Текущая температура/значение' });
+    if (['climate', 'humidifier', 'custom'].includes(template.deviceType)) base.push({ id: 'target-temperature', label: 'Кольцо управления (Target)' });
+    if (['climate', 'humidifier', 'custom'].includes(template.deviceType)) base.push({ id: 'hvac-modes', label: 'Кнопки режимов' });
+    if (['custom'].includes(template.deviceType)) {
+        base.push({ id: 'linked-entity', label: 'Связанное устройство' });
+        base.push({ id: 'battery', label: 'Уровень заряда' });
+    }
+    if (['humidifier', 'custom'].includes(template.deviceType)) base.push({ id: 'fan-speed-control', label: 'Управление вентилятором' });
+    return base;
+  }, [template.deviceType]);
 
   const previewWidth = (template.width || 1) * 160;
   const previewHeight = (template.height || 1) * 160;
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden ring-1 ring-white/10" onClick={e => e.stopPropagation()}>
-        
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden ring-1 ring-white/10" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
             <div>
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">Редактор шаблона</h2>
@@ -402,7 +432,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                 <button onClick={handleSave} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Сохранить</button>
             </div>
         </div>
-
         <div className="flex flex-1 overflow-hidden">
             <div className="w-80 bg-gray-50 dark:bg-gray-800/50 border-r border-gray-200 dark:border-gray-700 flex flex-col">
                 <div className="p-4 border-b border-gray-200 dark:border-gray-700">
@@ -420,116 +449,91 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
                     </div>
                     <div className="flex items-center justify-between mt-3">
                         <label htmlFor="snap-toggle" className="text-sm font-medium text-gray-700 dark:text-gray-300">Привязка к сетке 5%</label>
-                        <button
-                            id="snap-toggle"
-                            onClick={() => setSnapToGrid(!snapToGrid)}
-                            className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${snapToGrid ? 'bg-blue-600' : 'bg-gray-400 dark:bg-gray-600'}`}
-                        >
+                        <button id="snap-toggle" onClick={() => setSnapToGrid(!snapToGrid)} className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${snapToGrid ? 'bg-blue-600' : 'bg-gray-400 dark:bg-gray-600'}`}>
                             <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${snapToGrid ? 'translate-x-6' : 'translate-x-1'}`} />
                         </button>
                     </div>
                 </div>
-
                 <div className="flex-1 overflow-y-auto p-4">
                     <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Слои (перетащите для порядка)</label>
-                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleLayerDragEnd}>
                             <SortableContext items={template.elements.map(e => e.uniqueId)} strategy={verticalListSortingStrategy}>
                                 {template.elements.map(element => (
-                                    <SortableLayerItem 
-                                        key={element.uniqueId} 
-                                        element={element} 
-                                        isSelected={selectedElementId === element.uniqueId}
-                                        onSelect={() => setSelectedElementId(element.uniqueId)}
+                                    <SortableLayerItem key={element.uniqueId} element={element} isSelected={selectedElementIds.includes(element.uniqueId)}
+                                        onSelect={(e) => handleSelectElement(e, element.uniqueId)}
                                         onToggleVisibility={() => handleToggleVisibility(element.uniqueId)}
-                                        onDelete={() => handleRemoveElement(element.uniqueId)}
-                                    />
+                                        onToggleLock={() => handleToggleLock(element.uniqueId)}
+                                        onDelete={() => handleRemoveElement(element.uniqueId)} />
                                 ))}
                             </SortableContext>
                         </DndContext>
                     </div>
-
                     <div className="mb-6">
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Добавить элемент</label>
                         <select onChange={(e) => { if (e.target.value) { handleAddElement(e.target.value as CardElementId); e.target.value = ''; } }} className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm outline-none">
                             <option value="">Выберите элемент...</option>
-                            {availableElements.map(el => (
-                                <option key={el.id} value={el.id}>{el.label}</option>
-                            ))}
+                            {availableElements.map(el => (<option key={el.id} value={el.id}>{el.label}</option>))}
                         </select>
                     </div>
                 </div>
             </div>
-
-            <div className="flex-1 bg-gray-100 dark:bg-gray-900 p-8 flex items-center justify-center relative overflow-hidden grid-background">
-                <div 
-                    className="relative bg-transparent transition-all duration-300"
-                    style={{
-                        width: previewWidth,
-                        height: previewHeight,
-                    }}
-                >
-                    <DeviceCard
-                        device={previewDevice}
-                        template={template}
-                        cardWidth={template.width || 1}
-                        cardHeight={template.height || 1}
-                        allKnownDevices={mockAllDevices}
-                        customizations={{}}
-                        isEditMode={false}
-                        isPreview={true}
-                        onDeviceToggle={() => {}}
-                        onTemperatureChange={() => {}}
-                        onBrightnessChange={() => {}}
-                        onHvacModeChange={() => {}}
-                        onPresetChange={() => {}}
-                        onFanSpeedChange={() => {}}
-                        onEditDevice={() => {}}
-                        haUrl=""
-                        signPath={async (p) => ({ path: p })}
-                        colorScheme={colorScheme['light']}
-                        isDark={false}
-                    />
-                    
-                    {template.elements.map(el => el.visible && (
-                        <div
-                            key={el.uniqueId}
-                            onClick={(e) => { e.stopPropagation(); setSelectedElementId(el.uniqueId); }}
-                            className={`absolute border-2 transition-all duration-200 cursor-pointer ${selectedElementId === el.uniqueId ? 'border-blue-500 z-50 bg-blue-500/10' : 'border-transparent hover:border-blue-300/50'}`}
-                            style={{
-                                left: `${el.position.x}%`,
-                                top: `${el.position.y}%`,
-                                transform: 'translate(-50%, -50%)',
-                                width: `${el.sizeMode === 'cell' && template.width ? el.size.width / template.width : el.size.width}%`,
-                                height: `${el.sizeMode === 'cell' && template.height ? el.size.height / template.height : el.size.height}%`,
-                            }}
-                        />
-                    ))}
-                </div>
-                <div className="absolute bottom-4 right-4 text-xs text-gray-400 bg-black/50 px-2 py-1 rounded">
-                    Превью (Light Mode)
-                </div>
-            </div>
-
-            {selectedElement && (
-                <div className="w-72 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col">
-                    <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                        <h3 className="font-bold text-gray-900 dark:text-white">Свойства: {ELEMENT_LABELS[selectedElement.id]}</h3>
+            <DndContext sensors={sensors} onDragStart={(e) => setActiveDragId(e.active.id as string)} onDragEnd={handleCanvasDragEnd}>
+                <div className="flex-1 bg-gray-100 dark:bg-gray-900 p-8 flex items-center justify-center relative overflow-hidden grid-background" onClick={() => setSelectedElementIds([])}>
+                    {selectedElementIds.length > 1 && (
+                        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 bg-white dark:bg-gray-700 p-1 rounded-lg shadow-md ring-1 ring-black/5 dark:ring-white/10">
+                            {[ {icon: 'mdi:format-align-left', type: 'left'}, {icon: 'mdi:format-align-center', type: 'h-center'}, {icon: 'mdi:format-align-right', type: 'right'} ].map(item => <button key={item.type} onClick={(e) => { e.stopPropagation(); handleAlign(item.type as any); }} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-600"><Icon icon={item.icon} className="w-5 h-5" /></button>)}
+                            <div className="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1"/>
+                            {[ {icon: 'mdi:format-align-top', type: 'top'}, {icon: 'mdi:format-align-middle', type: 'v-center'}, {icon: 'mdi:format-align-bottom', type: 'bottom'} ].map(item => <button key={item.type} onClick={(e) => { e.stopPropagation(); handleAlign(item.type as any); }} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-600"><Icon icon={item.icon} className="w-5 h-5" /></button>)}
+                        </div>
+                    )}
+                    <div className="relative bg-transparent transition-all duration-300" style={{ width: previewWidth, height: previewHeight, }}>
+                        <DeviceCard device={previewDevice} template={template} cardWidth={template.width || 1} cardHeight={template.height || 1} allKnownDevices={mockAllDevices} customizations={{}} isEditMode={false} isPreview={true} onDeviceToggle={() => {}} onTemperatureChange={() => {}} onBrightnessChange={() => {}} onHvacModeChange={() => {}} onPresetChange={() => {}} onFanSpeedChange={() => {}} onEditDevice={() => {}} haUrl="" signPath={async (p) => ({ path: p })} colorScheme={colorScheme['light']} isDark={false} />
+                        {template.elements.map(el => el.visible && <DraggableElement key={el.uniqueId} element={el} template={template} selectedIds={selectedElementIds} onSelect={handleSelectElement} activeDragId={activeDragId} />)}
                     </div>
-                    <div className="p-4 overflow-y-auto no-scrollbar">
-                        <ElementPropertiesEditor 
-                            element={selectedElement} 
-                            template={template}
-                            onChange={(updates) => handleElementUpdate(selectedElement.uniqueId, updates)} 
-                            snapToGrid={snapToGrid}
-                        />
-                    </div>
+                    <div className="absolute bottom-4 right-4 text-xs text-gray-400 bg-black/50 px-2 py-1 rounded">Превью (Light Mode)</div>
                 </div>
-            )}
+            </DndContext>
+            {selectedElement && <div className="w-72 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col">
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                    <h3 className="font-bold text-gray-900 dark:text-white">Свойства: {ELEMENT_LABELS[selectedElement.id]}</h3>
+                </div>
+                <div className="p-4 overflow-y-auto no-scrollbar">
+                    <ElementPropertiesEditor element={selectedElement} template={template} onChange={(updates) => handleElementUpdate(selectedElement.uniqueId, updates)} snapToGrid={snapToGrid}/>
+                </div>
+            </div>}
         </div>
       </div>
     </div>
   );
 };
+
+const DraggableElement = ({ element, template, selectedIds, onSelect, activeDragId }: { element: CardElement; template: CardTemplate; selectedIds: string[]; onSelect: (e: React.MouseEvent, id: string) => void; activeDragId: string | null }) => {
+    const isSelected = selectedIds.includes(element.uniqueId);
+    const isPartOfDragGroup = isSelected && selectedIds.includes(activeDragId || '');
+    
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+        id: element.uniqueId,
+        disabled: element.locked || (isSelected && selectedIds.length > 1 && !isPartOfDragGroup),
+    });
+
+    const finalSize = {
+        // FIX: Renamed `scaleMode` to `sizeMode` to align with type definitions.
+        width: `${element.sizeMode === 'cell' && template.width ? element.size.width / template.width : element.size.width}%`,
+        // FIX: Renamed `scaleMode` to `sizeMode` to align with type definitions.
+        height: `${element.sizeMode === 'cell' && template.height ? element.size.height / template.height : element.size.height}%`,
+    };
+
+    return (
+        <div ref={setNodeRef} {...attributes} {...listeners}
+            onClick={(e) => onSelect(e, element.uniqueId)}
+            className={`absolute transition-all duration-200 cursor-move ${isDragging ? 'z-50' : ''} ${isSelected ? 'border-2 border-blue-500 bg-blue-500/10' : 'border-2 border-transparent hover:border-blue-300/50'}`}
+            style={{ left: `${element.position.x}%`, top: `${element.position.y}%`, width: finalSize.width, height: finalSize.height, transform: 'translate(-50%, -50%)', }}
+        >
+            {element.locked && <div className="absolute top-0.5 right-0.5 bg-gray-800/80 p-0.5 rounded-full text-white"><Icon icon="mdi:pin" className="w-2.5 h-2.5" /></div>}
+        </div>
+    );
+};
+
 
 export default TemplateEditorModal;

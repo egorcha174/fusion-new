@@ -529,7 +529,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         const newTemplates = { ...get().templates, [newTemplate.id]: newTemplate };
         
         const deviceId = `internal::custom-card_${newWidget.id}`;
-        // FIX: Spreading a potentially undefined object. Added a fallback to an empty object.
         const newCustomization: DeviceCustomization = {
             ...(get().customizations[deviceId] || {}),
             templateId: newTemplate.id,
@@ -828,12 +827,12 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     },
     handleSaveCustomization: (originalDevice, newValues) => {
         const deviceId = originalDevice.id;
+        // FIX: Spreading a potentially undefined object. Added a fallback to an empty object.
         const oldCustomization = get().customizations[deviceId] || {};
 
         const newCustoms = {
             ...get().customizations,
             [deviceId]: {
-                // FIX: Spreading a potentially undefined object. Replaced with a variable that has a fallback.
                 ...oldCustomization,
                 name: newValues.name !== originalDevice.name ? newValues.name : undefined,
                 type: newValues.type !== originalDevice.type ? newValues.type : undefined,
@@ -903,6 +902,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
                     size: { width: 84, height: 15 },
                     zIndex: 1,
                     styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 16, textAlign: 'center' },
+                    // FIX: Renamed `scaleMode` to `sizeMode` to align with type definitions.
                     sizeMode: 'card',
                 }],
                 styles: {},
@@ -928,6 +928,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         newTemplate.name = `Новый ${typeNameMap[deviceType] || 'шаблон'}`;
         // Ensure all elements in newly created templates have a sizeMode
         newTemplate.elements.forEach((el: any) => {
+            // FIX: Renamed `scaleMode` to `sizeMode` to align with type definitions.
             if (!el.sizeMode) {
                 el.sizeMode = 'card';
             }

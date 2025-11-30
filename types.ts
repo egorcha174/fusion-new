@@ -248,7 +248,9 @@ export interface CardElement {
   size: { width: number; height: number };
   zIndex: number;
   styles: ElementStyles;
+  // FIX: Added missing properties `sizeMode` and `locked` for template editor functionality.
   sizeMode: 'card' | 'cell';
+  locked?: boolean;
 }
 
 export interface CardTemplate {
@@ -285,6 +287,7 @@ export interface ThemeColors {
   cardOpacity?: number;
   panelOpacity?: number;
   cardBorderRadius?: number;
+  // FIX: Added missing theme properties for card borders and icon backgrounds.
   cardBorderWidth?: number;
   cardBorderColor?: string;
   cardBorderColorOn?: string;

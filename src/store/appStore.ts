@@ -770,7 +770,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
             const nameElementHeight = 15;
             template.elements = [
-                // FIX: Renamed `scaleMode` to `sizeMode`.
                 { id: 'name', uniqueId: nanoid(), visible: true, position: { x: 5, y: 5 }, size: { width: 90, height: nameElementHeight - 5 }, zIndex: 1, styles: { fontSize: 16 }, sizeMode: 'card' },
             ];
 
@@ -931,6 +930,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         newTemplate.name = `Новый ${typeNameMap[deviceType] || 'шаблон'}`;
         // Ensure all elements in newly created templates have a sizeMode
         newTemplate.elements.forEach((el: any) => {
+            // FIX: Renamed `scaleMode` to `sizeMode`.
             if (!el.sizeMode) {
                 el.sizeMode = 'card';
             }
