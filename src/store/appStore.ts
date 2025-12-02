@@ -1,0 +1,940 @@
+import { create } from 'zustand';
+import {
+  Page, Device, Tab, DeviceCustomizations, CardTemplates, ClockSettings,
+  ColorScheme, CardTemplate, DeviceType, GridLayoutItem, DeviceCustomization,
+  EventTimerWidget, CustomCardWidget, PhysicalDevice, WeatherSettings,
+  ServerConfig, ThemeDefinition, ThemePackage, AuroraSettings
+} from '../types';
+import { nanoid } from 'nanoid';
+import { getIconNameForDeviceType } from '../components/DeviceIcon';
+import { loadAndMigrate } from '../utils/localStorage';
+import { LOCAL_STORAGE_KEYS } from '../constants';
+import {
+    defaultTemplates,
+    DEFAULT_COLOR_SCHEME,
+    defaultClockSettings,
+    DEFAULT_SIDEBAR_WIDTH,
+    DEFAULT_SIDEBAR_VISIBLE,
+    DEFAULT_THEME_MODE,
+    DEFAULT_WEATHER_PROVIDER,
+    DEFAULT_WEATHER_SETTINGS,
+    DEFAULT_LOW_BATTERY_THRESHOLD,
+    DEFAULT_FONT_FAMILY,
+    DEFAULT_SENSOR_TEMPLATE_ID,
+    DEFAULT_LIGHT_TEMPLATE_ID,
+    DEFAULT_SWITCH_TEMPLATE_ID,
+    DEFAULT_CLIMATE_TEMPLATE_ID,
+    DEFAULT_HUMIDIFIER_TEMPLATE_ID,
+    DEFAULT_THEMES,
+    DEFAULT_AURORA_SETTINGS
+} from '../config/defaults';
+import { set as setAtPath } from '../utils/obj-path';
+
+// FIX: Added 'tron' to the type to match the new effect added in settings and effects components.
+export type BackgroundEffectType = 'none' | 'snow' | 'rain' | 'leaves' | 'river' | 'aurora' | 'strong-cloudy' | 'rain-clouds' | 'snow-rain' | 'weather' | 'thunderstorm' | 'sun-glare' | 'sun-clouds' | 'tron';
+
+// --- State and Actions Interfaces ---
+interface AppState {
+    currentPage: Page;
+    isEditMode: boolean;
+    editingDevice: Device | null;
+    editingTab: Tab | null;
+    editingTemplate: CardTemplate | 'new' | null;
+    searchTerm: string;
+    contextMenu: { x: number, y: number, deviceId: string, tabId: string } | null;
+    historyModalEntityId: string | null;
+    editingEventTimerId: string | null;
+    isSettingsOpen: boolean;
+
+    servers: ServerConfig[];
+    activeServerId: string | null;
+
+    tabs: Tab[];
+    activeTabId: string | null;
+    customizations: DeviceCustomizations;
+    templates: CardTemplates;
+    clockSettings: ClockSettings;
+    sidebarWidth: number;
+    isSidebarVisible: boolean;
+    themeMode: 'day' | 'night' | 'auto' | 'schedule';
+    scheduleStartTime: string;
+    scheduleEndTime: string;
+    
+    // Theme Management
+    themes: ThemeDefinition[];
+    activeThemeId: string;
+    colorScheme: ColorScheme;
+
+    weatherProvider: 'openweathermap' | 'yandex' | 'foreca' | 'homeassistant';
+    weatherEntityId: string;
+    openWeatherMapKey: string;
+    yandexWeatherKey: string;
+    forecaApiKey: string;
+    weatherSettings: WeatherSettings;
+    lowBatteryThreshold: number;
+    eventTimerWidgets: EventTimerWidget[];
+    customCardWidgets: CustomCardWidget[];
+    backgroundEffect: BackgroundEffectType;
+    auroraSettings: AuroraSettings;
+    DEFAULT_COLOR_SCHEME: ColorScheme;
+    weatherData: any;
+}
+
+interface AppActions {
+    setCurrentPage: (page: Page) => void;
+    setIsEditMode: (isEdit: boolean) => void;
+    setEditingDevice: (device: Device | null) => void;
+    setEditingTab: (tab: Tab | null) => void;
+    setEditingTemplate: (template: CardTemplate | 'new' | null) => void;
+    setSearchTerm: (term: string) => void;
+    setContextMenu: (menu: AppState['contextMenu']) => void;
+    setHistoryModalEntityId: (id: string | null) => void;
+    setEditingEventTimerId: (id: string | null) => void;
+    setSettingsOpen: (isOpen: boolean) => void;
+
+    // Server Management
+    setServers: (servers: ServerConfig[]) => void;
+    setActiveServerId: (id: string | null) => void;
+    addServer: (serverData: Omit<ServerConfig, 'id'>) => ServerConfig;
+    updateServer: (serverData: ServerConfig) => void;
+    deleteServer: (serverId: string) => void;
+
+
+    setTabs: (tabs: Tab[]) => void;
+    setActiveTabId: (id: string | null) => void;
+    setCustomizations: (customizations: DeviceCustomizations) => void;
+    setTemplates: (templates: CardTemplates) => void;
+    setClockSettings: (settings: ClockSettings) => void;
+    setSidebarWidth: (width: number) => void;
+    setIsSidebarVisible: (isVisible: boolean) => void;
+    setThemeMode: (theme: AppState['themeMode']) => void;
+    setScheduleStartTime: (time: string) => void;
+    setScheduleEndTime: (time: string) => void;
+    
+    // Theme Management Actions
+    setThemes: (themes: ThemeDefinition[]) => void;
+    selectTheme: (themeId: string) => void;
+    saveTheme: (themeToSave: ThemeDefinition) => void;
+    deleteTheme: (themeId: string) => void;
+    onResetColorScheme: () => void;
+    importThemePackage: (pkg: ThemePackage) => void;
+
+    setWeatherProvider: (provider: AppState['weatherProvider']) => void;
+    setWeatherEntityId: (entityId: string) => void;
+    setOpenWeatherMapKey: (key: string) => void;
+    setYandexWeatherKey: (key: string) => void;
+    setForecaApiKey: (key: string) => void;
+    setWeatherSettings: (settings: WeatherSettings) => void;
+    setWeatherData: (data: any) => void;
+    setLowBatteryThreshold: (threshold: number) => void;
+    
+    setEventTimerWidgets: (widgets: EventTimerWidget[]) => void;
+    addCustomWidget: () => void;
+    updateCustomWidget: (widgetId: string, updates: Partial<Omit<EventTimerWidget, 'id'>>) => void;
+    resetCustomWidgetTimer: (widgetId: string) => void;
+    deleteCustomWidget: (widgetId: string) => void;
+    setBackgroundEffect: (effect: BackgroundEffectType) => void;
+    setAuroraSettings: (settings: AuroraSettings) => void;
+
+    // Actions for Custom Cards
+    setCustomCardWidgets: (widgets: CustomCardWidget[]) => void;
+    addCustomCard: () => void;
+    updateCustomCard: (widgetId: string, updates: Partial<Omit<CustomCardWidget, 'id'>>) => void;
+    deleteCustomCard: (widgetId: string) => void;
+    
+
+    handleTabOrderChange: (newTabs: Tab[]) => void;
+    handleAddTab: () => void;
+    handleUpdateTabSettings: (tabId: string, settings: { name: string; gridSettings: { cols: number; rows: number } }) => void;
+    handleDeleteTab: (tabId: string) => void;
+    
+    getTemplateForDevice: (device: Device | null) => CardTemplate | null;
+    handleDeviceAddToTab: (device: Device, tabId: string) => void;
+    handleDeviceRemoveFromTab: (deviceId: string, tabId: string) => void;
+    handleDeviceMoveToTab: (device: Device, fromTabId: string, toTabId: string) => void;
+    handleDeviceCopyToTab: (device: Device, toTabId: string) => void;
+    checkCollision: (layout: GridLayoutItem[], itemToPlace: { col: number; row: number; width: number; height: number; }, gridSettings: { cols: number; rows: number; }, ignoreDeviceId: string) => boolean;
+    handleDeviceLayoutChange: (tabId: string, newLayout: GridLayoutItem[]) => void;
+    handleDeviceResizeOnTab: (tabId: string, deviceId: string, newWidth: number, newHeight: number) => void;
+    handleAddPhysicalDeviceAsCustomCard: (physicalDevice: PhysicalDevice, tabId: string) => void;
+
+    handleSaveCustomization: (originalDevice: Device, newValues: Omit<DeviceCustomization, 'name' | 'type' | 'icon' | 'isHidden'> & { name: string; type: DeviceType; icon: string; isHidden: boolean; }) => void;
+    handleToggleVisibility: (device: Device, isHidden: boolean) => void;
+    handleSaveTemplate: (template: CardTemplate) => void;
+    handleDeleteTemplate: (templateId: string) => void;
+    handleResetTemplates: () => void;
+    createNewBlankTemplate: (deviceType: DeviceType | 'custom') => CardTemplate;
+}
+
+// --- Migration logic for single-server to multi-server ---
+const initialServers = loadAndMigrate<ServerConfig[]>(LOCAL_STORAGE_KEYS.SERVERS, []);
+let initialActiveServerId = loadAndMigrate<string | null>(LOCAL_STORAGE_KEYS.ACTIVE_SERVER_ID, null);
+
+if (initialServers.length === 0) {
+  const oldUrl = localStorage.getItem('ha-url');
+  const oldToken = localStorage.getItem('ha-token');
+  if (oldUrl && oldToken) {
+    const migratedServer: ServerConfig = { id: nanoid(), name: 'Home Assistant', url: oldUrl, token: oldToken };
+    initialServers.push(migratedServer);
+    initialActiveServerId = migratedServer.id;
+    
+    localStorage.removeItem('ha-url');
+    localStorage.removeItem('ha-token');
+    
+    localStorage.setItem(LOCAL_STORAGE_KEYS.SERVERS, JSON.stringify(initialServers));
+    localStorage.setItem(LOCAL_STORAGE_KEYS.ACTIVE_SERVER_ID, JSON.stringify(initialActiveServerId));
+  }
+}
+
+// --- Theme Initialization Logic ---
+// 1. Load CUSTOM themes from the new storage key.
+let customThemes = loadAndMigrate<ThemeDefinition[]>(LOCAL_STORAGE_KEYS.CUSTOM_THEMES, []);
+
+// 2. Migration: If custom themes are empty, check the legacy key.
+// This handles the transition from "all themes in one key" to "custom only in LS".
+if (customThemes.length === 0) {
+    const legacyThemes = loadAndMigrate<ThemeDefinition[]>(LOCAL_STORAGE_KEYS.THEMES_LEGACY, []);
+    if (legacyThemes.length > 0) {
+        const migratedCustom = legacyThemes.filter(t => t.isCustom);
+        if (migratedCustom.length > 0) {
+            console.log("Migrating custom themes to new storage structure...");
+            customThemes = migratedCustom;
+            localStorage.setItem(LOCAL_STORAGE_KEYS.CUSTOM_THEMES, JSON.stringify(customThemes));
+        }
+    }
+}
+
+// 3. Combine DEFAULT themes (from code) with CUSTOM themes (from LS).
+// This ensures that updates to default themes in code (like adding 'Tron') are always applied.
+const initialThemes = [
+    ...DEFAULT_THEMES,
+    ...customThemes
+];
+
+const initialActiveThemeId = loadAndMigrate<string>(LOCAL_STORAGE_KEYS.ACTIVE_THEME_ID, DEFAULT_THEMES[0].id);
+// Ensure active theme still exists, otherwise fallback
+const validActiveThemeId = initialThemes.some(t => t.id === initialActiveThemeId) ? initialActiveThemeId : DEFAULT_THEMES[0].id;
+const initialColorScheme = initialThemes.find(t => t.id === validActiveThemeId)?.scheme || DEFAULT_THEMES[0].scheme;
+
+// Migration for Christmas Theme
+const migratedEffect = loadAndMigrate<BackgroundEffectType>(LOCAL_STORAGE_KEYS.BACKGROUND_EFFECT, 'none');
+let initialBackgroundEffect = migratedEffect;
+if (initialBackgroundEffect === 'none') {
+    // Check legacy key
+    const legacyChristmas = localStorage.getItem('ha-christmas-theme-enabled');
+    if (legacyChristmas === 'true') {
+        initialBackgroundEffect = 'snow';
+        localStorage.removeItem('ha-christmas-theme-enabled'); // Clean up
+    }
+}
+
+
+export const useAppStore = create<AppState & AppActions>((set, get) => ({
+    // --- State Initialization from LocalStorage ---
+    currentPage: 'dashboard',
+    isEditMode: false,
+    editingDevice: null,
+    editingTab: null,
+    editingTemplate: null,
+    searchTerm: '',
+    contextMenu: null,
+    historyModalEntityId: null,
+    editingEventTimerId: null,
+    isSettingsOpen: false,
+    
+    servers: initialServers,
+    activeServerId: initialActiveServerId,
+
+    tabs: loadAndMigrate<Tab[]>(LOCAL_STORAGE_KEYS.TABS, []),
+    activeTabId: loadAndMigrate<string | null>(LOCAL_STORAGE_KEYS.ACTIVE_TAB, null),
+    customizations: loadAndMigrate<DeviceCustomizations>(LOCAL_STORAGE_KEYS.CUSTOMIZATIONS, {}),
+    templates: loadAndMigrate<CardTemplates>(LOCAL_STORAGE_KEYS.CARD_TEMPLATES, defaultTemplates),
+    clockSettings: loadAndMigrate<ClockSettings>(LOCAL_STORAGE_KEYS.CLOCK_SETTINGS, defaultClockSettings),
+    sidebarWidth: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.SIDEBAR_WIDTH, DEFAULT_SIDEBAR_WIDTH),
+    isSidebarVisible: loadAndMigrate<boolean>(LOCAL_STORAGE_KEYS.SIDEBAR_VISIBLE, DEFAULT_SIDEBAR_VISIBLE),
+    themeMode: loadAndMigrate<'day' | 'night' | 'auto' | 'schedule'>(LOCAL_STORAGE_KEYS.THEME_MODE, DEFAULT_THEME_MODE),
+    scheduleStartTime: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.SCHEDULE_START_TIME, '22:00'),
+    scheduleEndTime: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.SCHEDULE_END_TIME, '07:00'),
+    
+    themes: initialThemes,
+    activeThemeId: validActiveThemeId,
+    colorScheme: initialColorScheme,
+    
+    weatherProvider: loadAndMigrate<'openweathermap' | 'yandex' | 'foreca' | 'homeassistant'>(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, DEFAULT_WEATHER_PROVIDER),
+    weatherEntityId: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.WEATHER_ENTITY_ID, ''),
+    openWeatherMapKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, ''),
+    yandexWeatherKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, ''),
+    forecaApiKey: loadAndMigrate<string>(LOCAL_STORAGE_KEYS.FORECA_KEY, ''),
+    weatherSettings: loadAndMigrate<WeatherSettings>(LOCAL_STORAGE_KEYS.WEATHER_SETTINGS, DEFAULT_WEATHER_SETTINGS),
+    weatherData: null,
+    lowBatteryThreshold: loadAndMigrate<number>(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, DEFAULT_LOW_BATTERY_THRESHOLD),
+    eventTimerWidgets: loadAndMigrate<EventTimerWidget[]>(LOCAL_STORAGE_KEYS.EVENT_TIMER_WIDGETS, []),
+    customCardWidgets: loadAndMigrate<CustomCardWidget[]>(LOCAL_STORAGE_KEYS.CUSTOM_CARD_WIDGETS, []),
+    backgroundEffect: initialBackgroundEffect,
+    auroraSettings: loadAndMigrate<AuroraSettings>(LOCAL_STORAGE_KEYS.AURORA_SETTINGS, DEFAULT_AURORA_SETTINGS),
+    DEFAULT_COLOR_SCHEME: DEFAULT_COLOR_SCHEME,
+    
+    // --- Actions ---
+    setCurrentPage: (page) => set({ currentPage: page }),
+    setIsEditMode: (isEdit) => set({ isEditMode: isEdit }),
+    setEditingDevice: (device) => set({ editingDevice: device }),
+    setEditingTab: (tab) => set({ editingTab: tab }),
+    setEditingTemplate: (template) => set({ 
+        editingTemplate: template,
+        isSettingsOpen: template ? false : get().isSettingsOpen
+    }),
+    setSearchTerm: (term) => set({ searchTerm: term }),
+    setContextMenu: (menu) => set({ contextMenu: menu }),
+    setHistoryModalEntityId: (id) => set({ historyModalEntityId: id }),
+    setEditingEventTimerId: (id) => set({ editingEventTimerId: id }),
+    setSettingsOpen: (isOpen) => set({ isSettingsOpen: isOpen }),
+
+    // --- Server Management Actions ---
+    setServers: (servers) => {
+        set({ servers });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SERVERS, JSON.stringify(servers));
+    },
+    setActiveServerId: (id) => {
+        set({ activeServerId: id });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.ACTIVE_SERVER_ID, JSON.stringify(id));
+    },
+    addServer: (serverData) => {
+        const newServer = { ...serverData, id: nanoid() };
+        get().setServers([...get().servers, newServer]);
+        return newServer;
+    },
+    updateServer: (serverData) => {
+        const newServers = get().servers.map(s => s.id === serverData.id ? serverData : s);
+        get().setServers(newServers);
+    },
+    deleteServer: (serverId) => {
+        const newServers = get().servers.filter(s => s.id !== serverId);
+        get().setServers(newServers);
+        if (get().activeServerId === serverId) {
+            get().setActiveServerId(newServers[0]?.id || null);
+        }
+    },
+
+
+    // --- Actions with Persistence ---
+    setTabs: (tabs) => {
+        set({ tabs });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.TABS, JSON.stringify(tabs));
+    },
+    setActiveTabId: (id) => {
+        set({ activeTabId: id });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.ACTIVE_TAB, JSON.stringify(id));
+    },
+    setCustomizations: (customizations) => {
+        set({ customizations });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.CUSTOMIZATIONS, JSON.stringify(customizations));
+    },
+    setTemplates: (templates) => {
+        set({ templates });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.CARD_TEMPLATES, JSON.stringify(templates));
+    },
+    setClockSettings: (settings) => {
+        set({ clockSettings: settings });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.CLOCK_SETTINGS, JSON.stringify(settings));
+    },
+    setSidebarWidth: (width) => {
+        set({ sidebarWidth: width });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SIDEBAR_WIDTH, JSON.stringify(width));
+    },
+    setIsSidebarVisible: (isVisible) => {
+        set({ isSidebarVisible: isVisible });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SIDEBAR_VISIBLE, JSON.stringify(isVisible));
+    },
+    setThemeMode: (theme) => {
+        set({ themeMode: theme });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.THEME_MODE, JSON.stringify(theme));
+    },
+    setScheduleStartTime: (time) => {
+        set({ scheduleStartTime: time });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SCHEDULE_START_TIME, JSON.stringify(time));
+    },
+    setScheduleEndTime: (time) => {
+        set({ scheduleEndTime: time });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SCHEDULE_END_TIME, JSON.stringify(time));
+    },
+
+    setThemes: (themes) => {
+        set({ themes });
+        // We only save CUSTOM themes to storage. Built-ins are always loaded from code.
+        const customOnly = themes.filter(t => t.isCustom);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.CUSTOM_THEMES, JSON.stringify(customOnly));
+    },
+    selectTheme: (themeId) => {
+        const theme = get().themes.find(t => t.id === themeId);
+        if (theme) {
+            set({ activeThemeId: themeId, colorScheme: theme.scheme });
+            localStorage.setItem(LOCAL_STORAGE_KEYS.ACTIVE_THEME_ID, JSON.stringify(themeId));
+        }
+    },
+    saveTheme: (themeToSave) => {
+        const { themes, setThemes, activeThemeId } = get();
+        // Mark as custom if not already
+        const themeWithFlag = { ...themeToSave, isCustom: true };
+        
+        const themeExists = themes.some(t => t.id === themeWithFlag.id);
+        const newThemes = themeExists
+            ? themes.map(t => t.id === themeWithFlag.id ? themeWithFlag : t)
+            : [...themes, themeWithFlag];
+        
+        setThemes(newThemes);
+    
+        if (activeThemeId === themeWithFlag.id) {
+            set({ colorScheme: themeWithFlag.scheme });
+        }
+    },
+    deleteTheme: (themeId) => {
+        const { themes, setThemes, activeThemeId, selectTheme } = get();
+        const themeToDelete = themes.find(t => t.id === themeId);
+        if (!themeToDelete || !themeToDelete.isCustom) return;
+    
+        const newThemes = themes.filter(t => t.id !== themeId);
+        setThemes(newThemes);
+    
+        if (activeThemeId === themeId) {
+            selectTheme(DEFAULT_THEMES[0].id);
+        }
+    },
+    onResetColorScheme: () => {
+        const { activeThemeId, saveTheme, themes } = get();
+        const activeTheme = themes.find(t => t.id === activeThemeId);
+        if (activeTheme) {
+            saveTheme({...activeTheme, scheme: DEFAULT_COLOR_SCHEME});
+        }
+    },
+    
+    importThemePackage: (pkg: ThemePackage) => {
+        const { theme, templates: newTemplatesList } = pkg;
+        const { themes, setThemes, templates, setTemplates, selectTheme } = get();
+
+        // 1. Handle Theme Collision
+        let themeToImport = { ...theme, isCustom: true };
+        if (themes.some(t => t.id === themeToImport.id)) {
+            themeToImport.id = nanoid(); 
+            themeToImport.name = `${theme.name} (Imported)`;
+        }
+        
+        const newThemes = [...themes, themeToImport];
+        setThemes(newThemes);
+
+        // 2. Handle Templates (if they exist in the package)
+        if (newTemplatesList && Array.isArray(newTemplatesList)) {
+            const updatedTemplates = { ...templates };
+            newTemplatesList.forEach(tpl => {
+                if (tpl && tpl.id) {
+                    updatedTemplates[tpl.id] = tpl;
+                }
+            });
+            setTemplates(updatedTemplates);
+        }
+
+        // 3. Select the imported theme
+        selectTheme(themeToImport.id);
+    },
+
+    setWeatherProvider: (provider) => {
+        set({ weatherProvider: provider });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.WEATHER_PROVIDER, JSON.stringify(provider));
+    },
+    setWeatherEntityId: (entityId) => {
+        set({ weatherEntityId: entityId });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.WEATHER_ENTITY_ID, JSON.stringify(entityId));
+    },
+    setOpenWeatherMapKey: (key) => {
+        set({ openWeatherMapKey: key });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.OPENWEATHERMAP_KEY, JSON.stringify(key));
+    },
+    setYandexWeatherKey: (key) => {
+        set({ yandexWeatherKey: key });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.YANDEX_WEATHER_KEY, JSON.stringify(key));
+    },
+    setForecaApiKey: (key) => {
+        set({ forecaApiKey: key });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.FORECA_KEY, JSON.stringify(key));
+    },
+    setWeatherSettings: (settings) => {
+        set({ weatherSettings: settings });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.WEATHER_SETTINGS, JSON.stringify(settings));
+    },
+    setWeatherData: (data) => {
+        set({ weatherData: data });
+    },
+    setLowBatteryThreshold: (threshold) => {
+        set({ lowBatteryThreshold: threshold });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.LOW_BATTERY_THRESHOLD, JSON.stringify(threshold));
+    },
+    setBackgroundEffect: (effect) => {
+        set({ backgroundEffect: effect });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.BACKGROUND_EFFECT, JSON.stringify(effect));
+    },
+    setEventTimerWidgets: (widgets) => {
+        set({ eventTimerWidgets: widgets });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.EVENT_TIMER_WIDGETS, JSON.stringify(widgets));
+    },
+    addCustomWidget: () => {
+        const newWidget: EventTimerWidget = {
+            id: nanoid(),
+            name: `Таймер ${get().eventTimerWidgets.length + 1}`,
+            cycleDays: 14,
+            lastResetDate: null,
+            animation: 'smooth',
+            fillDirection: 'bottom-to-top',
+        };
+        get().setEventTimerWidgets([...get().eventTimerWidgets, newWidget]);
+    },
+    updateCustomWidget: (widgetId, updates) => {
+        const newWidgets = get().eventTimerWidgets.map(w => w.id === widgetId ? { ...w, ...updates } : w);
+        get().setEventTimerWidgets(newWidgets);
+    },
+    resetCustomWidgetTimer: (widgetId) => {
+        const newWidgets = get().eventTimerWidgets.map(w => w.id === widgetId ? { ...w, lastResetDate: new Date().toISOString() } : w);
+        get().setEventTimerWidgets(newWidgets);
+    },
+    deleteCustomWidget: (widgetId) => {
+        const deviceIdToDelete = `internal::event-timer_${widgetId}`;
+        
+        const newWidgets = get().eventTimerWidgets.filter(w => w.id !== widgetId);
+        get().setEventTimerWidgets(newWidgets);
+        
+        const newTabs = get().tabs.map(tab => ({
+            ...tab,
+            layout: tab.layout.filter(item => item.deviceId !== deviceIdToDelete)
+        }));
+        get().setTabs(newTabs);
+    },
+    setAuroraSettings: (settings) => {
+        set({ auroraSettings: settings });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.AURORA_SETTINGS, JSON.stringify(settings));
+    },
+    
+    // --- Custom Card Actions ---
+    setCustomCardWidgets: (widgets) => {
+        set({ customCardWidgets: widgets });
+        localStorage.setItem(LOCAL_STORAGE_KEYS.CUSTOM_CARD_WIDGETS, JSON.stringify(widgets));
+    },
+    addCustomCard: () => {
+        const newWidget: CustomCardWidget = {
+            id: nanoid(),
+            name: `Кастомная карточка ${get().customCardWidgets.length + 1}`,
+        };
+
+        const newTemplate = get().createNewBlankTemplate('custom');
+        newTemplate.id = `custom-card-template-${newWidget.id}`;
+        newTemplate.name = newWidget.name;
+
+        const newTemplates = { ...get().templates, [newTemplate.id]: newTemplate };
+        
+        const deviceId = `internal::custom-card_${newWidget.id}`;
+        // FIX: Spreading a potentially undefined object. Added a fallback to an empty object.
+        const newCustomization: DeviceCustomization = {
+            ...(get().customizations[deviceId] || {}),
+            templateId: newTemplate.id,
+        };
+        const newCustomizations = { ...get().customizations, [deviceId]: newCustomization };
+
+        get().setTemplates(newTemplates);
+        get().setCustomizations(newCustomizations);
+        get().setCustomCardWidgets([...get().customCardWidgets, newWidget]);
+    },
+    updateCustomCard: (widgetId, updates) => {
+        const newWidgets = get().customCardWidgets.map(w => w.id === widgetId ? { ...w, ...updates } : w);
+        get().setCustomCardWidgets(newWidgets);
+    },
+    deleteCustomCard: (widgetId) => {
+        const deviceIdToDelete = `internal::custom-card_${widgetId}`;
+        const templateIdToDelete = `custom-card-template-${widgetId}`;
+
+        const newWidgets = get().customCardWidgets.filter(w => w.id !== widgetId);
+        get().setCustomCardWidgets(newWidgets);
+
+        const newTabs = get().tabs.map(tab => ({
+            ...tab,
+            layout: tab.layout.filter(item => item.deviceId !== deviceIdToDelete)
+        }));
+        get().setTabs(newTabs);
+
+        const newTemplates = { ...get().templates };
+        delete newTemplates[templateIdToDelete];
+        get().setTemplates(newTemplates);
+
+        const newCustomizations = { ...get().customizations };
+        delete newCustomizations[deviceIdToDelete];
+        get().setCustomizations(newCustomizations);
+    },
+    
+
+    // --- Complex Actions ---
+    handleTabOrderChange: (newTabs) => get().setTabs(newTabs),
+    handleAddTab: () => {
+        const newTabName = `Вкладка ${get().tabs.length + 1}`;
+        const newTab: Tab = { id: nanoid(), name: newTabName, layout: [], gridSettings: { cols: 8, rows: 5 } };
+        const newTabs = [...get().tabs, newTab];
+        get().setTabs(newTabs);
+        get().setActiveTabId(newTab.id);
+    },
+    handleUpdateTabSettings: (tabId, settings) => {
+        const newTabs = get().tabs.map(tab => (tab.id === tabId) ? { ...tab, ...settings } : tab);
+        get().setTabs(newTabs);
+    },
+    handleDeleteTab: (tabId) => {
+        const newTabs = get().tabs.filter(t => t.id !== tabId);
+        if (get().activeTabId === tabId) {
+            get().setActiveTabId(newTabs.length > 0 ? newTabs[0].id : null);
+        }
+        get().setTabs(newTabs);
+    },
+    
+    getTemplateForDevice: (device) => {
+        if (!device) return null;
+        const custom = get().customizations[device.id];
+        let templateId = custom?.templateId;
+
+        if (templateId === '') return null; // Explicitly no template
+
+        if (!templateId) {
+            const defaultMap: { [key in DeviceType]?: string } = {
+                [DeviceType.Sensor]: DEFAULT_SENSOR_TEMPLATE_ID,
+                [DeviceType.Light]: DEFAULT_LIGHT_TEMPLATE_ID,
+                [DeviceType.DimmableLight]: DEFAULT_LIGHT_TEMPLATE_ID,
+                [DeviceType.Switch]: DEFAULT_SWITCH_TEMPLATE_ID,
+                [DeviceType.Thermostat]: DEFAULT_CLIMATE_TEMPLATE_ID,
+                [DeviceType.Humidifier]: DEFAULT_HUMIDIFIER_TEMPLATE_ID,
+            };
+            templateId = defaultMap[device.type];
+        }
+        return templateId ? get().templates[templateId] : null;
+    },
+    handleDeviceAddToTab: (device, tabId) => {
+        const getTemplateForDevice = get().getTemplateForDevice;
+        const newTabs = get().tabs.map(tab => {
+            if (tab.id !== tabId) return tab;
+            
+            const template = getTemplateForDevice(device);
+            const templateWidth = template?.width || 1;
+            const templateHeight = template?.height || 1;
+            
+            const { cols, rows } = tab.gridSettings;
+            let emptyCell: { col: number, row: number } | null = null;
+            const occupiedCells = new Set<string>();
+            tab.layout.forEach(item => {
+                const w = Math.ceil(item.width || 1);
+                const h = Math.ceil(item.height || 1);
+                for (let r_offset = 0; r_offset < h; r_offset++) {
+                    for (let c_offset = 0; c_offset < w; c_offset++) {
+                        occupiedCells.add(`${item.col + c_offset},${item.row + r_offset}`);
+                    }
+                }
+            });
+
+            const requiredWidth = Math.ceil(templateWidth);
+            const requiredHeight = Math.ceil(templateHeight);
+
+            for (let r = 0; r <= rows - requiredHeight; r++) {
+                for (let c = 0; c <= cols - requiredWidth; c++) {
+                    let isBlockFree = true;
+                    for (let r_offset = 0; r_offset < requiredHeight; r_offset++) {
+                        for (let c_offset = 0; c_offset < requiredWidth; c_offset++) {
+                            if (occupiedCells.has(`${c + c_offset},${r + r_offset}`)) { isBlockFree = false; break; }
+                        }
+                        if (!isBlockFree) break;
+                    }
+                    if (isBlockFree) { emptyCell = { col: c, row: r }; break; }
+                }
+                if (emptyCell) break;
+            }
+
+            if (emptyCell) {
+                const newLayoutItem: GridLayoutItem = { deviceId: device.id, col: emptyCell.col, row: emptyCell.row, width: templateWidth, height: templateHeight };
+                return { ...tab, layout: [...tab.layout, newLayoutItem] };
+            }
+            return tab;
+        });
+        get().setTabs(newTabs);
+    },
+    handleDeviceRemoveFromTab: (deviceId, tabId) => {
+        const newTabs = get().tabs.map(tab => (tab.id === tabId) ? { ...tab, layout: tab.layout.filter(item => item.deviceId !== deviceId) } : tab);
+        get().setTabs(newTabs);
+    },
+    handleDeviceMoveToTab: (device, fromTabId, toTabId) => {
+        if (fromTabId === toTabId) return;
+        get().handleDeviceAddToTab(device, toTabId);
+        get().handleDeviceRemoveFromTab(device.id, fromTabId);
+    },
+    handleDeviceCopyToTab: (device, toTabId) => {
+        get().handleDeviceAddToTab(device, toTabId);
+    },
+    checkCollision: (layout, itemToPlace, gridSettings, ignoreDeviceId) => {
+        const { col, row, width, height } = itemToPlace;
+    
+        if (col < 0 || row < 0 || col + Math.ceil(width) > gridSettings.cols || row + Math.ceil(height) > gridSettings.rows) {
+            return true;
+        }
+    
+        for (const existingItem of layout) {
+            if (existingItem.deviceId === ignoreDeviceId) {
+                continue;
+            }
+    
+            const existingWidth = existingItem.width || 1;
+            const existingHeight = existingItem.height || 1;
+    
+            const isOverlapping = (
+                col < existingItem.col + existingWidth &&
+                col + width > existingItem.col &&
+                row < existingItem.row + existingHeight &&
+                row + height > existingItem.row
+            );
+    
+            if (!isOverlapping) {
+                continue;
+            }
+    
+            const isPlacingStackable = height === 0.5;
+            const isExistingStackable = existingHeight === 0.5;
+            const isAtSameOrigin = col === existingItem.col && row === existingItem.row;
+    
+            if (isPlacingStackable && isExistingStackable && isAtSameOrigin && width === existingWidth) {
+                const itemsAtOrigin = layout.filter(item => 
+                    item.col === col && 
+                    item.row === row &&
+                    item.deviceId !== ignoreDeviceId 
+                );
+                
+                if (itemsAtOrigin.length < 2) {
+                    continue;
+                }
+            }
+            
+            return true;
+        }
+    
+        return false;
+    },
+    handleDeviceLayoutChange: (tabId, newLayout) => {
+        const newTabs = get().tabs.map(tab => (tab.id === tabId) ? { ...tab, layout: newLayout } : tab);
+        get().setTabs(newTabs);
+    },
+    handleDeviceResizeOnTab: (tabId, deviceId, newWidth, newHeight) => {
+        set(state => {
+            const tabIndex = state.tabs.findIndex(t => t.id === tabId);
+            if (tabIndex === -1) return state;
+    
+            const tab = state.tabs[tabIndex];
+            const itemIndex = tab.layout.findIndex(item => item.deviceId === deviceId);
+            if (itemIndex === -1) return state;
+    
+            const itemToResize = tab.layout[itemIndex];
+            const newItem = { ...itemToResize, width: newWidth, height: newHeight };
+    
+            if (get().checkCollision(tab.layout, newItem, tab.gridSettings, deviceId)) {
+                return state;
+            }
+    
+            const newLayout = [...tab.layout];
+            newLayout[itemIndex] = newItem;
+            const newTabs = [...state.tabs];
+            newTabs[tabIndex] = { ...tab, layout: newLayout };
+            
+            localStorage.setItem(LOCAL_STORAGE_KEYS.TABS, JSON.stringify(newTabs));
+            return { tabs: newTabs };
+        });
+    },
+    handleAddPhysicalDeviceAsCustomCard: (physicalDevice, tabId) => {
+        const { customCardWidgets, templates, customizations, setCustomCardWidgets, setTemplates, setCustomizations, handleDeviceAddToTab, createNewBlankTemplate } = get();
+
+        const widgetId = `physdev-${physicalDevice.id}`;
+        const deviceId = `internal::custom-card_${widgetId}`;
+        const templateId = `custom-card-template-${widgetId}`;
+
+        let widget = customCardWidgets.find(w => w.id === widgetId);
+        let template = templates[templateId];
+
+        if (!widget) {
+            widget = { id: widgetId, name: physicalDevice.name };
+            setCustomCardWidgets([...customCardWidgets, widget]);
+        }
+
+        if (!template) {
+            template = createNewBlankTemplate('custom');
+            template.id = templateId;
+            template.name = physicalDevice.name;
+            template.interactionType = 'passive';
+
+            template.width = 2;
+            const entityRows = Math.ceil(physicalDevice.entities.length / 2);
+            template.height = Math.max(2, 1 + entityRows);
+
+            const nameElementHeight = 15;
+            template.elements = [
+                { id: 'name', uniqueId: nanoid(), visible: true, position: { x: 5, y: 5 }, size: { width: 90, height: nameElementHeight - 5 }, zIndex: 1, styles: { fontSize: 16 }, sizeMode: 'card' },
+            ];
+
+            const entitiesPerRow = 2;
+            const startY = nameElementHeight;
+            const availableHeight = 100 - startY - 5;
+            const rowHeight = availableHeight / entityRows;
+            const colWidth = 45;
+            const startX = 2.5;
+            const colGap = 5;
+
+            physicalDevice.entities.forEach((entity, index) => {
+                const row = Math.floor(index / entitiesPerRow);
+                const col = index % entitiesPerRow;
+
+                template!.elements.push({
+                    id: 'linked-entity',
+                    uniqueId: nanoid(),
+                    visible: true,
+                    position: {
+                        x: startX + col * (colWidth + colGap),
+                        y: startY + row * rowHeight,
+                    },
+                    size: {
+                        width: colWidth,
+                        height: rowHeight * 0.9,
+                    },
+                    zIndex: 2,
+                    styles: {
+                        linkedEntityId: entity.id,
+                        showValue: true,
+                    },
+                    // FIX: Renamed `scaleMode` to `sizeMode`.
+                    sizeMode: 'card',
+                });
+            });
+
+            setTemplates({ ...get().templates, [templateId]: template });
+
+            const newCustomization: DeviceCustomization = {
+                ...customizations[deviceId],
+                templateId: templateId,
+            };
+            setCustomizations({ ...get().customizations, [deviceId]: newCustomization });
+        }
+
+        const deviceToAdd: Device = {
+            id: deviceId,
+            name: physicalDevice.name,
+            status: `${physicalDevice.entities.length} сущ.`,
+            type: DeviceType.Custom,
+            haDomain: 'internal',
+            state: 'active',
+            widgetId: widgetId,
+        };
+        handleDeviceAddToTab(deviceToAdd, tabId);
+    },
+    handleSaveCustomization: (originalDevice, newValues) => {
+        const deviceId = originalDevice.id;
+        const oldCustomization = get().customizations[deviceId] || {};
+
+        const newCustoms = {
+            ...get().customizations,
+            [deviceId]: {
+                // FIX: Spreading a potentially undefined object. Replaced with a variable that has a fallback.
+                ...oldCustomization,
+                name: newValues.name !== originalDevice.name ? newValues.name : undefined,
+                type: newValues.type !== originalDevice.type ? newValues.type : undefined,
+                icon: newValues.icon !== getIconNameForDeviceType(newValues.type, false) ? newValues.icon : undefined,
+                isHidden: newValues.isHidden ? true : undefined,
+                templateId: newValues.templateId || undefined,
+                iconAnimation: newValues.iconAnimation !== 'none' ? newValues.iconAnimation : undefined,
+                deviceBindings: newValues.deviceBindings?.length ? newValues.deviceBindings : undefined,
+                thresholds: newValues.thresholds?.length ? newValues.thresholds : undefined,
+            }
+        };
+        get().setCustomizations(newCustoms);
+
+        if (newValues.templateId !== oldCustomization.templateId) {
+            const template = get().templates[newValues.templateId || ''];
+            if (template && (template.width !== undefined || template.height !== undefined)) {
+                get().handleDeviceResizeOnTab(get().activeTabId!, deviceId, template.width ?? 1, template.height ?? 1);
+            }
+        }
+    },
+    handleToggleVisibility: (device, isHidden) => {
+        const currentCustomization = get().customizations[device.id] || {};
+        
+        get().handleSaveCustomization(device, {
+            name: currentCustomization.name || device.name,
+            type: currentCustomization.type || device.type,
+            icon: currentCustomization.icon || getIconNameForDeviceType(currentCustomization.type || device.type, false),
+            isHidden,
+            templateId: currentCustomization.templateId,
+            iconAnimation: currentCustomization.iconAnimation,
+            deviceBindings: currentCustomization.deviceBindings,
+            thresholds: currentCustomization.thresholds,
+        });
+    },
+    handleSaveTemplate: (template) => {
+        const newTemplates = { ...get().templates, [template.id]: template };
+        get().setTemplates(newTemplates);
+        set({ editingTemplate: null });
+    },
+    handleDeleteTemplate: (templateId) => {
+        const newTemplates = { ...get().templates };
+        delete newTemplates[templateId];
+        get().setTemplates(newTemplates);
+        
+        const newCustomizations = { ...get().customizations };
+        Object.keys(newCustomizations).forEach(deviceId => {
+            if (newCustomizations[deviceId].templateId === templateId) {
+                delete newCustomizations[deviceId].templateId;
+            }
+        });
+        get().setCustomizations(newCustomizations);
+    },
+    handleResetTemplates: () => {
+        get().setTemplates(defaultTemplates);
+    },
+    createNewBlankTemplate: (deviceType: DeviceType | 'custom') => {
+        if (deviceType === 'custom') {
+            return {
+                id: nanoid(),
+                name: 'Новая кастомная карточка',
+                deviceType: 'custom',
+                elements: [{
+                    id: 'name',
+                    uniqueId: nanoid(),
+                    visible: true,
+                    position: { x: 50, y: 15 },
+                    size: { width: 84, height: 15 },
+                    zIndex: 1,
+                    styles: { fontFamily: DEFAULT_FONT_FAMILY, fontSize: 16, textAlign: 'center' },
+                    // FIX: Renamed `scaleMode` to `sizeMode`.
+                    sizeMode: 'card',
+                }],
+                styles: {},
+                width: 2,
+                height: 2,
+            };
+        }
+        const baseMap = {
+            [DeviceType.Sensor]: get().templates[DEFAULT_SENSOR_TEMPLATE_ID],
+            [DeviceType.Light]: get().templates[DEFAULT_LIGHT_TEMPLATE_ID],
+            [DeviceType.DimmableLight]: get().templates[DEFAULT_LIGHT_TEMPLATE_ID],
+            [DeviceType.Switch]: get().templates[DEFAULT_SWITCH_TEMPLATE_ID],
+            [DeviceType.Thermostat]: get().templates[DEFAULT_CLIMATE_TEMPLATE_ID],
+            [DeviceType.Humidifier]: get().templates[DEFAULT_HUMIDIFIER_TEMPLATE_ID],
+        };
+        const typeNameMap = {
+            [DeviceType.Sensor]: 'сенсор', [DeviceType.Light]: 'светильник', [DeviceType.DimmableLight]: 'светильник',
+            [DeviceType.Switch]: 'переключатель', [DeviceType.Thermostat]: 'климат', [DeviceType.Humidifier]: 'увлажнитель',
+        };
+        const baseTemplate = (baseMap as any)[deviceType] || get().templates[DEFAULT_SENSOR_TEMPLATE_ID];
+        const newTemplate = JSON.parse(JSON.stringify(baseTemplate));
+        newTemplate.id = nanoid();
+        newTemplate.name = `Новый ${typeNameMap[deviceType] || 'шаблон'}`;
+        // Ensure all elements in newly created templates have a sizeMode
+        newTemplate.elements.forEach((el: any) => {
+            // FIX: Renamed `scaleMode` to `sizeMode`.
+            if (!el.sizeMode) {
+                el.sizeMode = 'card';
+            }
+        });
+        return newTemplate;
+    },
+}));

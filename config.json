@@ -1,0 +1,25 @@
+{
+  "name": "Modern Dashboard UI",
+  "version": "1.0.0",
+  "slug": "modern_ha_dashboard",
+  "description": "A modern, Apple Home inspired dashboard with drag-and-drop customization.",
+  "url": "https://github.com/yourusername/ha-dashboard",
+  "startup": "services",
+  "arch": [
+    "aarch64",
+    "amd64",
+    "armhf",
+    "armv7",
+    "i386"
+  ],
+  "ingress": true,
+  "ingress_port": 8099,
+  "ports": {
+    "8099/tcp": 8099
+  },
+  "map": [
+    "config:rw"
+  ],
+  "options": {},
+  "schema": {}
+}

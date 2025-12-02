@@ -1,0 +1,449 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHJ4PSI4IiBmaWxsPSIjNEE1NTY4Ii8+PHBhdGggZD0iTTE2IDhMNyAxNVYyNEgxMlYxOEgyMFYyNEgyNVYxNUwxNiA4WiIgZmlsbD0id2hpdGUiLz48L3N2Zz4=" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Home Assistant UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+<style>
+  /* Utility to hide scrollbars */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  /* Custom Animations */
+  @keyframes sunny {
+    0%, 100% { transform: rotate(0deg) scale(1); opacity: 1; }
+    50% { transform: rotate(15deg) scale(1.1); opacity: 0.9; }
+  }
+  @keyframes night-twinkle {
+    0%, 100% { opacity: 0.8; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+  }
+  @keyframes cloudy-move {
+    0%, 100% { transform: translateX(-3%); }
+    50% { transform: translateX(3%); }
+  }
+  @keyframes rainy-bounce {
+    0%, 100% { transform: translateX(-2%) translateY(0); }
+    25% { transform: translateX(2%) translateY(2%); }
+    50% { transform: translateX(2%) translateY(0); }
+    75% { transform: translateX(-2%) translateY(2%); }
+  }
+  @keyframes snowy-drift {
+    0%, 100% { transform: translateX(-4%) translateY(0) rotate(-2deg); }
+    50% { transform: translateX(4%) translateY(2%) rotate(2deg); }
+  }
+  @keyframes stormy-flash {
+    0%, 90%, 100% { opacity: 1; }
+    92% { opacity: 0.2; }
+    94% { opacity: 1; }
+    96% { opacity: 0.2; }
+    98% { opacity: 1; }
+  }
+  @keyframes foggy-drift {
+    0%, 100% { transform: translateX(-5%); opacity: 0.7; }
+    50% { transform: translateX(5%); opacity: 0.9; }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes glow {
+    0%, 100% { filter: drop-shadow(0 0 3px currentColor); opacity: 0.8; }
+    50% { filter: drop-shadow(0 0 8px currentColor); opacity: 1; }
+  }
+  @keyframes pulse-scale {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+  @keyframes wave-animation {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  @keyframes bubble-rise {
+    0% {
+      transform: translateY(0);
+      opacity: 0.8;
+    }
+    50% {
+      transform: translateX(var(--bubble-wobble, 10px));
+    }
+    100% {
+      transform: translateY(-150%) scale(0.5);
+      opacity: 0;
+    }
+  }
+  @keyframes bubble-pop {
+    0% {
+      transform: translateY(0) scale(0.5);
+      opacity: 0;
+    }
+    50% {
+      transform: translateY(-30px) scale(1.1) translateX(var(--bubble-wobble, 10px));
+      opacity: 0.9;
+    }
+    100% {
+      transform: translateY(-40px) scale(0);
+      opacity: 0;
+    }
+  }
+  
+  /* Background Effects Animations */
+  
+  /* Snow */
+  @keyframes snow-fall {
+    0% {
+      transform: translateY(-10vh) translateX(var(--x-start)) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(105vh) translateX(var(--x-end)) rotate(var(--rotate));
+      opacity: var(--opacity);
+    }
+  }
+
+  /* Rain */
+  @keyframes rain-fall {
+    0% {
+      transform: translateY(-20px) translateX(var(--x-start));
+      opacity: 0;
+    }
+    10% {
+      opacity: var(--opacity);
+    }
+    90% {
+      opacity: var(--opacity);
+    }
+    100% {
+      transform: translateY(105vh) translateX(var(--x-start));
+      opacity: 0;
+    }
+  }
+
+  /* Rain on Glass (Sliding drops) */
+  @keyframes glass-slip {
+    0% {
+      top: -5vh;
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    10% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    90% {
+      opacity: 0.8;
+    }
+    100% {
+      top: 105vh;
+      opacity: 0;
+      transform: scale(0.9);
+    }
+  }
+
+  /* Leaves */
+  @keyframes leaf-fall {
+    0% {
+      transform: translateY(-10vh) translateX(var(--x-start)) rotate(0deg) scale(1);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(105vh) translateX(var(--x-end)) rotate(var(--rotate)) scale(0.8);
+      opacity: 0;
+    }
+  }
+
+  /* River/Ocean Waves */
+  @keyframes wave-move-1 {
+    0% { transform: translateX(0) translateZ(0); }
+    50% { transform: translateX(-25%) translateZ(0); }
+    100% { transform: translateX(-50%) translateZ(0); }
+  }
+  @keyframes wave-move-2 {
+    0% { transform: translateX(0) translateZ(0); }
+    50% { transform: translateX(20%) translateZ(0); }
+    100% { transform: translateX(0) translateZ(0); }
+  }
+
+  /* Clouds */
+  @keyframes cloud-drift {
+    0% { transform: translateX(-20vw); opacity: 0; }
+    10% { opacity: var(--opacity); }
+    90% { opacity: var(--opacity); }
+    100% { transform: translateX(120vw); opacity: 0; }
+  }
+
+  /* Aurora */
+  @keyframes aurora-move-1 {
+    0% { transform: skewY(-6deg) translateX(-12%) scaleX(1); opacity: 0.92; }
+    50% { transform: skewY(-4deg) translateX(6%) scaleX(1.05); opacity: 0.7; }
+    100% { transform: skewY(-6deg) translateX(-12%) scaleX(1); opacity: 0.92; }
+  }
+  @keyframes aurora-move-2 {
+    0% { transform: skewY(4deg) translateX(-8%) scaleX(1); opacity: 0.8; }
+    50% { transform: skewY(6deg) translateX(10%) scaleX(1.08); opacity: 0.55; }
+    100% { transform: skewY(4deg) translateX(-8%) scaleX(1); opacity: 0.8; }
+  }
+  @keyframes aurora-move-3 {
+    0% { transform: skewY(-2deg) translateX(-6%) scaleX(1); opacity: 0.65; }
+    50% { transform: skewY(0deg) translateX(12%) scaleX(1.12); opacity: 0.45; }
+    100% { transform: skewY(-2deg) translateX(-6%) scaleX(1); opacity: 0.65; }
+  }
+  @keyframes aurora-move-4 {
+    0% { transform: skewY(8deg) translateX(-4%) scaleX(1); opacity: 0.6; }
+    50% { transform: skewY(10deg) translateX(14%) scaleX(1.15); opacity: 0.35; }
+    100% { transform: skewY(8deg) translateX(-4%) scaleX(1); opacity: 0.6; }
+  }
+  @keyframes aurora-drift {
+    0% { transform: translateX(-10%); }
+    50% { transform: translateX(10%); }
+    100% { transform: translateX(-10%); }
+  }
+  @keyframes aurora-twinkle {
+    0% { opacity: 0.85; transform: translateY(0); }
+    50% { opacity: 1; transform: translateY(-1px); }
+    100% { opacity: 0.85; transform: translateY(0); }
+  }
+
+  /* Aurora Classes */
+  .aurora-scene {
+    background: radial-gradient(ellipse at 20% 10%, rgba(10,18,40,0.6) 0%, rgba(2,3,10,1) 50%),
+                linear-gradient(180deg, #00102a 0%, #00040a 60%);
+  }
+  
+  .aurora-layer {
+    mix-blend-mode: screen;
+    filter: blur(var(--global-blur, 18px)) saturate(var(--global-saturate, 140%));
+    transform: translateZ(0);
+    transition: filter 300ms linear;
+  }
+
+  .aurora-band {
+    opacity: var(--band-opacity, 0.9);
+    transform-origin: center;
+    will-change: transform, opacity, filter;
+    background: linear-gradient(90deg,
+      var(--c1-transparent, rgba(0,255,200,0.0)) 0%,
+      var(--c1-mid, rgba(0,255,180,0.12)) 20%,
+      var(--c2-mid, rgba(120,200,255,0.18)) 50%,
+      var(--c3-mid, rgba(0,180,255,0.10)) 80%,
+      var(--c3-transparent, rgba(0,255,200,0.0)) 100%);
+  }
+
+  .aurora-band.b1 { top: 0%; height: 40%; animation: aurora-move-1 var(--speed-1, 18s) infinite ease-in-out; filter: blur(14px) contrast(1.05); }
+  .aurora-band.b2 { top: 20%; height: 50%; animation: aurora-move-2 var(--speed-2, 22s) infinite ease-in-out; filter: blur(20px) contrast(1.1); }
+  .aurora-band.b3 { top: 35%; height: 60%; animation: aurora-move-3 var(--speed-3, 26s) infinite ease-in-out; filter: blur(28px) contrast(1.15); }
+  .aurora-band.b4 { top: 50%; height: 45%; animation: aurora-move-4 var(--speed-4, 20s) infinite ease-in-out; filter: blur(34px) contrast(1.2); }
+
+  .aurora-stars {
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, #fff 50%, transparent 51%),
+      radial-gradient(1px 1px at 30% 40%, #fff 50%, transparent 51%),
+      radial-gradient(1px 1px at 70% 10%, #fff 50%, transparent 51%),
+      radial-gradient(1px 1px at 85% 60%, #fff 50%, transparent 51%),
+      radial-gradient(1px 1px at 50% 80%, #fff 50%, transparent 51%);
+    opacity: var(--stars-opacity, 0.9);
+    filter: blur(0.6px);
+    animation: aurora-twinkle var(--stars-speed, 6s) linear infinite;
+    mix-blend-mode: screen;
+  }
+
+  .aurora-noise {
+    background-image: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.02), transparent 10%),
+                      radial-gradient(circle at 70% 60%, rgba(255,255,255,0.02), transparent 12%);
+    mix-blend-mode: overlay;
+    opacity: 0.6;
+    filter: blur(6px);
+    animation: aurora-drift var(--noise-speed, 30s) linear infinite;
+  }
+
+  .snowflake {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--size);
+    height: var(--size);
+    background: white;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1;
+    animation-name: snow-fall;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
+
+  .raindrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 2px;
+    height: var(--size);
+    background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.6));
+    pointer-events: none;
+    z-index: 1;
+    animation-name: rain-fall;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
+
+  .glass-drop {
+    position: fixed;
+    width: var(--width);
+    height: var(--height);
+    background-color: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(1px);
+    border-radius: 50% 50% 40% 40%;
+    box-shadow: 
+      inset -1px -1px 2px rgba(0, 0, 0, 0.1),
+      inset 1px 1px 2px rgba(255, 255, 255, 0.3),
+      0 1px 3px rgba(0, 0, 0, 0.1);
+    pointer-events: none;
+    z-index: 10; /* Above background, below UI */
+    animation-name: glass-slip;
+    animation-timing-function: ease-in;
+    animation-iteration-count: infinite;
+  }
+
+  .leaf {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--size);
+    height: var(--size);
+    background-color: var(--color);
+    border-radius: 2px 70% 2px 70%;
+    pointer-events: none;
+    z-index: 1;
+    animation-name: leaf-fall;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+  }
+  
+  .cloud {
+    position: fixed;
+    top: var(--top);
+    left: 0;
+    width: var(--width);
+    height: var(--height);
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0;
+    animation-name: cloud-drift;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
+
+  /* Template Editor Grid Background */
+  .grid-background {
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(0,0,0,0.2) 1px, transparent 0);
+    background-size: 16px 16px;
+    background-position: -1px -1px;
+  }
+  .dark .grid-background {
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,0.1) 1px, transparent 0);
+  }
+
+  /* Thermostat Slider */
+  .thermostat-slider-container {
+      display: flex;
+      align-items: center;
+      padding: 0 4px;
+    }
+    .thermostat-slider {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 8px;
+        background-color: rgba(255, 255, 255, 0.15);
+        border-radius: 4px;
+        outline: none;
+        position: relative;
+    }
+
+    .thermostat-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 24px;
+        height: 24px;
+        background: #fff;
+        border-radius: 50%;
+        cursor: pointer;
+        border: 4px solid #1c1c1e;
+        box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    }
+
+    .thermostat-slider::-moz-range-thumb {
+        width: 24px;
+        height: 24px;
+        background: #fff;
+        border-radius: 50%;
+        cursor: pointer;
+        border: 4px solid #1c1c1e;
+        box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    }
+    
+    .thermostat-slider::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 8px;
+        width: var(--track-percentage, 0%);
+        background: linear-gradient(90deg, #60A5FA 0%, #A78BFA 50%, #F472B6 100%);
+        border-radius: 4px;
+    }
+
+  .animate-sunny { animation: sunny 4s ease-in-out infinite; }
+  .animate-night { animation: night-twinkle 3s ease-in-out infinite; }
+  .animate-cloudy { animation: cloudy-move 6s ease-in-out infinite; }
+  .animate-rainy { animation: rainy-bounce 6s ease-in-out infinite; }
+  .animate-snowy { animation: snowy-drift 8s ease-in-out infinite; }
+  .animate-stormy { animation: stormy-flash 5s linear infinite; }
+  .animate-foggy { animation: foggy-drift 8s ease-in-out infinite; }
+  .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+  .animate-glow { animation: glow 2.5s ease-in-out infinite; }
+  .animate-pulse-scale { animation: pulse-scale 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+  .animate-wave { animation: wave-animation 8s linear infinite; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "nanoid": "https://aistudiocdn.com/nanoid@^5.1.6",
+    "framer-motion": "https://aistudiocdn.com/framer-motion@^12.23.24",
+    "@iconify/react": "https://aistudiocdn.com/@iconify/react@^6.0.2",
+    "jszip": "https://aistudiocdn.com/jszip@^3.10.1",
+    "date-fns": "https://aistudiocdn.com/date-fns@^4.1.0",
+    "date-fns/": "https://aistudiocdn.com/date-fns@^4.1.0/",
+    "@dnd-kit/core": "https://aistudiocdn.com/@dnd-kit/core@^6.3.1",
+    "@dnd-kit/sortable": "https://aistudiocdn.com/@dnd-kit/sortable@^10.0.0",
+    "@dnd-kit/utilities": "https://aistudiocdn.com/@dnd-kit/utilities@^3.2.2",
+    "@dnd-kit/modifiers": "https://aistudiocdn.com/@dnd-kit/modifiers@^9.0.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.4.1",
+    "zustand": "https://aistudiocdn.com/zustand@^5.0.8",
+    "hls.js": "https://aistudiocdn.com/hls.js@^1.6.15",
+    "vite": "https://aistudiocdn.com/vite@^7.2.2",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.0",
+    "crypto-js": "https://aistudiocdn.com/crypto-js@^4.2.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
