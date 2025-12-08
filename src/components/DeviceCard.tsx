@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Device, DeviceType, CardTemplate, DeviceCustomizations, ColorScheme, CardElement } from '../types';
 import DeviceIcon, { getIconNameForDeviceType } from './DeviceIcon';
@@ -140,6 +141,18 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
     if (element.styles.textAlign) commonStyle.textAlign = element.styles.textAlign;
     if (element.styles.fontSize) commonStyle.fontSize = `${element.styles.fontSize}px`;
     if (element.styles.fontFamily) commonStyle.fontFamily = element.styles.fontFamily;
+
+    const isFlex = ['name', 'status', 'value', 'unit', 'temperature', 'target-temperature-text', 'current-temperature-prefixed', 'battery'].includes(element.id);
+    const customStyles = { ...element.styles };
+    
+    let flexClasses = "flex items-center";
+    if (isFlex) {
+        switch (customStyles.textAlign) {
+            case 'center': flexClasses += ' justify-center'; break;
+            case 'right': flexClasses += ' justify-end'; break;
+            default: flexClasses += ' justify-start'; break;
+        }
+    }
 
     switch (element.id) {
       case 'name':
