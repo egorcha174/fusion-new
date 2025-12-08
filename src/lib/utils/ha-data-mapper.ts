@@ -1,5 +1,6 @@
-import { DeviceType } from '$types';
-import type { Device, Room, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization, WeatherForecast } from '$types';
+
+import { DeviceType } from '../types';
+import type { Device, Room, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, DeviceCustomizations, DeviceCustomization, WeatherForecast } from '../types';
 
 /**
  * Определяет внутренний тип устройства (`DeviceType`) на основе данных из Home Assistant.
