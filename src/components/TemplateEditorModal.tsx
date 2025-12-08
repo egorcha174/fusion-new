@@ -330,6 +330,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
           ...prev,
           elements: prev.elements.map(e => {
               if (e.uniqueId !== uniqueId) return e;
+              // Remove explicit cast 'as any' here if causing issues, but structure seems safe now
               const { styles, position, size, ...otherUpdates } = updates as any;
               return { ...e, ...otherUpdates, 
                 styles: styles ? { ...e.styles, ...styles } : e.styles, 
