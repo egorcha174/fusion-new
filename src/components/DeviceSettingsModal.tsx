@@ -115,11 +115,11 @@ const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   const availableTypes = Object.keys(DeviceType)
     .filter(key => !isNaN(Number(key)))
     .map(key => ({
-        value: Number(key) as DeviceType,
-        name: DeviceType[Number(key) as DeviceType]
+        value: Number(key),
+        name: DeviceType[Number(key)]
     }));
     
-  const availableIcons = Object.keys(icons).map(Number) as DeviceType[];
+  const availableIcons = Object.keys(icons).map(Number);
   
   const isTemplateable = [
     DeviceType.Sensor, DeviceType.Light, DeviceType.DimmableLight,

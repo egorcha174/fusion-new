@@ -1,18 +1,21 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { CardTemplate, ServerConfig, ThemeDefinition, Device, AuroraSettings, DeviceType } from '../types';
+import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device, AuroraSettings } from '../types';
 import ConfirmDialog from './ConfirmDialog';
 import { useAppStore, BackgroundEffectType } from '../store/appStore';
 import { useHAStore } from '../store/haStore';
 import JSZip from 'jszip';
 import { Icon } from '@iconify/react';
 import { LOCAL_STORAGE_KEYS } from '../constants';
+import { format } from 'date-fns';
 import { nanoid } from 'nanoid';
 import { set as setAtPath } from '../utils/obj-path';
 import { generatePackage, validatePackage } from '../utils/packageManager';
 import { Section, LabeledInput, ColorInput, RangeInput, ThemeEditor } from './SettingsControls';
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'failed';
+type SettingsTab = 'appearance' | 'interface' | 'templates' | 'connection' | 'backup';
 
 // --- Основной компонент настроек ---
 interface SettingsProps {
@@ -75,7 +78,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
     }, [servers, editingServer]);
 
     const weatherEntities = useMemo(() => {
-        return (Array.from(allKnownDevices.values()) as Device[])
+        return (Array.from(allKnownDevices.values()))
             .filter(device => device.type === DeviceType.Weather || device.haDomain === 'weather')
             .sort((a, b) => a.name.localeCompare(b.name));
     }, [allKnownDevices]);
@@ -95,7 +98,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
 
             // Собираем все настройки из localStorage
             const settingsToExport: { [key: string]: any } = {};
-            for (const key of Object.values(LOCAL_STORAGE_KEYS) as string[]) {
+            for (const key of Object.values(LOCAL_STORAGE_KEYS)) {
                 const value = localStorage.getItem(key);
                 if (value !== null) {
                     try {
@@ -136,9 +139,9 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                         const content = await settingsFile.async("string");
                         const importedSettings = JSON.parse(content);
 
-                        const validStorageKeys = Object.values(LOCAL_STORAGE_KEYS) as string[];
+                        const validStorageKeys = Object.values(LOCAL_STORAGE_KEYS);
                         Object.keys(importedSettings).forEach(key => {
-                            if (validStorageKeys.includes(key)) {
+                            if (validStorageKeys.includes(key as any)) {
                                localStorage.setItem(key, JSON.stringify(importedSettings[key]));
                             }
                         });
@@ -191,7 +194,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
 
     const handleResetAllSettings = () => {
         if(window.confirm("Вы уверены, что хотите сбросить ВСЕ настройки? Это действие нельзя отменить.")) {
-            (Object.values(LOCAL_STORAGE_KEYS) as string[]).forEach(key => {
+            Object.values(LOCAL_STORAGE_KEYS).forEach(key => {
                 localStorage.removeItem(key);
             });
             alert("Все настройки сброшены. Страница будет перезагружена.");
@@ -418,7 +421,6 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                             <select value={backgroundEffect} onChange={e => setBackgroundEffect(e.target.value as BackgroundEffectType)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm">
                                 <option value="none">Нет</option>
                                 <option value="weather">По погоде</option>
-                                {/* FIX: Added missing 'tron' option */}
                                 <option value="tron">Трон</option>
                                 <option value="snow">Снег</option>
                                 <option value="rain">Дождь</option>
@@ -512,6 +514,61 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                                 </div>
                             </div>
                         )}
+                    </Section>
+
+                    <Section title="Погода" description="Настройте источник данных о погоде для виджета и фоновых эффектов.">
+                        <LabeledInput label="Провайдер погоды">
+                            <select value={weatherProvider} onChange={e => setWeatherProvider(e.target.value as any)} className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm">
+                                <option value="homeassistant">Home Assistant</option>
+                                <option value="openweathermap">OpenWeatherMap</option>
+                                <option value="yandex">Яндекс.Погода</option>
+                                <option value="foreca">Foreca</option>
+                            </select>
+                        </LabeledInput>
+
+                        {weatherProvider === 'homeassistant' && (
+                            <LabeledInput label="Сущность погоды" description="Выберите вашу сущность weather из Home Assistant.">
+                                <select value={weatherEntityId} onChange={e => setWeatherEntityId(e.target.value)} className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm">
+                                    <option value="">-- Выберите сущность --</option>
+                                    {weatherEntities.map(entity => (
+                                        <option key={entity.id} value={entity.id}>{entity.name}</option>
+                                    ))}
+                                </select>
+                            </LabeledInput>
+                        )}
+
+                        {weatherProvider === 'openweathermap' && (
+                            <LabeledInput label="Ключ API OpenWeatherMap" description="Требуется для получения прогноза.">
+                                <input type="password" value={openWeatherMapKey} onChange={e => setOpenWeatherMapKey(e.target.value)} placeholder="Вставьте ваш ключ API" className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm" />
+                            </LabeledInput>
+                        )}
+                        
+                        {weatherProvider === 'yandex' && (
+                            <LabeledInput label="Ключ API Яндекс.Погоды" description="Тариф 'Прогноз по координатам'.">
+                                <input type="password" value={yandexWeatherKey} onChange={e => setYandexWeatherKey(e.target.value)} placeholder="Вставьте ваш ключ API" className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm" />
+                            </LabeledInput>
+                        )}
+                        
+                        {weatherProvider === 'foreca' && (
+                            <LabeledInput label="Ключ API Foreca" description="Требуется Basic/Pro подписка.">
+                                <input type="password" value={forecaApiKey} onChange={e => setForecaApiKey(e.target.value)} placeholder="Вставьте ваш ключ API" className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm" />
+                            </LabeledInput>
+                        )}
+
+                        <div className="h-px bg-gray-200 dark:bg-gray-700 my-4"></div>
+
+                        <LabeledInput label="Дней в прогнозе">
+                            <input type="number" min="1" max="7" value={weatherSettings.forecastDays} onChange={e => setWeatherSettings({ ...weatherSettings, forecastDays: parseInt(e.target.value, 10) })} className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm" />
+                        </LabeledInput>
+
+                        <LabeledInput label="Набор иконок">
+                            <select value={weatherSettings.iconPack} onChange={e => setWeatherSettings({ ...weatherSettings, iconPack: e.target.value as any })} className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm">
+                                <option value="default">Стандартные (анимированные)</option>
+                                <option value="meteocons">Meteocons</option>
+                                <option value="weather-icons">Weather Icons</option>
+                                <option value="material-symbols-light">Material Symbols</option>
+                            </select>
+                        </LabeledInput>
                     </Section>
 
                     <Section title="Тема оформления" description="Выберите тему из списка. Используйте кнопку копирования для создания своей версии.">

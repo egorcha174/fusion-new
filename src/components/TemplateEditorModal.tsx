@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent, useDraggable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
@@ -52,7 +53,7 @@ const SortableLayerItem: React.FC<SortableLayerItemProps> = ({ element, isSelect
 
   const className = `flex items-center justify-between p-2 mb-2 rounded-md border cursor-pointer ${
     isSelected 
-      ? 'bg-blue-50 border-blue-500 dark:bg-blue-900/30 dark:border-blue-500 ring-2 ring-blue-500' 
+      ? 'bg-blue-50 border-blue-500 dark:bg-blue-900/30 dark:border-blue-50 ring-2 ring-blue-500' 
       : 'bg-white dark:bg-gray-700/50 border-gray-200 dark:border-gray-600'
   }`;
 

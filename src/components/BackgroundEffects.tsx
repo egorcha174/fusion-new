@@ -42,7 +42,7 @@ const SnowEffect = () => {
     return (
         <>
             {snowflakes.map(flake => (
-                <div key={flake.id} className="snowflake" style={flake.style as React.CSSProperties} />
+                <div key={flake.id} className="snowflake" style={flake.style} />
             ))}
             <div className="absolute bottom-0 left-0 w-full h-[100px] overflow-hidden pointer-events-none">
                 <div className="absolute -bottom-16 -left-[5%] w-[110%] h-32 bg-white/80 dark:bg-gray-100/10 rounded-[50%] opacity-80" style={{ filter: 'blur(5px)' }} />
@@ -103,10 +103,10 @@ const RainEffect = ({ zIndexOverride }: { zIndexOverride?: number } = {}) => {
     return (
         <>
             {raindrops.map(drop => (
-                <div key={`rain-${drop.id}`} className="raindrop" style={drop.style as React.CSSProperties} />
+                <div key={`rain-${drop.id}`} className="raindrop" style={drop.style} />
             ))}
             {glassDrops.map(drop => (
-                <div key={`glass-${drop.id}`} className="glass-drop" style={drop.style as React.CSSProperties} />
+                <div key={`glass-${drop.id}`} className="glass-drop" style={drop.style} />
             ))}
         </>
     );
@@ -157,7 +157,7 @@ const LeavesEffect = () => {
                     key={leaf.id} 
                     className="leaf" 
                     style={{
-                        ...leaf.style as React.CSSProperties,
+                        ...leaf.style,
                         backgroundColor: 'transparent', // Override generic leaf style
                         borderRadius: 0, // Override generic leaf style
                     }}
@@ -318,7 +318,7 @@ const StrongCloudyEffect = ({ dark = false }: { dark?: boolean } = {}) => {
                     key={cloud.id} 
                     className="cloud" 
                     style={{
-                        ...cloud.style as React.CSSProperties,
+                        ...cloud.style,
                         animationName: 'cloud-drift'
                     }}
                 >
