@@ -50,15 +50,15 @@ const owmToWeatherIcons: Record<string, string> = {
 };
 
 const owmToMaterialSymbols: Record<string, string> = {
-    '01d': 'material-symbols-light:sunny', '01n': 'material-symbols-light:bedtime',
+    '01d': 'material-symbols-light:sunny', '01n': 'material-symbols-light:nightlight',
     '02d': 'material-symbols-light:partly-cloudy-day', '02n': 'material-symbols-light:partly-cloudy-night',
     '03d': 'material-symbols-light:cloud', '03n': 'material-symbols-light:cloud',
     '04d': 'material-symbols-light:cloud', '04n': 'material-symbols-light:cloud',
     '09d': 'material-symbols-light:rainy', '09n': 'material-symbols-light:rainy',
     '10d': 'material-symbols-light:rainy', '10n': 'material-symbols-light:rainy',
     '11d': 'material-symbols-light:thunderstorm', '11n': 'material-symbols-light:thunderstorm',
-    '13d': 'material-symbols-light:weather-snowy', '13n': 'material-symbols-light:weather-snowy',
-    '50d': 'material-symbols-light:fog', '50n': 'material-symbols-light:fog',
+    '13d': 'material-symbols-light:cloudy-snowing', '13n': 'material-symbols-light:cloudy-snowing',
+    '50d': 'material-symbols-light:foggy', '50n': 'material-symbols-light:foggy',
 };
 
 

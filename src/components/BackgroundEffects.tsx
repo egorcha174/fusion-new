@@ -241,7 +241,6 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
             <g 
                 style={{ 
                     animation: `cloud-morph ${morphDuration}s infinite ease-in-out alternate`, 
-                    // FIX: Corrected typo 'mDelay' to 'morphDelay'.
                     animationDelay: `${morphDelay}s`,
                     transformOrigin: 'center'
                 }}
@@ -343,8 +342,7 @@ const RiverEffect = () => {
 };
 
 const AuroraEffect = () => {
-    // FIX: The `useAppStore` hook requires a selector function. Changed to select the `auroraSettings` state slice.
-    const auroraSettings = useAppStore(state => state.auroraSettings);
+    const auroraSettings = useAppStore((state) => state.auroraSettings);
     const { color1, color2, color3, speed, intensity, blur, saturate, starsEnabled, starsSpeed } = auroraSettings;
 
     const containerStyle = {
@@ -607,14 +605,12 @@ const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect, isDark = 
             )}
             {effect === 'rain-clouds' && (
                 <>
-                    {/* FIX: Use explicit boolean prop `dark={true}` for dark clouds during rain. */}
                     <StrongCloudyEffect dark={true} />
                     <RainEffect zIndexOverride={15} />
                 </>
             )}
             {effect === 'snow-rain' && (
                 <>
-                    {/* FIX: Use explicit boolean prop `dark={true}` for dark clouds during snow/rain. */}
                     <StrongCloudyEffect dark={true} />
                     <RainEffect zIndexOverride={15} />
                     <SnowEffect />
@@ -622,7 +618,6 @@ const BackgroundEffects: React.FC<BackgroundEffectsProps> = ({ effect, isDark = 
             )}
             {effect === 'thunderstorm' && (
                 <>
-                    {/* FIX: The `dark` prop for StrongCloudyEffect was missing a value. For a thunderstorm, clouds should be dark, so `dark={true}` is appropriate. */}
                     <StrongCloudyEffect dark={true} />
                     <RainEffect zIndexOverride={15} />
                     <LightningFlash />
