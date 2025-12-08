@@ -1,3 +1,4 @@
+
 import React, { useMemo, useRef, useEffect } from 'react';
 import { useAppStore, BackgroundEffectType } from '../store/appStore';
 import { applyOpacity } from '../utils/themeUtils';
@@ -33,7 +34,7 @@ const SnowEffect = () => {
                     animationDuration: `${duration}s`,
                     animationDelay: `${delay}s`,
                     filter: `blur(${size > 4 ? 1 : 0}px)`,
-                } as React.CSSProperties,
+                },
             };
         });
     }, []);
@@ -41,7 +42,7 @@ const SnowEffect = () => {
     return (
         <>
             {snowflakes.map(flake => (
-                <div key={flake.id} className="snowflake" style={flake.style} />
+                <div key={flake.id} className="snowflake" style={flake.style as React.CSSProperties} />
             ))}
             <div className="absolute bottom-0 left-0 w-full h-[100px] overflow-hidden pointer-events-none">
                 <div className="absolute -bottom-16 -left-[5%] w-[110%] h-32 bg-white/80 dark:bg-gray-100/10 rounded-[50%] opacity-80" style={{ filter: 'blur(5px)' }} />
@@ -71,7 +72,7 @@ const RainEffect = ({ zIndexOverride }: { zIndexOverride?: number } = {}) => {
                     animationDuration: `${duration}s`,
                     animationDelay: `${delay}s`,
                     zIndex: zIndexOverride || undefined,
-                } as React.CSSProperties,
+                },
             };
         });
     }, [zIndexOverride]);
@@ -94,7 +95,7 @@ const RainEffect = ({ zIndexOverride }: { zIndexOverride?: number } = {}) => {
                     animationDuration: `${duration}s`,
                     animationDelay: `${delay}s`,
                     zIndex: zIndexOverride ? zIndexOverride + 10 : undefined,
-                } as React.CSSProperties,
+                },
             };
         });
     }, [zIndexOverride]);
@@ -102,10 +103,10 @@ const RainEffect = ({ zIndexOverride }: { zIndexOverride?: number } = {}) => {
     return (
         <>
             {raindrops.map(drop => (
-                <div key={`rain-${drop.id}`} className="raindrop" style={drop.style} />
+                <div key={`rain-${drop.id}`} className="raindrop" style={drop.style as React.CSSProperties} />
             ))}
             {glassDrops.map(drop => (
-                <div key={`glass-${drop.id}`} className="glass-drop" style={drop.style} />
+                <div key={`glass-${drop.id}`} className="glass-drop" style={drop.style as React.CSSProperties} />
             ))}
         </>
     );
@@ -144,7 +145,7 @@ const LeavesEffect = () => {
                     '--color': color,
                     animationDuration: `${duration}s`,
                     animationDelay: `${delay}s`,
-                } as React.CSSProperties,
+                },
             };
         });
     }, []);
@@ -156,7 +157,7 @@ const LeavesEffect = () => {
                     key={leaf.id} 
                     className="leaf" 
                     style={{
-                        ...leaf.style,
+                        ...leaf.style as React.CSSProperties,
                         backgroundColor: 'transparent', // Override generic leaf style
                         borderRadius: 0, // Override generic leaf style
                     }}
@@ -289,7 +290,7 @@ const StrongCloudyEffect = ({ dark = false }: { dark?: boolean } = {}) => {
                     animationDuration: `${parallaxDuration}s`,
                     animationDelay: `${delay}s`,
                     filter: scale < 1.0 ? 'blur(3px)' : 'blur(1px)',
-                } as React.CSSProperties,
+                },
                 width,
                 height,
                 color,
@@ -317,7 +318,7 @@ const StrongCloudyEffect = ({ dark = false }: { dark?: boolean } = {}) => {
                     key={cloud.id} 
                     className="cloud" 
                     style={{
-                        ...cloud.style,
+                        ...cloud.style as React.CSSProperties,
                         animationName: 'cloud-drift'
                     }}
                 >

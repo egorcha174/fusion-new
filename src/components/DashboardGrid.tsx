@@ -11,7 +11,7 @@ import { useAppStore } from '../store/appStore';
 import ErrorBoundary from './ErrorBoundary';
 
 // Workaround for TypeScript errors with motion.div props in some environments
-const MotionDiv = motion.div as any;
+const MotionDiv = motion.div;
 
 interface DashboardGridProps {
   tab: Tab;

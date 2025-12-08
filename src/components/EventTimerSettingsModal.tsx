@@ -51,7 +51,7 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
     }, [widget]);
     
     const previewDevice = useMemo<Device>(() => {
-        const fillPercentage = 75; 
+        const fillPercentage = 75; // Sample fill for a good-looking preview
         const daysPassed = Math.floor((cycleDays * fillPercentage) / 100);
         const daysRemaining = Math.max(0, cycleDays - daysPassed);
 
@@ -141,7 +141,7 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
                             <input type="date" value={formattedDate} onChange={e => setLastResetDate(e.target.value ? new Date(e.target.value).toISOString() : null)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 [color-scheme:dark]" />
                         </LabeledInput>
                         <LabeledInput label="Анимация заливки">
-                            <select value={animation} onChange={e => setAnimation(e.target.value as 'smooth' | 'wave' | 'bubbles' | 'none')} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
+                            <select value={animation} onChange={e => setAnimation(e.target.value as any)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
                                 <option value="smooth">Плавная</option>
                                 <option value="wave">Волна</option>
                                 <option value="bubbles">Пузырьки</option>
@@ -149,7 +149,7 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
                             </select>
                         </LabeledInput>
                         <LabeledInput label="Направление заливки">
-                            <select value={fillDirection} onChange={e => setFillDirection(e.target.value as 'bottom-to-top' | 'top-to-bottom')} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
+                            <select value={fillDirection} onChange={e => setFillDirection(e.target.value as any)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
                                 <option value="bottom-to-top">Снизу вверх</option>
                                 <option value="top-to-bottom">Сверху вниз</option>
                             </select>
