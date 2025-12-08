@@ -1,6 +1,7 @@
+
 import { browser } from '$app/environment';
-import { constructHaUrl } from '$utils/url';
-import type { ConnectionStatus, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry } from '$types';
+import { constructHaUrl } from '../utils/url';
+import type { ConnectionStatus, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry } from '../types';
 
 // Svelte 5 Runes declarations
 declare const $state: <T>(value: T) => T;

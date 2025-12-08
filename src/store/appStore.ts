@@ -810,7 +810,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             setTemplates({ ...get().templates, [templateId]: template });
 
             const newCustomization: DeviceCustomization = {
-                ...customizations[deviceId],
+                ...(customizations[deviceId] || {}), // Fix spread of potentially undefined
                 templateId: templateId,
             };
             setCustomizations({ ...get().customizations, [deviceId]: newCustomization });

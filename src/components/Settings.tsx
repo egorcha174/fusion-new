@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device, AuroraSettings } from '../types';
@@ -78,7 +77,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
     }, [servers, editingServer]);
 
     const weatherEntities = useMemo(() => {
-        return (Array.from(allKnownDevices.values()))
+        return (Array.from(allKnownDevices.values()) as Device[])
             .filter(device => device.type === DeviceType.Weather || device.haDomain === 'weather')
             .sort((a, b) => a.name.localeCompare(b.name));
     }, [allKnownDevices]);
@@ -678,7 +677,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
 
                     <Section title="Шаблоны карточек" description="Управление шаблонами для устройств." defaultOpen={false}>
                         <div className="space-y-2 max-h-60 overflow-y-auto pr-2 no-scrollbar">
-                            {Object.values(templates).map((template: CardTemplate) => (
+                            {(Object.values(templates) as CardTemplate[]).map((template) => (
                                 <div key={template.id} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/30 p-3 rounded-md border border-gray-100 dark:border-gray-700">
                                     <div>
                                         <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{template.name}</p>
