@@ -342,7 +342,7 @@ const RiverEffect = () => {
 };
 
 const AuroraEffect = () => {
-    const auroraSettings = useAppStore((state) => state.auroraSettings);
+    const auroraSettings = useAppStore(state => state.auroraSettings);
     const { color1, color2, color3, speed, intensity, blur, saturate, starsEnabled, starsSpeed } = auroraSettings;
 
     const containerStyle = {
@@ -382,7 +382,7 @@ const AuroraEffect = () => {
 
 const TronEffect = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const animationFrameId = useRef<number>();
+    const animationFrameId = useRef<number | null>(null);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -406,6 +406,16 @@ const TronEffect = () => {
             alive: boolean;
 
             constructor() {
+                this.x = 0;
+                this.y = 0;
+                this.speed = 0;
+                this.color = '';
+                this.dir = 'h';
+                this.vx = 0;
+                this.vy = 0;
+                this.trail = [];
+                this.turnCooldown = 0;
+                this.alive = false;
                 this.initialize();
             }
 
@@ -518,7 +528,7 @@ const TronEffect = () => {
 
         return () => {
             window.removeEventListener("resize", handleResize);
-            if (animationFrameId.current) {
+            if (animationFrameId.current !== null) {
                 cancelAnimationFrame(animationFrameId.current);
             }
         };
