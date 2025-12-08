@@ -548,9 +548,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                                     const historyPoints = historyResult[entityId];
 
                                                     if (device && historyPoints && historyPoints.length > 0) {
-                                                        // FIX: Use Object.assign for shallow copy to avoid spread operator issues in some environments.
-// FIX: Add explicit type annotation to resolve 'Property 'history' does not exist on type '{}'.'
-                                                        const newDevice: Device = Object.assign({}, device);
+                                                        const newDevice: Device = { ...device };
                                                         newDevice.history = historyPoints
                                                             .map((p: any) => parseFloat(p.s))
                                                             .filter((n: any) => !isNaN(n));

@@ -140,13 +140,46 @@ const App: React.FC = () => {
         if (connectionStatus === 'connected' && !isLoading && !initializationDone.current) {
             initializationDone.current = true;
             
-            // If no tabs exist, create a default welcome tab.
-            if (tabs.length === 0) {
+            if (tabs.length === 0 && allKnownDevices.size > 0) {
+                const { getTemplateForDevice } = useAppStore.getState();
+                const devices = Array.from<Device>(allKnownDevices.values()).sort((a, b) => a.name.localeCompare(b.name));
+                
+                const newLayout: GridLayoutItem[] = [];
+                const cols = 8;
+                let maxRow = 0;
+
+                const checkOverlap = (l: GridLayoutItem[], x: number, y: number, w: number, h: number) => {
+                    return l.some(item => {
+                        const iw = item.width || 1;
+                        const ih = item.height || 1;
+                        return (x < item.col + iw && x + w > item.col && y < item.row + ih && y + h > item.row);
+                    });
+                }
+
+                for (const device of devices) {
+                    const template = getTemplateForDevice(device);
+                    const w = template?.width || 1;
+                    const h = template?.height || 1;
+                    
+                    let placed = false;
+                    for (let r = 0; r < 1000; r++) { 
+                        for (let c = 0; c <= cols - w; c++) {
+                            if (!checkOverlap(newLayout, c, r, w, h)) {
+                                newLayout.push({ deviceId: device.id, col: c, row: r, width: w, height: h });
+                                maxRow = Math.max(maxRow, r + h);
+                                placed = true;
+                                break;
+                            }
+                        }
+                        if (placed) break;
+                    }
+                }
+
                 const newTab: Tab = {
                     id: nanoid(),
                     name: 'Главная',
-                    layout: [], // Empty layout
-                    gridSettings: { cols: 10, rows: 5 }
+                    layout: newLayout,
+                    gridSettings: { cols: cols, rows: Math.max(5, maxRow) }
                 };
 
                 setTabs([newTab]);
@@ -157,7 +190,7 @@ const App: React.FC = () => {
                 }
             }
         }
-    }, [connectionStatus, isLoading, tabs, activeTabId, setTabs, setActiveTabId]);
+    }, [connectionStatus, isLoading, tabs, activeTabId, allKnownDevices, setTabs, setActiveTabId]);
 
   const activeTab = useMemo(() => tabs.find(t => t.id === activeTabId), [tabs, activeTabId]);
   

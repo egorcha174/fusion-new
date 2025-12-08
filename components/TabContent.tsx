@@ -1,5 +1,4 @@
 
-
 import React, { useMemo } from 'react';
 import DashboardGrid from './DashboardGrid';
 import { Tab, Device, GridLayoutItem, CardTemplates, DeviceCustomizations, ColorScheme, ColorThemeSet, ThemeColors } from '../types';
@@ -27,11 +26,9 @@ const TabContent: React.FC<TabContentProps> = (props) => {
   // Если на вкладке нет устройств, показываем заглушку.
   if (tab.layout.length === 0) {
       return (
-          <div className="flex h-full w-full items-center justify-center text-center text-gray-500 dark:text-gray-400">
-              <div>
-                  <h3 className="text-3xl font-semibold text-gray-400 dark:text-gray-600">Добро пожаловать</h3>
-                  <p className="mt-2">Щелкните правой кнопкой мыши, чтобы войти в режим редактирования и добавить карточки.</p>
-              </div>
+          <div className="text-center py-20 text-gray-500">
+              <h3 className="text-xl">Эта вкладка пуста</h3>
+              <p className="mt-2">Перейдите в "Все устройства" или включите режим редактирования, чтобы добавить их.</p>
           </div>
       )
   }

@@ -241,6 +241,7 @@ const CloudShape = React.memo(({ width, height, color, seed }: { width: number, 
             <g 
                 style={{ 
                     animation: `cloud-morph ${morphDuration}s infinite ease-in-out alternate`, 
+                    // FIX: Corrected typo 'mDelay' to 'morphDelay'.
                     animationDelay: `${morphDelay}s`,
                     transformOrigin: 'center'
                 }}
@@ -342,7 +343,7 @@ const RiverEffect = () => {
 };
 
 const AuroraEffect = () => {
-    // FIX: `useAppStore` hook was called without a selector, causing an error. Added a selector to retrieve the `auroraSettings` state.
+    // FIX: The `useAppStore` hook requires a selector function. Changed to select the `auroraSettings` state slice.
     const auroraSettings = useAppStore(state => state.auroraSettings);
     const { color1, color2, color3, speed, intensity, blur, saturate, starsEnabled, starsSpeed } = auroraSettings;
 

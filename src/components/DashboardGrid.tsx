@@ -1,10 +1,11 @@
+
 import React, { useState, useMemo } from 'react';
 import {
   DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent,
   useDraggable, useDroppable, DragOverlay, pointerWithin,
 } from '@dnd-kit/core';
 import { motion } from 'framer-motion';
-import DeviceCard from './DeviceCard';
+import { DeviceCard } from './DeviceCard';
 import { Tab, Device, GridLayoutItem, CardTemplates, DeviceCustomizations, ThemeColors } from '../types';
 import { useAppStore } from '../store/appStore';
 import ErrorBoundary from './ErrorBoundary';
@@ -232,6 +233,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
                   <ErrorBoundary isCard>
                     <DeviceCard
                       device={device}
+                      cardWidth={width}
+                      cardHeight={height}
                       template={template || undefined}
                       allKnownDevices={allKnownDevices}
                       customizations={customizations}
@@ -262,6 +265,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
                  <DeviceCard
                       device={activeDevice}
                       template={getTemplateForDevice(activeDevice) || undefined}
+                      cardWidth={tab.layout.find(item => item.deviceId === activeDevice.id)?.width || 1}
+                      cardHeight={tab.layout.find(item => item.deviceId === activeDevice.id)?.height || 1}
                       allKnownDevices={allKnownDevices}
                       customizations={customizations}
                       isEditMode={false}

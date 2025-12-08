@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent, useDraggable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import DeviceCard from './DeviceCard';
+import { DeviceCard } from './DeviceCard';
 import { CardTemplate, CardElement, DeviceType, CardElementId, ElementStyles, Device } from '../types';
 import { nanoid } from 'nanoid';
 import { Icon } from '@iconify/react';
@@ -13,7 +13,6 @@ interface TemplateEditorModalProps {
   onClose: () => void;
 }
 
-// FIX: Add missing properties `target-temperature-text`, `current-temperature-prefixed`, and `temperature-slider` to match the `CardElementId` type.
 const ELEMENT_LABELS: Record<CardElementId, string> = {
   name: 'Название',
   icon: 'Иконка',

@@ -12,7 +12,6 @@ interface DeviceCardProps {
   template?: CardTemplate;
   allKnownDevices: Map<string, Device>;
   customizations: DeviceCustomizations;
-  // FIX: Added missing cardWidth and cardHeight props to resolve error in TemplateEditorModal.
   cardWidth?: number;
   cardHeight?: number;
   isEditMode: boolean;
@@ -31,15 +30,16 @@ interface DeviceCardProps {
   colorScheme: ColorScheme['light'];
   isDark: boolean;
   autoPlay?: boolean; // Added prop for grid control
-  // FIX: Added gridCellSize to props to resolve TypeScript error in DashboardGrid.
   gridCellSize?: number;
 }
 
-const DeviceCard: React.FC<DeviceCardProps> = ({
+const DeviceCardComponent: React.FC<DeviceCardProps> = ({
   device,
   template,
   allKnownDevices,
   customizations,
+  cardWidth = 1,
+  cardHeight = 1,
   isEditMode,
   isPreview = false,
   onDeviceToggle,
@@ -260,6 +260,99 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
                  />
              </div>
          );
+      case 'hvac-modes':
+        if (device.type !== DeviceType.Thermostat) return null;
+        return (
+            <div key={element.uniqueId} style={commonStyle} className="flex flex-col gap-1 justify-center pointer-events-auto" onClick={e => e.stopPropagation()}>
+                {device.hvacModes?.map((mode) => (
+                    <button
+                        key={mode}
+                        onClick={() => onHvacModeChange(device.id, mode)}
+                        className={`w-full aspect-square rounded-full flex items-center justify-center text-xs transition-colors ${device.hvacAction === mode || (device.state === mode && device.hvacAction !== 'off') ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}
+                        title={mode}
+                    >
+                        <Icon icon={mode === 'heat' ? 'mdi:fire' : mode === 'cool' ? 'mdi:snowflake' : mode === 'auto' ? 'mdi:cached' : 'mdi:power'} className="w-2/3 h-2/3" />
+                    </button>
+                ))}
+            </div>
+        );
+      case 'linked-entity':
+        return (
+            <div key={element.uniqueId} style={commonStyle} className="flex items-center justify-center pointer-events-none">
+                {element.styles.linkedEntityId && (
+                    <div className="text-xs bg-black/50 text-white px-1 rounded">
+                       {element.styles.showValue ? allKnownDevices.get(element.styles.linkedEntityId)?.state : ''}
+                    </div>
+                )}
+            </div>
+        );
+      case 'battery':
+        if (device.batteryLevel === undefined) return null;
+        return (
+            <div key={element.uniqueId} style={commonStyle} className={`flex items-center gap-1 ${flexClasses}`}>
+                <Icon 
+                    icon={device.batteryLevel > 20 ? "mdi:battery" : "mdi:battery-alert"} 
+                    className={device.batteryLevel > 20 ? "text-green-500" : "text-red-500"}
+                />
+                <span className="text-xs">{device.batteryLevel}%</span>
+            </div>
+        );
+      case 'fan-speed-control':
+        if (device.type !== DeviceType.Humidifier && device.type !== DeviceType.Custom) return null;
+        return (
+            <div key={element.uniqueId} style={commonStyle} onClick={e => e.stopPropagation()} className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800/50 rounded-full p-1">
+                <button onClick={() => onFanSpeedChange(device.id, 'low')} className={`p-1 rounded-full ${device.fanLevel === 'low' ? 'bg-white shadow-sm dark:bg-gray-600' : ''}`}><Icon icon="mdi:fan-speed-1" className="w-4 h-4" /></button>
+                <button onClick={() => onFanSpeedChange(device.id, 'medium')} className={`p-1 rounded-full ${device.fanLevel === 'medium' ? 'bg-white shadow-sm dark:bg-gray-600' : ''}`}><Icon icon="mdi:fan-speed-2" className="w-4 h-4" /></button>
+                <button onClick={() => onFanSpeedChange(device.id, 'high')} className={`p-1 rounded-full ${device.fanLevel === 'high' ? 'bg-white shadow-sm dark:bg-gray-600' : ''}`}><Icon icon="mdi:fan-speed-3" className="w-4 h-4" /></button>
+            </div>
+        );
+        
+      // NEW ELEMENT RENDERERS
+      case 'target-temperature-text':
+        if (device.type !== DeviceType.Thermostat || device.targetTemperature === undefined) return null;
+        let targetTextValue: string | number = device.targetTemperature;
+        if (typeof element.styles.decimalPlaces === 'number') {
+            targetTextValue = device.targetTemperature.toFixed(element.styles.decimalPlaces);
+        }
+        return (
+            <div key={element.uniqueId} style={commonStyle} className={`truncate pointer-events-none w-full ${flexClasses}`}>
+                <span style={{ color: isOn ? (colorScheme.valueTextColorOn || 'var(--text-value-on)') : (colorScheme.valueTextColor || 'var(--text-value)') }}>
+                    {targetTextValue}
+                </span>
+            </div>
+        );
+
+      case 'current-temperature-prefixed':
+        if (device.temperature === undefined) return null;
+        let currTempValue: string | number = device.temperature;
+        if (typeof element.styles.decimalPlaces === 'number') {
+            currTempValue = device.temperature.toFixed(element.styles.decimalPlaces);
+        }
+        return (
+            <div key={element.uniqueId} style={commonStyle} className={`truncate pointer-events-none w-full ${flexClasses}`}>
+                <span className="opacity-70 mr-1" style={{ fontSize: '0.8em' }}>Текущая:</span>
+                <span style={{ color: isOn ? (colorScheme.valueTextColorOn || 'var(--text-value-on)') : (colorScheme.valueTextColor || 'var(--text-value)') }}>
+                    {currTempValue}
+                </span>
+            </div>
+        );
+
+      case 'temperature-slider':
+        if (device.type !== DeviceType.Thermostat || device.targetTemperature === undefined) return null;
+        return (
+            <div key={element.uniqueId} style={commonStyle} onClick={e => e.stopPropagation()}>
+                <input
+                    type="range"
+                    min={device.minTemp || 7}
+                    max={device.maxTemp || 35}
+                    step={0.5}
+                    value={device.targetTemperature}
+                    onChange={(e) => onTemperatureChange(device.id, parseFloat(e.target.value))}
+                    className="w-full h-full accent-orange-500 cursor-pointer"
+                />
+            </div>
+        );
+
       default:
         return null;
     }
@@ -277,4 +370,4 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
   );
 };
 
-export default React.memo(DeviceCard);
+export const DeviceCard = React.memo(DeviceCardComponent);

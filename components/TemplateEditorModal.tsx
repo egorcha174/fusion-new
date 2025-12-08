@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent, useDraggable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import DeviceCard from './DeviceCard';
+import { DeviceCard } from './DeviceCard';
 import { CardTemplate, CardElement, DeviceType, CardElementId, ElementStyles, Device } from '../types';
 import { nanoid } from 'nanoid';
 import { Icon } from '@iconify/react';
@@ -13,7 +13,6 @@ interface TemplateEditorModalProps {
   onClose: () => void;
 }
 
-// FIX: Add missing properties `target-temperature-text`, `current-temperature-prefixed`, and `temperature-slider` to match the `CardElementId` type.
 const ELEMENT_LABELS: Record<CardElementId, string> = {
   name: 'Название',
   icon: 'Иконка',
@@ -154,7 +153,7 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
                 <input type="number" value={element.zIndex} onChange={e => handleNumericChange((val) => onChange({ zIndex: val as number }), e.target.value, false)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" />
             </div>
 
-            {(element.id === 'name' || element.id === 'value' || element.id === 'status' || element.id === 'unit' || element.id === 'temperature') && (
+            {(element.id === 'name' || element.id === 'value' || element.id === 'status' || element.id === 'unit' || element.id === 'temperature' || element.id === 'target-temperature-text' || element.id === 'current-temperature-prefixed') && (
                 <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md space-y-2">
                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Типографика</label>
                     <div>
@@ -179,7 +178,7 @@ const ElementPropertiesEditor: React.FC<ElementPropertiesEditorProps> = ({ eleme
                 </div>
             )}
 
-            {(element.id === 'value' || element.id === 'temperature') && (
+            {(element.id === 'value' || element.id === 'temperature' || element.id === 'target-temperature-text' || element.id === 'current-temperature-prefixed') && (
                 <div>
                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Знаков после запятой</label>
                     <input type="number" min="0" max="5" placeholder="Авто" value={element.styles.decimalPlaces ?? ''} onChange={e => handleNumericChange((val) => updateStyle('decimalPlaces', val), e.target.value, false, true, 0)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm" />
@@ -539,7 +538,14 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
     if (['sensor', 'climate', 'custom', 'humidifier'].includes(template.deviceType)) base.push({ id: 'chart', label: 'График' });
     if (['light', 'custom'].includes(template.deviceType)) base.push({ id: 'slider', label: 'Слайдер яркости' });
     if (['climate', 'humidifier', 'custom', 'sensor'].includes(template.deviceType)) base.push({ id: 'temperature', label: 'Текущая температура/значение' });
-    if (['climate', 'humidifier', 'custom'].includes(template.deviceType)) base.push({ id: 'target-temperature', label: 'Кольцо управления (Target)' });
+    if (['climate', 'humidifier', 'custom'].includes(template.deviceType)) {
+      base.push({ id: 'target-temperature', label: 'Кольцо управления (Target)' });
+      if (template.deviceType === 'climate') {
+        base.push({ id: 'target-temperature-text', label: 'Целевая темп. (Текст)' });
+        base.push({ id: 'current-temperature-prefixed', label: 'Текущая темп. (с префиксом)' });
+        base.push({ id: 'temperature-slider', label: 'Слайдер температуры' });
+      }
+    }
     if (['climate', 'humidifier', 'custom'].includes(template.deviceType)) base.push({ id: 'hvac-modes', label: 'Кнопки режимов' });
     if (['custom'].includes(template.deviceType)) {
         base.push({ id: 'linked-entity', label: 'Связанное устройство' });

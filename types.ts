@@ -286,7 +286,6 @@ export interface ThemeColors {
   cardOpacity?: number;
   panelOpacity?: number;
   cardBorderRadius?: number;
-  // FIX: Added missing theme properties for card borders and icon backgrounds.
   cardBorderWidth?: number;
   cardBorderColor?: string;
   cardBorderColorOn?: string;
