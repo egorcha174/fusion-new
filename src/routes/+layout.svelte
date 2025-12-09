@@ -4,6 +4,8 @@
     import { appState } from '$state/app.svelte';
     import { generateThemeCss } from '$utils/themeUtils';
 
+    let { children } = $props();
+
     let currentTheme = $derived(appState.isDark ? appState.colorScheme.dark : appState.colorScheme.light);
     let themeCss = $derived(generateThemeCss(currentTheme));
 </script>
@@ -16,7 +18,7 @@
 </svelte:head>
 
 <div class="min-h-screen transition-colors duration-300" style="background: var(--bg-dashboard-main); color: var(--text-name);">
-    <slot />
+    {@render children()}
 </div>
 
 <style>
