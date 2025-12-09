@@ -548,7 +548,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                                     const historyPoints = historyResult[entityId];
 
                                                     if (device && historyPoints && historyPoints.length > 0) {
-                                                        const newDevice: Device = { ...device };
+                                                        const newDevice: Device = Object.assign({}, device);
                                                         newDevice.history = historyPoints
                                                             .map((p: any) => parseFloat(p.s))
                                                             .filter((n: any) => !isNaN(n));

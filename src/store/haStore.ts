@@ -529,7 +529,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                                     const historyPoints = historyResult[entityId];
 
                                                     if (device && historyPoints && historyPoints.length > 0) {
-                                                        const newDevice: Device = { ...device };
+                                                        const newDevice: Device = Object.assign({}, device);
                                                         newDevice.history = historyPoints
                                                             .map((p: any) => parseFloat(p.s))
                                                             .filter((n: any) => !isNaN(n));
@@ -620,9 +620,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             if (initialLoadWatchdogRef) clearTimeout(initialLoadWatchdogRef);
             set({ error: 'Failed to connect. Invalid URL?', connectionStatus: 'failed', isLoading: false, isInitialLoadComplete: false });
         }
-  };
-
-  const disconnect = () => {
+    },
+    disconnect: () => {
         if (forecastRefreshInterval) clearInterval(forecastRefreshInterval);
         if (updateThrottleTimeout) clearTimeout(updateThrottleTimeout);
         if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
@@ -645,29 +644,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             isLoading: false,
             isInitialLoadComplete: false,
         });
-  };
-
-  return {
-    connectionStatus: 'idle',
-    isLoading: false,
-    isInitialLoadComplete: false,
-    error: null,
-    haUrl: '',
-    entities: {},
-    areas: [],
-    devices: [],
-    entityRegistry: [],
-    forecasts: {},
-    allKnownDevices: new Map(),
-    allRoomsForDevicePage: [],
-    allRoomsWithPhysicalDevices: [],
-    batteryDevices: [],
-    allScenes: [],
-    allAutomations: [],
-    allScripts: [],
-
-    connect,
-    disconnect,
+    },
     callService: (domain, service, service_data, returnResponse = false) => new Promise((resolve, reject) => {
         const id = globalMessageId++;
         if (returnResponse) {

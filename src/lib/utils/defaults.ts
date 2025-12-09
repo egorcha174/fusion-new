@@ -1,4 +1,3 @@
-
 import {
     type CardTemplates,
     type ColorScheme,
@@ -10,8 +9,7 @@ import {
     type AuroraSettings
 } from '../types';
 import { nanoid } from 'nanoid';
-// Import path adjusted for src/lib/utils/ -> src/apple-inspired-light.theme.json
-import appleTheme from '../../apple-inspired-light.theme.json';
+import appleTheme from '../apple-inspired-light.theme.json';
 
 // --- Default Template IDs ---
 export const DEFAULT_SENSOR_TEMPLATE_ID = 'default-sensor';

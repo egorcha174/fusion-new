@@ -1,4 +1,7 @@
+
 export type Page = 'dashboard' | 'all-devices' | 'helpers' | 'settings' | 'template-gallery' | 'all-entities';
+
+export type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'failed';
 
 export enum DeviceType {
   // Physical/Standard Types
