@@ -4,7 +4,7 @@
     import { appState } from '$state/app.svelte';
     import { ha } from '$state/ha.svelte';
     import DeviceIcon from './DeviceIcon.svelte';
-    import { getIconNameForDeviceType } from '$state/app.svelte'; // Assuming helper func or local logic
+    import { getIconNameForDeviceType } from '$utils/device-helpers';
 
     let { device, template, isEditMode = false } = $props<{
         device: Device;

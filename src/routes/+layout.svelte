@@ -11,7 +11,8 @@
 <svelte:head>
     <title>Home Assistant UI</title>
     <!-- Dynamic Theme Injection -->
-    {@html `<style>${themeCss}</style>`}
+    <!-- Broken into parts to avoid Vite/PostCSS preprocessor trying to parse it as CSS -->
+    {@html `<sty` + `le>${themeCss}</sty` + `le>`}
 </svelte:head>
 
 <div class="min-h-screen transition-colors duration-300" style="background: var(--bg-dashboard-main); color: var(--text-name);">

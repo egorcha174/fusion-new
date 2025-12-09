@@ -2,6 +2,7 @@
 <script lang="ts">
     import { Icon } from '@iconify/svelte';
     import { DeviceType } from '$types';
+    import { iconMap, getIconNameForDeviceType } from '$utils/device-helpers';
 
     let { icon, isOn, className = '', animation = 'none' } = $props<{
         icon: string | DeviceType;
@@ -10,22 +11,21 @@
         animation?: 'none' | 'spin' | 'pulse' | 'glow';
     }>();
 
-    const iconMap: Record<number, { on: string; off: string }> = {
-        [DeviceType.Light]: { on: 'mdi:lightbulb', off: 'mdi:lightbulb-outline' },
-        [DeviceType.Switch]: { on: 'mdi:toggle-switch', off: 'mdi:toggle-switch-off-outline' },
-        [DeviceType.Sensor]: { on: 'mdi:radar', off: 'mdi:radar' },
-        [DeviceType.Climate]: { on: 'mdi:thermostat-box', off: 'mdi:thermostat-box' },
-        [DeviceType.Unknown]: { on: 'mdi:help-rhombus-outline', off: 'mdi:help-rhombus-outline' },
-    };
-
     let iconName = $derived.by(() => {
         if (typeof icon === 'string') return icon;
-        const entry = iconMap[icon] || iconMap[DeviceType.Unknown];
-        return isOn ? entry.on : entry.off;
+        return getIconNameForDeviceType(icon, isOn);
     });
 
     let animClass = $derived.by(() => {
-        if (!isOn || animation === 'none') return '';
+        if (!isOn || animation === 'none') {
+             // Check default animation from map if not specified override
+             if (isOn && typeof icon !== 'string') {
+                 const defaultAnim = iconMap[icon as number]?.animation;
+                 if (defaultAnim === 'spin') return 'animate-spin';
+                 if (defaultAnim === 'pulse') return 'animate-pulse';
+             }
+             return '';
+        }
         if (animation === 'spin') return 'animate-spin';
         if (animation === 'pulse') return 'animate-pulse';
         return '';
