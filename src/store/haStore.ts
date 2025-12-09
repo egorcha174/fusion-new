@@ -356,7 +356,26 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
       }
   };
 
-  const connect = (url: string, token: string) => {
+  return {
+    connectionStatus: 'idle',
+    isLoading: false,
+    isInitialLoadComplete: false,
+    error: null,
+    haUrl: '',
+    entities: {},
+    areas: [],
+    devices: [],
+    entityRegistry: [],
+    forecasts: {},
+    allKnownDevices: new Map(),
+    allRoomsForDevicePage: [],
+    allRoomsWithPhysicalDevices: [],
+    batteryDevices: [],
+    allScenes: [],
+    allAutomations: [],
+    allScripts: [],
+
+    connect: (url, token) => {
         if (socketRef) {
             socketRef.close();
             socketRef = null;
@@ -529,7 +548,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                                     const historyPoints = historyResult[entityId];
 
                                                     if (device && historyPoints && historyPoints.length > 0) {
-                                                        const newDevice: Device = Object.assign({}, device);
+                                                        const newDevice: Device = { ...device };
                                                         newDevice.history = historyPoints
                                                             .map((p: any) => parseFloat(p.s))
                                                             .filter((n: any) => !isNaN(n));
