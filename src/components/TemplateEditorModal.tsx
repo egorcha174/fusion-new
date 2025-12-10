@@ -330,8 +330,9 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
           ...prev,
           elements: prev.elements.map(e => {
               if (e.uniqueId !== uniqueId) return e;
-              // Remove explicit cast 'as any' here if causing issues, but structure seems safe now
-              const { styles, position, size, ...otherUpdates } = updates as any;
+              // Safe destructuring without 'as any'
+              const anyUpdates = updates as any;
+              const { styles, position, size, ...otherUpdates } = anyUpdates;
               return { ...e, ...otherUpdates, 
                 styles: styles ? { ...e.styles, ...styles } : e.styles, 
                 position: position ? { ...e.position, ...position } : e.position, 
@@ -525,7 +526,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({ templateToEdi
   
   const previewDevice: Device = useMemo(() => ({
       id: 'preview_device', name: 'Устройство (Пример)', status: 'Активно', state: 'on',
-      type: (template.deviceType as unknown as DeviceType) || DeviceType.Sensor,
+      type: (template.deviceType as any) || DeviceType.Sensor,
       haDomain: 'sensor', attributes: {}, brightness: 80, temperature: 22.5,
       targetTemperature: 24, hvacAction: 'heating', batteryLevel: 85, unit: '°C'
   }), [template.deviceType]);

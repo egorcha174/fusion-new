@@ -101,7 +101,7 @@ const EventTimerSettingsModal: React.FC<EventTimerSettingsModalProps> = ({ widge
     };
     
     const handleColorChange = (index: number, color: string) => {
-        const newColors = [...fillColors] as [string, string, string];
+        const newColors: any = [...fillColors];
         newColors[index] = color;
         setFillColors(newColors);
     };

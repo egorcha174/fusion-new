@@ -34,7 +34,7 @@ const SnowEffect = () => {
                     animationDuration: `${duration}s`,
                     animationDelay: `${delay}s`,
                     filter: `blur(${size > 4 ? 1 : 0}px)`,
-                },
+                } as any,
             };
         });
     }, []);
@@ -72,7 +72,7 @@ const RainEffect = ({ zIndexOverride }: { zIndexOverride?: number } = {}) => {
                     animationDuration: `${duration}s`,
                     animationDelay: `${delay}s`,
                     zIndex: zIndexOverride || undefined,
-                },
+                } as any,
             };
         });
     }, [zIndexOverride]);
@@ -95,7 +95,7 @@ const RainEffect = ({ zIndexOverride }: { zIndexOverride?: number } = {}) => {
                     animationDuration: `${duration}s`,
                     animationDelay: `${delay}s`,
                     zIndex: zIndexOverride ? zIndexOverride + 10 : undefined,
-                },
+                } as any,
             };
         });
     }, [zIndexOverride]);
@@ -145,7 +145,7 @@ const LeavesEffect = () => {
                     '--color': color,
                     animationDuration: `${duration}s`,
                     animationDelay: `${delay}s`,
-                },
+                } as any,
             };
         });
     }, []);
@@ -290,7 +290,7 @@ const StrongCloudyEffect = ({ dark = false }: { dark?: boolean } = {}) => {
                     animationDuration: `${parallaxDuration}s`,
                     animationDelay: `${delay}s`,
                     filter: scale < 1.0 ? 'blur(3px)' : 'blur(1px)',
-                },
+                } as any,
                 width,
                 height,
                 color,
