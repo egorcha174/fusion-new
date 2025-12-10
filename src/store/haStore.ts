@@ -548,7 +548,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                                     const historyPoints = historyResult[entityId];
 
                                                     if (device && historyPoints && historyPoints.length > 0) {
-                                                        const newDevice: Device = { ...device };
+                                                        const newDevice: Device = Object.assign({}, device);
                                                         newDevice.history = historyPoints
                                                             .map((p: any) => parseFloat(p.s))
                                                             .filter((n: any) => !isNaN(n));
@@ -829,7 +829,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
     initAppStore: (store) => {
         if (_appStore) return; 
         _appStore = store;
-        
         try {
             _appStore.subscribe(
                 (state: any, prevState: any) => {
@@ -837,7 +836,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                          state.lowBatteryThreshold !== prevState.lowBatteryThreshold ||
                                          state.eventTimerWidgets !== prevState.eventTimerWidgets ||
                                          state.customCardWidgets !== prevState.customCardWidgets;
-                    
                     if (shouldUpdate && get().isInitialLoadComplete) {
                         updateDerivedState();
                     }
