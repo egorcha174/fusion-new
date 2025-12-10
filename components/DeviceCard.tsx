@@ -139,7 +139,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
         finalSize.height = (element.size.height / cardHeight) * 100;
     }
 
-    const commonStyle: React.CSSProperties = {
+    const commonStyle: any = {
       position: 'absolute',
       left: `${element.position.x}%`,
       top: `${element.position.y}%`,
@@ -150,7 +150,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
     };
     
     if (element.id === 'icon' || element.id === 'target-temperature') {
-        (commonStyle as any).aspectRatio = '1';
+        commonStyle.aspectRatio = '1';
         commonStyle.height = 'auto';
     }
 

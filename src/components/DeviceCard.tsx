@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Device, DeviceType, CardTemplate, DeviceCustomizations, ColorScheme, CardElement } from '../types';
 import DeviceIcon, { getIconNameForDeviceType } from './DeviceIcon';
@@ -85,29 +84,36 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
 
   const getIsOn = () => {
       if (device.type === DeviceType.Climate) return device.hvacAction !== 'off' && device.hvacAction !== 'idle';
-      return device.state === 'on' || device.state === 'active' || device.state === 'home' || device.state === 'open' || device.state === 'playing' || device.state === 'streaming' || device.state === 'recording';
+      return device.state === 'on' || device.state === 'active' || device.state === 'home' || device.state === 'open' || device.state === 'playing';
   };
   const isOn = getIsOn();
 
   const getCardStyle = (): React.CSSProperties => {
+      const baseStyle: React.CSSProperties = {
+          borderRadius: `var(--radius-card)`,
+          borderWidth: `var(--border-width-card)`,
+          borderStyle: 'solid',
+          borderColor: isOn ? 'var(--border-color-card-on)' : 'var(--border-color-card)',
+          transition: 'background-color 0.3s ease, border-color 0.3s ease',
+          width: '100%',
+          height: '100%',
+          position: 'relative',
+          overflow: 'hidden',
+      };
+
       if (device.type === DeviceType.MediaPlayer && (device.state === 'playing' || device.state === 'paused') && device.entityPictureUrl) {
           return {
+              ...baseStyle,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundImage: `url(${device.entityPictureUrl})`,
-              borderRadius: `${colorScheme.cardBorderRadius}px`,
           };
       }
       
       return { 
-          backgroundColor: isOn ? colorScheme.cardBackgroundOn : colorScheme.cardBackground,
+          ...baseStyle,
+          backgroundColor: isOn ? 'var(--bg-card-on)' : 'var(--bg-card)',
           backdropFilter: 'blur(16px)',
-          borderRadius: `${colorScheme.cardBorderRadius}px`,
-          overflow: 'hidden',
-          position: 'relative',
-          transition: 'background-color 0.3s ease',
-          width: '100%',
-          height: '100%',
       };
   }
 
@@ -127,22 +133,33 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
   const renderElement = (element: CardElement) => {
     if (!element.visible) return null;
 
-    const commonStyle: React.CSSProperties = {
+    let finalSize = { ...element.size };
+    if (element.sizeMode === 'cell' && cardWidth > 0 && cardHeight > 0) {
+        finalSize.width = (element.size.width / cardWidth) * 100;
+        finalSize.height = (element.size.height / cardHeight) * 100;
+    }
+
+    const commonStyle: any = {
       position: 'absolute',
       left: `${element.position.x}%`,
       top: `${element.position.y}%`,
-      width: `${element.size.width}%`,
-      height: `${element.size.height}%`,
+      width: `${finalSize.width}%`,
+      height: `${finalSize.height}%`,
       zIndex: element.zIndex + 10, // Ensure elements are above background
       ...element.styles,
     };
+    
+    if (element.id === 'icon' || element.id === 'target-temperature') {
+        commonStyle.aspectRatio = '1';
+        commonStyle.height = 'auto';
+    }
 
     // Handle text alignment and font styles from element.styles
     if (element.styles.textAlign) commonStyle.textAlign = element.styles.textAlign;
     if (element.styles.fontSize) commonStyle.fontSize = `${element.styles.fontSize}px`;
     if (element.styles.fontFamily) commonStyle.fontFamily = element.styles.fontFamily;
 
-    const isFlex = ['name', 'status', 'value', 'unit', 'temperature', 'target-temperature-text', 'current-temperature-prefixed', 'battery'].includes(element.id);
+    const isFlex = ['name', 'status', 'value', 'unit', 'temperature', 'target-temperature-text', 'current-temperature-prefixed'].includes(element.id);
     const customStyles = { ...element.styles };
     
     let flexClasses = "flex items-center";
@@ -157,7 +174,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
     switch (element.id) {
       case 'name':
         return (
-          <div key={element.uniqueId} style={commonStyle} className="truncate pointer-events-none" title={device.name}>
+          <div key={element.uniqueId} style={commonStyle} className={`truncate pointer-events-none ${flexClasses}`}>
             <span style={{ color: isOn ? (colorScheme.nameTextColorOn || 'var(--text-name-on)') : (colorScheme.nameTextColor || 'var(--text-name)') }}>
                 {device.name}
             </span>
@@ -165,15 +182,22 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
         );
       case 'status':
         return (
-          <div key={element.uniqueId} style={commonStyle} className="truncate pointer-events-none">
+          <div key={element.uniqueId} style={commonStyle} className={`truncate pointer-events-none ${flexClasses}`}>
              <span style={{ color: isOn ? (colorScheme.statusTextColorOn || 'var(--text-status-on)') : (colorScheme.statusTextColor || 'var(--text-status)') }}>
                 {device.status}
             </span>
           </div>
         );
-      case 'icon':
+      case 'icon': {
         const elementIcon = device.icon || getIconNameForDeviceType(device.type, isOn);
-        const iconBg = isOn ? element.styles.iconBackgroundColorOn : element.styles.iconBackgroundColorOff;
+        
+        const iconBg = isOn 
+            ? (element.styles.iconBackgroundColorOn ?? colorScheme.iconBackgroundColorOn) 
+            : (element.styles.iconBackgroundColorOff ?? colorScheme.iconBackgroundColorOff);
+            
+        const iconShape = colorScheme.iconBackgroundShape || 'circle';
+        const borderRadius = iconBg ? (iconShape === 'circle' ? '50%' : `calc(var(--radius-card) * 0.5)`) : '0';
+
         const iconColor = isOn ? element.styles.onColor : element.styles.offColor;
         
         return (
@@ -181,13 +205,13 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
              <div 
                 style={{
                     backgroundColor: iconBg || 'transparent',
-                    borderRadius: iconBg ? '50%' : '0',
+                    borderRadius: borderRadius,
                     width: '100%',
                     height: '100%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    transition: 'background-color 0.3s ease'
+                    transition: 'background-color 0.3s ease, border-radius 0.3s ease'
                 }}
              >
                 {isLoading ? (
@@ -213,17 +237,24 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
              </div>
           </div>
         );
-      case 'value':
+      }
+      case 'value': {
+        let valueToDisplay = device.state;
+        const numValue = parseFloat(device.state);
+        if (typeof element.styles.decimalPlaces === 'number' && !isNaN(numValue)) {
+            valueToDisplay = numValue.toFixed(element.styles.decimalPlaces);
+        }
         return (
-          <div key={element.uniqueId} style={commonStyle} className="truncate pointer-events-none flex items-center">
+          <div key={element.uniqueId} style={commonStyle} className={`truncate pointer-events-none w-full ${flexClasses}`}>
              <span style={{ color: isOn ? (colorScheme.valueTextColorOn || 'var(--text-value-on)') : (colorScheme.valueTextColor || 'var(--text-value)') }}>
-                {device.state}
+                {valueToDisplay}
              </span>
           </div>
         );
+      }
       case 'unit':
         return (
-          <div key={element.uniqueId} style={commonStyle} className="truncate pointer-events-none flex items-end">
+          <div key={element.uniqueId} style={commonStyle} className={`truncate pointer-events-none w-full ${flexClasses}`}>
              <span style={{ color: isOn ? (colorScheme.unitTextColorOn || 'var(--text-unit-on)') : (colorScheme.unitTextColor || 'var(--text-unit)') }}>
                 {device.unit}
              </span>
@@ -255,6 +286,22 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                 />
             </div>
         );
+       case 'temperature': {
+            if (typeof device.temperature !== 'number') return null;
+
+            let valueToDisplay: string | number = device.temperature;
+            if (typeof element.styles.decimalPlaces === 'number') {
+                valueToDisplay = device.temperature.toFixed(element.styles.decimalPlaces);
+            }
+
+            return (
+                <div key={element.uniqueId} style={commonStyle} className={`truncate pointer-events-none w-full ${flexClasses}`}>
+                    <span style={{ color: isOn ? (colorScheme.valueTextColorOn || 'var(--text-value-on)') : (colorScheme.valueTextColor || 'var(--text-value)') }}>
+                        {valueToDisplay}
+                    </span>
+                </div>
+            );
+        }
       case 'target-temperature':
          if (device.type !== DeviceType.Thermostat) return null;
          return (

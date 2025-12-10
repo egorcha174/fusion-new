@@ -437,7 +437,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                         break;
                     
                     case 'auth_ok':
-                        set({ connectionStatus: 'connected', haUrl: url });
+                        // DO NOT set 'connected' here. Wait for data.
+                        set({ haUrl: url });
                         
                         fetches = {
                             states: { id: globalMessageId++, type: 'get_states' },
@@ -455,7 +456,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                             if (initialFetchIds.size > 0) {
                                 console.warn("Initial load watchdog triggered. Forcing load completion.");
                                 initialFetchIds.clear();
-                                set({ isInitialLoadComplete: true });
+                                set({ isInitialLoadComplete: true, connectionStatus: 'connected' });
                                 try {
                                     updateDerivedState();
                                 } catch (e) {
@@ -515,7 +516,7 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                 if (connectionTimeoutRef) clearTimeout(connectionTimeoutRef);
                                 
                                 try {
-                                    set({ isInitialLoadComplete: true });
+                                    set({ isInitialLoadComplete: true, connectionStatus: 'connected' });
                                     updateDerivedState();
                                     
                                     const _fetchAndApplySparklineHistories = async () => {

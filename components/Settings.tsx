@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CardTemplates, CardTemplate, ColorScheme, DeviceType, ColorThemeSet, EventTimerWidget, WeatherSettings, ServerConfig, ThemeDefinition, Device, AuroraSettings } from '../types';
 import ConfirmDialog from './ConfirmDialog';
@@ -97,13 +97,13 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
 
             // Собираем все настройки из localStorage
             const settingsToExport: { [key: string]: any } = {};
-            for (const key of Object.values(LOCAL_STORAGE_KEYS) as string[]) {
+            for (const key of Object.values(LOCAL_STORAGE_KEYS)) {
                 const value = localStorage.getItem(key);
                 if (value !== null) {
                     try {
-                        settingsToExport[key as string] = JSON.parse(value);
+                        settingsToExport[key] = JSON.parse(value);
                     } catch {
-                        settingsToExport[key as string] = value;
+                        settingsToExport[key] = value;
                     }
                 }
             }
@@ -138,9 +138,9 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                         const content = await settingsFile.async("string");
                         const importedSettings = JSON.parse(content);
 
-                        const validStorageKeys = Object.values(LOCAL_STORAGE_KEYS) as string[];
+                        const validStorageKeys = Object.values(LOCAL_STORAGE_KEYS);
                         Object.keys(importedSettings).forEach(key => {
-                            if (validStorageKeys.includes(key)) {
+                            if (validStorageKeys.includes(key as any)) {
                                localStorage.setItem(key, JSON.stringify(importedSettings[key]));
                             }
                         });
@@ -193,7 +193,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
 
     const handleResetAllSettings = () => {
         if(window.confirm("Вы уверены, что хотите сбросить ВСЕ настройки? Это действие нельзя отменить.")) {
-            (Object.values(LOCAL_STORAGE_KEYS) as string[]).forEach(key => {
+            Object.values(LOCAL_STORAGE_KEYS).forEach(key => {
                 localStorage.removeItem(key);
             });
             alert("Все настройки сброшены. Страница будет перезагружена.");
@@ -358,8 +358,20 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                                     <button onClick={handleSaveServer} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Сохранить</button>
                                 </div>
                              ) : (
-                                <button onClick={handleConnect} disabled={!selectedServerId || connectionStatus === 'connecting'} className="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-blue-400 dark:disabled:bg-blue-800 transition-colors">
-                                    {connectionStatus === 'connecting' ? 'Подключение...' : 'Подключиться'}
+                                <button 
+                                    onClick={handleConnect} 
+                                    disabled={!selectedServerId || connectionStatus === 'connecting'} 
+                                    className="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-blue-400 dark:disabled:bg-blue-800 transition-colors flex items-center justify-center gap-2"
+                                >
+                                    {connectionStatus === 'connecting' ? (
+                                        <>
+                                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            <span>Подключение...</span>
+                                        </>
+                                    ) : 'Подключиться'}
                                 </button>
                              )}
                         </div>
@@ -515,61 +527,6 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
                         )}
                     </Section>
 
-                    <Section title="Погода" description="Настройте источник данных о погоде для виджета и фоновых эффектов.">
-                        <LabeledInput label="Провайдер погоды">
-                            <select value={weatherProvider} onChange={e => setWeatherProvider(e.target.value as any)} className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm">
-                                <option value="homeassistant">Home Assistant</option>
-                                <option value="openweathermap">OpenWeatherMap</option>
-                                <option value="yandex">Яндекс.Погода</option>
-                                <option value="foreca">Foreca</option>
-                            </select>
-                        </LabeledInput>
-
-                        {weatherProvider === 'homeassistant' && (
-                            <LabeledInput label="Сущность погоды" description="Выберите вашу сущность weather из Home Assistant.">
-                                <select value={weatherEntityId} onChange={e => setWeatherEntityId(e.target.value)} className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm">
-                                    <option value="">-- Выберите сущность --</option>
-                                    {weatherEntities.map(entity => (
-                                        <option key={entity.id} value={entity.id}>{entity.name}</option>
-                                    ))}
-                                </select>
-                            </LabeledInput>
-                        )}
-
-                        {weatherProvider === 'openweathermap' && (
-                            <LabeledInput label="Ключ API OpenWeatherMap" description="Требуется для получения прогноза.">
-                                <input type="password" value={openWeatherMapKey} onChange={e => setOpenWeatherMapKey(e.target.value)} placeholder="Вставьте ваш ключ API" className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm" />
-                            </LabeledInput>
-                        )}
-                        
-                        {weatherProvider === 'yandex' && (
-                            <LabeledInput label="Ключ API Яндекс.Погоды" description="Тариф 'Прогноз по координатам'.">
-                                <input type="password" value={yandexWeatherKey} onChange={e => setYandexWeatherKey(e.target.value)} placeholder="Вставьте ваш ключ API" className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm" />
-                            </LabeledInput>
-                        )}
-                        
-                        {weatherProvider === 'foreca' && (
-                            <LabeledInput label="Ключ API Foreca" description="Требуется Basic/Pro подписка.">
-                                <input type="password" value={forecaApiKey} onChange={e => setForecaApiKey(e.target.value)} placeholder="Вставьте ваш ключ API" className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm" />
-                            </LabeledInput>
-                        )}
-
-                        <div className="h-px bg-gray-200 dark:bg-gray-700 my-4"></div>
-
-                        <LabeledInput label="Дней в прогнозе">
-                            <input type="number" min="1" max="7" value={weatherSettings.forecastDays} onChange={e => setWeatherSettings({ ...weatherSettings, forecastDays: parseInt(e.target.value, 10) })} className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm" />
-                        </LabeledInput>
-
-                        <LabeledInput label="Набор иконок">
-                            <select value={weatherSettings.iconPack} onChange={e => setWeatherSettings({ ...weatherSettings, iconPack: e.target.value as any })} className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm">
-                                <option value="default">Стандартные (анимированные)</option>
-                                <option value="meteocons">Meteocons</option>
-                                <option value="weather-icons">Weather Icons</option>
-                                <option value="material-symbols-light">Material Symbols</option>
-                            </select>
-                        </LabeledInput>
-                    </Section>
-
                     <Section title="Тема оформления" description="Выберите тему из списка. Используйте кнопку копирования для создания своей версии.">
                         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-fr">
                             {themes.map(theme => (
@@ -677,7 +634,7 @@ const Settings: React.FC<SettingsProps> = ({ onConnect, connectionStatus, error,
 
                     <Section title="Шаблоны карточек" description="Управление шаблонами для устройств." defaultOpen={false}>
                         <div className="space-y-2 max-h-60 overflow-y-auto pr-2 no-scrollbar">
-                            {Object.values(templates).map((template: CardTemplate) => (
+                            {(Object.values(templates) as CardTemplate[]).map((template) => (
                                 <div key={template.id} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/30 p-3 rounded-md border border-gray-100 dark:border-gray-700">
                                     <div>
                                         <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{template.name}</p>

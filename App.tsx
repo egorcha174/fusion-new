@@ -1,5 +1,3 @@
-
-
 import React, { useMemo, useEffect, useRef, useCallback, lazy, Suspense, useState } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import { Device, Tab, RoomWithPhysicalDevices, GridLayoutItem, EventTimerWidget } from './types';
@@ -229,25 +227,24 @@ const App: React.FC = () => {
     }, [themeMode, isSystemDark, isDarkBySchedule]);
     const currentColorScheme = useMemo(() => isDark ? colorScheme.dark : colorScheme.light, [isDark, colorScheme]);
 
-    const backgroundStyle = useMemo(() => {
+    const backgroundStyle = useMemo((): React.CSSProperties => {
         const scheme = currentColorScheme;
-        const style: React.CSSProperties = {};
-        switch (scheme.dashboardBackgroundType) {
-            case 'gradient':
-                style.backgroundImage = `linear-gradient(160deg, var(--bg-dashboard-1), var(--bg-dashboard-2))`;
-                break;
-            case 'image':
-                style.backgroundImage = `url(${scheme.dashboardBackgroundImage})`;
-                style.backgroundSize = 'cover';
-                style.backgroundPosition = 'center';
-                style.filter = `blur(${scheme.dashboardBackgroundImageBlur || 0}px) brightness(${scheme.dashboardBackgroundImageBrightness || 100}%)`;
-                break;
-            case 'color':
-            default:
-                style.backgroundColor = 'var(--bg-dashboard-1)';
-                break;
+        if (scheme.dashboardBackgroundType === 'gradient') {
+            return {
+                backgroundImage: `linear-gradient(160deg, var(--bg-dashboard-1), var(--bg-dashboard-2))`
+            };
+        } else if (scheme.dashboardBackgroundType === 'image') {
+            return {
+                backgroundImage: `url(${scheme.dashboardBackgroundImage})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                filter: `blur(${scheme.dashboardBackgroundImageBlur || 0}px) brightness(${scheme.dashboardBackgroundImageBrightness || 100}%)`
+            };
+        } else {
+            return {
+                backgroundColor: 'var(--bg-dashboard-1)'
+            };
         }
-        return style;
     }, [currentColorScheme]);
 
     // Resolve effective background effect
