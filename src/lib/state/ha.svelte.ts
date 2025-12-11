@@ -2,6 +2,7 @@
 import { browser } from '$app/environment';
 import { constructHaUrl } from '../utils/url';
 import { mapEntitiesToRooms } from '../utils/ha-data-mapper';
+import { loadSecure, saveSecure } from '../utils/secureStorage';
 import type { ConnectionStatus, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device } from '../types';
 
 // Svelte 5 Runes declarations
@@ -13,6 +14,9 @@ declare const $derived: {
 
 // Global message ID counter
 let globalMessageId = 1;
+
+const RECONNECT_DELAY_BASE = 2000;
+const RECONNECT_DELAY_MAX = 30000;
 
 class HomeAssistant {
     connectionStatus = $state<ConnectionStatus>('idle');
@@ -47,16 +51,38 @@ class HomeAssistant {
         }
     });
 
-    socket: WebSocket | null = null;
-    callbacks = new Map<number, { resolve: (val: any) => void, reject: (err: any) => void }>();
-    connectionTimeout: ReturnType<typeof setTimeout> | null = null;
+    private socket: WebSocket | null = null;
+    private callbacks = new Map<number, { resolve: (val: any) => void, reject: (err: any) => void }>();
+    private connectionTimeout: ReturnType<typeof setTimeout> | null = null;
+    private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    private reconnectAttempts = 0;
+    private savedToken: string | null = null;
 
-    constructor() {}
+    constructor() {
+        if (browser) {
+            // Attempt to load saved credentials on startup
+            const savedUrl = localStorage.getItem('ha-url');
+            this.savedToken = loadSecure('ha-token', null);
+            
+            if (savedUrl && this.savedToken) {
+                this.connect(savedUrl, this.savedToken);
+            }
+        }
+    }
 
     connect(url: string, token: string) {
         if (!browser) return;
         
-        // Reset state
+        // Save credentials securely
+        localStorage.setItem('ha-url', url);
+        saveSecure('ha-token', token);
+        this.savedToken = token;
+        
+        this.internalConnect(url, token);
+    }
+
+    private internalConnect(url: string, token: string) {
+        // Reset state for new connection attempt
         this.cleanup();
         this.connectionStatus = 'connecting';
         this.isLoading = true;
@@ -66,7 +92,7 @@ class HomeAssistant {
         // Set safety timeout (15s)
         this.connectionTimeout = setTimeout(() => {
             if (this.connectionStatus !== 'connected') {
-                this.disconnect("Connection timed out. Check URL and network.");
+                this.handleConnectionFailure("Connection timed out. Check URL and network.");
             }
         }, 15000);
 
@@ -78,6 +104,8 @@ class HomeAssistant {
 
             this.socket.onopen = () => {
                 console.log('[HA] WebSocket connected, waiting for auth...');
+                // Clear reconnect counter on successful open
+                this.reconnectAttempts = 0;
             };
 
             this.socket.onmessage = (event) => {
@@ -91,33 +119,44 @@ class HomeAssistant {
 
             this.socket.onclose = (e) => {
                 console.log('[HA] Socket closed', e.code, e.reason);
-                if (this.connectionStatus === 'connecting' || this.connectionStatus === 'connected') {
-                    this.connectionStatus = 'failed';
-                    this.error = this.error || 'Connection closed by server.';
-                } else {
-                    this.connectionStatus = 'idle';
-                }
-                this.isLoading = false;
+                this.handleConnectionFailure('Connection closed by server.');
             };
 
             this.socket.onerror = (e) => {
                 console.error('[HA] Socket error', e);
-                // onError usually precedes onClose, so we handle state update in onClose or timeout
-                if (!this.error) this.error = "WebSocket error (check console)";
+                // onError usually precedes onClose, waiting for close to handle logic
             };
 
         } catch (e) {
             console.error('[HA] Connect exception:', e);
-            this.connectionStatus = 'failed';
-            this.error = 'Failed to create WebSocket. Invalid URL?';
-            this.isLoading = false;
+            this.handleConnectionFailure('Failed to create WebSocket. Invalid URL?');
+        }
+    }
+
+    private handleConnectionFailure(reason: string) {
+        this.cleanup();
+        this.connectionStatus = 'failed';
+        this.error = reason;
+        this.isLoading = false;
+
+        // Automatic Reconnection Logic
+        if (this.savedToken && this.haUrl) {
+            const delay = Math.min(RECONNECT_DELAY_BASE * Math.pow(1.5, this.reconnectAttempts), RECONNECT_DELAY_MAX);
+            console.log(`[HA] Reconnecting in ${delay}ms (Attempt ${this.reconnectAttempts + 1})...`);
+            
+            this.reconnectTimeout = setTimeout(() => {
+                this.reconnectAttempts++;
+                this.internalConnect(this.haUrl, this.savedToken!);
+            }, delay);
         }
     }
 
     disconnect(reason?: string) {
+        this.savedToken = null; // Prevent auto-reconnect
+        localStorage.removeItem('ha-token'); // Clear stored token
         this.cleanup();
         this.connectionStatus = 'failed';
-        this.error = reason || 'Disconnected';
+        this.error = reason || 'Disconnected by user';
         this.isLoading = false;
     }
 
@@ -130,6 +169,10 @@ class HomeAssistant {
         if (this.connectionTimeout) {
             clearTimeout(this.connectionTimeout);
             this.connectionTimeout = null;
+        }
+        if (this.reconnectTimeout) {
+            clearTimeout(this.reconnectTimeout);
+            this.reconnectTimeout = null;
         }
         this.callbacks.clear();
     }
@@ -145,13 +188,11 @@ class HomeAssistant {
     handleMessage(data: any, token: string) {
         switch (data.type) {
             case 'auth_required':
-                console.log('[HA] Auth required, sending token...');
                 this.sendMessage({ type: 'auth', access_token: token });
                 break;
             
             case 'auth_ok':
                 console.log('[HA] Auth OK. Fetching initial data...');
-                // Do NOT set 'connected' yet. Wait for data.
                 this.initialFetch();
                 break;
             
@@ -195,15 +236,12 @@ class HomeAssistant {
             try {
                 return await fetch(type);
             } catch (e) {
-                console.warn(`[HA] Failed to fetch ${type} (likely permissions), using fallback.`, e);
+                console.warn(`[HA] Failed to fetch ${type}, using fallback.`, e);
                 return fallback;
             }
         };
 
         try {
-            // "get_states" is critical. If it fails, we throw.
-            // "config/..." endpoints often fail for non-admin users. We use safeFetch for them.
-            
             const [statesResult, areasResult, devicesResult, regResult] = await Promise.allSettled([
                 fetch('get_states'),
                 safeFetch('config/area_registry/list'),
@@ -211,29 +249,25 @@ class HomeAssistant {
                 safeFetch('config/entity_registry/list')
             ]);
 
-            // Handle States (Critical)
             if (statesResult.status === 'rejected') {
                 throw new Error("Failed to fetch states: " + statesResult.reason);
             }
             this.entities = (statesResult.value as any[]).reduce((acc: any, curr: any) => ({...acc, [curr.entity_id]: curr}), {});
 
-            // Handle Others (Optional)
             this.areas = areasResult.status === 'fulfilled' ? areasResult.value : [];
             this.devices = devicesResult.status === 'fulfilled' ? devicesResult.value : [];
             this.entityRegistry = regResult.status === 'fulfilled' ? regResult.value : [];
             
-            // Subscribe to events after initial load
             this.sendMessage({ id: globalMessageId++, type: 'subscribe_events', event_type: 'state_changed' });
 
-            // Only NOW mark as connected
-            console.log('[HA] Initial data loaded. Ready.');
             if (this.connectionTimeout) clearTimeout(this.connectionTimeout);
             this.connectionStatus = 'connected';
             this.isLoading = false;
 
         } catch (e: any) {
             console.error('[HA] Initial fetch error:', e);
-            this.disconnect(typeof e === 'string' ? e : e.message || "Failed to load initial data.");
+            // Don't disconnect here, retry logic will handle if socket closes
+            this.error = "Failed to load initial data.";
         }
     }
 
