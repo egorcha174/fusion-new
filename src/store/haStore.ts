@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device, Room, RoomWithPhysicalDevices, PhysicalDevice, DeviceType, WeatherForecast } from '../types';
 import { constructHaUrl } from '../utils/url';
@@ -530,8 +531,8 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
                                             const now = new Date();
                                             const startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
                                             try {
-                                                const historyResult = await getHistory(entityIdsWithCharts, startTime, now.toISOString());
-                                                const newAllKnownDevices = new Map(get().allKnownDevices);
+                                                const historyResult: any = await getHistory(entityIdsWithCharts, startTime, now.toISOString());
+                                                const newAllKnownDevices = new Map<string, Device>(get().allKnownDevices);
                                                 entityIdsWithCharts.forEach(id => {
                                                     const hist = historyResult[id];
                                                     if(hist && newAllKnownDevices.has(id)) {
@@ -714,10 +715,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
             get().callService('scene', 'turn_on', { entity_id: device.id });
             return;
         }
-        if (device.type === DeviceType.Button) { // If button type existed
-             get().callService(domain, 'press', { entity_id: device.id });
-             return;
-        }
 
         get().callService(domain, service, { entity_id: device.id });
     },
@@ -740,14 +737,6 @@ export const useHAStore = create<HAState & HAActions>((set, get) => {
         // Debounce
         if (brightnessTimeoutRef) clearTimeout(brightnessTimeoutRef);
         
-        // Optimistic update
-        const device = get().allKnownDevices.get(deviceId);
-        if (device) {
-             // We can't easily optimistic update deeply nested map without full re-render trigger, 
-             // but `flushUpdates` handles incoming events. 
-             // For slider smoothness, component usually handles local state.
-        }
-
         brightnessTimeoutRef = window.setTimeout(() => {
             get().callService('light', 'turn_on', { entity_id: deviceId, brightness_pct: brightness });
         }, 300);

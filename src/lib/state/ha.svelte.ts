@@ -28,18 +28,23 @@ class HomeAssistant {
 
     // Derived Data
     allKnownDevices = $derived.by(() => {
-        const rooms = mapEntitiesToRooms(
-            Object.values(this.entities), 
-            this.areas, 
-            this.devices, 
-            this.entityRegistry, 
-            {}, // Customizations (todo: inject from appState)
-            true
-        );
-        // Flatten for easy access by ID
-        const map: Record<string, Device> = {};
-        rooms.forEach(r => r.devices.forEach(d => map[d.id] = d));
-        return map;
+        try {
+            const rooms = mapEntitiesToRooms(
+                Object.values(this.entities), 
+                this.areas, 
+                this.devices, 
+                this.entityRegistry, 
+                {}, // Customizations (todo: inject from appState)
+                true
+            );
+            // Flatten for easy access by ID
+            const map: Record<string, Device> = {};
+            rooms.forEach(r => r.devices.forEach(d => map[d.id] = d));
+            return map;
+        } catch (e) {
+            console.error('[HA] Error mapping entities:', e);
+            return {};
+        }
     });
 
     socket: WebSocket | null = null;
@@ -186,19 +191,36 @@ class HomeAssistant {
             });
         };
 
+        const safeFetch = async (type: string, fallback: any = []) => {
+            try {
+                return await fetch(type);
+            } catch (e) {
+                console.warn(`[HA] Failed to fetch ${type} (likely permissions), using fallback.`, e);
+                return fallback;
+            }
+        };
+
         try {
-            // Parallel fetch for speed
-            const [states, areas, devices, reg] = await Promise.all([
+            // "get_states" is critical. If it fails, we throw.
+            // "config/..." endpoints often fail for non-admin users. We use safeFetch for them.
+            
+            const [statesResult, areasResult, devicesResult, regResult] = await Promise.allSettled([
                 fetch('get_states'),
-                fetch('config/area_registry/list'),
-                fetch('config/device_registry/list'),
-                fetch('config/entity_registry/list')
+                safeFetch('config/area_registry/list'),
+                safeFetch('config/device_registry/list'),
+                safeFetch('config/entity_registry/list')
             ]);
 
-            this.entities = (states as any[]).reduce((acc: any, curr: any) => ({...acc, [curr.entity_id]: curr}), {});
-            this.areas = areas as any[];
-            this.devices = devices as any[];
-            this.entityRegistry = reg as any[];
+            // Handle States (Critical)
+            if (statesResult.status === 'rejected') {
+                throw new Error("Failed to fetch states: " + statesResult.reason);
+            }
+            this.entities = (statesResult.value as any[]).reduce((acc: any, curr: any) => ({...acc, [curr.entity_id]: curr}), {});
+
+            // Handle Others (Optional)
+            this.areas = areasResult.status === 'fulfilled' ? areasResult.value : [];
+            this.devices = devicesResult.status === 'fulfilled' ? devicesResult.value : [];
+            this.entityRegistry = regResult.status === 'fulfilled' ? regResult.value : [];
             
             // Subscribe to events after initial load
             this.sendMessage({ id: globalMessageId++, type: 'subscribe_events', event_type: 'state_changed' });
@@ -209,9 +231,9 @@ class HomeAssistant {
             this.connectionStatus = 'connected';
             this.isLoading = false;
 
-        } catch (e) {
+        } catch (e: any) {
             console.error('[HA] Initial fetch error:', e);
-            this.disconnect("Failed to load initial data from Home Assistant.");
+            this.disconnect(typeof e === 'string' ? e : e.message || "Failed to load initial data.");
         }
     }
 
