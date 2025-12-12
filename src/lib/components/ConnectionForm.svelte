@@ -25,8 +25,9 @@
 
         <form onsubmit={handleSubmit} class="space-y-4">
             <div>
-                <label class="block text-sm font-medium mb-1 text-gray-200">Instance URL</label>
+                <label for="ha-url" class="block text-sm font-medium mb-1 text-gray-200">Instance URL</label>
                 <input 
+                    id="ha-url"
                     type="text" 
                     bind:value={url} 
                     placeholder="http://homeassistant.local:8123"
@@ -38,8 +39,9 @@
             </div>
             
             <div>
-                <label class="block text-sm font-medium mb-1 text-gray-200">Long-Lived Access Token</label>
+                <label for="ha-token" class="block text-sm font-medium mb-1 text-gray-200">Long-Lived Access Token</label>
                 <input 
+                    id="ha-token"
                     type="password" 
                     bind:value={token} 
                     placeholder="eyJhbG..."

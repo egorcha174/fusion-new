@@ -40,8 +40,16 @@
 
     function handleToggle() {
         if (isEditMode) return;
-        if (device.type === DeviceType.Thermostat) return; // Don't toggle on click for thermostat
+        if (device.type === DeviceType.Thermostat) return; 
         ha.callService(device.haDomain, device.state === 'on' ? 'turn_off' : 'turn_on', { entity_id: device.id });
+    }
+
+    function handleKeyDown(e: KeyboardEvent) {
+        if (isEditMode) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleToggle();
+        }
     }
 
     function handleTempChange(val: number) {
@@ -49,7 +57,6 @@
     }
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events -->
 <div 
     class="card-root relative w-full h-full overflow-hidden transition-all duration-300 select-none cursor-pointer"
     class:is-on={isOn}
@@ -60,8 +67,11 @@
         backdrop-filter: blur(12px);
     "
     onclick={handleToggle}
+    onkeydown={handleKeyDown}
     role="button"
     tabindex="0"
+    aria-pressed={isOn}
+    aria-label={device.name}
 >
     {#each template.elements as element (element.uniqueId)}
         {#if element.visible}
@@ -94,7 +104,8 @@
                     <span class="truncate font-bold">{device.state}</span>
                 
                 {:else if element.id === 'target-temperature'}
-                    <div style="width: 100%; height: 100%" onclick={(e) => e.stopPropagation()}>
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <div style="width: 100%; height: 100%" onclick={(e) => e.stopPropagation()} role="group" aria-label="Thermostat Control">
                         <ThermostatDial 
                             min={device.minTemp || 10} 
                             max={device.maxTemp || 30} 
