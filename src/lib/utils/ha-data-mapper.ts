@@ -4,6 +4,11 @@ import type { Device, Room, HassEntity, HassArea, HassDevice, HassEntityRegistry
 
 /**
  * Определяет внутренний тип устройства (`DeviceType`) на основе данных из Home Assistant.
+ * Использует иерархическую логику: сначала точные совпадения по домену,
+ * затем домен + атрибуты, затем ключевые слова в названии.
+ * 
+ * @param {HassEntity} entity - Сущность Home Assistant.
+ * @returns {DeviceType} - Внутренний тип устройства.
  */
 const getDeviceType = (entity: HassEntity): DeviceType => {
   const entityId = entity.entity_id;
@@ -13,12 +18,14 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
   const domain = entityId.split('.')[0];
   const deviceClass = attributes.device_class;
 
+  // --- Приоритет 0: Внутренние виджеты ---
   if (domain === 'internal') {
     if (entityId.includes('event-timer')) return DeviceType.EventTimer;
     if (entityId.includes('battery')) return DeviceType.BatteryWidget;
     if (entityId.includes('custom-card')) return DeviceType.Custom;
   }
 
+  // --- Приоритет 1: Прямое сопоставление домена (однозначные случаи) ---
   switch (domain) {
     case 'weather': return DeviceType.Weather;
     case 'climate': return DeviceType.Thermostat;
@@ -29,7 +36,7 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
     case 'script': return DeviceType.Script;
     case 'media_player': return DeviceType.MediaPlayer;
     case 'person': return DeviceType.Person;
-    case 'device_tracker': return DeviceType.Person;
+    case 'device_tracker': return DeviceType.Person; // Often represents people
     case 'vacuum': return DeviceType.Vacuum;
     case 'timer': return DeviceType.Timer;
     case 'update': return DeviceType.Update;
@@ -41,12 +48,15 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
     case 'input_select': return DeviceType.InputSelect;
   }
 
+  // --- Приоритет 2: Домен + Атрибуты/Класс устройства ---
+  
   if (domain === 'light') {
     return attributes.brightness !== undefined ? DeviceType.DimmableLight : DeviceType.Light;
   }
   
   if (domain === 'switch') {
     if (deviceClass === 'outlet') return DeviceType.Outlet;
+    // Эвристика: если имя переключателя похоже на светильник, классифицируем его как свет.
     if (friendlyName.includes('light') || friendlyName.includes('свет') || friendlyName.includes('лампа') || friendlyName.includes('торшер') || friendlyName.includes('люстра')) {
       return DeviceType.Light;
     }
@@ -54,6 +64,7 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
   }
 
   if (domain === 'sensor') {
+      // Optionally allow separating specific sensor types later
       return DeviceType.Sensor;
   }
 
@@ -66,9 +77,11 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
   }
 
   if (domain === 'cover') {
+      // Covers can be blinds, curtains, garage doors
       return DeviceType.Cover;
   }
 
+  // --- Приоритет 3: Поиск по ключевым словам в имени/ID (для неоднозначных доменов) ---
   const combinedName = `${friendlyName} ${entityIdLower}`;
 
   if (combinedName.includes('tv') || combinedName.includes('телевизор')) return DeviceType.TV;
@@ -78,14 +91,20 @@ const getDeviceType = (entity: HassEntity): DeviceType => {
   if (combinedName.includes('speaker') || combinedName.includes('колонка')) return DeviceType.Speaker;
   if (combinedName.includes('fan') || combinedName.includes('вентилятор')) return DeviceType.Fan;
   
+  // --- Финальный резервный вариант ---
+  // Fallback for unknown domains to be treated as generic sensors or read-only text if state exists
   if (entity.state) {
-      return DeviceType.Sensor;
+      return DeviceType.Sensor; // Treat anything else with a state as a generic sensor so it at least appears
   }
 
   return DeviceType.Unknown;
 };
 
+/**
+ * Преобразует "сырое" состояние сущности из Home Assistant в человекочитаемый текст на русском языке.
+ */
 const getStatusText = (entity: HassEntity): string => {
+    // Обрабатываем универсальные состояния в первую очередь
     if (entity.state === 'unavailable') return 'Недоступно';
     if (entity.state === 'unknown') return 'Неизвестно';
     
@@ -93,9 +112,10 @@ const getStatusText = (entity: HassEntity): string => {
     const attributes = entity.attributes || {};
     const deviceClass = attributes.device_class;
 
+    // Специальная логика для климата (термостатов)
     if (domain === 'climate') {
-        const hvacAction = attributes.hvac_action; 
-        const state = entity.state;
+        const hvacAction = attributes.hvac_action; // 'heating', 'cooling', 'idle'
+        const state = entity.state; // 'heat', 'cool', 'off'
 
         const stateTranslations: Record<string, string> = {
             'cool': 'Охлаждение', 'heat': 'Нагрев', 'fan_only': 'Вентилятор',
@@ -106,12 +126,16 @@ const getStatusText = (entity: HassEntity): string => {
             'drying': 'Осушение', 'off': 'Выключено', 'idle': 'Ожидание',
         };
 
+        // Если устройство активно что-то делает, показываем действие (приоритет).
         if (hvacAction && hvacAction !== 'idle' && hvacAction !== 'off') {
             return actionTranslations[hvacAction] || hvacAction;
         }
+
+        // В противном случае показываем общий режим/состояние.
         return stateTranslations[state] || state.charAt(0).toUpperCase() + state.slice(1);
     }
     
+    // Специальная логика для медиа-плееров
     if (domain === 'media_player') {
         if ((entity.state === 'playing' || entity.state === 'paused') && attributes.media_title) {
             if (attributes.media_artist) {
@@ -123,6 +147,7 @@ const getStatusText = (entity: HassEntity): string => {
         return stateTranslations[entity.state] || entity.state;
     }
 
+    // Специальная логика для погоды
     if (domain === 'weather') {
         const stateMap: Record<string, string> = {
             'clear-night': 'Ясно', 'cloudy': 'Облачно', 'exceptional': 'Особые условия', 'fog': 'Туман',
@@ -134,6 +159,7 @@ const getStatusText = (entity: HassEntity): string => {
         return stateMap[entity.state] || entity.state.charAt(0).toUpperCase() + entity.state.slice(1);
     }
 
+    // Logic for Covers (Blinds, Garage)
     if (domain === 'cover') {
         if (entity.state === 'open') return 'Открыто';
         if (entity.state === 'closed') return 'Закрыто';
@@ -143,6 +169,7 @@ const getStatusText = (entity: HassEntity): string => {
         return entity.state;
     }
 
+    // Logic for Locks
     if (domain === 'lock') {
         if (entity.state === 'locked') return 'Закрыто';
         if (entity.state === 'unlocked') return 'Открыто';
@@ -150,17 +177,20 @@ const getStatusText = (entity: HassEntity): string => {
         if (entity.state === 'unlocking') return 'Открывается...';
     }
 
+    // Logic for People/Device Trackers
     if (domain === 'person' || domain === 'device_tracker') {
         if (entity.state === 'home') return 'Дома';
         if (entity.state === 'not_home') return 'Не дома';
-        return entity.state; 
+        return entity.state; // Could be a zone name
     }
 
+    // Logic for Vacuum
     if (domain === 'vacuum') {
         const map: Record<string, string> = { 'docked': 'На базе', 'cleaning': 'Уборка', 'returning': 'Возврат на базу', 'error': 'Ошибка', 'idle': 'Ожидание' };
         return map[entity.state] || entity.state;
     }
 
+    // Logic for Updates
     if (domain === 'update') {
         if (entity.state === 'on') {
             return attributes.installed_version && attributes.latest_version 
@@ -190,6 +220,7 @@ const getStatusText = (entity: HassEntity): string => {
         return 'Активировать';
     }
     
+    // Binary Sensors - rely on device_class for context
     if (domain === 'binary_sensor') {
         const isOn = entity.state === 'on';
         switch (deviceClass) {
@@ -217,6 +248,7 @@ const getStatusText = (entity: HassEntity): string => {
         }
     }
     
+    // Для сенсоров возвращаем "сырое" значение + единицу измерения
     if (domain === 'sensor' || domain === 'input_number') {
         if (attributes.unit_of_measurement) {
             return `${entity.state} ${attributes.unit_of_measurement}`;
@@ -224,12 +256,23 @@ const getStatusText = (entity: HassEntity): string => {
         return entity.state;
     }
     
+    // Общие состояния для переключаемых устройств (switch, input_boolean, etc)
     if (entity.state === 'on') return 'Включено';
     if (entity.state === 'off') return 'Выключено';
     
+    // Резервный вариант: просто первая буква в верхнем регистре.
     return entity.state.charAt(0).toUpperCase() + entity.state.slice(1);
 }
 
+/**
+ * Преобразует одну сущность Home Assistant (HassEntity) в формат устройства приложения (Device),
+ * применяя при этом пользовательские настройки.
+ * 
+ * @param {HassEntity} entity - Сущность Home Assistant.
+ * @param {DeviceCustomization} [customization={}] - Пользовательские настройки для этой сущности.
+ * @param {WeatherForecast[]} [sideLoadedForecast] - Данные прогноза, полученные через сервисный вызов (приоритет).
+ * @returns {Device | null} - Объект устройства или null, если не удалось преобразовать.
+ */
 const entityToDevice = (
     entity: HassEntity, 
     customization: DeviceCustomization = {}, 
@@ -238,6 +281,7 @@ const entityToDevice = (
   const attributes = entity.attributes || {};
   const originalType = getDeviceType(entity);
   
+  // Создаем базовый объект устройства
   const device: Device = {
     id: entity.entity_id,
     name: customization.name || attributes.friendly_name || entity.entity_id,
@@ -249,9 +293,10 @@ const entityToDevice = (
     haDomain: entity.entity_id.split('.')[0],
     haDeviceClass: attributes.device_class,
     state: entity.state,
-    attributes: attributes, 
+    attributes: attributes, // Store raw attributes
   };
 
+  // Добавляем специфичные для типов устройств атрибуты
   if (device.type === DeviceType.DimmableLight && attributes.brightness) {
     device.brightness = Math.round((attributes.brightness / 255) * 100);
   }
@@ -324,6 +369,10 @@ const entityToDevice = (
   return device;
 };
 
+/**
+ * Главная функция маппинга. Принимает все "сырые" данные из HA
+ * и организует их в структуру комнат с устройствами.
+ */
 export const mapEntitiesToRooms = (
     entities: HassEntity[], 
     areas: HassArea[], 
@@ -335,11 +384,13 @@ export const mapEntitiesToRooms = (
 ): Room[] => {
   const roomsMap: Map<string, Room> = new Map();
 
+  // Инициализируем карту комнат
   areas.forEach(area => {
     roomsMap.set(area.area_id, { id: area.area_id, name: area.name, devices: [] });
   });
   roomsMap.set('no_area', { id: 'no_area', name: 'Без пространства', devices: []});
 
+  // Создаем карты для быстрого поиска связей (O(n) операции)
   const entityIdToAreaIdMap = new Map<string, string>();
   entityRegistry.forEach(entry => {
       if (entry.area_id) entityIdToAreaIdMap.set(entry.entity_id, entry.area_id);
@@ -347,11 +398,12 @@ export const mapEntitiesToRooms = (
   
   const haDeviceById = new Map(haDevices.map(d => [d.id, d]));
 
+  // Проходим по всем сущностям (O(m) операция)
   entities.forEach(entity => {
     if (!entity) return;
 
     const customization = customizations[entity.entity_id] || {};
-    if (customization.isHidden && !showHidden) return; 
+    if (customization.isHidden && !showHidden) return; // Пропускаем скрытые
 
     const sideLoadedForecast = forecasts[entity.entity_id];
     
@@ -373,5 +425,6 @@ export const mapEntitiesToRooms = (
     }
   });
 
+  // Возвращаем массив комнат, отфильтровывая пустые.
   return Array.from(roomsMap.values()).filter(room => room.devices.length > 0);
 };

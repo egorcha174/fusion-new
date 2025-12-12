@@ -1,6 +1,12 @@
+
 /**
  * Создает полный URL для заданного пути Home Assistant, автоматически определяя протокол.
  * Обрабатывает различные варианты ввода базового URL HA (например, с/без протокола, с/без порта).
+ *
+ * @param haUrl - Базовый URL экземпляра Home Assistant (например, "192.168.1.100:8123", "my-home.duckdns.org").
+ * @param path - Путь API для добавления (например, "/api/websocket").
+ * @param protocolType - Желаемый протокол ('ws' для WebSocket, 'http' для стандартного HTTP).
+ * @returns {string} - Полностью сформированный URL.
  */
 export const constructHaUrl = (haUrl: string, path: string, protocolType: 'ws' | 'http'): string => {
   let protocol;
