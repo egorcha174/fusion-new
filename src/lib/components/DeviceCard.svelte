@@ -5,6 +5,7 @@
     import { ha } from '$state/ha.svelte';
     import DeviceIcon from './DeviceIcon.svelte';
     import ThermostatDial from '$components/controls/ThermostatDial.svelte';
+    import { Icon } from '@iconify/svelte';
 
     let { device, template, isEditMode = false } = $props<{
         device: Device;
@@ -55,8 +56,17 @@
     function handleTempChange(val: number) {
         ha.callService('climate', 'set_temperature', { entity_id: device.id, temperature: val });
     }
+
+    function handleBrightnessChange(val: number) {
+        ha.callService('light', 'turn_on', { entity_id: device.id, brightness_pct: val });
+    }
+
+    function handleHvacMode(mode: string) {
+        ha.callService('climate', 'set_hvac_mode', { entity_id: device.id, hvac_mode: mode });
+    }
 </script>
 
+<!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
 <div 
     class="card-root relative w-full h-full overflow-hidden transition-all duration-300 select-none cursor-pointer"
     class:is-on={isOn}
@@ -103,9 +113,27 @@
                 {:else if element.id === 'value'}
                     <span class="truncate font-bold">{device.state}</span>
                 
+                {:else if element.id === 'unit'}
+                    <span class="truncate text-sm opacity-80">{device.unit}</span>
+
+                {:else if element.id === 'slider'}
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <div style="width: 100%; height: 100%" onclick={(e) => e.stopPropagation()}>
+                        <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={device.brightness || 0}
+                            oninput={(e) => handleBrightnessChange(parseInt(e.currentTarget.value))}
+                            class="w-full h-full accent-blue-500 cursor-pointer opacity-80 hover:opacity-100"
+                        />
+                    </div>
+
                 {:else if element.id === 'target-temperature'}
                     <!-- svelte-ignore a11y_click_events_have_key_events -->
-                    <div style="width: 100%; height: 100%" onclick={(e) => e.stopPropagation()} role="group" aria-label="Thermostat Control">
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <div style="width: 100%; height: 100%" onclick={(e) => e.stopPropagation()}>
                         <ThermostatDial 
                             min={device.minTemp || 10} 
                             max={device.maxTemp || 30} 
@@ -114,6 +142,21 @@
                             hvacAction={device.hvacAction || 'off'}
                             onChange={handleTempChange}
                         />
+                    </div>
+
+                {:else if element.id === 'hvac-modes'}
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <div class="flex flex-col gap-1 justify-center h-full w-full" onclick={(e) => e.stopPropagation()}>
+                        {#each (device.hvacModes || []) as mode}
+                            <button
+                                onclick={() => handleHvacMode(mode)}
+                                class="w-full aspect-square rounded-full flex items-center justify-center text-xs transition-colors {device.hvacAction === mode || (device.state === mode && device.hvacAction !== 'off') ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}"
+                                title={mode}
+                            >
+                                <Icon icon={mode === 'heat' ? 'mdi:fire' : mode === 'cool' ? 'mdi:snowflake' : mode === 'auto' ? 'mdi:cached' : 'mdi:power'} width="60%" />
+                            </button>
+                        {/each}
                     </div>
                 {/if}
 

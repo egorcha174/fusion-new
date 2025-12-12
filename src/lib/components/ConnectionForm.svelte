@@ -25,30 +25,32 @@
 
         <form onsubmit={handleSubmit} class="space-y-4">
             <div>
-                <label for="ha-url" class="block text-sm font-medium mb-1 text-gray-200">Instance URL</label>
-                <input 
-                    id="ha-url"
-                    type="text" 
-                    bind:value={url} 
-                    placeholder="http://homeassistant.local:8123"
-                    class="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-white/30 disabled:opacity-50"
-                    disabled={isConnecting}
-                    required
-                />
+                <label class="block text-sm font-medium mb-1 text-gray-200">
+                    Instance URL
+                    <input 
+                        type="text" 
+                        bind:value={url} 
+                        placeholder="http://homeassistant.local:8123"
+                        class="w-full mt-1 px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-white/30 disabled:opacity-50"
+                        disabled={isConnecting}
+                        required
+                    />
+                </label>
                 <p class="text-xs text-gray-400 mt-1">Include port (usually 8123) if needed.</p>
             </div>
             
             <div>
-                <label for="ha-token" class="block text-sm font-medium mb-1 text-gray-200">Long-Lived Access Token</label>
-                <input 
-                    id="ha-token"
-                    type="password" 
-                    bind:value={token} 
-                    placeholder="eyJhbG..."
-                    class="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-white/30 disabled:opacity-50"
-                    disabled={isConnecting}
-                    required
-                />
+                <label class="block text-sm font-medium mb-1 text-gray-200">
+                    Long-Lived Access Token
+                    <input 
+                        type="password" 
+                        bind:value={token} 
+                        placeholder="eyJhbG..."
+                        class="w-full mt-1 px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-white/30 disabled:opacity-50"
+                        disabled={isConnecting}
+                        required
+                    />
+                </label>
             </div>
 
             <button 
