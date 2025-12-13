@@ -23,7 +23,7 @@
             </div>
         {/if}
 
-        <form onsubmit={handleSubmit} class="space-y-4">
+        <form on:submit={handleSubmit} class="space-y-4">
             <div>
                 <label class="block text-sm font-medium mb-1 text-gray-200">
                     Instance URL
