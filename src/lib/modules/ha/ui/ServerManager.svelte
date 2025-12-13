@@ -87,18 +87,22 @@
     {#if isAdding}
         <div class="border-t border-gray-200 dark:border-gray-700 pt-6 mt-6 space-y-4 animate-in fade-in slide-in-from-top-2">
             <h3 class="font-medium text-gray-900 dark:text-white">Добавить сервер</h3>
-            <div>
-                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Название</label>
+            
+            <label class="block">
+                <span class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Название</span>
                 <input type="text" bind:value={newName} placeholder="Мой Дом" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
-            </div>
-            <div>
-                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">URL адрес</label>
+            </label>
+            
+            <label class="block">
+                <span class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">URL адрес</span>
                 <input type="text" bind:value={newUrl} placeholder="http://homeassistant.local:8123" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
-            </div>
-            <div>
-                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Токен доступа (Long-Lived)</label>
+            </label>
+            
+            <label class="block">
+                <span class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Токен доступа (Long-Lived)</span>
                 <input type="password" bind:value={newToken} placeholder="eyJhbG..." class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
-            </div>
+            </label>
+
             <div class="flex justify-end gap-3 pt-2">
                 <button onclick={() => isAdding = false} class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">Отмена</button>
                 <button onclick={handleAdd} disabled={!newName || !newUrl || !newToken} class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors shadow-sm">Сохранить</button>
