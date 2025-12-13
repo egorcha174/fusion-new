@@ -1,16 +1,14 @@
-
 import { browser } from '$app/environment';
-import { constructHaUrl } from '../utils/url';
-import { mapEntitiesToRooms } from '../utils/ha-data-mapper';
-import { loadSecure, saveSecure } from '../utils/secureStorage';
-import type { ConnectionStatus, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device } from '../types';
+import { constructHaUrl } from '$utils/url';
+import { mapEntitiesToRooms } from '$utils/ha-data-mapper';
+import { loadSecure, saveSecure } from '$utils/secureStorage';
+import type { ConnectionStatus, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device } from '$types';
 
-// Svelte 5 Runes declarations
-declare const $state: <T>(value: T) => T;
-declare const $derived: {
-    <T>(value: T): T;
-    by<T>(fn: () => T): T;
-};
+declare function $state<T>(value: T): T;
+declare function $derived<T>(value: T): T;
+declare namespace $derived {
+    function by<T>(fn: () => T): T;
+}
 
 // Global message ID counter
 let globalMessageId = 1;
@@ -38,7 +36,7 @@ class HomeAssistant {
                 this.areas, 
                 this.devices, 
                 this.entityRegistry, 
-                {}, // Customizations (todo: inject from appState)
+                {}, // Customizations (todo: inject from appState if needed)
                 true
             );
             // Flatten for easy access by ID

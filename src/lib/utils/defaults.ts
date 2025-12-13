@@ -1,3 +1,4 @@
+
 import {
     type CardTemplates,
     type ColorScheme,
@@ -7,7 +8,7 @@ import {
     type WeatherSettings,
     type ThemeDefinition,
     type AuroraSettings
-} from '../types';
+} from '$types';
 import { nanoid } from 'nanoid';
 import appleTheme from '../apple-inspired-light.theme.json';
 

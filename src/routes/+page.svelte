@@ -32,14 +32,14 @@
             {#each activeTab.layout as item (item.deviceId)}
                 {@const device = ha.allKnownDevices[item.deviceId]}
                 {#if device}
-                    {@const template = appState.templates[DEFAULT_SENSOR_TEMPLATE_ID]} <!-- Simplified for now -->
+                    {@const template = appState.getTemplateForDevice(device)} 
                     <div 
                         style="
                             grid-column: span {item.width};
                             grid-row: span {item.height};
                         "
                     >
-                        <DeviceCard {device} {template} />
+                        <DeviceCard {device} template={template!} />
                     </div>
                 {/if}
             {/each}
