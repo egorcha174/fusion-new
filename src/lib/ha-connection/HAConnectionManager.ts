@@ -33,6 +33,8 @@ export class HAConnectionManager {
             
             // Build URL
             const wsUrl = constructHaUrl(this.options.url, '/api/websocket', 'ws');
+            console.log('[HA] Connecting to:', wsUrl);
+            
             this.socket = new WebSocket(wsUrl);
 
             this.socket.onopen = this.handleOpen.bind(this);
@@ -61,11 +63,13 @@ export class HAConnectionManager {
                 return;
             }
             if (data.type === 'auth_ok') {
+                console.log('[HA] Auth OK');
                 this.reconnectAttempt = 0; // Reset backoff on successful auth
                 this.options.onStateChange('connected');
                 return;
             }
             if (data.type === 'auth_invalid') {
+                console.error('[HA] Auth Invalid');
                 this.shouldReconnect = false; // Don't retry invalid auth
                 this.options.onStateChange('auth_invalid', data.message);
                 this.disconnect();
@@ -103,14 +107,15 @@ export class HAConnectionManager {
     }
 
     private scheduleReconnect() {
-        this.options.onStateChange('connecting');
+        this.options.onStateChange('connecting', `Reconnecting in ${this.reconnectAttempt > 0 ? '...' : ''}`);
         
+        // Exponential backoff with jitter
         const delay = Math.min(
-            1000 * Math.pow(1.5, this.reconnectAttempt), 
+            1000 * Math.pow(1.5, this.reconnectAttempt) + (Math.random() * 500), 
             this.maxReconnectDelay
         );
         
-        console.log(`[HA] Reconnecting in ${delay}ms (Attempt ${this.reconnectAttempt + 1})...`);
+        console.log(`[HA] Reconnecting in ${Math.round(delay)}ms (Attempt ${this.reconnectAttempt + 1})...`);
         
         this.reconnectTimeout = setTimeout(() => {
             this.reconnectAttempt++;

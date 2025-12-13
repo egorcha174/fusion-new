@@ -11,7 +11,7 @@ export class EntityBatcher {
     }
 
     public enqueue(entityId: string, newState: any) {
-        // Map ensures we only keep the LATEST state for an entity in this batch
+        // Map usage ensures we only process the LATEST state for an entity in this batch
         this.queue.set(entityId, newState);
 
         if (!this.timeout) {

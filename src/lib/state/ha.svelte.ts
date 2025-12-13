@@ -23,7 +23,7 @@ class HomeAssistant {
     devices = $state<HassDevice[]>([]);
     entityRegistry = $state<HassEntityRegistryEntry[]>([]);
 
-    // Managers
+    // Internal Managers
     private connection: HAConnectionManager | null = null;
     private batcher: EntityBatcher;
 
@@ -35,7 +35,7 @@ class HomeAssistant {
                 this.areas, 
                 this.devices, 
                 this.entityRegistry, 
-                {}, // Customizations (todo: inject from appState via a separate helper to avoid circular dep)
+                {}, // TODO: Inject customizations from appState safely
                 true
             );
             
@@ -98,6 +98,8 @@ class HomeAssistant {
         if (this.connection) {
             this.connection.disconnect();
         }
+        this.connection = null;
+        this.batcher.clear();
         localStorage.removeItem('ha-token');
     }
 
@@ -145,6 +147,8 @@ class HomeAssistant {
 
     private applyEntityUpdates(updates: Record<string, any>) {
         // Create a shallow copy to trigger reactivity efficiently
+        // In Svelte 5 with runes, modifying the object directly works if it's a proxy, 
+        // but replacing the reference is often safer for large maps.
         const nextEntities = { ...this.entities };
         let hasChanges = false;
 

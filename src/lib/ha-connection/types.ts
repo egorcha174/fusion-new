@@ -22,16 +22,6 @@ export interface HAResultMessage extends BaseMessage {
     };
 }
 
-export interface HAEventMessage extends BaseMessage {
-    type: 'event';
-    event: {
-        event_type: string;
-        data: any;
-        origin: string;
-        time_fired: string;
-    };
-}
-
 export interface ConnectionOptions {
     url: string;
     token: string;
