@@ -1,8 +1,10 @@
+
 import { browser } from '$app/environment';
-import { constructHaUrl } from '$utils/url';
 import { mapEntitiesToRooms } from '$utils/ha-data-mapper';
 import { loadSecure, saveSecure } from '$utils/secureStorage';
 import type { ConnectionStatus, HassEntity, HassArea, HassDevice, HassEntityRegistryEntry, Device } from '$types';
+import { HAConnectionManager } from '../ha-connection/HAConnectionManager';
+import { EntityBatcher } from '../ha-connection/EntityBatcher';
 
 declare function $state<T>(value: T): T;
 declare function $derived<T>(value: T): T;
@@ -10,25 +12,22 @@ declare namespace $derived {
     function by<T>(fn: () => T): T;
 }
 
-// Global message ID counter
-let globalMessageId = 1;
-
-const RECONNECT_DELAY_BASE = 2000;
-const RECONNECT_DELAY_MAX = 30000;
-
 class HomeAssistant {
+    // UI State
     connectionStatus = $state<ConnectionStatus>('idle');
-    isLoading = $state(false);
     error = $state<string | null>(null);
-    haUrl = $state('');
     
-    // Raw Data
+    // Data State
     entities = $state<Record<string, HassEntity>>({});
     areas = $state<HassArea[]>([]);
     devices = $state<HassDevice[]>([]);
     entityRegistry = $state<HassEntityRegistryEntry[]>([]);
 
-    // Derived Data
+    // Managers
+    private connection: HAConnectionManager | null = null;
+    private batcher: EntityBatcher;
+
+    // Derived: Mapped Devices
     allKnownDevices = $derived.by(() => {
         try {
             const rooms = mapEntitiesToRooms(
@@ -36,10 +35,11 @@ class HomeAssistant {
                 this.areas, 
                 this.devices, 
                 this.entityRegistry, 
-                {}, // Customizations (todo: inject from appState if needed)
+                {}, // Customizations (todo: inject from appState via a separate helper to avoid circular dep)
                 true
             );
-            // Flatten for easy access by ID
+            
+            // Flatten for O(1) access
             const map: Record<string, Device> = {};
             rooms.forEach(r => r.devices.forEach(d => map[d.id] = d));
             return map;
@@ -49,234 +49,136 @@ class HomeAssistant {
         }
     });
 
-    private socket: WebSocket | null = null;
-    private callbacks = new Map<number, { resolve: (val: any) => void, reject: (err: any) => void }>();
-    private connectionTimeout: ReturnType<typeof setTimeout> | null = null;
-    private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
-    private reconnectAttempts = 0;
-    private savedToken: string | null = null;
-
     constructor() {
+        this.batcher = new EntityBatcher((updates) => {
+            this.applyEntityUpdates(updates);
+        });
+
         if (browser) {
-            // Attempt to load saved credentials on startup
-            const savedUrl = localStorage.getItem('ha-url');
-            this.savedToken = loadSecure('ha-token', null);
-            
-            if (savedUrl && this.savedToken) {
-                this.connect(savedUrl, this.savedToken);
-            }
+            this.tryAutoConnect();
         }
     }
 
-    connect(url: string, token: string) {
-        if (!browser) return;
+    private tryAutoConnect() {
+        const savedUrl = localStorage.getItem('ha-url');
+        const savedToken = loadSecure('ha-token', null);
         
-        // Save credentials securely
+        if (savedUrl && savedToken) {
+            this.connect(savedUrl, savedToken);
+        }
+    }
+
+    public connect(url: string, token: string) {
+        if (!browser) return;
+
+        // Persist credentials
         localStorage.setItem('ha-url', url);
         saveSecure('ha-token', token);
-        this.savedToken = token;
+
+        // Teardown existing
+        if (this.connection) this.connection.disconnect();
+
+        // Initialize Connection Manager
+        this.connection = new HAConnectionManager({
+            url,
+            token,
+            onStateChange: (status, err) => {
+                this.connectionStatus = status;
+                if (err) this.error = err;
+                if (status === 'connected') this.handleConnected();
+                if (status === 'connecting') this.error = null;
+            },
+            onMessage: (data) => this.handleMessage(data)
+        });
+
+        this.connection.connect();
+    }
+
+    public disconnect() {
+        if (this.connection) {
+            this.connection.disconnect();
+        }
+        localStorage.removeItem('ha-token');
+    }
+
+    // --- Logic Handling ---
+
+    private async handleConnected() {
+        console.log('[HA] Connected. Fetching registry...');
         
-        this.internalConnect(url, token);
-    }
-
-    private internalConnect(url: string, token: string) {
-        // Reset state for new connection attempt
-        this.cleanup();
-        this.connectionStatus = 'connecting';
-        this.isLoading = true;
-        this.error = null;
-        this.haUrl = url;
-
-        // Set safety timeout (15s)
-        this.connectionTimeout = setTimeout(() => {
-            if (this.connectionStatus !== 'connected') {
-                this.handleConnectionFailure("Connection timed out. Check URL and network.");
-            }
-        }, 15000);
-
         try {
-            const wsUrl = constructHaUrl(url, '/api/websocket', 'ws');
-            console.log('[HA] Connecting to:', wsUrl);
-            
-            this.socket = new WebSocket(wsUrl);
-
-            this.socket.onopen = () => {
-                console.log('[HA] WebSocket connected, waiting for auth...');
-                // Clear reconnect counter on successful open
-                this.reconnectAttempts = 0;
-            };
-
-            this.socket.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    this.handleMessage(data, token);
-                } catch (e) {
-                    console.error('[HA] JSON Parse error:', e);
-                }
-            };
-
-            this.socket.onclose = (e) => {
-                console.log('[HA] Socket closed', e.code, e.reason);
-                this.handleConnectionFailure('Connection closed by server.');
-            };
-
-            this.socket.onerror = (e) => {
-                console.error('[HA] Socket error', e);
-                // onError usually precedes onClose, waiting for close to handle logic
-            };
-
-        } catch (e) {
-            console.error('[HA] Connect exception:', e);
-            this.handleConnectionFailure('Failed to create WebSocket. Invalid URL?');
-        }
-    }
-
-    private handleConnectionFailure(reason: string) {
-        this.cleanup();
-        this.connectionStatus = 'failed';
-        this.error = reason;
-        this.isLoading = false;
-
-        // Automatic Reconnection Logic
-        if (this.savedToken && this.haUrl) {
-            const delay = Math.min(RECONNECT_DELAY_BASE * Math.pow(1.5, this.reconnectAttempts), RECONNECT_DELAY_MAX);
-            console.log(`[HA] Reconnecting in ${delay}ms (Attempt ${this.reconnectAttempts + 1})...`);
-            
-            this.reconnectTimeout = setTimeout(() => {
-                this.reconnectAttempts++;
-                this.internalConnect(this.haUrl, this.savedToken!);
-            }, delay);
-        }
-    }
-
-    disconnect(reason?: string) {
-        this.savedToken = null; // Prevent auto-reconnect
-        localStorage.removeItem('ha-token'); // Clear stored token
-        this.cleanup();
-        this.connectionStatus = 'failed';
-        this.error = reason || 'Disconnected by user';
-        this.isLoading = false;
-    }
-
-    private cleanup() {
-        if (this.socket) {
-            this.socket.onclose = null; // Prevent firing onclose during manual cleanup
-            this.socket.close();
-            this.socket = null;
-        }
-        if (this.connectionTimeout) {
-            clearTimeout(this.connectionTimeout);
-            this.connectionTimeout = null;
-        }
-        if (this.reconnectTimeout) {
-            clearTimeout(this.reconnectTimeout);
-            this.reconnectTimeout = null;
-        }
-        this.callbacks.clear();
-    }
-
-    sendMessage(msg: any) {
-        if (this.socket?.readyState === WebSocket.OPEN) {
-            this.socket.send(JSON.stringify(msg));
-        } else {
-            console.warn('[HA] Cannot send, socket not open', msg);
-        }
-    }
-
-    handleMessage(data: any, token: string) {
-        switch (data.type) {
-            case 'auth_required':
-                this.sendMessage({ type: 'auth', access_token: token });
-                break;
-            
-            case 'auth_ok':
-                console.log('[HA] Auth OK. Fetching initial data...');
-                this.initialFetch();
-                break;
-            
-            case 'auth_invalid':
-                console.error('[HA] Auth invalid:', data.message);
-                this.disconnect(`Authentication failed: ${data.message}`);
-                break;
-            
-            case 'result':
-                if (this.callbacks.has(data.id)) {
-                    const cb = this.callbacks.get(data.id);
-                    if (data.success) cb?.resolve(data.result);
-                    else cb?.reject(data.error);
-                    this.callbacks.delete(data.id);
-                }
-                break;
-            
-            case 'event':
-                if (data.event.event_type === 'state_changed') {
-                    const { entity_id, new_state } = data.event.data;
-                    if (new_state) {
-                        this.entities[entity_id] = new_state;
-                    } else {
-                        delete this.entities[entity_id];
-                    }
-                }
-                break;
-        }
-    }
-
-    async initialFetch() {
-        const fetch = (type: string) => {
-            return new Promise((resolve, reject) => {
-                const id = globalMessageId++;
-                this.callbacks.set(id, { resolve, reject });
-                this.sendMessage({ id, type });
-            });
-        };
-
-        const safeFetch = async (type: string, fallback: any = []) => {
-            try {
-                return await fetch(type);
-            } catch (e) {
-                console.warn(`[HA] Failed to fetch ${type}, using fallback.`, e);
-                return fallback;
-            }
-        };
-
-        try {
-            const [statesResult, areasResult, devicesResult, regResult] = await Promise.allSettled([
-                fetch('get_states'),
-                safeFetch('config/area_registry/list'),
-                safeFetch('config/device_registry/list'),
-                safeFetch('config/entity_registry/list')
+            // Parallel fetch for static config data
+            const [areas, devices, registry] = await Promise.all([
+                this.connection?.send({ type: 'config/area_registry/list' }),
+                this.connection?.send({ type: 'config/device_registry/list' }),
+                this.connection?.send({ type: 'config/entity_registry/list' })
             ]);
 
-            if (statesResult.status === 'rejected') {
-                throw new Error("Failed to fetch states: " + statesResult.reason);
+            this.areas = areas || [];
+            this.devices = devices || [];
+            this.entityRegistry = registry || [];
+
+            // Get initial states
+            const states = await this.connection?.send({ type: 'get_states' });
+            const entityMap: Record<string, HassEntity> = {};
+            if (states) {
+                states.forEach((e: HassEntity) => entityMap[e.entity_id] = e);
+                this.entities = entityMap;
             }
-            this.entities = (statesResult.value as any[]).reduce((acc: any, curr: any) => ({...acc, [curr.entity_id]: curr}), {});
 
-            this.areas = areasResult.status === 'fulfilled' ? areasResult.value : [];
-            this.devices = devicesResult.status === 'fulfilled' ? devicesResult.value : [];
-            this.entityRegistry = regResult.status === 'fulfilled' ? regResult.value : [];
-            
-            this.sendMessage({ id: globalMessageId++, type: 'subscribe_events', event_type: 'state_changed' });
-
-            if (this.connectionTimeout) clearTimeout(this.connectionTimeout);
-            this.connectionStatus = 'connected';
-            this.isLoading = false;
+            // Subscribe to events
+            this.connection?.send({ type: 'subscribe_events', event_type: 'state_changed' });
 
         } catch (e: any) {
-            console.error('[HA] Initial fetch error:', e);
-            // Don't disconnect here, retry logic will handle if socket closes
-            this.error = "Failed to load initial data.";
+            console.error('[HA] Initial fetch failed:', e);
+            this.error = "Failed to load HA configuration.";
         }
     }
 
-    callService(domain: string, service: string, service_data: object) {
-        this.sendMessage({
-            id: globalMessageId++,
-            type: 'call_service',
-            domain,
-            service,
-            service_data
-        });
+    private handleMessage(data: any) {
+        if (data.type === 'event' && data.event?.event_type === 'state_changed') {
+            const { entity_id, new_state } = data.event.data;
+            // Queue update for batching
+            this.batcher.enqueue(entity_id, new_state);
+        }
+    }
+
+    private applyEntityUpdates(updates: Record<string, any>) {
+        // Create a shallow copy to trigger reactivity efficiently
+        const nextEntities = { ...this.entities };
+        let hasChanges = false;
+
+        for (const [id, state] of Object.entries(updates)) {
+            if (state === null) {
+                if (nextEntities[id]) {
+                    delete nextEntities[id];
+                    hasChanges = true;
+                }
+            } else {
+                nextEntities[id] = state;
+                hasChanges = true;
+            }
+        }
+
+        if (hasChanges) {
+            this.entities = nextEntities;
+        }
+    }
+
+    // --- Public API ---
+
+    public async callService(domain: string, service: string, service_data: object) {
+        if (!this.connection) return;
+        try {
+            await this.connection.send({
+                type: 'call_service',
+                domain,
+                service,
+                service_data
+            });
+        } catch (e) {
+            console.error('[HA] Service call failed:', e);
+        }
     }
 }
 
